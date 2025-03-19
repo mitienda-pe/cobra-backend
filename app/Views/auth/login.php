@@ -11,6 +11,7 @@
             </div>
             <div class="card-body">
                 <form action="<?= site_url('auth/login') ?>" method="post">
+                    <?= csrf_field() ?>
                     <div class="mb-3">
                         <label for="email" class="form-label">Correo Electrónico</label>
                         <input type="email" class="form-control" id="email" name="email" value="<?= old('email') ?>" required>

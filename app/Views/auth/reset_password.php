@@ -11,6 +11,7 @@
             </div>
             <div class="card-body">
                 <form action="<?= site_url('auth/reset-password/' . $token) ?>" method="post">
+                    <?= csrf_field() ?>
                     <div class="mb-3">
                         <label for="password" class="form-label">Nueva Contraseña</label>
                         <input type="password" class="form-control" id="password" name="password" required>

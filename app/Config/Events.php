@@ -35,6 +35,10 @@ Events::on('pre_system', static function () {
 
         ob_start(static fn ($buffer) => $buffer);
     }
+    
+    // Register our CSRF disabling hook
+    $disableCsrfHook = new \App\Hooks\DisableCsrfHook();
+    Events::on('pre_controller', [$disableCsrfHook, 'disableCsrf']);
 
     /*
      * --------------------------------------------------------------------

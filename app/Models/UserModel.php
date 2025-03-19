@@ -13,7 +13,7 @@ class UserModel extends Model
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'organization_id', 'name', 'email', 'password', 'role', 'status',
+        'organization_id', 'uuid', 'name', 'email', 'phone', 'password', 'role', 'status',
         'remember_token', 'reset_token', 'reset_token_expires_at'
     ];
 
@@ -27,7 +27,8 @@ class UserModel extends Model
     // Validation
     protected $validationRules      = [
         'name'     => 'required|min_length[3]|max_length[100]',
-        'email'    => 'required|valid_email|is_unique[users.email,id,{id}]',
+        'email'    => 'required|valid_email|is_unique[users.email,id,{id},deleted_at,IS NULL]',
+        'phone'    => 'permit_empty|min_length[6]|max_length[20]|is_unique[users.phone,id,{id},deleted_at,IS NULL]',
         'password' => 'required|min_length[8]',
         'role'     => 'required|in_list[superadmin,admin,user]',
         'status'   => 'required|in_list[active,inactive]',
@@ -39,7 +40,7 @@ class UserModel extends Model
     /**
      * Before insert callbacks
      */
-    protected $beforeInsert = ['hashPassword'];
+    protected $beforeInsert = ['hashPassword', 'generateUuid'];
     
     /**
      * Before update callbacks
@@ -56,6 +57,18 @@ class UserModel extends Model
         }
 
         $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_BCRYPT);
+        
+        return $data;
+    }
+    
+    /**
+     * Generate a UUID for new users
+     */
+    protected function generateUuid(array $data)
+    {
+        if (! isset($data['data']['uuid']) || empty($data['data']['uuid'])) {
+            $data['data']['uuid'] = generate_unique_uuid('users', 'uuid');
+        }
         
         return $data;
     }

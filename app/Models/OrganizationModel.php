@@ -12,7 +12,7 @@ class OrganizationModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'description', 'status'];
+    protected $allowedFields    = ['uuid', 'name', 'description', 'status'];
 
     // Dates
     protected $useTimestamps = true;
@@ -29,6 +29,21 @@ class OrganizationModel extends Model
     protected $validationMessages   = [];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
+    
+    // Callbacks
+    protected $beforeInsert   = ['generateUuid'];
+    
+    /**
+     * Generate a UUID for new organizations
+     */
+    protected function generateUuid(array $data)
+    {
+        if (! isset($data['data']['uuid']) || empty($data['data']['uuid'])) {
+            $data['data']['uuid'] = generate_unique_uuid('organizations', 'uuid');
+        }
+        
+        return $data;
+    }
 
     public function getActiveOrganizations()
     {

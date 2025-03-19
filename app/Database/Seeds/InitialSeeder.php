@@ -8,7 +8,7 @@ class InitialSeeder extends Seeder
 {
     public function run()
     {
-        $this->call('OrganizationSeeder');
-        $this->call('UserSeeder');
+        // Usar el seeder simplificado que maneja correctamente las relaciones
+        $this->call('InitialSetupSeeder');
     }
 }

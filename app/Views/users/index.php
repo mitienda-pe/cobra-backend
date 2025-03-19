@@ -10,27 +10,64 @@
     </a>
 </div>
 
+
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Email</th>
+                        <th>
+                            <a href="<?= site_url('users?sort=id&order=' . ($currentSort == 'id' && $currentOrder == 'asc' ? 'desc' : 'asc') . ($filterOrgId ? '&organization_id=' . $filterOrgId : '')) ?>">
+                                ID
+                                <?php if ($currentSort == 'id'): ?>
+                                    <i class="bi bi-arrow-<?= $currentOrder == 'asc' ? 'up' : 'down' ?>"></i>
+                                <?php endif; ?>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="<?= site_url('users?sort=name&order=' . ($currentSort == 'name' && $currentOrder == 'asc' ? 'desc' : 'asc') . ($filterOrgId ? '&organization_id=' . $filterOrgId : '')) ?>">
+                                Nombre
+                                <?php if ($currentSort == 'name'): ?>
+                                    <i class="bi bi-arrow-<?= $currentOrder == 'asc' ? 'up' : 'down' ?>"></i>
+                                <?php endif; ?>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="<?= site_url('users?sort=email&order=' . ($currentSort == 'email' && $currentOrder == 'asc' ? 'desc' : 'asc') . ($filterOrgId ? '&organization_id=' . $filterOrgId : '')) ?>">
+                                Email
+                                <?php if ($currentSort == 'email'): ?>
+                                    <i class="bi bi-arrow-<?= $currentOrder == 'asc' ? 'up' : 'down' ?>"></i>
+                                <?php endif; ?>
+                            </a>
+                        </th>
+                        <th>Teléfono</th>
                         <th>Rol</th>
                         <?php if ($auth->hasRole('superadmin')): ?>
-                            <th>Organización</th>
+                            <th>
+                                <a href="<?= site_url('users?sort=organization&order=' . ($currentSort == 'organization' && $currentOrder == 'asc' ? 'desc' : 'asc') . ($filterOrgId ? '&organization_id=' . $filterOrgId : '')) ?>">
+                                    Organización
+                                    <?php if ($currentSort == 'organization'): ?>
+                                        <i class="bi bi-arrow-<?= $currentOrder == 'asc' ? 'up' : 'down' ?>"></i>
+                                    <?php endif; ?>
+                                </a>
+                            </th>
                         <?php endif; ?>
-                        <th>Estado</th>
+                        <th>
+                            <a href="<?= site_url('users?sort=status&order=' . ($currentSort == 'status' && $currentOrder == 'asc' ? 'desc' : 'asc') . ($filterOrgId ? '&organization_id=' . $filterOrgId : '')) ?>">
+                                Estado
+                                <?php if ($currentSort == 'status'): ?>
+                                    <i class="bi bi-arrow-<?= $currentOrder == 'asc' ? 'up' : 'down' ?>"></i>
+                                <?php endif; ?>
+                            </a>
+                        </th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($users)): ?>
                         <tr>
-                            <td colspan="<?= $auth->hasRole('superadmin') ? 7 : 6 ?>" class="text-center">No hay usuarios registrados.</td>
+                            <td colspan="<?= $auth->hasRole('superadmin') ? 8 : 7 ?>" class="text-center">No hay usuarios registrados.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($users as $user): ?>
@@ -38,6 +75,7 @@
                                 <td><?= $user['id'] ?></td>
                                 <td><?= $user['name'] ?></td>
                                 <td><?= $user['email'] ?></td>
+                                <td><?= isset($user['phone']) ? $user['phone'] : '-' ?></td>
                                 <td>
                                     <?php if ($user['role'] == 'superadmin'): ?>
                                         <span class="badge bg-danger">Superadmin</span>
@@ -50,8 +88,9 @@
                                 <?php if ($auth->hasRole('superadmin')): ?>
                                     <td>
                                         <?php if ($user['organization_id']): ?>
-                                            <a href="<?= site_url('organizations/view/' . $user['organization_id']) ?>">
-                                                Ver Organización
+                                            <?= isset($user['organization_name']) ? $user['organization_name'] : '' ?>
+                                            <a href="<?= site_url('organizations/view/' . $user['organization_id']) ?>" class="ms-1">
+                                                <i class="bi bi-box-arrow-up-right small"></i>
                                             </a>
                                         <?php else: ?>
                                             <span class="text-muted">N/A</span>

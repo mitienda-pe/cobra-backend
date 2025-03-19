@@ -136,8 +136,37 @@ class Auth
     
     /**
      * Get user's organization ID
+     * For superadmins, use the selected organization ID from session if available
      */
     public function organizationId()
+    {
+        $user = $this->user();
+        if (!$user) {
+            return null;
+        }
+        
+        // For superadmins, check if there's a selected organization in the session
+        if ($user['role'] === 'superadmin') {
+            $selectedOrgId = $this->session->get('selected_organization_id');
+            
+            // Debug log to help track the session value
+            log_message('debug', '[Auth.organizationId] Superadmin check - Session selected_organization_id: ' . 
+                       ($selectedOrgId ? $selectedOrgId : 'null'));
+            
+            if ($selectedOrgId) {
+                return $selectedOrgId;
+            }
+        }
+        
+        // For other users, return their assigned organization
+        log_message('debug', '[Auth.organizationId] Using user\'s assigned organization: ' . $user['organization_id']);
+        return $user['organization_id'];
+    }
+    
+    /**
+     * Get user's fixed organization ID (ignoring session selection)
+     */
+    public function fixedOrganizationId()
     {
         $user = $this->user();
         if (!$user) {

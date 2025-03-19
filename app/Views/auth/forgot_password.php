@@ -12,6 +12,7 @@
             <div class="card-body">
                 <p>Ingrese su correo electrónico y le enviaremos un enlace para restablecer su contraseña.</p>
                 <form action="<?= site_url('auth/forgot-password') ?>" method="post">
+                    <?= csrf_field() ?>
                     <div class="mb-3">
                         <label for="email" class="form-label">Correo Electrónico</label>
                         <input type="email" class="form-control" id="email" name="email" value="<?= old('email') ?>" required>

@@ -21,6 +21,13 @@ class Auth extends BaseController
         if ($this->auth->check()) {
             return redirect()->to('/dashboard');
         }
+
+        // Ensure CSRF is working by invalidating any old tokens and generating new ones
+        $security = service('security');
+        if ($this->request->getMethod() === 'get') {
+            $security->generateHash();
+            session()->remove('_ci_previous_url');
+        }
         
         // Handle login form submission
         if ($this->request->getMethod() === 'post') {

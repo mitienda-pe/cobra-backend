@@ -14,6 +14,8 @@
             </div>
             <div class="card-body">
                 <form action="<?= site_url('organizations/create') ?>" method="post">
+                    <?= csrf_field() ?>
+                    
                     <div class="mb-3">
                         <label for="name" class="form-label">Nombre</label>
                         <input type="text" class="form-control" id="name" name="name" value="<?= old('name') ?>" required>

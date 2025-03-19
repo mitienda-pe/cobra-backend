@@ -14,9 +14,6 @@ class Filters extends BaseConfig
     /**
      * Configures aliases for Filter classes to
      * make reading things nicer and simpler.
-     *
-     * @var array<string, class-string|list<class-string>> [filter_name => classname]
-     *                                                     or [filter_name => [classname1, classname2, ...]]
      */
     public array $aliases = [
         'csrf'          => CSRF::class,
@@ -26,74 +23,99 @@ class Filters extends BaseConfig
         'secureheaders' => SecureHeaders::class,
         'auth'          => \App\Filters\AuthFilter::class,
         'role'          => \App\Filters\RoleFilter::class,
+        'apiAuth'       => \App\Filters\ApiAuthFilter::class,
+        'organization'  => \App\Filters\OrganizationFilter::class,
+        'csrfExcept'    => \App\Filters\CsrfExceptFilter::class,
+        'disableCsrf'   => \App\Filters\DisableCsrfForRoutes::class,
     ];
 
     /**
      * List of filter aliases that are always
      * applied before and after every request.
-     *
-     * @var array<string, array<string, array<string, string>>>|array<string, list<string>>
      */
     public array $globals = [
         'before' => [
             // 'honeypot',
-            // 'csrf',
-            // 'invalidchars',
+            // 'csrf', // Moved to specific routes in $filters
+            'invalidchars',
+            'disableCsrf',  // IMPORTANT: This must come BEFORE the CSRF filter
+            'organization', // Add organization filter globally
+            'csrfExcept',   // Add our custom CSRF exception filter
         ],
         'after' => [
             'toolbar',
             // 'honeypot',
-            // 'secureheaders',
+            'secureheaders',
         ],
     ];
 
     /**
      * List of filter aliases that works on a
      * particular HTTP method (GET, POST, etc.).
-     *
-     * Example:
-     * 'post' => ['foo', 'bar']
-     *
-     * If you use this, you should disable auto-routing because auto-routing
-     * permits any HTTP method to access a controller. Accessing the controller
-     * with a method you don't expect could bypass the filter.
-     *
-     * @var array<string, list<string>>
      */
     public array $methods = [];
 
     /**
      * List of filter aliases that should run on any
      * before or after URI patterns.
-     *
-     * Example:
-     * 'isLoggedIn' => ['before' => ['account/*', 'profiles/*']]
-     *
-     * @var array<string, array<string, list<string>>>
      */
     public array $filters = [
+        // CSRF Filter - exclude import actions
+        'csrf' => [
+            'before' => ['*'],
+            'except' => [
+                // Complete list of routes to exclude from CSRF protection
+                'clients/import',
+                'clients/import/',
+                '/clients/import',
+                '/clients/import/',
+                'invoices/import',
+                'invoices/import/',
+                '/invoices/import',
+                '/invoices/import/'
+            ]
+        ],
+        // API filters only
+        'apiAuth' => [
+            'before' => [
+                'api/*',
+                'api',
+            ],
+            'except' => [
+                'api/auth/otp/request',
+                'api/auth/otp/verify',
+                'api/auth/refresh',
+                'api/users',
+                'api/clients',
+                'debug/client-create',
+                'debug/auth-info',
+                'debug/get-users-by-organization/*',
+                'debug/get-clients-by-organization/*',
+            ]
+        ],
+        // Auth filter for web routes
         'auth' => [
             'before' => [
                 'dashboard',
                 'dashboard/*',
+                'clients',
+                'clients/*',
+                'portfolios',
+                'portfolios/*',
+                'invoices',
+                'invoices/*',
+                'payments',
+                'payments/*',
+                'webhooks',
+                'webhooks/*',
                 'users',
                 'users/*',
                 'organizations',
                 'organizations/*',
-            ]
-        ],
-        'role:superadmin' => [
-            'before' => [
-                'organizations',
-                'organizations/*',
-            ]
-        ],
-        'role:superadmin,admin' => [
-            'before' => [
-                'users',
-                'users/create',
-                'users/edit/*',
-                'users/delete/*',
+            ],
+            'except' => [
+                'auth/*',
+                'auth',
             ]
         ]
     ];

@@ -11,6 +11,8 @@
             </div>
             <div class="card-body">
                 <form action="<?= site_url('users/profile') ?>" method="post">
+                    <?= csrf_field() ?>
+                    
                     <div class="mb-3">
                         <label for="name" class="form-label">Nombre Completo</label>
                         <input type="text" class="form-control" id="name" name="name" value="<?= old('name', $user['name']) ?>" required>
@@ -19,6 +21,12 @@
                     <div class="mb-3">
                         <label for="email" class="form-label">Correo Electrónico</label>
                         <input type="email" class="form-control" id="email" name="email" value="<?= old('email', $user['email']) ?>" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Teléfono Móvil <small class="text-muted">(Requerido para OTP)</small></label>
+                        <input type="tel" class="form-control" id="phone" name="phone" value="<?= old('phone', $user['phone'] ?? '') ?>" required>
+                        <div class="form-text">Formato: +123456789 (incluir código de país). Debe ser único para cada usuario.</div>
                     </div>
                     
                     <hr class="my-4">

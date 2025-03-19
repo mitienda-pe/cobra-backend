@@ -23,22 +23,9 @@ class RoleFilter implements FilterInterface
         
         // Check if user has at least one of the required roles
         if (!empty($arguments)) {
-            // Convert roles string to array
-            $roles = [];
-            if (is_string($arguments)) {
-                $roles = explode(',', $arguments);
-            } elseif (is_array($arguments)) {
-                foreach ($arguments as $arg) {
-                    if (is_string($arg)) {
-                        $exploded = explode(',', $arg);
-                        $roles = array_merge($roles, $exploded);
-                    } else {
-                        $roles[] = $arg;
-                    }
-                }
-            }
+            $allowedRoles = $arguments;
             
-            if (!$auth->hasAnyRole($roles)) {
+            if (!$auth->hasAnyRole($allowedRoles)) {
                 return redirect()->to('/dashboard')->with('error', 'No tiene permisos para acceder a esta página.');
             }
         }
