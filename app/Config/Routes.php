@@ -89,15 +89,15 @@ $routes->get('payments/delete/(:num)', 'PaymentController::delete/$1');
 $routes->get('payments/report', 'PaymentController::report');
 
 // Webhook routes
-$routes->get('webhooks', 'WebhooksController::index');
-$routes->get('webhooks/create', 'WebhooksController::create');
-$routes->post('webhooks/create', 'WebhooksController::create');
-$routes->get('webhooks/edit/(:num)', 'WebhooksController::edit/$1');
-$routes->post('webhooks/edit/(:num)', 'WebhooksController::edit/$1');
-$routes->get('webhooks/delete/(:num)', 'WebhooksController::delete/$1');
-$routes->get('webhooks/logs/(:num)', 'WebhooksController::logs/$1');
-$routes->get('webhooks/test/(:num)', 'WebhooksController::test/$1');
-$routes->get('webhooks/retry/(:num)', 'WebhooksController::retry/$1');
+$routes->get('webhooks', 'WebhookController::index');
+$routes->get('webhooks/create', 'WebhookController::create');
+$routes->post('webhooks/create', 'WebhookController::create');
+$routes->get('webhooks/edit/(:num)', 'WebhookController::edit/$1');
+$routes->post('webhooks/edit/(:num)', 'WebhookController::edit/$1');
+$routes->get('webhooks/delete/(:num)', 'WebhookController::delete/$1');
+$routes->get('webhooks/logs/(:num)', 'WebhookController::logs/$1');
+$routes->get('webhooks/test/(:num)', 'WebhookController::test/$1');
+$routes->get('webhooks/retry/(:num)', 'WebhookController::retry/$1');
 
 // API Routes
 $routes->group('api', function($routes) {
