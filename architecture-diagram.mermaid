@@ -1,0 +1,71 @@
+graph TB
+    subgraph "Capa de Presentación"
+        WEB["Backend Web\n(CodeIgniter 4)"]
+        APM["Aplicación Móvil\n(Flutter)"]
+    end
+
+    subgraph "Capa de API"
+        REST["API REST"]
+        AUTH["Servicios de Autenticación\n(OTP/JWT)"]
+        WEBHOOK["Sistema de Webhooks"]
+    end
+
+    subgraph "Capa de Aplicación"
+        TENANT["Gestión Multitenant"]
+        CTRL["Controladores"]
+        SRV["Servicios"]
+        FILTER["Filtros y Middleware"]
+    end
+
+    subgraph "Capa de Dominio"
+        MODELS["Modelos"]
+        VAL["Validación"]
+        BIZ["Lógica de Negocio"]
+    end
+
+    subgraph "Capa de Persistencia"
+        DB[(Base de Datos)]
+        CACHE[(Sistema de Caché)]
+    end
+
+    subgraph "Sistemas Externos"
+        EXT_SYS["Sistemas de Facturación\ny Contabilidad"]
+    end
+
+    %% Conexiones entre componentes
+    WEB --> CTRL
+    APM --> REST
+    REST --> AUTH
+    REST --> CTRL
+    WEBHOOK --> EXT_SYS
+    
+    CTRL --> TENANT
+    CTRL --> SRV
+    SRV --> MODELS
+    FILTER --> TENANT
+    
+    MODELS --> BIZ
+    MODELS --> VAL
+    
+    BIZ --> DB
+    BIZ --> CACHE
+    MODELS --> DB
+    
+    %% Filtrado multitenant
+    TENANT -.-> MODELS
+    TENANT -.-> DB
+    
+    %% Estilo de nodos
+    classDef presentation fill:#bbdefb,stroke:#1976d2,stroke-width:2px
+    classDef api fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef application fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+    classDef domain fill:#ffccbc,stroke:#e64a19,stroke-width:2px
+    classDef persistence fill:#d1c4e9,stroke:#512da8,stroke-width:2px
+    classDef external fill:#b2dfdb,stroke:#00796b,stroke-width:2px
+    
+    class WEB,APM presentation
+    class REST,AUTH,WEBHOOK api
+    class TENANT,CTRL,SRV,FILTER application
+    class MODELS,VAL,BIZ domain
+    class DB,CACHE persistence
+    class EXT_SYS external
