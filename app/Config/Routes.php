@@ -38,16 +38,16 @@ $routes->get('organizations/delete/(:num)', 'OrganizationsController::delete/$1'
 $routes->get('organizations/view/(:num)', 'OrganizationsController::view/$1');
 
 // Client routes
-$routes->get('clients', 'ClientsController::index');
-$routes->get('clients/create', 'ClientsController::create');
-$routes->post('clients/create', 'ClientsController::create');
-$routes->get('clients/edit/(:num)', 'ClientsController::edit/$1');
-$routes->post('clients/edit/(:num)', 'ClientsController::edit/$1');
-$routes->get('clients/delete/(:num)', 'ClientsController::delete/$1');
-$routes->get('clients/view/(:num)', 'ClientsController::view/$1');
+$routes->get('clients', 'ClientController::index');
+$routes->get('clients/create', 'ClientController::create');
+$routes->post('clients/create', 'ClientController::create');
+$routes->get('clients/edit/(:num)', 'ClientController::edit/$1');
+$routes->post('clients/edit/(:num)', 'ClientController::edit/$1');
+$routes->get('clients/delete/(:num)', 'ClientController::delete/$1');
+$routes->get('clients/view/(:num)', 'ClientController::view/$1');
 // Client import routes (with CSRF bypass)
-$routes->get('clients/import', 'ClientsController::import', ['csrf' => false]);
-$routes->post('clients/import', 'ClientsController::import', ['csrf' => false]);
+$routes->get('clients/import', 'ClientController::import', ['csrf' => false]);
+$routes->post('clients/import', 'ClientController::import', ['csrf' => false]);
 
 // Debug routes
 $routes->get('debug/client-create', 'Debug::clientCreate');
