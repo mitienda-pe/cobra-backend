@@ -68,16 +68,16 @@ $routes->get('portfolios/delete/(:num)', 'PortfoliosController::delete/$1');
 $routes->get('portfolios/view/(:num)', 'PortfoliosController::view/$1');
 
 // Invoice routes
-$routes->get('invoices', 'InvoicesController::index');
-$routes->get('invoices/create', 'InvoicesController::create');
-$routes->post('invoices/create', 'InvoicesController::create');
-$routes->get('invoices/edit/(:num)', 'InvoicesController::edit/$1');
-$routes->post('invoices/edit/(:num)', 'InvoicesController::edit/$1');
-$routes->get('invoices/delete/(:num)', 'InvoicesController::delete/$1');
-$routes->get('invoices/view/(:num)', 'InvoicesController::view/$1');
+$routes->get('invoices', 'InvoiceController::index');
+$routes->get('invoices/create', 'InvoiceController::create');
+$routes->post('invoices/create', 'InvoiceController::create');
+$routes->get('invoices/edit/(:num)', 'InvoiceController::edit/$1');
+$routes->post('invoices/edit/(:num)', 'InvoiceController::edit/$1');
+$routes->get('invoices/delete/(:num)', 'InvoiceController::delete/$1');
+$routes->get('invoices/view/(:num)', 'InvoiceController::view/$1');
 // Invoice import routes (with CSRF bypass)
-$routes->get('invoices/import', 'InvoicesController::import', ['csrf' => false]);
-$routes->post('invoices/import', 'InvoicesController::import', ['csrf' => false]);
+$routes->get('invoices/import', 'InvoiceController::import', ['csrf' => false]);
+$routes->post('invoices/import', 'InvoiceController::import', ['csrf' => false]);
 
 // Payment routes
 $routes->get('payments', 'PaymentsController::index');
