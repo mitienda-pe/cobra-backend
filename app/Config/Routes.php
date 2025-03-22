@@ -80,13 +80,13 @@ $routes->get('invoices/import', 'InvoiceController::import', ['csrf' => false]);
 $routes->post('invoices/import', 'InvoiceController::import', ['csrf' => false]);
 
 // Payment routes
-$routes->get('payments', 'PaymentsController::index');
-$routes->get('payments/create', 'PaymentsController::create');
-$routes->get('payments/create/(:num)', 'PaymentsController::create/$1');
-$routes->post('payments/create', 'PaymentsController::create');
-$routes->get('payments/view/(:num)', 'PaymentsController::view/$1');
-$routes->get('payments/delete/(:num)', 'PaymentsController::delete/$1');
-$routes->get('payments/report', 'PaymentsController::report');
+$routes->get('payments', 'PaymentController::index');
+$routes->get('payments/create', 'PaymentController::create');
+$routes->post('payments/create', 'PaymentController::create');
+$routes->get('payments/create/(:num)', 'PaymentController::create/$1');
+$routes->get('payments/view/(:num)', 'PaymentController::view/$1');
+$routes->get('payments/delete/(:num)', 'PaymentController::delete/$1');
+$routes->get('payments/report', 'PaymentController::report');
 
 // Webhook routes
 $routes->get('webhooks', 'WebhooksController::index');
