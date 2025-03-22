@@ -29,13 +29,13 @@ $routes->get('users/profile', 'Users::profile');
 $routes->post('users/profile', 'Users::profile');
 
 // Organization routes
-$routes->get('organizations', 'OrganizationsController::index');
-$routes->get('organizations/create', 'OrganizationsController::create');
-$routes->post('organizations/create', 'OrganizationsController::create');
-$routes->get('organizations/edit/(:num)', 'OrganizationsController::edit/$1');
-$routes->post('organizations/edit/(:num)', 'OrganizationsController::edit/$1');
-$routes->get('organizations/delete/(:num)', 'OrganizationsController::delete/$1');
-$routes->get('organizations/view/(:num)', 'OrganizationsController::view/$1');
+$routes->get('organizations', 'OrganizationController::index');
+$routes->get('organizations/create', 'OrganizationController::create');
+$routes->post('organizations/create', 'OrganizationController::create');
+$routes->get('organizations/edit/(:num)', 'OrganizationController::edit/$1');
+$routes->post('organizations/edit/(:num)', 'OrganizationController::edit/$1');
+$routes->get('organizations/delete/(:num)', 'OrganizationController::delete/$1');
+$routes->get('organizations/view/(:num)', 'OrganizationController::view/$1');
 
 // Client routes
 $routes->get('clients', 'ClientController::index');
