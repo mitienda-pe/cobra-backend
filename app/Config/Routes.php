@@ -59,13 +59,13 @@ $routes->get('debug/orgContext', 'Debug::orgContext');
 $routes->get('debug/csrf', 'Debug::csrf');
 
 // Portfolio routes
-$routes->get('portfolios', 'PortfoliosController::index');
-$routes->get('portfolios/create', 'PortfoliosController::create');
-$routes->post('portfolios/create', 'PortfoliosController::create');
-$routes->get('portfolios/edit/(:num)', 'PortfoliosController::edit/$1');
-$routes->post('portfolios/edit/(:num)', 'PortfoliosController::edit/$1');
-$routes->get('portfolios/delete/(:num)', 'PortfoliosController::delete/$1');
-$routes->get('portfolios/view/(:num)', 'PortfoliosController::view/$1');
+$routes->get('portfolios', 'PortfolioController::index');
+$routes->get('portfolios/create', 'PortfolioController::create');
+$routes->post('portfolios/create', 'PortfolioController::create');
+$routes->get('portfolios/edit/(:num)', 'PortfolioController::edit/$1');
+$routes->post('portfolios/edit/(:num)', 'PortfolioController::edit/$1');
+$routes->get('portfolios/delete/(:num)', 'PortfolioController::delete/$1');
+$routes->get('portfolios/view/(:num)', 'PortfolioController::view/$1');
 
 // Invoice routes
 $routes->get('invoices', 'InvoiceController::index');
