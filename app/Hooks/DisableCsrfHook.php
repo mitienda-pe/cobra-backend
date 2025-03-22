@@ -19,33 +19,33 @@ class DisableCsrfHook
     public function disableCsrf($params)
     {
         $router = service('router');
-        
+
         // Get current controller and method
         $controller = $router->controllerName();
         $method = $router->methodName();
-        
+
         // Log for debugging
         log_message('debug', "DisableCsrfHook - Controller: {$controller}, Method: {$method}");
-        
+
         // List of routes to exclude from CSRF protection
         $excludedRoutes = [
-            'App\Controllers\ClientsController::import',
-            'App\Controllers\InvoicesController::import',
+            'App\Controllers\ClientController::import',
+            'App\Controllers\InvoiceController::import',
         ];
-        
+
         // Check if current route should be excluded
         $currentRoute = $controller . '::' . $method;
         if (in_array($currentRoute, $excludedRoutes)) {
             // Disable CSRF protection for this request
             log_message('debug', "Disabling CSRF for route: {$currentRoute}");
-            
+
             // Access the security service and attempt to disable verification
             $security = \Config\Services::security();
             if (method_exists($security, 'setCSRFProtection')) {
                 $security->setCSRFProtection(false);
                 log_message('debug', "CSRF protection disabled via setCSRFProtection method");
             }
-            
+
             // Alternative approach: use Reflection to modify the internal state
             try {
                 $reflectionClass = new \ReflectionClass($security);
