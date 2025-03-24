@@ -54,7 +54,7 @@
                                                     <input class="form-check-input user-checkbox" type="checkbox" 
                                                         name="user_ids[]" id="user_<?= $user['id'] ?>" 
                                                         value="<?= $user['id'] ?>" 
-                                                        <?= (in_array($user['id'], $assignedUserIds)) ? 'checked' : '' ?>>
+                                                        <?= (in_array($user['id'], $assigned_user_ids)) ? 'checked' : '' ?>>
                                                     <label class="form-check-label" for="user_<?= $user['id'] ?>">
                                                         <?= $user['name'] ?> (<?= ucfirst($user['role']) ?>)
                                                     </label>
@@ -85,7 +85,7 @@
                                                 <input class="form-check-input client-checkbox" type="checkbox" 
                                                     name="client_ids[]" id="client_<?= $client['id'] ?>" 
                                                     value="<?= $client['id'] ?>" 
-                                                    <?= (in_array($client['id'], $assignedClientIds)) ? 'checked' : '' ?>>
+                                                    <?= (in_array($client['id'], $assigned_client_ids)) ? 'checked' : '' ?>>
                                                 <label class="form-check-label" for="client_<?= $client['id'] ?>">
                                                     <?= $client['business_name'] ?> (<?= $client['document_number'] ?>)
                                                 </label>
