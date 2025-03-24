@@ -143,7 +143,7 @@
                         <select name="client_id" class="form-select form-select-sm me-2" onchange="this.form.submit()">
                             <option value="">Todos los clientes</option>
                             <?php foreach ($assignedClients as $client): ?>
-                                <option value="<?= $client['id'] ?>" <?= $this->request->getGet('client_id') == $client['id'] ? 'selected' : '' ?>>
+                                <option value="<?= $client['id'] ?>" <?= $request->getGet('client_id') == $client['id'] ? 'selected' : '' ?>>
                                     <?= $client['business_name'] ?> (<?= $client['document_number'] ?>)
                                 </option>
                             <?php endforeach; ?>
@@ -155,7 +155,7 @@
             <div class="card-body">
                 <?php 
                 // Add client filter info if a client is selected
-                $clientId = $this->request->getGet('client_id');
+                $clientId = $request->getGet('client_id');
                 if ($clientId) {
                     foreach ($assignedClients as $client) {
                         if ($client['id'] == $clientId) {

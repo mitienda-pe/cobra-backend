@@ -360,6 +360,7 @@ class PortfolioController extends BaseController
             'users' => $assignedUsers,
             'assignedClients' => $assignedClients,
             'auth' => $this->auth,
+            'request' => $this->request
         ];
         
         return view('portfolios/view', $data);
