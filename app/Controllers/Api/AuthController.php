@@ -118,7 +118,7 @@ class AuthController extends ResourceController
     public function verifyOtp()
     {
         $rules = [
-            'email' => 'required|valid_email',
+            'email' => 'required',  
             'code' => 'required',
             'device_name' => 'permit_empty'
         ];
@@ -128,9 +128,19 @@ class AuthController extends ResourceController
         }
 
         $userModel = new UserModel();
-        $user = $userModel->where('email', $this->request->getVar('email'))
-            ->where('status', 'active')
-            ->first();
+        $identifier = $this->request->getVar('email');
+        
+        // Check if identifier is a phone number or email
+        $isPhone = preg_match('/^\+?[1-9]\d{1,14}$/', $identifier);
+        
+        $query = $userModel->where('status', 'active');
+        if ($isPhone) {
+            $query->where('phone', $identifier);
+        } else {
+            $query->where('email', $identifier);
+        }
+        
+        $user = $query->first();
 
         if (!$user) {
             return $this->failNotFound('User not found or inactive');

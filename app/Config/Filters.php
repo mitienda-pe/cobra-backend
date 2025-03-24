@@ -82,9 +82,9 @@ class Filters extends BaseConfig
                 'api',
             ],
             'except' => [
-                'api/auth/otp/request',
-                'api/auth/otp/verify',
-                'api/auth/refresh',
+                'api/auth/request-otp',
+                'api/auth/verify-otp',
+                'api/auth/refresh-token',
                 'api/users',
                 'api/clients',
                 'debug/client-create',
