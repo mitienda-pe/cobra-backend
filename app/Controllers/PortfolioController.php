@@ -358,7 +358,7 @@ class PortfolioController extends BaseController
             'portfolio' => $portfolio,
             'organization' => $organization,
             'users' => $assignedUsers,
-            'clients' => $assignedClients,
+            'assignedClients' => $assignedClients,
             'auth' => $this->auth,
         ];
         
