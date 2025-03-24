@@ -484,7 +484,7 @@ class PaymentController extends BaseController
         foreach ($portfolios as $portfolio) {
             // Check if client belongs to this portfolio
             $db = \Config\Database::connect();
-            $exists = $db->table('portfolio_clients')
+            $exists = $db->table('client_portfolio')
                 ->where('portfolio_id', $portfolio['id'])
                 ->where('client_id', $client['id'])
                 ->countAllResults() > 0;

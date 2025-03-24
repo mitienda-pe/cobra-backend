@@ -208,7 +208,7 @@ class ClientController extends BaseController
                     if ($portfolioIds) {
                         $db = \Config\Database::connect();
                         foreach ($portfolioIds as $portfolioId) {
-                            $db->table('portfolio_clients')->insert([
+                            $db->table('client_portfolio')->insert([
                                 'portfolio_id' => $portfolioId,
                                 'client_id' => $clientId
                             ]);
@@ -272,7 +272,7 @@ class ClientController extends BaseController
         
         // Get current portfolio assignments
         $db = \Config\Database::connect();
-        $currentPortfolios = $db->table('portfolio_clients')
+        $currentPortfolios = $db->table('client_portfolio')
             ->where('client_id', $id)
             ->get()
             ->getResultArray();
@@ -329,11 +329,11 @@ class ClientController extends BaseController
                     $newPortfolios = $this->request->getPost('portfolios') ?: [];
                     
                     // Remove existing assignments
-                    $db->table('portfolio_clients')->where('client_id', $id)->delete();
+                    $db->table('client_portfolio')->where('client_id', $id)->delete();
                     
                     // Add new assignments
                     foreach ($newPortfolios as $portfolioId) {
-                        $db->table('portfolio_clients')->insert([
+                        $db->table('client_portfolio')->insert([
                             'portfolio_id' => $portfolioId,
                             'client_id' => $id
                         ]);
@@ -386,9 +386,9 @@ class ClientController extends BaseController
         // Get portfolios for this client
         $db = \Config\Database::connect();
         $portfolios = $db->table('portfolios')
-            ->select('portfolios.*, portfolio_clients.created_at as assigned_date')
-            ->join('portfolio_clients', 'portfolios.id = portfolio_clients.portfolio_id')
-            ->where('portfolio_clients.client_id', $id)
+            ->select('portfolios.*, client_portfolio.created_at as assigned_date')
+            ->join('client_portfolio', 'portfolios.id = client_portfolio.portfolio_id')
+            ->where('client_portfolio.client_id', $id)
             ->get()
             ->getResultArray();
         
