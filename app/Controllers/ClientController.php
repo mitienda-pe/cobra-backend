@@ -94,6 +94,7 @@ class ClientController extends BaseController
         // Initialize view data
         $data = [
             'clients' => $clients,
+            'auth' => $this->auth
         ];
         
         // Use the trait to prepare organization-related data for the view
@@ -394,7 +395,8 @@ class ClientController extends BaseController
         
         $data = [
             'client' => $client,
-            'portfolios' => $portfolios
+            'portfolios' => $portfolios,
+            'auth' => $this->auth
         ];
         
         return view('clients/view', $data);
