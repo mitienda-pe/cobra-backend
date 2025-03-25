@@ -37,6 +37,11 @@ Options -Indexes
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
+    # Allow direct access to debug scripts
+    RewriteCond %{REQUEST_URI} !^/debug_direct\.php [NC]
+    RewriteCond %{REQUEST_URI} !^/check-db-permissions\.php [NC]
+    RewriteCond %{REQUEST_URI} !^/fix-locked-db\.php [NC]
+    
     # Checks to see if the user is attempting to access a valid file,
     # such as an image or css document, if this isn't true it sends the
     # request to the front controller, index.php
