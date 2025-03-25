@@ -29,6 +29,7 @@ class Filters extends BaseConfig
         'organization'  => \App\Filters\OrganizationFilter::class,
         'csrfExcept'    => \App\Filters\CsrfExceptFilter::class,
         'disableCsrf'   => \App\Filters\DisableCsrfForRoutes::class,
+        'cors'          => \App\Filters\CorsFilter::class,
     ];
 
     /**
@@ -131,9 +132,14 @@ class Filters extends BaseConfig
             ],
             'except' => [
                 'api/*',  // Excluir rutas API del filtro auth
+                'api',  // Excluir rutas API del filtro auth
                 'auth/*',
                 'auth',
             ]
+        ],
+        'cors' => [
+            'before' => ['api/*', 'api'],
+            'after' => ['api/*', 'api']
         ]
     ];
 }

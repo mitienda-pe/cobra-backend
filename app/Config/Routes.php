@@ -112,7 +112,11 @@ $routes->get('webhooks/test/(:num)', 'WebhookController::test/$1');
 $routes->get('webhooks/retry/(:num)', 'WebhookController::retry/$1');
 
 // API Routes - Public (No auth required)
-$routes->group('api', ['namespace' => 'App\Controllers\Api', 'csrf' => false], function ($routes) {
+$routes->group('api', [
+    'namespace' => 'App\Controllers\Api',
+    'filter' => ['cors'],
+    'csrf' => false
+], function ($routes) {
     // Auth API Routes
     $routes->match(['post', 'options'], 'auth/request-otp', 'AuthController::requestOtp');
     $routes->match(['post', 'options'], 'auth/verify-otp', 'AuthController::verifyOtp');
@@ -122,7 +126,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'csrf' => false], f
 // API Routes - Protected
 $routes->group('api', [
     'namespace' => 'App\Controllers\Api',
-    'filter' => ['apiAuth', 'apiLog'],
+    'filter' => ['cors', 'apiAuth', 'apiLog'],
     'csrf' => false
 ], function ($routes) {
     // Auth Protected Routes
