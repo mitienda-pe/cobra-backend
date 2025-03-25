@@ -5,6 +5,50 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
+
+// API Routes - Make sure these are defined before other routes
+$routes->group('api', ['namespace' => 'App\Controllers\Api'], function($routes) {
+    // Auth API Routes
+    $routes->post('auth/request-otp', 'AuthController::requestOtp');
+    $routes->post('auth/verify-otp', 'AuthController::verifyOtp');
+    $routes->post('auth/refresh-token', 'AuthController::refreshToken');
+    $routes->post('auth/logout', 'AuthController::logout');
+    
+    // User API Routes
+    $routes->get('user/profile', 'UserController::profile');
+    $routes->get('users', 'UserController::index');
+    $routes->get('users/portfolio/(:num)', 'UserController::byPortfolio/$1');
+    
+    // Client API Routes
+    $routes->get('clients', 'ClientController::index');
+    $routes->get('clients/(:num)', 'ClientController::show/$1');
+    $routes->get('clients/external/(:segment)', 'ClientController::findByExternalId/$1');
+    $routes->get('clients/document/(:segment)', 'ClientController::findByDocument/$1');
+    $routes->get('clients/uuid/(:segment)', 'ClientController::findByUuid/$1');
+    
+    // Portfolio API Routes
+    $routes->get('portfolios', 'PortfolioController::index');
+    $routes->get('portfolios/(:num)', 'PortfolioController::show/$1');
+    $routes->get('portfolios/my', 'PortfolioController::myPortfolios');
+    
+    // Invoice API Routes
+    $routes->get('invoices', 'InvoiceController::index');
+    $routes->get('invoices/(:num)', 'InvoiceController::show/$1');
+    $routes->post('invoices', 'InvoiceController::create');
+    $routes->put('invoices/(:num)', 'InvoiceController::update/$1');
+    $routes->delete('invoices/(:num)', 'InvoiceController::delete/$1');
+    $routes->get('invoices/external/(:segment)', 'InvoiceController::findByExternalId/$1');
+    $routes->get('invoices/overdue', 'InvoiceController::overdue');
+    
+    // Payment API Routes
+    $routes->get('payments', 'PaymentController::index');
+    $routes->get('payments/(:num)', 'PaymentController::show/$1');
+    $routes->post('payments', 'PaymentController::create');
+    $routes->put('payments/(:num)', 'PaymentController::update/$1');
+    $routes->delete('payments/(:num)', 'PaymentController::delete/$1');
+    $routes->get('payments/external/(:segment)', 'PaymentController::findByExternalId/$1');
+});
+
 // Auth routes
 $routes->get('/', 'Home::index');
 $routes->get('auth/login', 'Auth::login');
@@ -98,46 +142,3 @@ $routes->get('webhooks/delete/(:num)', 'WebhookController::delete/$1');
 $routes->get('webhooks/logs/(:num)', 'WebhookController::logs/$1');
 $routes->get('webhooks/test/(:num)', 'WebhookController::test/$1');
 $routes->get('webhooks/retry/(:num)', 'WebhookController::retry/$1');
-
-// API Routes
-$routes->group('api', function($routes) {
-    // Auth API Routes
-    $routes->post('auth/request-otp', 'Api\AuthController::requestOtp');
-    $routes->post('auth/verify-otp', 'Api\AuthController::verifyOtp');
-    $routes->post('auth/refresh-token', 'Api\AuthController::refreshToken');
-    $routes->post('auth/logout', 'Api\AuthController::logout');
-    
-    // User API Routes
-    $routes->get('user/profile', 'Api\UserController::profile');
-    $routes->get('users', 'Api\UserController::index');
-    $routes->get('users/portfolio/(:num)', 'Api\UserController::byPortfolio/$1');
-    
-    // Client API Routes
-    $routes->get('clients', 'Api\ClientController::index');
-    $routes->get('clients/(:num)', 'Api\ClientController::show/$1');
-    $routes->get('clients/external/(:segment)', 'Api\ClientController::findByExternalId/$1');
-    $routes->get('clients/document/(:segment)', 'Api\ClientController::findByDocument/$1');
-    $routes->get('clients/uuid/(:segment)', 'Api\ClientController::findByUuid/$1');
-    
-    // Portfolio API Routes
-    $routes->get('portfolios', 'Api\PortfolioController::index');
-    $routes->get('portfolios/(:num)', 'Api\PortfolioController::show/$1');
-    $routes->get('portfolios/my', 'Api\PortfolioController::myPortfolios');
-    
-    // Invoice API Routes
-    $routes->get('invoices', 'Api\InvoiceController::index');
-    $routes->get('invoices/(:num)', 'Api\InvoiceController::show/$1');
-    $routes->post('invoices', 'Api\InvoiceController::create');
-    $routes->put('invoices/(:num)', 'Api\InvoiceController::update/$1');
-    $routes->delete('invoices/(:num)', 'Api\InvoiceController::delete/$1');
-    $routes->get('invoices/external/(:segment)', 'Api\InvoiceController::findByExternalId/$1');
-    $routes->get('invoices/overdue', 'Api\InvoiceController::overdue');
-    
-    // Payment API Routes
-    $routes->get('payments', 'Api\PaymentController::index');
-    $routes->get('payments/(:num)', 'Api\PaymentController::show/$1');
-    $routes->post('payments', 'Api\PaymentController::create');
-    $routes->put('payments/(:num)', 'Api\PaymentController::update/$1');
-    $routes->delete('payments/(:num)', 'Api\PaymentController::delete/$1');
-    $routes->get('payments/external/(:segment)', 'Api\PaymentController::findByExternalId/$1');
-});

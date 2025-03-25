@@ -18,26 +18,42 @@ class AuthController extends ResourceController
     public function requestOtp()
     {
         $rules = [
-            'email'        => 'required|valid_email',
+            'email'        => 'permit_empty|valid_email',
+            'phone'        => 'permit_empty',
             'device_info'  => 'permit_empty',
-            'method'       => 'permit_empty|in_list[email,sms]'
+            'method'       => 'required|in_list[email,sms]'
         ];
 
         if (!$this->validate($rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
         }
 
+        // Check if either email or phone is provided
+        $email = $this->request->getVar('email');
+        $phone = $this->request->getVar('phone');
+        
+        if (empty($email) && empty($phone)) {
+            return $this->fail('Either email or phone is required', 400);
+        }
+
         $userModel = new UserModel();
-        $user = $userModel->where('email', $this->request->getVar('email'))
-            ->where('status', 'active')
-            ->first();
+        $query = $userModel->where('status', 'active');
+
+        // Find user by email or phone
+        if (!empty($email)) {
+            $query->where('email', $email);
+        } else {
+            $query->where('phone', $phone);
+        }
+
+        $user = $query->first();
 
         if (!$user) {
             return $this->failNotFound('User not found or inactive');
         }
 
         // Determine delivery method
-        $method = $this->request->getVar('method') ?? 'email';
+        $method = $this->request->getVar('method');
 
         // For SMS method, check if user has a phone number
         if ($method === 'sms') {
