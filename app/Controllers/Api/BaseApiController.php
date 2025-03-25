@@ -24,6 +24,23 @@ class BaseApiController extends ResourceController
             header('HTTP/1.1 200 OK');
             exit();
         }
+
+        // Force JSON response for all API requests
+        if (strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
+            $this->response->setContentType('application/json');
+            
+            // If this is a web request (Accept: text/html), return 406 Not Acceptable
+            $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+            if (strpos($accept, 'text/html') !== false && strpos($accept, 'application/json') === false) {
+                $this->response->setStatusCode(406);
+                $this->response->setJSON([
+                    'status' => false,
+                    'message' => 'API endpoint only accepts application/json'
+                ]);
+                $this->response->send();
+                exit();
+            }
+        }
     }
 
     /**

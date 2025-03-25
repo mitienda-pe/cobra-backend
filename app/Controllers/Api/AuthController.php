@@ -14,6 +14,11 @@ class AuthController extends BaseApiController
      */
     public function requestOtp()
     {
+        // Log request start
+        log_message('info', '[AuthController::requestOtp] Starting OTP request');
+        log_message('debug', '[AuthController::requestOtp] Request body: ' . json_encode($this->request->getJSON()));
+        log_message('debug', '[AuthController::requestOtp] Headers: ' . json_encode(apache_request_headers()));
+
         $rules = [
             'email'        => 'permit_empty|valid_email',
             'phone'        => 'permit_empty',
@@ -22,6 +27,7 @@ class AuthController extends BaseApiController
         ];
 
         if (!$this->validate($rules)) {
+            log_message('error', '[AuthController::requestOtp] Validation failed: ' . json_encode($this->validator->getErrors()));
             return $this->errorResponse('Validation failed', 400, $this->validator->getErrors());
         }
 
@@ -29,7 +35,10 @@ class AuthController extends BaseApiController
         $email = $this->request->getVar('email');
         $phone = $this->request->getVar('phone');
         
+        log_message('debug', '[AuthController::requestOtp] Identifier provided - Email: {email}, Phone: {phone}', ['email' => $email ?? 'null', 'phone' => $phone ?? 'null']);
+
         if (empty($email) && empty($phone)) {
+            log_message('error', '[AuthController::requestOtp] No identifier provided');
             return $this->errorResponse('Either email or phone is required', 400);
         }
 
@@ -39,15 +48,20 @@ class AuthController extends BaseApiController
         // Find user by email or phone
         if (!empty($email)) {
             $query->where('email', $email);
+            log_message('debug', '[AuthController::requestOtp] Searching user by email: {email}', ['email' => $email]);
         } else {
             $query->where('phone', $phone);
+            log_message('debug', '[AuthController::requestOtp] Searching user by phone: {phone}', ['phone' => $phone]);
         }
 
         $user = $query->first();
 
         if (!$user) {
+            log_message('error', '[AuthController::requestOtp] User not found for identifier - Email: {email}, Phone: {phone}', ['email' => $email ?? 'null', 'phone' => $phone ?? 'null']);
             return $this->errorResponse('User not found', 404);
         }
+
+        log_message('info', '[AuthController::requestOtp] User found: ID {id}', ['id' => $user['id']]);
 
         // Determine delivery method
         $method = $this->request->getVar('method');
@@ -55,6 +69,7 @@ class AuthController extends BaseApiController
         // For SMS method, check if user has a phone number
         if ($method === 'sms') {
             if (empty($user['phone'])) {
+                log_message('error', '[AuthController::requestOtp] User does not have a registered phone number for OTP authentication');
                 return $this->errorResponse('User does not have a registered phone number for OTP authentication', 400);
             }
         }
@@ -65,15 +80,18 @@ class AuthController extends BaseApiController
             $method,
             $this->request->getVar('device_info')
         );
+        log_message('debug', '[AuthController::requestOtp] OTP generated for user {id}', ['id' => $user['id']]);
 
         $code = $otpData['code'];
         $expiresInMinutes = 15; // Match with generateOTP
 
         // Send OTP based on method
         if ($method === 'sms') {
+            log_message('info', '[AuthController::requestOtp] Attempting to send OTP via SMS to {phone}', ['phone' => $user['phone']]);
             // Send via SMS using Twilio
             $twilio = new Twilio();
             $result = $twilio->sendOtpSms($user['phone'], $code, $expiresInMinutes);
+            log_message('debug', '[AuthController::requestOtp] SMS sending result: ' . json_encode($result));
 
             // Update delivery status
             $otpModel->updateDeliveryStatus(
@@ -84,6 +102,7 @@ class AuthController extends BaseApiController
             );
 
             if (!$result['success']) {
+                log_message('error', '[AuthController::requestOtp] SMS sending failed: {error}', ['error' => $result['message'] ?? 'Unknown error']);
                 // Log the error but don't expose details to client
                 log_message('error', 'Failed to send OTP via SMS: ' . $result['message']);
 
@@ -99,12 +118,14 @@ class AuthController extends BaseApiController
             $phone = $user['phone'];
             $maskedPhone = substr($phone, 0, 4) . '****' . substr($phone, -3);
 
+            log_message('info', '[AuthController::requestOtp] OTP sent successfully via {method}', ['method' => $method]);
             return $this->successResponse([
                 'message' => 'OTP code sent successfully to ' . $maskedPhone,
                 'method' => 'sms',
                 'expires_in' => $expiresInMinutes // minutes
             ]);
         } else {
+            log_message('info', '[AuthController::requestOtp] Attempting to send OTP via email to {email}', ['email' => $user['email']]);
             // Send via email (existing functionality)
             // In development, return the code directly
             // In production, this should actually send an email
@@ -114,6 +135,9 @@ class AuthController extends BaseApiController
             $atPos = strpos($email, '@');
             $maskedEmail = substr($email, 0, 2) . '****' . substr($email, $atPos);
 
+            log_message('debug', '[AuthController::requestOtp] Email sending result: ' . json_encode(['success' => true]));
+
+            log_message('info', '[AuthController::requestOtp] OTP sent successfully via {method}', ['method' => $method]);
             // TODO: Implement actual email sending here
 
             return $this->successResponse([
