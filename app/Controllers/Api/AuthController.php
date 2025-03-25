@@ -2,30 +2,18 @@
 
 namespace App\Controllers\Api;
 
-use CodeIgniter\RESTful\ResourceController;
 use App\Models\UserModel;
 use App\Models\UserOtpModel;
 use App\Models\UserApiTokenModel;
 use App\Libraries\Twilio;
 
-class AuthController extends ResourceController
+class AuthController extends BaseApiController
 {
-    protected $format = 'json';
-
-    public function __construct()
-    {
-        // Force JSON response format
-        $this->response->setContentType('application/json');
-    }
-
     /**
      * Request OTP for login
      */
     public function requestOtp()
     {
-        // Force JSON response format
-        $this->response->setContentType('application/json');
-
         $rules = [
             'email'        => 'permit_empty|valid_email',
             'phone'        => 'permit_empty',
@@ -34,7 +22,7 @@ class AuthController extends ResourceController
         ];
 
         if (!$this->validate($rules)) {
-            return $this->failValidationErrors($this->validator->getErrors());
+            return $this->errorResponse('Validation failed', 400, $this->validator->getErrors());
         }
 
         // Check if either email or phone is provided
@@ -42,7 +30,7 @@ class AuthController extends ResourceController
         $phone = $this->request->getVar('phone');
         
         if (empty($email) && empty($phone)) {
-            return $this->fail('Either email or phone is required', 400);
+            return $this->errorResponse('Either email or phone is required', 400);
         }
 
         $userModel = new UserModel();
@@ -58,7 +46,7 @@ class AuthController extends ResourceController
         $user = $query->first();
 
         if (!$user) {
-            return $this->failNotFound('User not found or inactive');
+            return $this->errorResponse('User not found', 404);
         }
 
         // Determine delivery method
@@ -67,7 +55,7 @@ class AuthController extends ResourceController
         // For SMS method, check if user has a phone number
         if ($method === 'sms') {
             if (empty($user['phone'])) {
-                return $this->fail('User does not have a registered phone number for OTP authentication', 400);
+                return $this->errorResponse('User does not have a registered phone number for OTP authentication', 400);
             }
         }
 
@@ -101,9 +89,9 @@ class AuthController extends ResourceController
 
                 // For critical errors, inform the client
                 if (ENVIRONMENT !== 'production') {
-                    return $this->fail('Error sending SMS: ' . $result['message'], 500);
+                    return $this->errorResponse('Error sending SMS: ' . $result['message'], 500);
                 } else {
-                    return $this->fail('Error sending SMS. Please try again or use email method.', 500);
+                    return $this->errorResponse('Error sending SMS. Please try again or use email method.', 500);
                 }
             }
 
@@ -111,7 +99,7 @@ class AuthController extends ResourceController
             $phone = $user['phone'];
             $maskedPhone = substr($phone, 0, 4) . '****' . substr($phone, -3);
 
-            return $this->respond([
+            return $this->successResponse([
                 'message' => 'OTP code sent successfully to ' . $maskedPhone,
                 'method' => 'sms',
                 'expires_in' => $expiresInMinutes // minutes
@@ -128,7 +116,7 @@ class AuthController extends ResourceController
 
             // TODO: Implement actual email sending here
 
-            return $this->respond([
+            return $this->successResponse([
                 'message' => 'OTP code sent successfully to ' . $maskedEmail,
                 'method' => 'email',
                 'code' => ENVIRONMENT !== 'production' ? $code : null, // Only in development
@@ -149,7 +137,7 @@ class AuthController extends ResourceController
         ];
 
         if (!$this->validate($rules)) {
-            return $this->failValidationErrors($this->validator->getErrors());
+            return $this->errorResponse('Validation failed', 400, $this->validator->getErrors());
         }
 
         $userModel = new UserModel();
@@ -168,7 +156,7 @@ class AuthController extends ResourceController
         $user = $query->first();
 
         if (!$user) {
-            return $this->failNotFound('User not found or inactive');
+            return $this->errorResponse('User not found', 404);
         }
 
         $otpModel = new UserOtpModel();
@@ -178,7 +166,7 @@ class AuthController extends ResourceController
         );
 
         if (!$verified) {
-            return $this->failUnauthorized('Invalid or expired OTP code');
+            return $this->errorResponse('Invalid or expired OTP code', 401);
         }
 
         // Generate API token
@@ -200,7 +188,7 @@ class AuthController extends ResourceController
             'organization_id' => $user['organization_id']
         ];
 
-        return $this->respond([
+        return $this->successResponse([
             'user' => $userData,
             'token' => $token['accessToken'],
             'refresh_token' => $token['refreshToken'],
@@ -218,17 +206,17 @@ class AuthController extends ResourceController
         ];
 
         if (!$this->validate($rules)) {
-            return $this->failValidationErrors($this->validator->getErrors());
+            return $this->errorResponse('Validation failed', 400, $this->validator->getErrors());
         }
 
         $tokenModel = new UserApiTokenModel();
         $token = $tokenModel->refreshToken($this->request->getVar('refresh_token'));
 
         if (!$token) {
-            return $this->failUnauthorized('Invalid or expired refresh token');
+            return $this->errorResponse('Invalid or expired refresh token', 401);
         }
 
-        return $this->respond([
+        return $this->successResponse([
             'token' => $token['accessToken'],
             'refresh_token' => $token['refreshToken'],
             'expires_at' => $token['expiresAt']
@@ -247,12 +235,12 @@ class AuthController extends ResourceController
         }
 
         if (empty($token)) {
-            return $this->failUnauthorized('No token provided');
+            return $this->errorResponse('No token provided', 401);
         }
 
         $tokenModel = new UserApiTokenModel();
         $tokenModel->revokeToken($token);
 
-        return $this->respondNoContent();
+        return $this->successResponse(null, 'Logged out successfully');
     }
 }
