@@ -27,15 +27,15 @@ class Database extends Config
      * @var array<string, mixed>
      */
     public array $default = [
-        'DSN'          => '',
+        'DSN'          => 'sqlite:' . WRITEPATH . 'db/cobranzas.db', // Asegura que DSN esté bien definido
         'hostname'     => '',
         'username'     => '',
         'password'     => '',
-        'database'     => WRITEPATH . 'db/cobranzas.db',
+        'database'     => '',
         'DBDriver'     => 'SQLite3',
         'DBPrefix'     => '',
-        'pConnect'     => false,
-        'DBDebug'      => true,
+        'pConnect'     => false, // No usar conexión persistente
+        'DBDebug'      => (ENVIRONMENT !== 'production'),
         'charset'      => 'utf8',
         'DBCollat'     => 'utf8_general_ci',
         'swapPre'      => '',
@@ -43,9 +43,13 @@ class Database extends Config
         'compress'     => false,
         'strictOn'     => false,
         'failover'     => [],
-        'port'         => 3306,
+        'port'         => 0, // No aplica para SQLite
         'foreignKeys'  => true,
-        'busyTimeout'  => 1000,
+        'busyTimeout'  => 5000, // Aumenta el tiempo de espera
+        'options'      => [
+            PDO::ATTR_PERSISTENT => false,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+        ],
     ];
 
     /**
