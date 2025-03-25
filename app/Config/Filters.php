@@ -36,16 +36,12 @@ class Filters extends BaseConfig
      */
     public array $globals = [
         'before' => [
-            // 'honeypot',
-            // 'csrf', // Moved to specific routes in $filters
             'invalidchars',
             'disableCsrf',  // IMPORTANT: This must come BEFORE the CSRF filter
-            'organization', // Add organization filter globally
             'csrfExcept',   // Add our custom CSRF exception filter
         ],
         'after' => [
             'toolbar',
-            // 'honeypot',
             'secureheaders',
         ],
     ];
@@ -61,76 +57,49 @@ class Filters extends BaseConfig
      * before or after URI patterns.
      */
     public array $filters = [
-        // CSRF Filter - exclude import actions and API routes
+        // CSRF Filter - exclude API routes
         'csrf' => [
             'before' => ['*'],
             'except' => [
-                // API routes
                 'api/*',
-                'api',
-                // Import routes
-                'clients/import',
-                'clients/import/',
-                '/clients/import',
-                '/clients/import/',
-                'invoices/import',
-                'invoices/import/',
-                '/invoices/import',
-                '/invoices/import/'
+                'api'
             ]
         ],
-        // API filters only
+        // API filters
         'apiAuth' => [
             'before' => [
                 'api/*',
-                'api',
+                'api'
             ],
             'except' => [
                 'api/auth/request-otp',
                 'api/auth/verify-otp',
-                'api/auth/refresh-token',
-                'api/users',
-                'api/clients',
-                'debug/client-create',
-                'debug/auth-info',
-                'debug/get-users-by-organization/*',
-                'debug/get-clients-by-organization/*',
+                'api/auth/refresh-token'
             ]
         ],
-        // API logging filter
         'apiLog' => [
             'before' => [
                 'api/*',
                 'api'
-            ],
-            'after' => [
-                'api/*',
-                'api'
             ]
         ],
-        // Auth filter for web routes
+        // Web filters
         'auth' => [
-            'before' => [
-                'dashboard',
-                'dashboard/*',
-                'clients',
-                'clients/*',
-                'portfolios',
-                'portfolios/*',
-                'invoices',
-                'invoices/*',
-                'payments',
-                'payments/*',
-                'webhooks',
-                'webhooks/*',
-                'users',
-                'users/*',
-                'organizations',
-                'organizations/*',
-            ],
+            'before' => ['*'],
             'except' => [
+                'api/*',
+                'api',
                 'auth/*',
-                'auth',
+                'auth'
+            ]
+        ],
+        'organization' => [
+            'before' => ['*'],
+            'except' => [
+                'api/*',
+                'api',
+                'auth/*',
+                'auth'
             ]
         ]
     ];
