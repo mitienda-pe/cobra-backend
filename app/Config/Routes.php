@@ -18,11 +18,12 @@ $routes->setAutoRoute(false);
 // Public Routes (No auth required)
 $routes->get('/', 'Home::index');
 $routes->get('auth/login', 'Auth::login');
-$routes->post('auth/login', 'Auth::attemptLogin');
-$routes->get('auth/forgot-password', 'Auth::forgotPassword');
-$routes->post('auth/forgot-password', 'Auth::attemptForgotPassword');
-$routes->get('auth/reset-password/(:segment)', 'Auth::resetPassword/$1');
-$routes->post('auth/reset-password/(:segment)', 'Auth::attemptResetPassword/$1');
+$routes->post('auth/login', 'Auth::login');
+$routes->get('auth/logout', 'Auth::logout');
+$routes->get('auth/forgot-password', 'Auth::forgot_password');
+$routes->post('auth/forgot-password', 'Auth::forgot_password');
+$routes->get('auth/reset-password/(:segment)', 'Auth::reset_password/$1');
+$routes->post('auth/reset-password/(:segment)', 'Auth::reset_password/$1');
 
 // Debug routes
 $routes->get('debug/client-create', 'Debug::clientCreate');
@@ -172,6 +173,5 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('webhooks/test/(:num)', 'WebhookController::test/$1');
     $routes->get('webhooks/retry/(:num)', 'WebhookController::retry/$1');
 
-    // Auth Protected Routes
-    $routes->get('auth/logout', 'Auth::logout');
+    // Removed duplicated logout route that was here
 });
