@@ -5,93 +5,67 @@ namespace App\Filters;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
-use App\Libraries\Auth;
-use App\Libraries\ApiResponse;
+use Config\Services;
 
 class ApiAuthFilter implements FilterInterface
 {
-    use ApiResponse;
-
-    protected $excludedRoutes = [
-        'api/auth/request-otp',
-        'api/auth/verify-otp',
-        'api/auth/refresh-token',
-        'api/users',
-        'api/clients',
-        'debug/client-create',
-        'debug/auth-info',
-    ];
-
-    /**
-     * Do whatever processing this filter needs to do.
-     */
     public function before(RequestInterface $request, $arguments = null)
     {
-        log_message('debug', '[ApiAuthFilter] Processing request for: ' . $request->getUri());
-        log_message('debug', '[ApiAuthFilter] Headers: ' . json_encode($request->headers()));
+        $uri = $request->uri->getPath();
+        log_message('debug', '[ApiAuthFilter] Processing request for URI: ' . $uri);
 
-        $uri = $request->getUri()->getPath();
-        $uri = trim($uri, '/');
+        // Get excluded paths from config
+        $excludedPaths = [
+            'api/auth/request-otp',
+            'api/auth/verify-otp',
+            'api/auth/refresh-token'
+        ];
 
-        // Remove index.php from path if present
-        $uri = str_replace('index.php/', '', $uri);
-
-        // Check if route is excluded
-        foreach ($this->excludedRoutes as $route) {
-            if (strpos($uri, $route) !== false) {
-                log_message('debug', '[ApiAuthFilter] Route {uri} is in exceptions list, skipping auth', ['uri' => $uri]);
-                return;
+        // Check if current path is excluded
+        foreach ($excludedPaths as $path) {
+            if (strpos($uri, $path) !== false) {
+                log_message('debug', '[ApiAuthFilter] Path is excluded from auth check: ' . $uri);
+                return $request;
             }
         }
 
+        // Get token from header
         $token = $request->getHeaderLine('Authorization');
+        if (preg_match('/Bearer\s(\S+)/', $token, $matches)) {
+            $token = $matches[1];
+        }
+
         if (!$token) {
-            log_message('error', '[ApiAuthFilter] No token provided for protected route: {uri}', ['uri' => $uri]);
-            return $this->failUnauthorized('Token not provided');
+            log_message('error', '[ApiAuthFilter] No token provided for protected route: ' . $uri);
+            return Services::response()
+                ->setStatusCode(401)
+                ->setJSON([
+                    'status' => 'error',
+                    'message' => 'Token not provided'
+                ]);
         }
 
-        $token = str_replace('Bearer ', '', $token);
-        $auth = new Auth();
+        // Validate token
+        $auth = Services::auth();
+        $decoded = $auth->validateToken($token);
 
-        try {
-            $user = $auth->validateToken($token);
-            if (!$user) {
-                log_message('error', '[ApiAuthFilter] Invalid token for route: {uri}', ['uri' => $uri]);
-                return $this->failUnauthorized('Invalid token');
-            }
-
-            // Get user data
-            $userModel = new \App\Models\UserModel();
-            $user = $userModel->find($user['user_id']);
-
-            if (!$user || $user['status'] !== 'active') {
-                log_message('error', '[ApiAuthFilter] User inactive or not found. User ID: {user_id}', ['user_id' => $user['user_id']]);
-                return $this->failUnauthorized('User inactive or not found');
-            }
-
-            // Store user data in session for API controllers
-            unset($user['password']);
-            unset($user['remember_token']);
-            unset($user['reset_token']);
-            unset($user['reset_token_expires_at']);
-
-            session()->set('api_user', $user);
-
-            log_message('info', '[ApiAuthFilter] Authentication successful for user ID: {user_id}', ['user_id' => $user['id']]);
-        } catch (\Exception $e) {
-            log_message('error', '[ApiAuthFilter] Token validation error: ' . $e->getMessage());
-            return $this->failUnauthorized('Token validation error');
+        if (!$decoded) {
+            log_message('error', '[ApiAuthFilter] Invalid token for route: ' . $uri);
+            return Services::response()
+                ->setStatusCode(401)
+                ->setJSON([
+                    'status' => 'error',
+                    'message' => 'Invalid token'
+                ]);
         }
+
+        // Set user data in request for controller use
+        $request->user = $decoded;
+        return $request;
     }
 
-    /**
-     * Allows After filters to inspect and modify the response
-     * object as needed. This method does not allow any way
-     * to stop execution of other after filters, short of
-     * throwing an Exception or Error.
-     */
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
-        // Do nothing
+        return $response;
     }
 }

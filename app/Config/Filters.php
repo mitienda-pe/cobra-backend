@@ -8,6 +8,8 @@ use CodeIgniter\Filters\DebugToolbar;
 use CodeIgniter\Filters\Honeypot;
 use CodeIgniter\Filters\InvalidChars;
 use CodeIgniter\Filters\SecureHeaders;
+use App\Filters\ApiAuthFilter;
+use App\Filters\ApiLogFilter;
 
 class Filters extends BaseConfig
 {
@@ -21,11 +23,8 @@ class Filters extends BaseConfig
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
-        'auth'          => \App\Filters\AuthFilter::class,
-        'role'          => \App\Filters\RoleFilter::class,
-        'apiAuth'       => \App\Filters\ApiAuthFilter::class,
-        'apiLog'        => \App\Filters\ApiLogFilter::class,
-        'organization'  => \App\Filters\OrganizationFilter::class,
+        'apiAuth'       => ApiAuthFilter::class,
+        'apiLog'        => ApiLogFilter::class,
     ];
 
     /**
@@ -34,6 +33,10 @@ class Filters extends BaseConfig
      */
     public array $globals = [
         'before' => [
+            'honeypot',
+            'csrf' => ['except' => [
+                'api/*'
+            ]],
             'invalidchars',
         ],
         'after' => [
@@ -45,60 +48,32 @@ class Filters extends BaseConfig
     /**
      * List of filter aliases that works on a
      * particular HTTP method (GET, POST, etc.).
+     *
+     * Example:
+     * 'post' => ['foo', 'bar']
+     *
+     * If you use this, you should disable auto-routing because auto-routing
+     * permits any HTTP method to access a controller. Accessing the controller
+     * with a method you don't expect could bypass the filter.
      */
     public array $methods = [];
 
     /**
      * List of filter aliases that should run on any
      * before or after URI patterns.
+     *
+     * Example:
+     * 'isLoggedIn' => ['before' => ['account/*', 'profiles/*']]
      */
     public array $filters = [
-        // CSRF Filter - exclude API routes
-        'csrf' => [
-            'before' => ['*'],
-            'except' => [
-                'api/*',
-                'api'
-            ]
-        ],
-        // API filters
         'apiAuth' => [
-            'before' => [
-                'api/*',
-                'api'
-            ],
+            'before' => ['api/*'],
             'except' => [
                 'api/auth/request-otp',
                 'api/auth/verify-otp',
                 'api/auth/refresh-token'
             ]
         ],
-        'apiLog' => [
-            'before' => [
-                'api/*',
-                'api'
-            ]
-        ],
-        // Web filters
-        'auth' => [
-            'before' => ['*'],
-            'except' => [
-                'api/*',
-                'api',
-                'auth/*',
-                'auth',
-                '/'
-            ]
-        ],
-        'organization' => [
-            'before' => ['*'],
-            'except' => [
-                'api/*',
-                'api',
-                'auth/*',
-                'auth',
-                '/'
-            ]
-        ]
+        'apiLog' => ['before' => ['api/*']]
     ];
 }

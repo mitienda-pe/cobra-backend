@@ -3,6 +3,8 @@
 namespace Config;
 
 use CodeIgniter\Config\BaseService;
+use App\Libraries\Auth;
+use App\Libraries\TwilioService;
 
 /**
  * Services Configuration file.
@@ -19,6 +21,24 @@ use CodeIgniter\Config\BaseService;
  */
 class Services extends BaseService
 {
+    public static function auth($getShared = true)
+    {
+        if ($getShared) {
+            return static::getSharedInstance('auth');
+        }
+
+        return new Auth();
+    }
+
+    public static function twilio($getShared = true)
+    {
+        if ($getShared) {
+            return static::getSharedInstance('twilio');
+        }
+
+        return new TwilioService();
+    }
+
     /*
      * public static function example($getShared = true)
      * {
