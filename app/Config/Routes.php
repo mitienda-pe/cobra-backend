@@ -20,15 +20,15 @@ $routes->setAutoRoute(false);
 // API Routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth API Routes
-    $routes->match(['post', 'options'], 'auth/request-otp', 'AuthController::requestOtp');
-    $routes->match(['post', 'options'], 'auth/verify-otp', 'AuthController::verifyOtp');
-    $routes->match(['post', 'options'], 'auth/refresh-token', 'AuthController::refreshToken');
-    $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
+    $routes->match(['post', 'options'], 'auth/request-otp', 'Auth::requestOtp');
+    $routes->match(['post', 'options'], 'auth/verify-otp', 'Auth::verifyOtp');
+    $routes->match(['post', 'options'], 'auth/refresh-token', 'Auth::refreshToken');
+    $routes->match(['post', 'options'], 'auth/logout', 'Auth::logout');
     
     // User API Routes
-    $routes->get('user/profile', 'UserController::profile');
-    $routes->get('users', 'UserController::index');
-    $routes->get('users/portfolio/(:num)', 'UserController::byPortfolio/$1');
+    $routes->get('user/profile', 'Users::profile');
+    $routes->get('users', 'Users::index');
+    $routes->get('users/portfolio/(:num)', 'Users::byPortfolio/$1');
     
     // Client API Routes
     $routes->get('clients', 'ClientController::index');
@@ -64,27 +64,27 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 $routes->get('/', 'Home::index');
 
 // Auth routes
-$routes->get('auth/login', 'AuthController::login');
-$routes->post('auth/login', 'AuthController::attemptLogin');
-$routes->get('auth/logout', 'AuthController::logout');
+$routes->get('auth/login', 'Auth::login');
+$routes->post('auth/login', 'Auth::attemptLogin');
+$routes->get('auth/logout', 'Auth::logout');
 
 // Protected web routes
 $routes->group('', ['filter' => 'auth'], function ($routes) {
-    $routes->get('dashboard', 'DashboardController::index');
+    $routes->get('dashboard', 'Dashboard::index');
     
     // Users
-    $routes->get('users', 'UserController::index');
-    $routes->get('users/create', 'UserController::create');
-    $routes->post('users/create', 'UserController::store');
-    $routes->get('users/edit/(:num)', 'UserController::edit/$1');
-    $routes->post('users/edit/(:num)', 'UserController::update/$1');
-    $routes->get('users/delete/(:num)', 'UserController::delete/$1');
+    $routes->get('users', 'Users::index');
+    $routes->get('users/create', 'Users::create');
+    $routes->post('users/create', 'Users::store');
+    $routes->get('users/edit/(:num)', 'Users::edit/$1');
+    $routes->post('users/edit/(:num)', 'Users::update/$1');
+    $routes->get('users/delete/(:num)', 'Users::delete/$1');
 
     // Organizations
-    $routes->get('organizations', 'OrganizationController::index');
-    $routes->get('organizations/create', 'OrganizationController::create');
-    $routes->post('organizations/create', 'OrganizationController::store');
-    $routes->get('organizations/edit/(:num)', 'OrganizationController::edit/$1');
-    $routes->post('organizations/edit/(:num)', 'OrganizationController::update/$1');
-    $routes->get('organizations/delete/(:num)', 'OrganizationController::delete/$1');
+    $routes->get('organizations', 'Organizations::index');
+    $routes->get('organizations/create', 'Organizations::create');
+    $routes->post('organizations/create', 'Organizations::store');
+    $routes->get('organizations/edit/(:num)', 'Organizations::edit/$1');
+    $routes->post('organizations/edit/(:num)', 'Organizations::update/$1');
+    $routes->get('organizations/delete/(:num)', 'Organizations::delete/$1');
 });
