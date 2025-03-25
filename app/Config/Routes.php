@@ -117,43 +117,43 @@ $routes->group('api', [
     'filter' => ['apiAuth', 'apiLog'],
     'csrf' => false
 ], function ($routes) {
-    // Auth API Routes
+    // Auth API Routes - No requieren autenticación
     $routes->match(['post', 'options'], 'auth/request-otp', 'Auth::requestOtp', ['filter' => '-apiAuth']);
     $routes->match(['post', 'options'], 'auth/verify-otp', 'Auth::verifyOtp', ['filter' => '-apiAuth']);
     $routes->match(['post', 'options'], 'auth/refresh-token', 'Auth::refreshToken', ['filter' => '-apiAuth']);
     $routes->match(['post', 'options'], 'auth/logout', 'Auth::logout');
     
     // User API Routes
-    $routes->get('user/profile', 'Users::profile');
-    $routes->get('users', 'Users::index');
-    $routes->get('users/portfolio/(:num)', 'Users::byPortfolio/$1');
+    $routes->match(['get', 'options'], 'user/profile', 'Users::profile');
+    $routes->match(['get', 'options'], 'users', 'Users::index');
+    $routes->match(['get', 'options'], 'users/portfolio/(:num)', 'Users::byPortfolio/$1');
     
     // Client API Routes
-    $routes->get('clients', 'ClientController::index');
-    $routes->get('clients/(:num)', 'ClientController::show/$1');
-    $routes->get('clients/external/(:segment)', 'ClientController::findByExternalId/$1');
-    $routes->get('clients/document/(:segment)', 'ClientController::findByDocument/$1');
-    $routes->get('clients/uuid/(:segment)', 'ClientController::findByUuid/$1');
+    $routes->match(['get', 'options'], 'clients', 'ClientController::index');
+    $routes->match(['get', 'options'], 'clients/(:num)', 'ClientController::show/$1');
+    $routes->match(['get', 'options'], 'clients/external/(:segment)', 'ClientController::findByExternalId/$1');
+    $routes->match(['get', 'options'], 'clients/document/(:segment)', 'ClientController::findByDocument/$1');
+    $routes->match(['get', 'options'], 'clients/uuid/(:segment)', 'ClientController::findByUuid/$1');
     
     // Portfolio API Routes
-    $routes->get('portfolios', 'PortfolioController::index');
-    $routes->get('portfolios/(:num)', 'PortfolioController::show/$1');
-    $routes->get('portfolios/my', 'PortfolioController::myPortfolios');
+    $routes->match(['get', 'options'], 'portfolios', 'PortfolioController::index');
+    $routes->match(['get', 'options'], 'portfolios/(:num)', 'PortfolioController::show/$1');
+    $routes->match(['get', 'options'], 'portfolios/my', 'PortfolioController::myPortfolios');
     
     // Invoice API Routes
-    $routes->get('invoices', 'InvoiceController::index');
-    $routes->get('invoices/(:num)', 'InvoiceController::show/$1');
-    $routes->post('invoices', 'InvoiceController::create');
-    $routes->put('invoices/(:num)', 'InvoiceController::update/$1');
-    $routes->delete('invoices/(:num)', 'InvoiceController::delete/$1');
-    $routes->get('invoices/external/(:segment)', 'InvoiceController::findByExternalId/$1');
-    $routes->get('invoices/overdue', 'InvoiceController::overdue');
+    $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index');
+    $routes->match(['get', 'options'], 'invoices/(:num)', 'InvoiceController::show/$1');
+    $routes->match(['post', 'options'], 'invoices', 'InvoiceController::create');
+    $routes->match(['put', 'options'], 'invoices/(:num)', 'InvoiceController::update/$1');
+    $routes->match(['delete', 'options'], 'invoices/(:num)', 'InvoiceController::delete/$1');
+    $routes->match(['get', 'options'], 'invoices/external/(:segment)', 'InvoiceController::findByExternalId/$1');
+    $routes->match(['get', 'options'], 'invoices/overdue', 'InvoiceController::overdue');
     
     // Payment API Routes
-    $routes->get('payments', 'PaymentController::index');
-    $routes->get('payments/(:num)', 'PaymentController::show/$1');
-    $routes->post('payments', 'PaymentController::create');
-    $routes->put('payments/(:num)', 'PaymentController::update/$1');
-    $routes->delete('payments/(:num)', 'PaymentController::delete/$1');
-    $routes->get('payments/external/(:segment)', 'PaymentController::findByExternalId/$1');
+    $routes->match(['get', 'options'], 'payments', 'PaymentController::index');
+    $routes->match(['get', 'options'], 'payments/(:num)', 'PaymentController::show/$1');
+    $routes->match(['post', 'options'], 'payments', 'PaymentController::create');
+    $routes->match(['put', 'options'], 'payments/(:num)', 'PaymentController::update/$1');
+    $routes->match(['delete', 'options'], 'payments/(:num)', 'PaymentController::delete/$1');
+    $routes->match(['get', 'options'], 'payments/external/(:segment)', 'PaymentController::findByExternalId/$1');
 });

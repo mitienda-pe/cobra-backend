@@ -15,6 +15,14 @@ class ApiAuthFilter implements FilterInterface
      */
     public function before(RequestInterface $request, $arguments = null)
     {
+        // Si es una petición OPTIONS, permitir sin token
+        if ($request->getMethod(true) === 'OPTIONS') {
+            return service('response')
+                ->setHeader('Access-Control-Allow-Origin', '*')
+                ->setHeader('Access-Control-Allow-Headers', '*')
+                ->setHeader('Access-Control-Allow-Methods', '*');
+        }
+
         $token = $this->extractToken($request);
         
         if (!$token) {
@@ -23,7 +31,10 @@ class ApiAuthFilter implements FilterInterface
                 ->setJSON([
                     'success' => false,
                     'message' => 'Token not provided'
-                ]);
+                ])
+                ->setHeader('Access-Control-Allow-Origin', '*')
+                ->setHeader('Access-Control-Allow-Headers', '*')
+                ->setHeader('Access-Control-Allow-Methods', '*');
         }
         
         $tokenModel = new UserApiTokenModel();
@@ -35,7 +46,10 @@ class ApiAuthFilter implements FilterInterface
                 ->setJSON([
                     'success' => false,
                     'message' => 'Invalid or expired token'
-                ]);
+                ])
+                ->setHeader('Access-Control-Allow-Origin', '*')
+                ->setHeader('Access-Control-Allow-Headers', '*')
+                ->setHeader('Access-Control-Allow-Methods', '*');
         }
         
         // Update last used timestamp
@@ -51,7 +65,10 @@ class ApiAuthFilter implements FilterInterface
                 ->setJSON([
                     'success' => false,
                     'message' => 'User inactive or not found'
-                ]);
+                ])
+                ->setHeader('Access-Control-Allow-Origin', '*')
+                ->setHeader('Access-Control-Allow-Headers', '*')
+                ->setHeader('Access-Control-Allow-Methods', '*');
         }
         
         // Store user data in session for API controllers
@@ -62,8 +79,14 @@ class ApiAuthFilter implements FilterInterface
         
         session()->set('api_user', $user);
         session()->set('api_token', $tokenData);
+
+        // Add CORS headers
+        return service('response')
+            ->setHeader('Access-Control-Allow-Origin', '*')
+            ->setHeader('Access-Control-Allow-Headers', '*')
+            ->setHeader('Access-Control-Allow-Methods', '*');
     }
-    
+
     /**
      * Allows After filters to inspect and modify the response
      * object as needed. This method does not allow any way
@@ -72,22 +95,33 @@ class ApiAuthFilter implements FilterInterface
      */
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
-        // Do nothing
+        // Add CORS headers to all responses
+        $response->setHeader('Access-Control-Allow-Origin', '*')
+                ->setHeader('Access-Control-Allow-Headers', '*')
+                ->setHeader('Access-Control-Allow-Methods', '*');
     }
-    
+
     /**
      * Extract token from request headers or query string
      */
     private function extractToken(RequestInterface $request): ?string
     {
+        // Try Authorization header first
         $header = $request->getHeaderLine('Authorization');
-        
         if (!empty($header)) {
-            if (preg_match('/Bearer\s(\S+)/', $header, $matches)) {
+            if (preg_match('/Bearer\s+(.*)$/i', $header, $matches)) {
                 return $matches[1];
             }
         }
         
-        return $request->getServer('HTTP_AUTHORIZATION');
+        // Try X-API-Key header next
+        $apiKey = $request->getHeaderLine('X-API-Key');
+        if (!empty($apiKey)) {
+            return $apiKey;
+        }
+        
+        // Finally try query string
+        $token = $request->uri->getQuery(['only' => ['token']]);
+        return $token['token'] ?? null;
     }
 }
