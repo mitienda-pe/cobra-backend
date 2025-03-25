@@ -12,11 +12,20 @@ class AuthController extends ResourceController
 {
     protected $format = 'json';
 
+    public function __construct()
+    {
+        // Force JSON response format
+        $this->response->setContentType('application/json');
+    }
+
     /**
      * Request OTP for login
      */
     public function requestOtp()
     {
+        // Force JSON response format
+        $this->response->setContentType('application/json');
+
         $rules = [
             'email'        => 'permit_empty|valid_email',
             'phone'        => 'permit_empty',

@@ -49,7 +49,7 @@ class Routing extends BaseRouting
 
     /**
      * The default method to call on the controller when no other
-     * method has been set in the route.
+     * method has been specified.
      *
      * Default: 'index'
      */
@@ -65,19 +65,13 @@ class Routing extends BaseRouting
 
     /**
      * Sets the class/method that should be called if routing doesn't
-     * find a match. It can be the controller/method name like: Users::index
+     * find a match. It can be either a closure or the controller/method
+     * name exactly like a route is defined: 'Home::index'
      *
      * This setting is passed to the Router class and handled there.
      *
-     * If you want to use a closure, you will have to set it in the
-     * routes file by calling:
-     *
-     * $routes->set404Override(function() {
-     *    // Do something here
-     * });
-     *
-     * Example:
-     *  public $override404 = 'App\Errors::show404';
+     * If you want to use a closure, you will have to pass it to the
+     * Router class yourself within the controller.
      */
     public ?string $override404 = null;
 
@@ -97,7 +91,7 @@ class Routing extends BaseRouting
      *
      * Default: false
      */
-    public bool $prioritize = false;
+    public bool $prioritize = true;
 
     /**
      * Map of URI segments and namespaces. For Auto Routing (Improved).
