@@ -80,7 +80,14 @@ class Filters extends BaseConfig
         ],
         'auth' => [
             'before' => ['dashboard', 'dashboard/*', 'organizations/*', 'clients/*', 'invoices/*', 'users/*', 'profile/*', 'portfolios/*', 'payments/*', 'webhooks/*'],
-            'except' => []
+            'except' => [
+                'api/*',
+                'api',
+                'auth/*',
+                'auth',
+                '/',
+                'debug/*'
+            ]
         ],
         'apiAuth' => [
             'before' => ['api/auth/logout', 'api/clients/*', 'api/invoices/*', 'api/users/*', 'api/portfolios/*', 'api/payments/*', 'api/organizations/*'],
