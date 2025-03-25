@@ -24,6 +24,7 @@ class Filters extends BaseConfig
         'auth'          => \App\Filters\AuthFilter::class,
         'role'          => \App\Filters\RoleFilter::class,
         'apiAuth'       => \App\Filters\ApiAuthFilter::class,
+        'apiLog'        => \App\Filters\ApiLogFilter::class,
         'organization'  => \App\Filters\OrganizationFilter::class,
         'csrfExcept'    => \App\Filters\CsrfExceptFilter::class,
         'disableCsrf'   => \App\Filters\DisableCsrfForRoutes::class,
@@ -91,6 +92,17 @@ class Filters extends BaseConfig
                 'debug/auth-info',
                 'debug/get-users-by-organization/*',
                 'debug/get-clients-by-organization/*',
+            ]
+        ],
+        // API logging filter
+        'apiLog' => [
+            'before' => [
+                'api/*',
+                'api'
+            ],
+            'after' => [
+                'api/*',
+                'api'
             ]
         ],
         // Auth filter for web routes
