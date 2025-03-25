@@ -2,18 +2,18 @@
 
 namespace App\Controllers\Api;
 
-use CodeIgniter\RESTful\ResourceController;
+use CodeIgniter\Controller;
 use CodeIgniter\API\ResponseTrait;
 
-class BaseApiController extends ResourceController
+class BaseApiController extends Controller
 {
     use ResponseTrait;
 
     protected $format = 'json';
 
-    public function __construct()
+    public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
-        parent::__construct();
+        parent::initController($request, $response, $logger);
 
         // Force JSON response format
         $this->response->setContentType('application/json');
@@ -22,14 +22,14 @@ class BaseApiController extends ResourceController
         $this->response->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
         
         // Handle preflight requests
-        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+        if ($this->request->getMethod(true) === 'OPTIONS') {
             $this->response->setStatusCode(200);
             $this->response->send();
             exit();
         }
 
         // If this is a web request (Accept: text/html), return 406 Not Acceptable
-        $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+        $accept = $this->request->getHeaderLine('Accept');
         if (strpos($accept, 'text/html') !== false && strpos($accept, 'application/json') === false) {
             $this->response->setStatusCode(406);
             $this->response->setJSON([
