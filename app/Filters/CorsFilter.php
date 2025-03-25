@@ -13,17 +13,24 @@ class CorsFilter implements FilterInterface
      */
     public function before(RequestInterface $request, $arguments = null)
     {
-        // Ensure response is JSON
+        // Log for debugging
+        log_message('debug', 'CORS Filter: ' . $request->getMethod(true) . ' ' . $request->uri->getPath());
+        
+        // Ensure response is JSON for API routes
         $response = service('response');
-        $response->setContentType('application/json');
+        if (strpos($request->uri->getPath(), 'api/') === 0) {
+            $response->setContentType('application/json');
+        }
 
         // Add CORS headers to all responses
         $response->setHeader('Access-Control-Allow-Origin', '*')
-                ->setHeader('Access-Control-Allow-Headers', '*')
-                ->setHeader('Access-Control-Allow-Methods', '*');
+                ->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-Key')
+                ->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
+                ->setHeader('Access-Control-Allow-Credentials', 'true');
 
         // Si es una petición OPTIONS, permitir sin token
         if ($request->getMethod(true) === 'OPTIONS') {
+            $response->setStatusCode(200);
             return $response;
         }
 
@@ -38,13 +45,19 @@ class CorsFilter implements FilterInterface
      */
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
-        // Ensure response is JSON
-        $response->setContentType('application/json');
+        // Log for debugging
+        log_message('debug', 'CORS Filter (after): ' . $request->getMethod(true) . ' ' . $request->uri->getPath());
+        
+        // Only set content type for API routes if not already set
+        if (strpos($request->uri->getPath(), 'api/') === 0 && !$response->hasHeader('Content-Type')) {
+            $response->setContentType('application/json');
+        }
 
         // Add CORS headers to all responses
         $response->setHeader('Access-Control-Allow-Origin', '*')
-                ->setHeader('Access-Control-Allow-Headers', '*')
-                ->setHeader('Access-Control-Allow-Methods', '*');
+                ->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-Key')
+                ->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
+                ->setHeader('Access-Control-Allow-Credentials', 'true');
 
         return $response;
     }

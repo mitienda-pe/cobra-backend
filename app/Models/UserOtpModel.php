@@ -44,13 +44,13 @@ class UserOtpModel extends Model
      * Generate a new OTP code for a user
      *
      * @param int $userId User ID
-     * @param string $deliveryMethod Method to deliver OTP ('email' or 'sms')
      * @param string|null $deviceInfo Information about the device
+     * @param string $deliveryMethod Method to deliver OTP ('email' or 'sms')
      * @param int $expiresInMinutes Minutes until expiration
      * @param int $codeLength Length of the generated code
      * @return array OTP data including code and delivery status
      */
-    public function generateOTP($userId, $deliveryMethod = 'email', $deviceInfo = null, $expiresInMinutes = 15, $codeLength = 6)
+    public function generateOTP($userId, $deviceInfo = null, $deliveryMethod = 'email', $expiresInMinutes = 15, $codeLength = 6)
     {
         // Invalidate all previous OTPs for this user
         $this->where('user_id', $userId)

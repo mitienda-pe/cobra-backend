@@ -23,6 +23,9 @@ class AuthController extends ResourceController
      */
     public function requestOtp()
     {
+        // Log request for debugging
+        log_message('debug', 'OTP Request: ' . json_encode($this->request->getJSON()));
+        
         $rules = [
             'email'        => 'required|valid_email',
             'device_info'  => 'permit_empty',
@@ -30,6 +33,7 @@ class AuthController extends ResourceController
         ];
 
         if (!$this->validate($rules)) {
+            log_message('error', 'OTP Validation Error: ' . json_encode($this->validator->getErrors()));
             return $this->fail($this->validator->getErrors(), 400);
         }
 
@@ -39,29 +43,39 @@ class AuthController extends ResourceController
             ->first();
 
         if (!$user) {
+            log_message('error', 'OTP User Not Found: ' . $this->request->getVar('email'));
             return $this->failNotFound('User not found or inactive');
         }
 
         // Determine delivery method
         $method = $this->request->getVar('method') ?? 'email';
+        log_message('debug', 'OTP Delivery Method: ' . $method);
 
         // For SMS method, check if user has a phone number
         if ($method === 'sms') {
             if (empty($user['phone'])) {
+                log_message('error', 'OTP No Phone: User ID ' . $user['id']);
                 return $this->fail('User does not have a registered phone number for OTP authentication', 400);
             }
         }
 
+        // Get device info
+        $deviceInfo = $this->request->getVar('device_info') ?? 'Unknown Device';
+        log_message('debug', 'OTP Device Info: ' . $deviceInfo);
+
         $otpModel = new UserOtpModel();
         $otpData = $otpModel->generateOTP(
             $user['id'],
-            $this->request->getVar('device_info') ?? 'Unknown Device',
+            $deviceInfo,
             $method
         );
 
         if (!$otpData) {
+            log_message('error', 'OTP Generation Error: User ID ' . $user['id']);
             return $this->fail('Error generating OTP', 500);
         }
+
+        log_message('debug', 'OTP Generated: ' . $otpData['code'] . ' for User ID ' . $user['id']);
 
         // Send OTP via selected method
         if ($method === 'sms') {
@@ -69,23 +83,33 @@ class AuthController extends ResourceController
             $message = "Your OTP code is: {$otpData['code']}";
             $result = $twilio->sendSMS($user['phone'], $message);
 
+            log_message('debug', 'OTP SMS Result: ' . ($result ? 'Success' : 'Failed'));
             if (!$result) {
                 return $this->fail('Error sending OTP via SMS', 500);
             }
         } else {
-            // Send via email (implement this)
+            // For testing, log the OTP code (remove in production)
+            log_message('debug', 'OTP Email would be sent: ' . $otpData['code']);
             // TODO: Implement email sending
         }
 
-        return $this->respond([
+        // For easier testing, include the OTP code in development
+        $response = [
             'success' => true,
             'message' => 'OTP sent successfully',
             'data' => [
-                'otp_id' => $otpData['id'],
                 'expires_at' => $otpData['expires_at'],
                 'method' => $method
             ]
-        ]);
+        ];
+        
+        // Only in development mode, return the OTP code
+        if (ENVIRONMENT === 'development') {
+            $response['data']['otp'] = $otpData['code'];
+        }
+
+        log_message('debug', 'OTP Response: ' . json_encode($response));
+        return $this->respond($response);
     }
 
     /**

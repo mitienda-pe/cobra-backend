@@ -79,7 +79,7 @@ class Filters extends BaseConfig
             ]
         ],
         'auth' => [
-            'before' => ['*'],
+            'before' => ['dashboard', 'dashboard/*', 'organizations/*', 'clients/*', 'invoices/*', 'users/*', 'profile/*'],
             'except' => [
                 'api/*',
                 'api',

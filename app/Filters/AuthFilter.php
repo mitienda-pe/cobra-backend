@@ -14,6 +14,11 @@ class AuthFilter implements FilterInterface
      */
     public function before(RequestInterface $request, $arguments = null)
     {
+        // Skip API routes
+        if (strpos($request->uri->getPath(), 'api/') === 0) {
+            return $request;
+        }
+        
         $auth = new Auth();
         
         if (!$auth->check()) {
