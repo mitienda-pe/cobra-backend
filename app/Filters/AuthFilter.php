@@ -5,7 +5,7 @@ namespace App\Filters;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
-use App\Libraries\Auth;
+use Config\Services;
 
 class AuthFilter implements FilterInterface
 {
@@ -19,7 +19,7 @@ class AuthFilter implements FilterInterface
             return;
         }
 
-        $auth = new Auth();
+        $auth = Services::auth();
         
         if (!$auth->check()) {
             return redirect()->to('/auth/login')->with('error', 'Debe iniciar sesión para acceder a esta página.');

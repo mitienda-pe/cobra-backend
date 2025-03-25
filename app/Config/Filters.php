@@ -10,6 +10,7 @@ use CodeIgniter\Filters\InvalidChars;
 use CodeIgniter\Filters\SecureHeaders;
 use App\Filters\ApiAuthFilter;
 use App\Filters\ApiLogFilter;
+use App\Filters\AuthFilter;
 
 class Filters extends BaseConfig
 {
@@ -25,6 +26,7 @@ class Filters extends BaseConfig
         'secureheaders' => SecureHeaders::class,
         'apiAuth'       => ApiAuthFilter::class,
         'apiLog'        => ApiLogFilter::class,
+        'auth'          => AuthFilter::class,
     ];
 
     /**
@@ -74,6 +76,10 @@ class Filters extends BaseConfig
                 'api/auth/refresh-token'
             ]
         ],
-        'apiLog' => ['before' => ['api/*']]
+        'apiLog' => ['before' => ['api/*']],
+        'auth' => [
+            'before' => ['dashboard', 'users/*', 'organizations/*'],
+            'except' => ['auth/*']
+        ]
     ];
 }
