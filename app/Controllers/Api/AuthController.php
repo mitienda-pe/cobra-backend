@@ -517,4 +517,108 @@ class AuthController extends BaseApiController
             ]
         ]);
     }
+    
+    /**
+     * Test OTP without authentication - PUBLIC TESTING ONLY
+     */
+    public function testOtp()
+    {
+        // Create a log
+        $logFile = WRITEPATH . 'logs/test_otp.log';
+        file_put_contents(
+            $logFile, 
+            "=== Test OTP at " . date('Y-m-d H:i:s') . " ===\n", 
+            FILE_APPEND
+        );
+        
+        // Define database path
+        $dbPath = WRITEPATH . 'db/cobranzas.db';
+        
+        try {
+            // Check database permissions
+            $dbInfo = [
+                'exists' => file_exists($dbPath),
+                'writable' => is_writable($dbPath),
+                'permissions' => substr(sprintf('%o', fileperms($dbPath)), -4),
+                'size' => file_exists($dbPath) ? filesize($dbPath) : 0
+            ];
+            
+            file_put_contents($logFile, "Database info: " . json_encode($dbInfo) . "\n", FILE_APPEND);
+            
+            // Try to create a test user if not exists
+            $db = new \SQLite3($dbPath);
+            $timestamp = date('Y-m-d H:i:s');
+            
+            // Create a test user if not exists
+            $testUser = 'test_api_user';
+            $testEmail = 'test@example.com';
+            $testPhone = '+51999309748';
+            
+            // Check if user exists
+            $result = $db->query("SELECT id FROM users WHERE email = '{$testEmail}' LIMIT 1");
+            $user = $result->fetchArray(SQLITE3_ASSOC);
+            
+            $userId = null;
+            if (!$user) {
+                // Create test user
+                $db->exec("INSERT INTO users (name, email, phone, role, status, created_at) 
+                          VALUES ('{$testUser}', '{$testEmail}', '{$testPhone}', 'user', 'active', '{$timestamp}')");
+                
+                $result = $db->query("SELECT last_insert_rowid() as id");
+                $userId = $result->fetchArray(SQLITE3_ASSOC)['id'];
+                file_put_contents($logFile, "Created test user with ID: {$userId}\n", FILE_APPEND);
+            } else {
+                $userId = $user['id'];
+                file_put_contents($logFile, "Using existing test user with ID: {$userId}\n", FILE_APPEND);
+            }
+            
+            // Generate OTP manually without auth
+            $otp = rand(100000, 999999);
+            $expiresAt = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+            
+            // Try to delete old OTPs for this user
+            $db->exec("UPDATE user_otp_codes SET used_at = '{$timestamp}' WHERE user_id = {$userId} AND used_at IS NULL");
+            
+            // Insert new OTP
+            $db->exec("INSERT INTO user_otp_codes (user_id, code, device_info, expires_at, created_at, delivery_method, delivery_status) 
+                    VALUES ({$userId}, '{$otp}', 'Test Device', '{$expiresAt}', '{$timestamp}', 'email', 'sent')");
+            
+            // Get the OTP from database to verify it worked
+            $result = $db->query("SELECT * FROM user_otp_codes WHERE user_id = {$userId} ORDER BY id DESC LIMIT 1");
+            $otpData = $result->fetchArray(SQLITE3_ASSOC);
+            
+            // Return success
+            return $this->respond([
+                'success' => true,
+                'message' => 'OTP test successful',
+                'database_info' => $dbInfo,
+                'test_user' => [
+                    'id' => $userId,
+                    'email' => $testEmail,
+                    'phone' => $testPhone
+                ],
+                'otp_data' => [
+                    'code' => $otp,
+                    'expires_at' => $expiresAt
+                ],
+                'db_query_result' => $otpData
+            ]);
+            
+        } catch (\Exception $e) {
+            file_put_contents($logFile, "Error: " . $e->getMessage() . "\n", FILE_APPEND);
+            file_put_contents($logFile, "Trace: " . $e->getTraceAsString() . "\n", FILE_APPEND);
+            
+            return $this->respond([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'database_info' => isset($dbInfo) ? $dbInfo : [
+                    'exists' => file_exists($dbPath),
+                    'writable' => is_writable($dbPath),
+                    'permissions' => substr(sprintf('%o', fileperms($dbPath)), -4),
+                    'size' => file_exists($dbPath) ? filesize($dbPath) : 0
+                ]
+            ], 500);
+        }
+    }
 }

@@ -45,6 +45,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     
     // Debug endpoint - useful for troubleshooting
     $routes->match(['get', 'post', 'options'], 'debug', 'AuthController::debug');
+    $routes->match(['get', 'post', 'options'], 'test-otp', 'AuthController::testOtp');
 });
 
 // API Routes - Protected 
