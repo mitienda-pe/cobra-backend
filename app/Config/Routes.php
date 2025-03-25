@@ -1,10 +1,22 @@
 <?php
 
+namespace Config;
+
 use CodeIgniter\Router\RouteCollection;
 
 /**
  * @var RouteCollection $routes
  */
+
+$routes->setDefaultNamespace('App\Controllers');
+$routes->setDefaultController('Home');
+$routes->setDefaultMethod('index');
+$routes->setTranslateURIDashes(false);
+$routes->set404Override();
+
+// Do not auto-route directories
+$routes->setAutoRoute(false);
+
 // Auth routes
 $routes->get('/', 'Home::index');
 $routes->get('auth/login', 'Auth::login');
