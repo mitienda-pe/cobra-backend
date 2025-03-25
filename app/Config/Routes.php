@@ -114,9 +114,9 @@ $routes->get('webhooks/retry/(:num)', 'WebhookController::retry/$1');
 // API Routes - Public (No auth required)
 $routes->group('api', ['namespace' => 'App\Controllers\Api', 'csrf' => false], function ($routes) {
     // Auth API Routes
-    $routes->match(['post', 'options'], 'auth/request-otp', 'Auth::requestOtp');
-    $routes->match(['post', 'options'], 'auth/verify-otp', 'Auth::verifyOtp');
-    $routes->match(['post', 'options'], 'auth/refresh-token', 'Auth::refreshToken');
+    $routes->match(['post', 'options'], 'auth/request-otp', 'AuthController::requestOtp');
+    $routes->match(['post', 'options'], 'auth/verify-otp', 'AuthController::verifyOtp');
+    $routes->match(['post', 'options'], 'auth/refresh-token', 'AuthController::refreshToken');
 });
 
 // API Routes - Protected
@@ -126,12 +126,12 @@ $routes->group('api', [
     'csrf' => false
 ], function ($routes) {
     // Auth Protected Routes
-    $routes->match(['post', 'options'], 'auth/logout', 'Auth::logout');
+    $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
     
     // User API Routes
-    $routes->match(['get', 'options'], 'user/profile', 'Users::profile');
-    $routes->match(['get', 'options'], 'users', 'Users::index');
-    $routes->match(['get', 'options'], 'users/portfolio/(:num)', 'Users::byPortfolio/$1');
+    $routes->match(['get', 'options'], 'user/profile', 'UserController::profile');
+    $routes->match(['get', 'options'], 'users', 'UserController::index');
+    $routes->match(['get', 'options'], 'users/portfolio/(:num)', 'UserController::byPortfolio/$1');
     
     // Client API Routes
     $routes->match(['get', 'options'], 'clients', 'ClientController::index');
