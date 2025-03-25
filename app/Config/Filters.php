@@ -26,8 +26,6 @@ class Filters extends BaseConfig
         'apiAuth'       => \App\Filters\ApiAuthFilter::class,
         'apiLog'        => \App\Filters\ApiLogFilter::class,
         'organization'  => \App\Filters\OrganizationFilter::class,
-        'csrfExcept'    => \App\Filters\CsrfExceptFilter::class,
-        'disableCsrf'   => \App\Filters\DisableCsrfForRoutes::class,
     ];
 
     /**
@@ -37,8 +35,6 @@ class Filters extends BaseConfig
     public array $globals = [
         'before' => [
             'invalidchars',
-            'disableCsrf',  // IMPORTANT: This must come BEFORE the CSRF filter
-            'csrfExcept',   // Add our custom CSRF exception filter
         ],
         'after' => [
             'toolbar',
@@ -90,7 +86,8 @@ class Filters extends BaseConfig
                 'api/*',
                 'api',
                 'auth/*',
-                'auth'
+                'auth',
+                '/'
             ]
         ],
         'organization' => [
@@ -99,7 +96,8 @@ class Filters extends BaseConfig
                 'api/*',
                 'api',
                 'auth/*',
-                'auth'
+                'auth',
+                '/'
             ]
         ]
     ];

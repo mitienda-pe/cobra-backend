@@ -1,13 +1,24 @@
 <?php
 
+namespace Config;
+
 use CodeIgniter\Router\RouteCollection;
 
 /**
  * @var RouteCollection $routes
  */
 
-// API Routes - Make sure these are defined before other routes
-$routes->group('api', ['namespace' => 'App\Controllers\Api'], function($routes) {
+$routes->setDefaultNamespace('App\Controllers');
+$routes->setDefaultController('Home');
+$routes->setDefaultMethod('index');
+$routes->setTranslateURIDashes(false);
+$routes->set404Override();
+
+// Do not auto-route directories
+$routes->setAutoRoute(false);
+
+// API Routes
+$routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth API Routes
     $routes->match(['post', 'options'], 'auth/request-otp', 'AuthController::requestOtp');
     $routes->match(['post', 'options'], 'auth/verify-otp', 'AuthController::verifyOtp');
@@ -49,14 +60,31 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function($routes) 
     $routes->get('payments/external/(:segment)', 'PaymentController::findByExternalId/$1');
 });
 
-// Default route to login page
+// Web Routes
 $routes->get('/', 'Home::index');
 
 // Auth routes
 $routes->get('auth/login', 'Auth::login');
-$routes->post('auth/login', 'Auth::login');
+$routes->post('auth/login', 'Auth::attemptLogin');
 $routes->get('auth/logout', 'Auth::logout');
-$routes->get('auth/forgot-password', 'Auth::forgot_password');
-$routes->post('auth/forgot-password', 'Auth::forgot_password');
-$routes->get('auth/reset-password/(:segment)', 'Auth::reset_password/$1');
-$routes->post('auth/reset-password/(:segment)', 'Auth::reset_password/$1');
+
+// Protected web routes
+$routes->group('', ['filter' => 'auth'], function ($routes) {
+    $routes->get('dashboard', 'Dashboard::index');
+    
+    // Users
+    $routes->get('users', 'Users::index');
+    $routes->get('users/create', 'Users::create');
+    $routes->post('users/create', 'Users::store');
+    $routes->get('users/edit/(:num)', 'Users::edit/$1');
+    $routes->post('users/edit/(:num)', 'Users::update/$1');
+    $routes->get('users/delete/(:num)', 'Users::delete/$1');
+
+    // Clients
+    $routes->get('clients', 'Clients::index');
+    $routes->get('clients/create', 'Clients::create');
+    $routes->post('clients/create', 'Clients::store');
+    $routes->get('clients/edit/(:num)', 'Clients::edit/$1');
+    $routes->post('clients/edit/(:num)', 'Clients::update/$1');
+    $routes->get('clients/delete/(:num)', 'Clients::delete/$1');
+});
