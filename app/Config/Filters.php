@@ -29,6 +29,9 @@ class Filters extends BaseConfig
         'apiAuth'       => ApiAuthFilter::class,
         'apiLog'        => ApiLogFilter::class,
         'cors'          => CorsFilter::class,
+        // Alias combinados para múltiples filtros
+        'auth csrf'     => [AuthFilter::class, CSRF::class],
+        'cors apiAuth apiLog' => [CorsFilter::class, ApiAuthFilter::class, ApiLogFilter::class],
     ];
 
     /**
