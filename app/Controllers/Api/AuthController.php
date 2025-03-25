@@ -44,11 +44,34 @@ class AuthController extends ResourceController
             session()->remove('redirect_url');
         }
         
-        $rules = [
-            'email'        => 'required|valid_email',
-            'device_info'  => 'permit_empty',
-            'method'       => 'permit_empty|in_list[email,sms]'
-        ];
+        // Get POST data
+        $json = $this->request->getJSON();
+        $email = $this->request->getVar('email') ?? $json->email ?? null;
+        $phone = $this->request->getVar('phone') ?? $json->phone ?? null;
+        $clientId = $this->request->getVar('client_id') ?? $json->client_id ?? null;
+        
+        log_message('debug', 'OTP Request Email: ' . ($email ?? 'not provided'));
+        log_message('debug', 'OTP Request Phone: ' . ($phone ?? 'not provided'));
+        log_message('debug', 'OTP Request Client ID: ' . ($clientId ?? 'not provided'));
+        
+        // Validación condicional basada en el identificador enviado (email o teléfono)
+        if (!empty($email)) {
+            $rules = [
+                'email'        => 'required|valid_email',
+                'device_info'  => 'permit_empty',
+                'method'       => 'permit_empty|in_list[email,sms]'
+            ];
+        } else if (!empty($phone)) {
+            $rules = [
+                'phone'        => 'required|min_length[10]|max_length[15]',
+                'device_info'  => 'permit_empty',
+                'method'       => 'permit_empty|in_list[email,sms]',
+                'client_id'    => 'required|numeric'
+            ];
+        } else {
+            log_message('error', 'OTP Validation Error: No email or phone provided');
+            return $this->fail(['error' => 'Email or phone is required'], 400);
+        }
 
         if (!$this->validate($rules)) {
             log_message('error', 'OTP Validation Error: ' . json_encode($this->validator->getErrors()));
@@ -56,12 +79,23 @@ class AuthController extends ResourceController
         }
 
         $userModel = new UserModel();
-        $user = $userModel->where('email', $this->request->getVar('email'))
-            ->where('status', 'active')
-            ->first();
+        
+        // Buscar usuario por email o teléfono
+        if (!empty($email)) {
+            $user = $userModel->where('email', $email)
+                ->where('status', 'active')
+                ->first();
+        } else {
+            // Buscar por teléfono y client_id
+            $user = $userModel->where('phone', $phone)
+                ->where('client_id', $clientId)
+                ->where('status', 'active')
+                ->first();
+        }
 
         if (!$user) {
-            log_message('error', 'OTP User Not Found: ' . $this->request->getVar('email'));
+            $identifier = !empty($email) ? $email : $phone;
+            log_message('error', 'OTP User Not Found: ' . $identifier);
             return $this->failNotFound('User not found or inactive');
         }
 
