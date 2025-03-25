@@ -70,7 +70,7 @@ $routes->get('auth/logout', 'AuthController::logout');
 
 // Protected web routes
 $routes->group('', ['filter' => 'auth'], function ($routes) {
-    $routes->get('dashboard', 'Dashboard::index');
+    $routes->get('dashboard', 'DashboardController::index');
     
     // Users
     $routes->get('users', 'UserController::index');
