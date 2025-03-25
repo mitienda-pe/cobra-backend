@@ -16,14 +16,21 @@ class AuthFilter implements FilterInterface
     {
         // Skip API routes
         if (strpos($request->uri->getPath(), 'api/') === 0) {
+            log_message('debug', '[AuthFilter] Skipping API route: ' . $request->uri->getPath());
             return $request;
         }
+        
+        log_message('debug', '[AuthFilter] Processing web route: ' . $request->uri->getPath());
         
         $auth = new Auth();
         
         if (!$auth->check()) {
+            log_message('info', '[AuthFilter] Authentication failed, redirecting to login');
             return redirect()->to('/auth/login')->with('error', 'Debe iniciar sesión para acceder a esta página.');
         }
+        
+        log_message('debug', '[AuthFilter] Authentication successful for web route');
+        return $request;
     }
     
     /**
@@ -35,5 +42,6 @@ class AuthFilter implements FilterInterface
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
         // Do nothing
+        return $response;
     }
 }

@@ -21,17 +21,22 @@ class ApiAuthFilter implements FilterInterface
 
         // Add CORS headers to all responses
         $response->setHeader('Access-Control-Allow-Origin', '*')
-                ->setHeader('Access-Control-Allow-Headers', '*')
-                ->setHeader('Access-Control-Allow-Methods', '*');
+                ->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-Key')
+                ->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
+                ->setHeader('Access-Control-Allow-Credentials', 'true');
 
         // Si es una petición OPTIONS, permitir sin token
         if ($request->getMethod(true) === 'OPTIONS') {
             return $response;
         }
 
+        // Log the request for debugging
+        log_message('debug', '[ApiAuthFilter] Processing request for URI: ' . $request->uri->getPath());
+
         $token = $this->extractToken($request);
         
         if (!$token) {
+            log_message('error', '[ApiAuthFilter] No token provided for protected route: ' . $request->uri->getPath());
             return $response
                 ->setStatusCode(401)
                 ->setJSON([
@@ -44,6 +49,7 @@ class ApiAuthFilter implements FilterInterface
         $tokenData = $tokenModel->getByToken($token);
         
         if (!$tokenData) {
+            log_message('error', '[ApiAuthFilter] Invalid token for route: ' . $request->uri->getPath());
             return $response
                 ->setStatusCode(401)
                 ->setJSON([
@@ -60,6 +66,7 @@ class ApiAuthFilter implements FilterInterface
         $user = $userModel->find($tokenData['user_id']);
         
         if (!$user || $user['status'] !== 'active') {
+            log_message('error', '[ApiAuthFilter] User inactive or not found: User ID ' . $tokenData['user_id']);
             return $response
                 ->setStatusCode(401)
                 ->setJSON([
@@ -77,7 +84,8 @@ class ApiAuthFilter implements FilterInterface
         session()->set('api_user', $user);
         session()->set('api_token', $tokenData);
 
-        return $response;
+        log_message('debug', '[ApiAuthFilter] Authentication successful for user ID: ' . $user['id']);
+        return $request;
     }
 
     /**
@@ -89,12 +97,15 @@ class ApiAuthFilter implements FilterInterface
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
         // Ensure response is JSON
-        $response->setContentType('application/json');
+        if (!$response->hasHeader('Content-Type')) {
+            $response->setContentType('application/json');
+        }
 
         // Add CORS headers to all responses
         $response->setHeader('Access-Control-Allow-Origin', '*')
-                ->setHeader('Access-Control-Allow-Headers', '*')
-                ->setHeader('Access-Control-Allow-Methods', '*');
+                ->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-Key')
+                ->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
+                ->setHeader('Access-Control-Allow-Credentials', 'true');
 
         return $response;
     }

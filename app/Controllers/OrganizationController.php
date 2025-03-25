@@ -7,11 +7,13 @@ use App\Libraries\Auth;
 
 class OrganizationController extends BaseController
 {
+    protected $organizationModel;
     protected $auth;
     protected $session;
     
     public function __construct()
     {
+        $this->organizationModel = new OrganizationModel();
         $this->auth = new Auth();
         $this->session = \Config\Services::session();
         helper(['form', 'url']);
@@ -24,13 +26,11 @@ class OrganizationController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para acceder a esta sección.');
         }
         
-        $organizationModel = new OrganizationModel();
-        $data = [
-            'organizations' => $organizationModel->findAll(),
+        return view('organizations/index', [
+            'title' => 'Organizations',
+            'organizations' => $this->organizationModel->findAll(),
             'auth' => $this->auth,
-        ];
-        
-        return view('organizations/index', $data);
+        ]);
     }
     
     public function create()
@@ -40,119 +40,105 @@ class OrganizationController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para crear organizaciones.');
         }
         
-        $data = [
+        return view('organizations/create', [
+            'title' => 'Create Organization',
             'auth' => $this->auth,
-        ];
-        
-        // Handle form submission
-        if ($this->request->getMethod() === 'post') {
-            $rules = [
-                'name'        => 'required|min_length[3]|max_length[100]',
-                'description' => 'permit_empty',
-                'status'      => 'required|in_list[active,inactive]',
-            ];
-            
-            if ($this->validate($rules)) {
-                $organizationModel = new OrganizationModel();
-                
-                // Prepare data
-                $data = [
-                    'name'        => $this->request->getPost('name'),
-                    'description' => $this->request->getPost('description'),
-                    'status'      => $this->request->getPost('status'),
-                ];
-                
-                $organizationId = $organizationModel->insert($data);
-                
-                if ($organizationId) {
-                    return redirect()->to('/organizations')->with('message', 'Organización creada exitosamente.');
-                } else {
-                    return redirect()->back()->withInput()
-                        ->with('error', 'Error al crear la organización.');
-                }
-            } else {
-                return redirect()->back()->withInput()
-                    ->with('errors', $this->validator->getErrors());
-            }
-        }
-        
-        return view('organizations/create', $data);
+        ]);
     }
     
-    public function edit($id = null)
+    public function store()
+    {
+        // Only superadmins can create organizations
+        if (!$this->auth->hasRole('superadmin')) {
+            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para crear organizaciones.');
+        }
+        
+        if (!$this->validate([
+            'name' => 'required|min_length[3]',
+            'code' => 'required|min_length[2]|is_unique[organizations.code]',
+            'status' => 'required|in_list[active,inactive]'
+        ])) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $this->organizationModel->insert([
+            'name' => $this->request->getPost('name'),
+            'code' => $this->request->getPost('code'),
+            'status' => $this->request->getPost('status'),
+            'description' => $this->request->getPost('description')
+        ]);
+
+        return redirect()->to('/organizations')->with('message', 'Organization created successfully');
+    }
+    
+    public function edit($id)
     {
         // Only superadmins can edit organizations
         if (!$this->auth->hasRole('superadmin')) {
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para editar organizaciones.');
         }
         
-        if (!$id) {
-            return redirect()->to('/organizations')->with('error', 'ID de organización no proporcionado.');
-        }
-        
-        $organizationModel = new OrganizationModel();
-        $organization = $organizationModel->find($id);
-        
+        $organization = $this->organizationModel->find($id);
         if (!$organization) {
-            return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');
+            return redirect()->to('/organizations')->with('error', 'Organization not found');
         }
-        
-        $data = [
+
+        return view('organizations/edit', [
+            'title' => 'Edit Organization',
             'organization' => $organization,
             'auth' => $this->auth,
-        ];
-        
-        // Handle form submission
-        if ($this->request->getMethod() === 'post') {
-            $rules = [
-                'name'        => 'required|min_length[3]|max_length[100]',
-                'description' => 'permit_empty',
-                'status'      => 'required|in_list[active,inactive]',
-            ];
-            
-            if ($this->validate($rules)) {
-                // Prepare data
-                $data = [
-                    'name'        => $this->request->getPost('name'),
-                    'description' => $this->request->getPost('description'),
-                    'status'      => $this->request->getPost('status'),
-                ];
-                
-                $updated = $organizationModel->update($id, $data);
-                
-                if ($updated) {
-                    return redirect()->to('/organizations')->with('message', 'Organización actualizada exitosamente.');
-                } else {
-                    return redirect()->back()->withInput()
-                        ->with('error', 'Error al actualizar la organización.');
-                }
-            } else {
-                return redirect()->back()->withInput()
-                    ->with('errors', $this->validator->getErrors());
-            }
-        }
-        
-        return view('organizations/edit', $data);
+        ]);
     }
     
-    public function delete($id = null)
+    public function update($id)
+    {
+        // Only superadmins can edit organizations
+        if (!$this->auth->hasRole('superadmin')) {
+            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para editar organizaciones.');
+        }
+        
+        $organization = $this->organizationModel->find($id);
+        if (!$organization) {
+            return redirect()->to('/organizations')->with('error', 'Organization not found');
+        }
+
+        $rules = [
+            'name' => 'required|min_length[3]',
+            'code' => 'required|min_length[2]',
+            'status' => 'required|in_list[active,inactive]'
+        ];
+
+        // Only validate code uniqueness if it changed
+        if ($organization['code'] !== $this->request->getPost('code')) {
+            $rules['code'] .= '|is_unique[organizations.code]';
+        }
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $this->organizationModel->update($id, [
+            'name' => $this->request->getPost('name'),
+            'code' => $this->request->getPost('code'),
+            'status' => $this->request->getPost('status'),
+            'description' => $this->request->getPost('description')
+        ]);
+
+        return redirect()->to('/organizations')->with('message', 'Organization updated successfully');
+    }
+    
+    public function delete($id)
     {
         // Only superadmins can delete organizations
         if (!$this->auth->hasRole('superadmin')) {
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para eliminar organizaciones.');
         }
         
-        if (!$id) {
-            return redirect()->to('/organizations')->with('error', 'ID de organización no proporcionado.');
-        }
-        
-        $organizationModel = new OrganizationModel();
-        $organization = $organizationModel->find($id);
-        
+        $organization = $this->organizationModel->find($id);
         if (!$organization) {
-            return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');
+            return redirect()->to('/organizations')->with('error', 'Organization not found');
         }
-        
+
         // Check if organization has any related data
         // This is a simplified check, you might want to add more tables as needed
         $db = \Config\Database::connect();
@@ -164,13 +150,9 @@ class OrganizationController extends BaseController
             return redirect()->to('/organizations')->with('error', 'No se puede eliminar esta organización porque tiene datos asociados.');
         }
         
-        $deleted = $organizationModel->delete($id);
-        
-        if ($deleted) {
-            return redirect()->to('/organizations')->with('message', 'Organización eliminada exitosamente.');
-        } else {
-            return redirect()->to('/organizations')->with('error', 'Error al eliminar la organización.');
-        }
+        $this->organizationModel->delete($id);
+
+        return redirect()->to('/organizations')->with('message', 'Organization deleted successfully');
     }
     
     public function view($id = null)
@@ -184,8 +166,7 @@ class OrganizationController extends BaseController
             return redirect()->to('/organizations')->with('error', 'ID de organización no proporcionado.');
         }
         
-        $organizationModel = new OrganizationModel();
-        $organization = $organizationModel->find($id);
+        $organization = $this->organizationModel->find($id);
         
         if (!$organization) {
             return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');

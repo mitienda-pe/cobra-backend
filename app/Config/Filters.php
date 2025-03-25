@@ -79,7 +79,7 @@ class Filters extends BaseConfig
             ]
         ],
         'auth' => [
-            'before' => ['dashboard', 'dashboard/*', 'organizations/*', 'clients/*', 'invoices/*', 'users/*', 'profile/*'],
+            'before' => ['dashboard', 'dashboard/*', 'organizations/*', 'clients/*', 'invoices/*', 'users/*', 'profile/*', 'portfolios/*', 'payments/*', 'webhooks/*'],
             'except' => [
                 'api/*',
                 'api',
@@ -89,6 +89,15 @@ class Filters extends BaseConfig
                 'debug/*'
             ]
         ],
+        'apiAuth' => [
+            'before' => ['api/*'],
+            'except' => [
+                'api/auth/request-otp',
+                'api/auth/verify-otp',
+                'api/auth/refresh-token'
+            ]
+        ],
+        'apiLog' => ['before' => ['api/*']],
         'cors' => [
             'before' => ['api/*', 'api'],
             'after' => ['api/*', 'api']
