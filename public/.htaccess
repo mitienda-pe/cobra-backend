@@ -16,22 +16,32 @@ Options -Indexes
     # http://httpd.apache.org/docs/current/mod/mod_rewrite.html#rewritebase
     RewriteBase /
 
-    # Redirect Trailing Slashes...
+    # Redirect Trailing Slashes - but NOT for API requests
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteCond %{REQUEST_URI} !^/(index\.php/)?api/ [NC]
     RewriteRule ^ %1 [L,R=301]
 
-    # Handle API requests first
+    # Special handling for API requests - NO REDIRECTS
     RewriteCond %{REQUEST_URI} ^/(index\.php/)?api/ [NC]
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_METHOD} ^(POST|GET|PUT|DELETE|OPTIONS)$ [NC]
     RewriteRule ^(.*)$ index.php/$1 [L,QSA]
+    
+    # Handle OPTIONS preflight requests for API
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteCond %{REQUEST_URI} ^/(index\.php/)?api/ [NC]
+    RewriteRule .* - [E=HTTP_ORIGIN:%{HTTP:ORIGIN},L]
 
     # Rewrite "www.example.com -> example.com" - DISABLED TEMPORARILY
     # RewriteCond %{HTTPS} !=on
     # RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
     # RewriteRule ^ http://%1%{REQUEST_URI} [R=301,L]
 
+    # Disable HTTPS redirects for API routes
+    RewriteCond %{HTTPS} off
+    RewriteCond %{REQUEST_URI} ^/(index\.php/)?api/ [NC]
+    RewriteRule .* - [E=REDIRECT_HTTPS:0]
+    
     # Checks to see if the user is attempting to access a valid file,
     # such as an image or css document, if this isn't true it sends the
     # request to the front controller, index.php
