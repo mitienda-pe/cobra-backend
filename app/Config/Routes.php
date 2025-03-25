@@ -114,7 +114,7 @@ $routes->get('webhooks/retry/(:num)', 'WebhookController::retry/$1');
 // API Routes - Public (No auth required)
 $routes->group('api', [
     'namespace' => 'App\Controllers\Api',
-    'filter' => ['cors'],
+    'filter' => 'cors',
     'csrf' => false
 ], function ($routes) {
     // Auth API Routes
@@ -126,7 +126,7 @@ $routes->group('api', [
 // API Routes - Protected
 $routes->group('api', [
     'namespace' => 'App\Controllers\Api',
-    'filter' => ['cors', 'apiAuth', 'apiLog'],
+    'filter' => 'cors apiAuth apiLog',
     'csrf' => false
 ], function ($routes) {
     // Auth Protected Routes

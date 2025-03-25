@@ -8,6 +8,13 @@ use CodeIgniter\Filters\DebugToolbar;
 use CodeIgniter\Filters\Honeypot;
 use CodeIgniter\Filters\InvalidChars;
 use CodeIgniter\Filters\SecureHeaders;
+use App\Filters\AuthFilter;
+use App\Filters\ApiAuthFilter;
+use App\Filters\ApiLogFilter;
+use App\Filters\OrganizationFilter;
+use App\Filters\CsrfExceptFilter;
+use App\Filters\DisableCsrfForRoutes;
+use App\Filters\CorsFilter;
 
 class Filters extends BaseConfig
 {
@@ -21,15 +28,15 @@ class Filters extends BaseConfig
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
-        'auth'          => \App\Filters\AuthFilter::class,
+        'auth'          => AuthFilter::class,
+        'apiAuth'       => ApiAuthFilter::class,
+        'apiLog'        => ApiLogFilter::class,
+        'organization'  => OrganizationFilter::class,
+        'csrfExcept'    => CsrfExceptFilter::class,
+        'disableCsrf'   => DisableCsrfForRoutes::class,
+        'cors'          => CorsFilter::class,
         'role'          => \App\Filters\RoleFilter::class,
-        'apiAuth'       => \App\Filters\ApiAuthFilter::class,
         '-apiAuth'      => \App\Filters\ApiAuthFilter::class,
-        'apiLog'        => \App\Filters\ApiLogFilter::class,
-        'organization'  => \App\Filters\OrganizationFilter::class,
-        'csrfExcept'    => \App\Filters\CsrfExceptFilter::class,
-        'disableCsrf'   => \App\Filters\DisableCsrfForRoutes::class,
-        'cors'          => \App\Filters\CorsFilter::class,
     ];
 
     /**
