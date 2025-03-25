@@ -2,14 +2,13 @@
 
 namespace App\Controllers\Api;
 
-use CodeIgniter\RESTful\ResourceController;
 use App\Models\UserModel;
 use App\Models\UserOtpModel;
 use App\Models\UserApiTokenModel;
 use App\Libraries\Twilio;
 use CodeIgniter\HTTP\ResponseInterface;
 
-class AuthController extends ResourceController
+class AuthController extends BaseApiController
 {
     protected $format = 'json';
 
