@@ -18,14 +18,24 @@ class ApiAuthFilter implements FilterInterface
         $token = $this->extractToken($request);
         
         if (!$token) {
-            return $this->failUnauthorized('Token not provided');
+            return service('response')
+                ->setStatusCode(401)
+                ->setJSON([
+                    'success' => false,
+                    'message' => 'Token not provided'
+                ]);
         }
         
         $tokenModel = new UserApiTokenModel();
         $tokenData = $tokenModel->getByToken($token);
         
         if (!$tokenData) {
-            return $this->failUnauthorized('Invalid or expired token');
+            return service('response')
+                ->setStatusCode(401)
+                ->setJSON([
+                    'success' => false,
+                    'message' => 'Invalid or expired token'
+                ]);
         }
         
         // Update last used timestamp
@@ -36,7 +46,12 @@ class ApiAuthFilter implements FilterInterface
         $user = $userModel->find($tokenData['user_id']);
         
         if (!$user || $user['status'] !== 'active') {
-            return $this->failUnauthorized('User inactive or not found');
+            return service('response')
+                ->setStatusCode(401)
+                ->setJSON([
+                    'success' => false,
+                    'message' => 'User inactive or not found'
+                ]);
         }
         
         // Store user data in session for API controllers
@@ -61,34 +76,18 @@ class ApiAuthFilter implements FilterInterface
     }
     
     /**
-     * Extract token from Authorization header
+     * Extract token from request headers or query string
      */
-    private function extractToken(RequestInterface $request)
+    private function extractToken(RequestInterface $request): ?string
     {
-        $token = $request->getHeaderLine('Authorization');
+        $header = $request->getHeaderLine('Authorization');
         
-        if (strpos($token, 'Bearer ') === 0) {
-            return substr($token, 7);
+        if (!empty($header)) {
+            if (preg_match('/Bearer\s(\S+)/', $header, $matches)) {
+                return $matches[1];
+            }
         }
         
-        return null;
-    }
-    
-    /**
-     * Return unauthorized error
-     */
-    private function failUnauthorized($message)
-    {
-        $response = service('response');
-        $response->setStatusCode(401);
-        $response->setJSON([
-            'status' => 401,
-            'error' => 'Unauthorized',
-            'messages' => [
-                'error' => $message
-            ]
-        ]);
-        
-        return $response;
+        return $request->getServer('HTTP_AUTHORIZATION');
     }
 }

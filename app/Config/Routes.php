@@ -112,11 +112,15 @@ $routes->get('webhooks/test/(:num)', 'WebhookController::test/$1');
 $routes->get('webhooks/retry/(:num)', 'WebhookController::retry/$1');
 
 // API Routes
-$routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
+$routes->group('api', [
+    'namespace' => 'App\Controllers\Api',
+    'filter' => ['apiAuth', 'apiLog'],
+    'csrf' => false
+], function ($routes) {
     // Auth API Routes
-    $routes->match(['post', 'options'], 'auth/request-otp', 'Auth::requestOtp');
-    $routes->match(['post', 'options'], 'auth/verify-otp', 'Auth::verifyOtp');
-    $routes->match(['post', 'options'], 'auth/refresh-token', 'Auth::refreshToken');
+    $routes->match(['post', 'options'], 'auth/request-otp', 'Auth::requestOtp', ['filter' => '-apiAuth']);
+    $routes->match(['post', 'options'], 'auth/verify-otp', 'Auth::verifyOtp', ['filter' => '-apiAuth']);
+    $routes->match(['post', 'options'], 'auth/refresh-token', 'Auth::refreshToken', ['filter' => '-apiAuth']);
     $routes->match(['post', 'options'], 'auth/logout', 'Auth::logout');
     
     // User API Routes
