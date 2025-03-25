@@ -7,6 +7,7 @@ use App\Models\UserModel;
 use App\Models\UserOtpModel;
 use App\Models\UserApiTokenModel;
 use App\Libraries\Twilio;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class AuthController extends ResourceController
 {
@@ -462,6 +463,59 @@ class AuthController extends ResourceController
         $this->jsonResponse([
             'success' => true,
             'message' => 'Sesión cerrada exitosamente'
+        ]);
+    }
+    
+    /**
+     * Debug endpoint - used for testing API connectivity and route handling
+     */
+    public function debug()
+    {
+        // Write to a special debug log file
+        $debugLogFile = WRITEPATH . 'logs/api_debug.log';
+        
+        // Get request info
+        $requestData = [
+            'time' => date('Y-m-d H:i:s'),
+            'uri' => $_SERVER['REQUEST_URI'] ?? 'unknown',
+            'method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown',
+            'remote_addr' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+            'headers' => function_exists('getallheaders') ? getallheaders() : [],
+            'get' => $_GET,
+            'post' => $_POST,
+            'input' => file_get_contents('php://input'),
+            'server' => $_SERVER,
+            'route' => service('router')->getMatchedRoute(),
+            'codeigniter_version' => \CodeIgniter\CodeIgniter::CI_VERSION,
+            'php_version' => phpversion()
+        ];
+        
+        // Log to file
+        file_put_contents(
+            $debugLogFile, 
+            "=== API Debug at " . date('Y-m-d H:i:s') . " ===\n" . 
+            print_r($requestData, true) . "\n\n", 
+            FILE_APPEND
+        );
+        
+        // Return debug info
+        return $this->respond([
+            'success' => true,
+            'message' => 'API debug info',
+            'time' => date('Y-m-d H:i:s'),
+            'server_info' => [
+                'php_version' => phpversion(),
+                'codeigniter_version' => \CodeIgniter\CodeIgniter::CI_VERSION,
+                'environment' => ENVIRONMENT
+            ],
+            'request_info' => [
+                'uri' => $_SERVER['REQUEST_URI'] ?? 'unknown',
+                'path' => $_SERVER['PATH_INFO'] ?? 'unknown',
+                'method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown',
+                'query_string' => $_SERVER['QUERY_STRING'] ?? '',
+                'route' => service('router')->getMatchedRoute()
+            ]
         ]);
     }
 }

@@ -40,6 +40,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->match(['post', 'options'], 'auth/request-otp', 'AuthController::requestOtp');
     $routes->match(['post', 'options'], 'auth/verify-otp', 'AuthController::verifyOtp');
     $routes->match(['post', 'options'], 'auth/refresh-token', 'AuthController::refreshToken');
+    
+    // Debug endpoint - useful for troubleshooting
+    $routes->match(['get', 'post', 'options'], 'debug', 'AuthController::debug');
 });
 
 // API Routes - Protected 
