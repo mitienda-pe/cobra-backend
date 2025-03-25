@@ -111,16 +111,21 @@ $routes->get('webhooks/logs/(:num)', 'WebhookController::logs/$1');
 $routes->get('webhooks/test/(:num)', 'WebhookController::test/$1');
 $routes->get('webhooks/retry/(:num)', 'WebhookController::retry/$1');
 
-// API Routes
+// API Routes - Public (No auth required)
+$routes->group('api', ['namespace' => 'App\Controllers\Api', 'csrf' => false], function ($routes) {
+    // Auth API Routes
+    $routes->match(['post', 'options'], 'auth/request-otp', 'Auth::requestOtp');
+    $routes->match(['post', 'options'], 'auth/verify-otp', 'Auth::verifyOtp');
+    $routes->match(['post', 'options'], 'auth/refresh-token', 'Auth::refreshToken');
+});
+
+// API Routes - Protected
 $routes->group('api', [
     'namespace' => 'App\Controllers\Api',
     'filter' => ['apiAuth', 'apiLog'],
     'csrf' => false
 ], function ($routes) {
-    // Auth API Routes - No requieren autenticación
-    $routes->match(['post', 'options'], 'auth/request-otp', 'Auth::requestOtp', ['filter' => '-apiAuth']);
-    $routes->match(['post', 'options'], 'auth/verify-otp', 'Auth::verifyOtp', ['filter' => '-apiAuth']);
-    $routes->match(['post', 'options'], 'auth/refresh-token', 'Auth::refreshToken', ['filter' => '-apiAuth']);
+    // Auth Protected Routes
     $routes->match(['post', 'options'], 'auth/logout', 'Auth::logout');
     
     // User API Routes
