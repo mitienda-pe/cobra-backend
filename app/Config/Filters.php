@@ -11,9 +11,6 @@ use CodeIgniter\Filters\SecureHeaders;
 use App\Filters\AuthFilter;
 use App\Filters\ApiAuthFilter;
 use App\Filters\ApiLogFilter;
-use App\Filters\OrganizationFilter;
-use App\Filters\CsrfExceptFilter;
-use App\Filters\DisableCsrfForRoutes;
 use App\Filters\CorsFilter;
 
 class Filters extends BaseConfig
@@ -31,12 +28,7 @@ class Filters extends BaseConfig
         'auth'          => AuthFilter::class,
         'apiAuth'       => ApiAuthFilter::class,
         'apiLog'        => ApiLogFilter::class,
-        'organization'  => OrganizationFilter::class,
-        'csrfExcept'    => CsrfExceptFilter::class,
-        'disableCsrf'   => DisableCsrfForRoutes::class,
         'cors'          => CorsFilter::class,
-        'role'          => \App\Filters\RoleFilter::class,
-        '-apiAuth'      => \App\Filters\ApiAuthFilter::class,
     ];
 
     /**
@@ -46,102 +38,55 @@ class Filters extends BaseConfig
     public array $globals = [
         'before' => [
             // 'honeypot',
-            // 'csrf', // Moved to specific routes in $filters
-            'invalidchars',
-            'disableCsrf',  // IMPORTANT: This must come BEFORE the CSRF filter
-            'organization', // Add organization filter globally
-            'csrfExcept',   // Add our custom CSRF exception filter
+            // 'csrf',
+            // 'invalidchars',
         ],
         'after' => [
             'toolbar',
             // 'honeypot',
-            'secureheaders',
+            // 'secureheaders',
         ],
     ];
 
     /**
      * List of filter aliases that works on a
      * particular HTTP method (GET, POST, etc.).
+     *
+     * Example:
+     * 'post' => ['foo', 'bar']
+     *
+     * If you use this, you should disable auto-routing because auto-routing
+     * permits any HTTP method to access a controller. Accessing the controller
+     * with a method you don't expect could bypass the filter.
      */
     public array $methods = [];
 
     /**
      * List of filter aliases that should run on any
      * before or after URI patterns.
+     *
+     * Example:
+     * 'isLoggedIn' => ['before' => ['account/*', 'profiles/*']]
      */
     public array $filters = [
-        // CSRF Filter - exclude import actions and API routes
         'csrf' => [
             'before' => ['*'],
             'except' => [
-                // API routes
                 'api/*',
                 'api',
-                // Import routes
-                'clients/import',
-                'clients/import/',
-                '/clients/import',
-                '/clients/import/',
-                'invoices/import',
-                'invoices/import/',
-                '/invoices/import',
-                '/invoices/import/'
+                'clients/import*',
+                'invoices/import*'
             ]
         ],
-        // API filters only
-        'apiAuth' => [
-            'before' => [
-                'api/*',
-                'api',
-            ],
-            'except' => [
-                'api/auth/request-otp',
-                'api/auth/verify-otp',
-                'api/auth/refresh-token',
-                'api/users',
-                'api/clients',
-                'debug/client-create',
-                'debug/auth-info',
-                'debug/get-users-by-organization/*',
-                'debug/get-clients-by-organization/*',
-            ]
-        ],
-        // API logging filter
-        'apiLog' => [
-            'before' => [
-                'api/*',
-                'api'
-            ],
-            'after' => [
-                'api/*',
-                'api'
-            ]
-        ],
-        // Auth filter for web routes
         'auth' => [
-            'before' => [
-                'dashboard',
-                'dashboard/*',
-                'clients',
-                'clients/*',
-                'portfolios',
-                'portfolios/*',
-                'invoices',
-                'invoices/*',
-                'payments',
-                'payments/*',
-                'webhooks',
-                'webhooks/*',
-                'users',
-                'users/*',
-                'organizations',
-                'organizations/*',
-            ],
+            'before' => ['*'],
             'except' => [
-                'api/*',  // Excluir rutas API del filtro auth
-                'api',  // Excluir rutas API del filtro auth
+                'api/*',
+                'api',
                 'auth/*',
                 'auth',
+                '/',
+                'debug/*'
             ]
         ],
         'cors' => [
