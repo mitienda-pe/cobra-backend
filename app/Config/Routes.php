@@ -49,7 +49,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 });
 
 // API Routes - Protected 
-$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors,apiAuth,apiLog'], function ($routes) {
+$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => ['cors', 'apiAuth', 'apiLog']], function ($routes) {
     // Auth Protected Routes
     $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
     
@@ -103,7 +103,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors,a
 });
 
 // Web Routes - Protected
-$routes->group('', ['filter' => 'auth,csrf'], function ($routes) {
+$routes->group('', ['filter' => ['auth', 'csrf']], function ($routes) {
     // Dashboard Routes
     $routes->get('dashboard', 'Dashboard::index');
 
