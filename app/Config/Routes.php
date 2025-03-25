@@ -87,4 +87,58 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('organizations/edit/(:num)', 'Organizations::edit/$1');
     $routes->post('organizations/edit/(:num)', 'Organizations::update/$1');
     $routes->get('organizations/delete/(:num)', 'Organizations::delete/$1');
+
+    // Portfolios
+    $routes->get('portfolios', 'PortfolioController::index');
+    $routes->get('portfolios/create', 'PortfolioController::create');
+    $routes->post('portfolios/create', 'PortfolioController::store');
+    $routes->get('portfolios/edit/(:num)', 'PortfolioController::edit/$1');
+    $routes->post('portfolios/edit/(:num)', 'PortfolioController::update/$1');
+    $routes->get('portfolios/delete/(:num)', 'PortfolioController::delete/$1');
+    $routes->get('portfolios/view/(:num)', 'PortfolioController::view/$1');
+
+    // Clients
+    $routes->get('clients', 'ClientController::index');
+    $routes->get('clients/create', 'ClientController::create');
+    $routes->post('clients/create', 'ClientController::store');
+    $routes->get('clients/edit/(:num)', 'ClientController::edit/$1');
+    $routes->post('clients/edit/(:num)', 'ClientController::update/$1');
+    $routes->get('clients/delete/(:num)', 'ClientController::delete/$1');
+    $routes->get('clients/view/(:num)', 'ClientController::view/$1');
+    $routes->get('clients/import', 'ClientController::import', ['csrf' => false]);
+    $routes->post('clients/import', 'ClientController::import', ['csrf' => false]);
+
+    // Invoices
+    $routes->get('invoices', 'InvoiceController::index');
+    $routes->get('invoices/create', 'InvoiceController::create');
+    $routes->post('invoices/create', 'InvoiceController::store');
+    $routes->get('invoices/edit/(:num)', 'InvoiceController::edit/$1');
+    $routes->post('invoices/edit/(:num)', 'InvoiceController::update/$1');
+    $routes->get('invoices/delete/(:num)', 'InvoiceController::delete/$1');
+    $routes->get('invoices/view/(:num)', 'InvoiceController::view/$1');
+    $routes->get('invoices/import', 'InvoiceController::import', ['csrf' => false]);
+    $routes->post('invoices/import', 'InvoiceController::import', ['csrf' => false]);
+
+    // Payments
+    $routes->get('payments', 'PaymentController::index');
+    $routes->get('payments/create', 'PaymentController::create');
+    $routes->post('payments/create', 'PaymentController::store');
+    $routes->get('payments/create/(:num)', 'PaymentController::create/$1');
+    $routes->post('payments/create/(:num)', 'PaymentController::store/$1');
+    $routes->get('payments/edit/(:num)', 'PaymentController::edit/$1');
+    $routes->post('payments/edit/(:num)', 'PaymentController::update/$1');
+    $routes->get('payments/delete/(:num)', 'PaymentController::delete/$1');
+    $routes->get('payments/view/(:num)', 'PaymentController::view/$1');
+    $routes->get('payments/report', 'PaymentController::report');
+
+    // Webhooks
+    $routes->get('webhooks', 'WebhookController::index');
+    $routes->get('webhooks/create', 'WebhookController::create');
+    $routes->post('webhooks/create', 'WebhookController::store');
+    $routes->get('webhooks/edit/(:num)', 'WebhookController::edit/$1');
+    $routes->post('webhooks/edit/(:num)', 'WebhookController::update/$1');
+    $routes->get('webhooks/delete/(:num)', 'WebhookController::delete/$1');
+    $routes->get('webhooks/logs/(:num)', 'WebhookController::logs/$1');
+    $routes->get('webhooks/test/(:num)', 'WebhookController::test/$1');
+    $routes->get('webhooks/retry/(:num)', 'WebhookController::retry/$1');
 });
