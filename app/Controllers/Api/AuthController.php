@@ -12,6 +12,12 @@ class AuthController extends ResourceController
 {
     protected $format = 'json';
 
+    public function __construct()
+    {
+        // Ensure response is JSON
+        $this->response->setContentType('application/json');
+    }
+
     /**
      * Request OTP for login
      */
@@ -24,7 +30,7 @@ class AuthController extends ResourceController
         ];
 
         if (!$this->validate($rules)) {
-            return $this->failValidationErrors($this->validator->getErrors());
+            return $this->fail($this->validator->getErrors(), 400);
         }
 
         $userModel = new UserModel();
@@ -49,67 +55,37 @@ class AuthController extends ResourceController
         $otpModel = new UserOtpModel();
         $otpData = $otpModel->generateOTP(
             $user['id'],
-            $method,
-            $this->request->getVar('device_info')
+            $this->request->getVar('device_info') ?? 'Unknown Device',
+            $method
         );
 
-        $code = $otpData['code'];
-        $expiresInMinutes = 15; // Match with generateOTP
-
-        // Send OTP based on method
-        if ($method === 'sms') {
-            // Send via SMS using Twilio
-            $twilio = new Twilio();
-            $result = $twilio->sendOtpSms($user['phone'], $code, $expiresInMinutes);
-
-            // Update delivery status
-            $otpModel->updateDeliveryStatus(
-                $user['id'],
-                $code,
-                $result['success'] ? 'sent' : 'failed',
-                $result['success'] ? $result['sid'] : $result['message']
-            );
-
-            if (!$result['success']) {
-                // Log the error but don't expose details to client
-                log_message('error', 'Failed to send OTP via SMS: ' . $result['message']);
-
-                // For critical errors, inform the client
-                if (ENVIRONMENT !== 'production') {
-                    return $this->fail('Error sending SMS: ' . $result['message'], 500);
-                } else {
-                    return $this->fail('Error sending SMS. Please try again or use email method.', 500);
-                }
-            }
-
-            // Mask phone number for security
-            $phone = $user['phone'];
-            $maskedPhone = substr($phone, 0, 4) . '****' . substr($phone, -3);
-
-            return $this->respond([
-                'message' => 'OTP code sent successfully to ' . $maskedPhone,
-                'method' => 'sms',
-                'expires_in' => $expiresInMinutes // minutes
-            ]);
-        } else {
-            // Send via email (existing functionality)
-            // In development, return the code directly
-            // In production, this should actually send an email
-
-            // Mask email for security
-            $email = $user['email'];
-            $atPos = strpos($email, '@');
-            $maskedEmail = substr($email, 0, 2) . '****' . substr($email, $atPos);
-
-            // TODO: Implement actual email sending here
-
-            return $this->respond([
-                'message' => 'OTP code sent successfully to ' . $maskedEmail,
-                'method' => 'email',
-                'code' => ENVIRONMENT !== 'production' ? $code : null, // Only in development
-                'expires_in' => $expiresInMinutes // minutes
-            ]);
+        if (!$otpData) {
+            return $this->fail('Error generating OTP', 500);
         }
+
+        // Send OTP via selected method
+        if ($method === 'sms') {
+            $twilio = new Twilio();
+            $message = "Your OTP code is: {$otpData['code']}";
+            $result = $twilio->sendSMS($user['phone'], $message);
+
+            if (!$result) {
+                return $this->fail('Error sending OTP via SMS', 500);
+            }
+        } else {
+            // Send via email (implement this)
+            // TODO: Implement email sending
+        }
+
+        return $this->respond([
+            'success' => true,
+            'message' => 'OTP sent successfully',
+            'data' => [
+                'otp_id' => $otpData['id'],
+                'expires_at' => $otpData['expires_at'],
+                'method' => $method
+            ]
+        ]);
     }
 
     /**
@@ -124,7 +100,7 @@ class AuthController extends ResourceController
         ];
 
         if (!$this->validate($rules)) {
-            return $this->failValidationErrors($this->validator->getErrors());
+            return $this->fail($this->validator->getErrors(), 400);
         }
 
         $userModel = new UserModel();
@@ -193,7 +169,7 @@ class AuthController extends ResourceController
         ];
 
         if (!$this->validate($rules)) {
-            return $this->failValidationErrors($this->validator->getErrors());
+            return $this->fail($this->validator->getErrors(), 400);
         }
 
         $tokenModel = new UserApiTokenModel();
