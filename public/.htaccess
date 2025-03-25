@@ -16,17 +16,13 @@ Options -Indexes
     # http://httpd.apache.org/docs/current/mod/mod_rewrite.html#rewritebase
     RewriteBase /
 
-    # Prevent index.php from being served directly
-    RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s/+index\.php [NC]
-    RewriteRule ^ - [F]
-
     # Redirect Trailing Slashes...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
     # Handle API requests first
-    RewriteCond %{REQUEST_URI} ^/api/ [NC]
+    RewriteCond %{REQUEST_URI} ^/(index\.php/)?api/ [NC]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ index.php/$1 [L,QSA]
