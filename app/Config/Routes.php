@@ -33,6 +33,8 @@ $routes->get('debug/get-users-by-organization/(:num)', 'Debug::getUsersByOrganiz
 $routes->get('debug/get-clients-by-organization/(:num)', 'Debug::getClientsByOrganization/$1');
 $routes->get('debug/orgContext', 'Debug::orgContext');
 $routes->get('debug/csrf', 'Debug::csrf');
+$routes->get('debug/db-test', 'Debug::dbTest');
+$routes->get('debug/test-api', 'Debug::testApi');
 
 // API Routes - Public (sin ningún filtro)
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {

@@ -151,6 +151,116 @@ class Debug extends Controller
     }
     
     /**
+     * Test API connectivity - public endpoint
+     */
+    public function testApi()
+    {
+        // This endpoint is publicly accessible for testing API connectivity
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'API connectivity test successful',
+            'timestamp' => date('Y-m-d H:i:s'),
+            'php_version' => phpversion(),
+            'codeigniter_version' => \CodeIgniter\CodeIgniter::CI_VERSION,
+            'environment' => ENVIRONMENT,
+            'request_data' => [
+                'method' => $this->request->getMethod(),
+                'uri' => current_url(),
+                'query' => $this->request->getGet(),
+                'body' => $this->request->getJSON(true)
+            ]
+        ]);
+    }
+    
+    /**
+     * Test database connectivity and permissions
+     */
+    public function dbTest()
+    {
+        // Only accessible by superadmin for security reasons
+        if (!$this->auth->hasRole('superadmin')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'This debug endpoint is only available to superadmins'
+            ]);
+        }
+        
+        // Define path to database from config
+        $dbPath = WRITEPATH . 'db/cobranzas.db';
+
+        try {
+            // Check if database file exists
+            if (!file_exists($dbPath)) {
+                throw new \Exception("Database file not found at: {$dbPath}");
+            }
+            
+            // Check file permissions
+            $perms = substr(sprintf('%o', fileperms($dbPath)), -4);
+            $isWritable = is_writable($dbPath);
+            $owner = function_exists('posix_getpwuid') ? posix_getpwuid(fileowner($dbPath)) : null;
+            $group = function_exists('posix_getgrgid') ? posix_getgrgid(filegroup($dbPath)) : null;
+            
+            // Try to open database connection directly
+            $db = new \SQLite3($dbPath);
+            
+            // Try to create a temporary table
+            $db->exec('CREATE TABLE IF NOT EXISTS db_test (id INTEGER PRIMARY KEY, test_value TEXT)');
+            
+            // Try to insert a value
+            $timestamp = date('Y-m-d H:i:s');
+            $db->exec("INSERT INTO db_test (test_value) VALUES ('Test write at {$timestamp}')");
+            
+            // Query to verify insertion
+            $result = $db->query('SELECT * FROM db_test ORDER BY id DESC LIMIT 1');
+            $lastRow = $result->fetchArray(SQLITE3_ASSOC);
+            
+            // Also try through CodeIgniter's Database service
+            $dbService = \Config\Database::connect();
+            $dbService->table('db_test')->insert(['test_value' => "CI Test at {$timestamp}"]);
+            $ciResult = $dbService->table('db_test')->orderBy('id', 'DESC')->limit(1)->get()->getRowArray();
+            
+            // Response data
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Database is writable!',
+                'database' => [
+                    'path' => $dbPath,
+                    'exists' => true,
+                    'writable' => $isWritable,
+                    'permissions' => $perms,
+                    'owner' => $owner ? ($owner['name'] ?? 'unknown') : 'posix_function_unavailable',
+                    'group' => $group ? ($group['name'] ?? 'unknown') : 'posix_function_unavailable',
+                    'size' => filesize($dbPath)
+                ],
+                'direct_test' => [
+                    'success' => true,
+                    'last_row' => $lastRow
+                ],
+                'ci_test' => [
+                    'success' => true,
+                    'last_row' => $ciResult
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'database' => [
+                        'path' => $dbPath,
+                        'exists' => file_exists($dbPath),
+                        'writable' => isset($isWritable) ? $isWritable : (file_exists($dbPath) ? is_writable($dbPath) : false),
+                        'permissions' => isset($perms) ? $perms : (file_exists($dbPath) ? substr(sprintf('%o', fileperms($dbPath)), -4) : 'unknown'),
+                        'size' => file_exists($dbPath) ? filesize($dbPath) : 0
+                    ]
+                ]);
+        }
+    }
+    
+    /**
      * Helper method to render debug data as a simple HTML page
      */
     private function renderDebugPage($data)
