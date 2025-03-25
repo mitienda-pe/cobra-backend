@@ -80,22 +80,11 @@ class Filters extends BaseConfig
         ],
         'auth' => [
             'before' => ['dashboard', 'dashboard/*', 'organizations/*', 'clients/*', 'invoices/*', 'users/*', 'profile/*', 'portfolios/*', 'payments/*', 'webhooks/*'],
-            'except' => [
-                'api/*',
-                'api',
-                'auth/*',
-                'auth',
-                '/',
-                'debug/*'
-            ]
+            'except' => []
         ],
         'apiAuth' => [
-            'before' => ['api/*'],
-            'except' => [
-                'api/auth/request-otp',
-                'api/auth/verify-otp',
-                'api/auth/refresh-token'
-            ]
+            'before' => ['api/auth/logout', 'api/clients/*', 'api/invoices/*', 'api/users/*', 'api/portfolios/*', 'api/payments/*', 'api/organizations/*'],
+            'except' => []
         ],
         'apiLog' => ['before' => ['api/*']],
         'cors' => [

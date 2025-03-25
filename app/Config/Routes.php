@@ -33,16 +33,16 @@ $routes->get('debug/get-clients-by-organization/(:num)', 'Debug::getClientsByOrg
 $routes->get('debug/orgContext', 'Debug::orgContext');
 $routes->get('debug/csrf', 'Debug::csrf');
 
-// API Routes - Public
-$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors'], function ($routes) {
+// API Routes - Public (sin ningún filtro)
+$routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth API Routes
     $routes->match(['post', 'options'], 'auth/request-otp', 'AuthController::requestOtp');
     $routes->match(['post', 'options'], 'auth/verify-otp', 'AuthController::verifyOtp');
     $routes->match(['post', 'options'], 'auth/refresh-token', 'AuthController::refreshToken');
 });
 
-// API Routes - Protected
-$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors apiAuth apiLog'], function ($routes) {
+// API Routes - Protected 
+$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors'], function ($routes) {
     // Auth Protected Routes
     $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
     

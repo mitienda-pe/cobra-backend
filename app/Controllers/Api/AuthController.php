@@ -16,6 +16,17 @@ class AuthController extends ResourceController
     {
         // Ensure response is JSON
         $this->response->setContentType('application/json');
+        
+        // Set CORS headers manually
+        $this->response->setHeader('Access-Control-Allow-Origin', '*');
+        $this->response->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+        $this->response->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+        
+        // Si es OPTIONS, responde inmediatamente con 200
+        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+            $this->response->setStatusCode(200)->send();
+            exit;
+        }
     }
 
     /**
@@ -24,7 +35,14 @@ class AuthController extends ResourceController
     public function requestOtp()
     {
         // Log request for debugging
-        log_message('debug', 'OTP Request: ' . json_encode($this->request->getJSON()));
+        log_message('debug', 'OTP Request Start: ' . json_encode($this->request->getJSON()));
+        log_message('debug', 'REQUEST_URI: ' . $_SERVER['REQUEST_URI']);
+        log_message('debug', 'REQUEST_METHOD: ' . $_SERVER['REQUEST_METHOD']);
+        
+        // Evitar cualquier redirección
+        if (session()->has('redirect_url')) {
+            session()->remove('redirect_url');
+        }
         
         $rules = [
             'email'        => 'required|valid_email',

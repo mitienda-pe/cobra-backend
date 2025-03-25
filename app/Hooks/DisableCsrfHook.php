@@ -31,9 +31,36 @@ class DisableCsrfHook
         $excludedRoutes = [
             'App\Controllers\ClientController::import',
             'App\Controllers\InvoiceController::import',
+            'App\Controllers\Api\AuthController::requestOtp',
+            'App\Controllers\Api\AuthController::verifyOtp',
+            'App\Controllers\Api\AuthController::refreshToken',
         ];
 
-        // Check if current route should be excluded
+        // Always disable CSRF for API routes
+        if (strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false) {
+            log_message('debug', "Disabling CSRF for API route: " . ($_SERVER['REQUEST_URI'] ?? ''));
+            $security = \Config\Services::security();
+            
+            // Try both methods
+            if (method_exists($security, 'setCSRFProtection')) {
+                $security->setCSRFProtection(false);
+            }
+            
+            try {
+                $reflectionClass = new \ReflectionClass($security);
+                $property = $reflectionClass->getProperty('CSRFVerify');
+                if ($property) {
+                    $property->setAccessible(true);
+                    $property->setValue($security, false);
+                }
+            } catch (\Exception $e) {
+                log_message('error', "Failed to disable CSRF via Reflection: " . $e->getMessage());
+            }
+            
+            return;
+        }
+
+        // Check if current non-API route should be excluded
         $currentRoute = $controller . '::' . $method;
         if (in_array($currentRoute, $excludedRoutes)) {
             // Disable CSRF protection for this request
