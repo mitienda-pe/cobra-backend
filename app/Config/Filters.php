@@ -24,6 +24,7 @@ class Filters extends BaseConfig
         'auth'          => \App\Filters\AuthFilter::class,
         'role'          => \App\Filters\RoleFilter::class,
         'apiAuth'       => \App\Filters\ApiAuthFilter::class,
+        '-apiAuth'      => \App\Filters\ApiAuthFilter::class,
         'apiLog'        => \App\Filters\ApiLogFilter::class,
         'organization'  => \App\Filters\OrganizationFilter::class,
         'csrfExcept'    => \App\Filters\CsrfExceptFilter::class,
