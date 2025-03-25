@@ -16,14 +16,20 @@ Options -Indexes
     # http://httpd.apache.org/docs/current/mod/mod_rewrite.html#rewritebase
     RewriteBase /
 
-    # Remove index.html from URLs
-    RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^.]+)\.html [NC]
-    RewriteRule ^ %1 [R,L]
+    # Prevent index.php from being served directly
+    RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s/+index\.php [NC]
+    RewriteRule ^ - [F]
 
     # Redirect Trailing Slashes...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
+
+    # Handle API requests first
+    RewriteCond %{REQUEST_URI} ^/api/ [NC]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php/$1 [L,QSA]
 
     # Rewrite "www.example.com -> example.com"
     RewriteCond %{HTTPS} !=on
