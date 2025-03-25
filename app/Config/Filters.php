@@ -62,11 +62,14 @@ class Filters extends BaseConfig
      * before or after URI patterns.
      */
     public array $filters = [
-        // CSRF Filter - exclude import actions
+        // CSRF Filter - exclude import actions and API routes
         'csrf' => [
             'before' => ['*'],
             'except' => [
-                // Complete list of routes to exclude from CSRF protection
+                // API routes
+                'api/*',
+                'api',
+                // Import routes
                 'clients/import',
                 'clients/import/',
                 '/clients/import',
@@ -127,6 +130,7 @@ class Filters extends BaseConfig
                 'organizations/*',
             ],
             'except' => [
+                'api/*',  // Excluir rutas API del filtro auth
                 'auth/*',
                 'auth',
             ]

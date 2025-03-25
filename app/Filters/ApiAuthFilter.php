@@ -15,41 +15,41 @@ class ApiAuthFilter implements FilterInterface
      */
     public function before(RequestInterface $request, $arguments = null)
     {
-        // Si es una petición OPTIONS, permitir sin token
-        if ($request->getMethod(true) === 'OPTIONS') {
-            return service('response')
-                ->setHeader('Access-Control-Allow-Origin', '*')
+        // Ensure response is JSON
+        $response = service('response');
+        $response->setContentType('application/json');
+
+        // Add CORS headers to all responses
+        $response->setHeader('Access-Control-Allow-Origin', '*')
                 ->setHeader('Access-Control-Allow-Headers', '*')
                 ->setHeader('Access-Control-Allow-Methods', '*');
+
+        // Si es una petición OPTIONS, permitir sin token
+        if ($request->getMethod(true) === 'OPTIONS') {
+            return $response;
         }
 
         $token = $this->extractToken($request);
         
         if (!$token) {
-            return service('response')
+            return $response
                 ->setStatusCode(401)
                 ->setJSON([
                     'success' => false,
                     'message' => 'Token not provided'
-                ])
-                ->setHeader('Access-Control-Allow-Origin', '*')
-                ->setHeader('Access-Control-Allow-Headers', '*')
-                ->setHeader('Access-Control-Allow-Methods', '*');
+                ]);
         }
         
         $tokenModel = new UserApiTokenModel();
         $tokenData = $tokenModel->getByToken($token);
         
         if (!$tokenData) {
-            return service('response')
+            return $response
                 ->setStatusCode(401)
                 ->setJSON([
                     'success' => false,
                     'message' => 'Invalid or expired token'
-                ])
-                ->setHeader('Access-Control-Allow-Origin', '*')
-                ->setHeader('Access-Control-Allow-Headers', '*')
-                ->setHeader('Access-Control-Allow-Methods', '*');
+                ]);
         }
         
         // Update last used timestamp
@@ -60,15 +60,12 @@ class ApiAuthFilter implements FilterInterface
         $user = $userModel->find($tokenData['user_id']);
         
         if (!$user || $user['status'] !== 'active') {
-            return service('response')
+            return $response
                 ->setStatusCode(401)
                 ->setJSON([
                     'success' => false,
                     'message' => 'User inactive or not found'
-                ])
-                ->setHeader('Access-Control-Allow-Origin', '*')
-                ->setHeader('Access-Control-Allow-Headers', '*')
-                ->setHeader('Access-Control-Allow-Methods', '*');
+                ]);
         }
         
         // Store user data in session for API controllers
@@ -80,11 +77,7 @@ class ApiAuthFilter implements FilterInterface
         session()->set('api_user', $user);
         session()->set('api_token', $tokenData);
 
-        // Add CORS headers
-        return service('response')
-            ->setHeader('Access-Control-Allow-Origin', '*')
-            ->setHeader('Access-Control-Allow-Headers', '*')
-            ->setHeader('Access-Control-Allow-Methods', '*');
+        return $response;
     }
 
     /**
@@ -95,10 +88,15 @@ class ApiAuthFilter implements FilterInterface
      */
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
+        // Ensure response is JSON
+        $response->setContentType('application/json');
+
         // Add CORS headers to all responses
         $response->setHeader('Access-Control-Allow-Origin', '*')
                 ->setHeader('Access-Control-Allow-Headers', '*')
                 ->setHeader('Access-Control-Allow-Methods', '*');
+
+        return $response;
     }
 
     /**
