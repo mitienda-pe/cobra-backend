@@ -65,6 +65,9 @@ writable/debugbar/*
 
 writable/database.sqlite
 
+writable/db/*
+!writable/db/index.html
+
 php_errors.log
 
 #-------------------------
