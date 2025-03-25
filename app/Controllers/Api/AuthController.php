@@ -17,6 +17,18 @@ class AuthController extends ResourceController
      */
     public function __construct()
     {
+        // Create API log directory if it doesn't exist
+        if (!is_dir(WRITEPATH . 'logs/api')) {
+            mkdir(WRITEPATH . 'logs/api', 0755, true);
+        }
+        
+        // Log API request to dedicated file
+        $logFile = WRITEPATH . 'logs/api/requests-' . date('Y-m-d') . '.log';
+        $logMessage = date('Y-m-d H:i:s') . ' - URI: ' . ($_SERVER['REQUEST_URI'] ?? 'unknown') . 
+                     ', Method: ' . ($_SERVER['REQUEST_METHOD'] ?? 'unknown') . 
+                     ', User-Agent: ' . ($_SERVER['HTTP_USER_AGENT'] ?? 'unknown') . PHP_EOL;
+        file_put_contents($logFile, $logMessage, FILE_APPEND);
+        
         // Desactivar session completamente
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_write_close();
@@ -36,7 +48,7 @@ class AuthController extends ResourceController
         }
         
         // Log para depuración
-        log_message('debug', 'API Request: ' . $_SERVER['REQUEST_URI'] . ' - Method: ' . $_SERVER['REQUEST_METHOD']);
+        log_message('debug', 'API Request: ' . ($_SERVER['REQUEST_URI'] ?? 'unknown') . ' - Method: ' . ($_SERVER['REQUEST_METHOD'] ?? 'unknown'));
         
         // Set CORS headers manually
         header('Access-Control-Allow-Origin: *');
@@ -45,7 +57,7 @@ class AuthController extends ResourceController
         header('Content-Type: application/json');
         
         // Si es OPTIONS, responde inmediatamente con 200
-        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') == 'OPTIONS') {
             header('HTTP/1.1 200 OK');
             exit;
         }
@@ -83,145 +95,197 @@ class AuthController extends ResourceController
      */
     public function requestOtp()
     {
-        // Log request for debugging
-        log_message('debug', 'OTP Request Start: ' . file_get_contents('php://input'));
-        log_message('debug', 'Request URI: ' . $_SERVER['REQUEST_URI']);
-        log_message('debug', 'Request Method: ' . $_SERVER['REQUEST_METHOD']);
-        log_message('debug', 'POST Data: ' . print_r($_POST, true));
-        log_message('debug', 'Route Info: ' . print_r(service('router')->getMatchedRoute(), true));
-        
-        // Get request data
-        $rawBody = file_get_contents('php://input');
-        $jsonData = json_decode($rawBody, true);
-        
-        $email = $_POST['email'] ?? $jsonData['email'] ?? null;
-        $phone = $_POST['phone'] ?? $jsonData['phone'] ?? null;
-        $clientId = $_POST['client_id'] ?? $jsonData['client_id'] ?? null;
-        $deviceInfo = $_POST['device_info'] ?? $jsonData['device_info'] ?? 'Unknown Device';
-        $method = $_POST['method'] ?? $jsonData['method'] ?? 'email';
-        
-        log_message('debug', 'OTP Request Email: ' . ($email ?? 'not provided'));
-        log_message('debug', 'OTP Request Phone: ' . ($phone ?? 'not provided'));
-        log_message('debug', 'OTP Request Client ID: ' . ($clientId ?? 'not provided'));
-        
-        // Validar datos requeridos
-        $errors = [];
-        
-        if (!empty($email)) {
-            // Validación de email
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $errors['email'] = 'Email inválido';
+        try {
+            // Create API log file for detailed request diagnostics
+            $logFile = WRITEPATH . 'logs/api/otp-requests-' . date('Y-m-d') . '.log';
+            
+            // Log request details
+            ob_start();
+            echo "=== OTP Request at " . date('Y-m-d H:i:s') . " ===\n";
+            echo "Request URI: " . ($_SERVER['REQUEST_URI'] ?? 'unknown') . "\n";
+            echo "Request Method: " . ($_SERVER['REQUEST_METHOD'] ?? 'unknown') . "\n";
+            echo "Content Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'unknown') . "\n";
+            echo "Raw Input: " . file_get_contents('php://input') . "\n";
+            echo "POST Data: " . print_r($_POST, true) . "\n";
+            echo "Headers: \n";
+            foreach (getallheaders() as $name => $value) {
+                echo "  $name: $value\n";
             }
-        } else if (!empty($phone)) {
-            // Validación de teléfono
-            if (strlen($phone) < 10 || strlen($phone) > 15) {
-                $errors['phone'] = 'El teléfono debe tener entre 10 y 15 caracteres';
+            echo "Route Info: " . print_r(service('router')->getMatchedRoute(), true) . "\n";
+            echo "CodeIgniter Version: " . \CodeIgniter\CodeIgniter::CI_VERSION . "\n";
+            echo "PHP Version: " . phpversion() . "\n";
+            $logOutput = ob_get_clean();
+            file_put_contents($logFile, $logOutput . "\n\n", FILE_APPEND);
+            
+            // Standard logs
+            log_message('debug', 'OTP Request Start: ' . file_get_contents('php://input'));
+            log_message('debug', 'Request URI: ' . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
+            log_message('debug', 'Request Method: ' . ($_SERVER['REQUEST_METHOD'] ?? 'unknown'));
+            log_message('debug', 'POST Data: ' . print_r($_POST, true));
+            log_message('debug', 'Route Info: ' . print_r(service('router')->getMatchedRoute(), true));
+            
+            // Get request data
+            $rawBody = file_get_contents('php://input');
+            $jsonData = json_decode($rawBody, true);
+            
+            // Check for JSON decode error
+            if (json_last_error() !== JSON_ERROR_NONE && !empty($rawBody)) {
+                file_put_contents($logFile, "JSON Decode Error: " . json_last_error_msg() . "\n", FILE_APPEND);
             }
             
-            if (empty($clientId) || !is_numeric($clientId)) {
-                $errors['client_id'] = 'Client ID es requerido y debe ser numérico';
+            $email = $_POST['email'] ?? $jsonData['email'] ?? null;
+            $phone = $_POST['phone'] ?? $jsonData['phone'] ?? null;
+            $clientId = $_POST['client_id'] ?? $jsonData['client_id'] ?? null;
+            $deviceInfo = $_POST['device_info'] ?? $jsonData['device_info'] ?? 'Unknown Device';
+            $method = $_POST['method'] ?? $jsonData['method'] ?? 'email';
+        
+            log_message('debug', 'OTP Request Email: ' . ($email ?? 'not provided'));
+            log_message('debug', 'OTP Request Phone: ' . ($phone ?? 'not provided'));
+            log_message('debug', 'OTP Request Client ID: ' . ($clientId ?? 'not provided'));
+            
+            // Validar datos requeridos
+            $errors = [];
+            
+            if (!empty($email)) {
+                // Validación de email
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $errors['email'] = 'Email inválido';
+                }
+            } else if (!empty($phone)) {
+                // Validación de teléfono
+                if (strlen($phone) < 10 || strlen($phone) > 15) {
+                    $errors['phone'] = 'El teléfono debe tener entre 10 y 15 caracteres';
+                }
+                
+                if (empty($clientId) || !is_numeric($clientId)) {
+                    $errors['client_id'] = 'Client ID es requerido y debe ser numérico';
+                }
+            } else {
+                $errors['identifier'] = 'Email o teléfono es requerido';
             }
-        } else {
-            $errors['identifier'] = 'Email o teléfono es requerido';
-        }
-        
-        // Validar método
-        if (!in_array($method, ['email', 'sms'])) {
-            $errors['method'] = 'Método debe ser email o sms';
-        }
-        
-        // Si hay errores, responder con 400
-        if (!empty($errors)) {
-            log_message('error', 'OTP Validation Error: ' . json_encode($errors));
-            $this->jsonResponse(['success' => false, 'errors' => $errors], 400);
-        }
+            
+            // Validar método
+            if (!in_array($method, ['email', 'sms'])) {
+                $errors['method'] = 'Método debe ser email o sms';
+            }
+            
+            // Si hay errores, responder con 400
+            if (!empty($errors)) {
+                log_message('error', 'OTP Validation Error: ' . json_encode($errors));
+                file_put_contents($logFile, "Validation Errors: " . json_encode($errors) . "\n", FILE_APPEND);
+                $this->jsonResponse(['success' => false, 'errors' => $errors], 400);
+            }
 
-        // Buscar usuario
-        $userModel = new UserModel();
-        
-        if (!empty($email)) {
-            $user = $userModel->where('email', $email)
-                ->where('status', 'active')
-                ->first();
-        } else {
-            $user = $userModel->where('phone', $phone)
-                ->where('client_id', $clientId)
-                ->where('status', 'active')
-                ->first();
-        }
+            // Buscar usuario
+            $userModel = new UserModel();
+            
+            if (!empty($email)) {
+                $user = $userModel->where('email', $email)
+                    ->where('status', 'active')
+                    ->first();
+            } else {
+                $user = $userModel->where('phone', $phone)
+                    ->where('client_id', $clientId)
+                    ->where('status', 'active')
+                    ->first();
+            }
 
-        if (!$user) {
-            $identifier = !empty($email) ? $email : $phone;
-            log_message('error', 'OTP User Not Found: ' . $identifier);
-            $this->jsonResponse([
-                'success' => false, 
-                'message' => 'Usuario no encontrado o inactivo'
-            ], 404);
-        }
+            if (!$user) {
+                $identifier = !empty($email) ? $email : $phone;
+                log_message('error', 'OTP User Not Found: ' . $identifier);
+                file_put_contents($logFile, "User Not Found: {$identifier}\n", FILE_APPEND);
+                $this->jsonResponse([
+                    'success' => false, 
+                    'message' => 'Usuario no encontrado o inactivo'
+                ], 404);
+            }
 
-        // Para SMS, verificar que el usuario tenga teléfono
-        if ($method === 'sms' && empty($user['phone'])) {
-            log_message('error', 'OTP No Phone: User ID ' . $user['id']);
-            $this->jsonResponse([
-                'success' => false,
-                'message' => 'Usuario no tiene número telefónico registrado'
-            ], 400);
-        }
-
-        // Generar OTP
-        $otpModel = new UserOtpModel();
-        $otpData = $otpModel->generateOTP(
-            $user['id'],
-            $deviceInfo,
-            $method
-        );
-
-        if (!$otpData) {
-            log_message('error', 'OTP Generation Error: User ID ' . $user['id']);
-            $this->jsonResponse([
-                'success' => false,
-                'message' => 'Error al generar OTP'
-            ], 500);
-        }
-
-        log_message('debug', 'OTP Generated: ' . $otpData['code'] . ' for User ID ' . $user['id']);
-
-        // Enviar OTP por el método seleccionado
-        if ($method === 'sms') {
-            $twilio = new Twilio();
-            $message = "Your OTP code is: {$otpData['code']}";
-            $result = $twilio->sendSMS($user['phone'], $message);
-
-            log_message('debug', 'OTP SMS Result: ' . ($result ? 'Success' : 'Failed'));
-            if (!$result) {
+            // Para SMS, verificar que el usuario tenga teléfono
+            if ($method === 'sms' && empty($user['phone'])) {
+                log_message('error', 'OTP No Phone: User ID ' . $user['id']);
+                file_put_contents($logFile, "No Phone Number: User ID {$user['id']}\n", FILE_APPEND);
                 $this->jsonResponse([
                     'success' => false,
-                    'message' => 'Error al enviar OTP por SMS'
+                    'message' => 'Usuario no tiene número telefónico registrado'
+                ], 400);
+            }
+
+            // Generar OTP
+            $otpModel = new UserOtpModel();
+            $otpData = $otpModel->generateOTP(
+                $user['id'],
+                $deviceInfo,
+                $method
+            );
+
+            if (!$otpData) {
+                log_message('error', 'OTP Generation Error: User ID ' . $user['id']);
+                file_put_contents($logFile, "OTP Generation Error: User ID {$user['id']}\n", FILE_APPEND);
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Error al generar OTP'
                 ], 500);
             }
-        } else {
-            // For testing, log the OTP code (remove in production)
-            log_message('debug', 'OTP Email would be sent: ' . $otpData['code']);
-            // TODO: Implement email sending
-        }
 
-        // Preparar respuesta
-        $response = [
-            'success' => true,
-            'message' => 'OTP enviado exitosamente',
-            'data' => [
-                'expires_at' => $otpData['expires_at'],
-                'method' => $method
-            ]
-        ];
-        
-        // Solo en desarrollo, incluir el código OTP
-        if (ENVIRONMENT === 'development') {
-            $response['data']['otp'] = $otpData['code'];
-        }
+            log_message('debug', 'OTP Generated: ' . $otpData['code'] . ' for User ID ' . $user['id']);
+            file_put_contents($logFile, "OTP Generated: {$otpData['code']} for User ID {$user['id']}\n", FILE_APPEND);
 
-        log_message('debug', 'OTP Response: ' . json_encode($response));
-        $this->jsonResponse($response);
+            // Enviar OTP por el método seleccionado
+            if ($method === 'sms') {
+                $twilio = new Twilio();
+                $message = "Your OTP code is: {$otpData['code']}";
+                $result = $twilio->sendSMS($user['phone'], $message);
+
+                log_message('debug', 'OTP SMS Result: ' . ($result ? 'Success' : 'Failed'));
+                file_put_contents($logFile, "SMS Result: " . ($result ? 'Success' : 'Failed') . "\n", FILE_APPEND);
+                if (!$result) {
+                    $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Error al enviar OTP por SMS'
+                    ], 500);
+                }
+            } else {
+                // For testing, log the OTP code (remove in production)
+                log_message('debug', 'OTP Email would be sent: ' . $otpData['code']);
+                file_put_contents($logFile, "Email would be sent with OTP: {$otpData['code']}\n", FILE_APPEND);
+                // TODO: Implement email sending
+            }
+
+            // Preparar respuesta
+            $response = [
+                'success' => true,
+                'message' => 'OTP enviado exitosamente',
+                'data' => [
+                    'expires_at' => $otpData['expires_at'],
+                    'method' => $method
+                ]
+            ];
+            
+            // Solo en desarrollo, incluir el código OTP
+            if (ENVIRONMENT === 'development') {
+                $response['data']['otp'] = $otpData['code'];
+            }
+
+            log_message('debug', 'OTP Response: ' . json_encode($response));
+            file_put_contents($logFile, "Response: " . json_encode($response) . "\n", FILE_APPEND);
+            $this->jsonResponse($response);
+            
+        } catch (\Exception $e) {
+            // Log any exceptions
+            $errorFile = WRITEPATH . 'logs/api/errors-' . date('Y-m-d') . '.log';
+            $errorLog = date('Y-m-d H:i:s') . ' - Exception in requestOtp: ' . $e->getMessage() . 
+                       ' in ' . $e->getFile() . ' on line ' . $e->getLine() . PHP_EOL .
+                       'Stack Trace: ' . $e->getTraceAsString() . PHP_EOL . PHP_EOL;
+            file_put_contents($errorFile, $errorLog, FILE_APPEND);
+            
+            log_message('error', 'API Exception: ' . $e->getMessage());
+            
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error interno del servidor',
+                'debug' => ENVIRONMENT === 'development' ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**
