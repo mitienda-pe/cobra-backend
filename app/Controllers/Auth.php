@@ -17,20 +17,40 @@ class Auth extends BaseController
     
     public function login()
     {
-        // If already logged in, redirect to dashboard
+        // Debug para rastrear el problema
+        log_message('debug', 'Auth::login método llamado. Método: ' . $this->request->getMethod());
+        log_message('debug', 'Session data: ' . json_encode(session()->get()));
+        
+        // Si ya está logueado, redirigir a dashboard
         if ($this->auth->check()) {
+            log_message('debug', 'Usuario ya logueado, redirigiendo a dashboard');
             return redirect()->to('/dashboard');
         }
-
-        // Ensure CSRF is working by invalidating any old tokens and generating new ones
-        $security = service('security');
+        
+        // Limpiar sesión para prevenir bucles
         if ($this->request->getMethod() === 'get') {
-            $security->generateHash();
+            log_message('debug', 'Método GET, limpiando sesión');
             session()->remove('_ci_previous_url');
+            session()->remove('redirect_url');
+            
+            // Desactivar CSRF para el login
+            $security = service('security');
+            try {
+                $reflectionClass = new \ReflectionClass($security);
+                $property = $reflectionClass->getProperty('CSRFVerify');
+                if ($property) {
+                    $property->setAccessible(true);
+                    $property->setValue($security, false);
+                    log_message('debug', 'CSRF desactivado para login');
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Error al desactivar CSRF: ' . $e->getMessage());
+            }
         }
         
-        // Handle login form submission
+        // Manejo del formulario de login
         if ($this->request->getMethod() === 'post') {
+            log_message('debug', 'Procesando formulario POST de login');
             $rules = [
                 'email' => 'required|valid_email',
                 'password' => 'required|min_length[8]',
@@ -40,25 +60,55 @@ class Auth extends BaseController
                 $email = $this->request->getPost('email');
                 $password = $this->request->getPost('password');
                 
+                log_message('debug', 'Intentando autenticar: ' . $email);
                 if ($this->auth->attempt($email, $password)) {
+                    log_message('debug', 'Autenticación exitosa, redirigiendo a dashboard');
                     return redirect()->to('/dashboard')->with('message', 'Inicio de sesión exitoso.');
                 } else {
+                    log_message('debug', 'Autenticación fallida');
                     return redirect()->back()->withInput()
                         ->with('error', 'Credenciales incorrectas. Intente nuevamente.');
                 }
             } else {
+                log_message('debug', 'Validación fallida: ' . json_encode($this->validator->getErrors()));
                 return redirect()->back()->withInput()
                     ->with('errors', $this->validator->getErrors());
             }
         }
         
+        log_message('debug', 'Mostrando vista de login');
         return view('auth/login');
     }
     
     public function logout()
     {
+        log_message('debug', 'Auth::logout método llamado');
+        
+        // Limpiar session completamente
         $this->auth->logout();
-        return redirect()->to('/auth/login')->with('message', 'Ha cerrado sesión correctamente.');
+        session()->destroy();
+        
+        // Eliminar cookies de sesión
+        if (isset($_COOKIE[session_name()])) {
+            setcookie(session_name(), '', time() - 42000, '/');
+        }
+        
+        // Desactivar CSRF para prevenir problemas en el siguiente login
+        $security = service('security');
+        try {
+            $reflectionClass = new \ReflectionClass($security);
+            $property = $reflectionClass->getProperty('CSRFVerify');
+            if ($property) {
+                $property->setAccessible(true);
+                $property->setValue($security, false);
+                log_message('debug', 'CSRF desactivado después de logout');
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error al desactivar CSRF después de logout: ' . $e->getMessage());
+        }
+        
+        log_message('debug', 'Redirigiendo a login después de logout');
+        return redirect()->to('/auth/login?logout=true');
     }
     
     public function forgot_password()
