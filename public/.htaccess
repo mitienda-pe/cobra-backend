@@ -16,21 +16,23 @@ Options -Indexes
     # http://httpd.apache.org/docs/current/mod/mod_rewrite.html#rewritebase
     RewriteBase /
 
-    # Special handling for API OPTIONS requests
+    # Handle OPTIONS requests for CORS
     RewriteCond %{REQUEST_METHOD} OPTIONS
-    RewriteCond %{REQUEST_URI} ^/(index\.php/)?api/ [NC]
-    RewriteRule ^(.*)$ - [R=200,L]
+    RewriteRule ^(.*)$ $1 [R=200,L]
 
-    # API requests to PHP directly
-    RewriteCond %{REQUEST_URI} ^/(index\.php/)?api/auth/(request-otp|verify-otp|refresh-token) [NC]
-    RewriteRule ^(.*)$ index.php/$1 [L,QSA]
+    # For API requests - direct to index.php
+    RewriteCond %{REQUEST_URI} ^/api/ [NC,OR]
+    RewriteCond %{REQUEST_URI} ^/index\.php/api/ [NC]
+    RewriteRule ^(index\.php/)?(.*)$ index.php/$2 [L,QSA]
 
     # Redirect Trailing Slashes...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
-    # Handle normal routes
+    # Checks to see if the user is attempting to access a valid file,
+    # such as an image or css document, if this isn't true it sends the
+    # request to the front controller, index.php
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ index.php/$1 [L,QSA]
@@ -46,6 +48,17 @@ Options -Indexes
     ErrorDocument 404 index.php
 </IfModule>
 
-# Disable server signature start
+# Set CORS headers for API URLs
+<IfModule mod_headers.c>
+    <FilesMatch "^index\.php$">
+        SetEnvIf Request_URI "^/(?:index\.php/)?api/" API_REQUEST=1
+        
+        Header always set Access-Control-Allow-Origin "*" env=API_REQUEST
+        Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE" env=API_REQUEST
+        Header always set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization" env=API_REQUEST
+        Header always set Access-Control-Max-Age "1728000" env=API_REQUEST
+    </FilesMatch>
+</IfModule>
+
+# Disable server signature
 ServerSignature Off
-# Disable server signature end

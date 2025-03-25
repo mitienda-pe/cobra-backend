@@ -85,6 +85,10 @@ class AuthController extends ResourceController
     {
         // Log request for debugging
         log_message('debug', 'OTP Request Start: ' . file_get_contents('php://input'));
+        log_message('debug', 'Request URI: ' . $_SERVER['REQUEST_URI']);
+        log_message('debug', 'Request Method: ' . $_SERVER['REQUEST_METHOD']);
+        log_message('debug', 'POST Data: ' . print_r($_POST, true));
+        log_message('debug', 'Route Info: ' . print_r(service('router')->getMatchedRoute(), true));
         
         // Get request data
         $rawBody = file_get_contents('php://input');
