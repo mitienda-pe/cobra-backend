@@ -57,9 +57,6 @@ class OrganizationController extends BaseController
         log_message('debug', 'Method: ' . $this->request->getMethod());
         log_message('debug', 'POST data received in store: ' . json_encode($postData));
         
-        // DEBUG: Temporary redirect to see if we're reaching this point
-        return redirect()->to('/organizations')->with('message', 'Debug: Reached store method with data: ' . json_encode($postData));
-
         if (!$this->validate([
             'name' => 'required|min_length[3]',
             'code' => 'required|min_length[2]|is_unique[organizations.code]',
@@ -118,32 +115,21 @@ class OrganizationController extends BaseController
         log_message('debug', 'Method: ' . $this->request->getMethod());
         log_message('debug', 'POST/PUT data received in update: ' . json_encode($postData));
         
-        // DEBUG: Temporary redirect to see if we're reaching this point
-        return redirect()->to('/organizations')->with('message', 'Debug: Reached update method with data: ' . json_encode($postData));
-
         $organization = $this->organizationModel->find($id);
         if (!$organization) {
             return redirect()->to('/organizations')->with('error', 'Organization not found');
         }
 
-        $rules = [
+        if (!$this->validate([
             'name' => 'required|min_length[3]',
             'status' => 'required|in_list[active,inactive]'
-        ];
-
-        // Only validate code uniqueness if it changed
-        if ($organization['code'] !== $this->request->getPost('code')) {
-            $rules['code'] = 'required|min_length[2]|is_unique[organizations.code]';
-        }
-
-        if (!$this->validate($rules)) {
+        ])) {
             log_message('debug', 'Validation errors in update: ' . json_encode($this->validator->getErrors()));
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $result = $this->organizationModel->update($id, [
             'name' => $this->request->getPost('name'),
-            'code' => $this->request->getPost('code'),
             'status' => $this->request->getPost('status'),
             'description' => $this->request->getPost('description')
         ]);
