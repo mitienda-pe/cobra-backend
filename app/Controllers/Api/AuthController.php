@@ -11,10 +11,16 @@ use CodeIgniter\HTTP\ResponseInterface;
 class AuthController extends BaseApiController
 {
     protected $format = 'json';
+    protected $userOtpModel;
+    protected $twilioService;
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
         parent::initController($request, $response, $logger);
+        
+        // Initialize models and services
+        $this->userOtpModel = new UserOtpModel();
+        $this->twilioService = new Twilio();
         
         // Create API log directory if it doesn't exist
         if (!is_dir(WRITEPATH . 'logs/api')) {
@@ -70,13 +76,6 @@ class AuthController extends BaseApiController
             $logOutput = ob_get_clean();
             file_put_contents($logFile, $logOutput . "\n\n", FILE_APPEND);
             
-            // Standard logs
-            log_message('debug', 'OTP Request Start: ' . file_get_contents('php://input'));
-            log_message('debug', 'Request URI: ' . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
-            log_message('debug', 'Request Method: ' . ($_SERVER['REQUEST_METHOD'] ?? 'unknown'));
-            log_message('debug', 'POST Data: ' . print_r($_POST, true));
-            log_message('debug', 'Route Info: ' . print_r(service('router')->getMatchedRoute(), true));
-            
             // Get request data
             $rawBody = file_get_contents('php://input');
             $jsonData = json_decode($rawBody, true);
@@ -91,18 +90,86 @@ class AuthController extends BaseApiController
             $clientId = $_POST['client_id'] ?? $jsonData['client_id'] ?? null;
             $deviceInfo = $_POST['device_info'] ?? $jsonData['device_info'] ?? 'Unknown Device';
             
-            // Log received data
-            log_message('debug', 'Received data - Email: ' . ($email ?? 'null') . ', Phone: ' . ($phone ?? 'null'));
+            // Validate required fields
+            if (empty($phone) && empty($email)) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Either phone or email is required'
+                ]);
+            }
+
+            if (empty($clientId)) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Client ID is required'
+                ]);
+            }
+
+            // Generate OTP
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             
-            // For testing purposes, return success
+            // Store OTP in database
+            $otpData = [
+                'client_id' => $clientId,
+                'phone' => $phone,
+                'email' => $email,
+                'code' => $otp,
+                'device_info' => $deviceInfo,
+                'expires_at' => date('Y-m-d H:i:s', strtotime('+5 minutes')),
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            
+            $this->userOtpModel->insert($otpData);
+            
+            // Send OTP via SMS if phone is provided
+            if (!empty($phone)) {
+                try {
+                    $message = "Your verification code is: {$otp}. Valid for 5 minutes.";
+                    $result = $this->twilioService->sendSms($phone, $message);
+                    
+                    if (!$result['success']) {
+                        log_message('error', "Failed to send OTP via SMS: " . ($result['message'] ?? 'Unknown error'));
+                        return $this->response->setStatusCode(500)->setJSON([
+                            'status' => 'error',
+                            'message' => 'Failed to send OTP via SMS',
+                            'details' => $result['message'] ?? 'Unknown error'
+                        ]);
+                    }
+                    
+                    // Update delivery status
+                    $this->userOtpModel->updateDeliveryStatus(
+                        $clientId,
+                        $otp,
+                        'sent',
+                        'Twilio SID: ' . ($result['sid'] ?? 'unknown')
+                    );
+                    
+                    log_message('info', "OTP sent successfully to {$phone}");
+                } catch (\Exception $e) {
+                    log_message('error', 'Twilio error: ' . $e->getMessage());
+                    return $this->response->setStatusCode(500)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Failed to send OTP via SMS',
+                        'details' => $e->getMessage()
+                    ]);
+                }
+            }
+            
+            // Send OTP via email if email is provided
+            if (!empty($email)) {
+                // TODO: Implement email sending
+                log_message('info', "Email OTP functionality not implemented yet");
+            }
+            
             return $this->response->setJSON([
                 'status' => 'success',
-                'message' => 'OTP request received',
+                'message' => 'OTP sent successfully',
                 'data' => [
                     'email' => $email,
                     'phone' => $phone,
                     'client_id' => $clientId,
-                    'device_info' => $deviceInfo
+                    'device_info' => $deviceInfo,
+                    'expires_in' => '5 minutes'
                 ]
             ]);
             
