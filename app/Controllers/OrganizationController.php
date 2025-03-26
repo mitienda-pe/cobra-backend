@@ -120,11 +120,28 @@ class OrganizationController extends BaseController
             return redirect()->to('/organizations')->with('error', 'No tiene permisos para actualizar organizaciones.');
         }
         
+        // Get current POST data for logging
+        $postData = $this->request->getPost();
+        log_message('debug', 'Update request for organization ' . $uuid . ' with data: ' . json_encode($postData));
+        
+        // Check if organization exists
         $organization = $this->organizationModel->where('uuid', $uuid)->first();
         
         if (!$organization) {
             log_message('error', 'Organization not found with UUID: ' . $uuid);
             return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');
+        }
+        
+        // Check if code is unique (excluding current organization)
+        if (isset($postData['code'])) {
+            $codeExists = $this->organizationModel->where('code', $postData['code'])
+                                                ->where('id !=', $organization['id'])
+                                                ->where('deleted_at IS NULL')
+                                                ->first();
+                                                
+            if ($codeExists) {
+                return redirect()->back()->withInput()->with('error', 'El código ya está en uso por otra organización.');
+            }
         }
         
         $rules = [
@@ -138,13 +155,15 @@ class OrganizationController extends BaseController
         }
         
         $data = [
-            'name' => $this->request->getPost('name'),
-            'description' => $this->request->getPost('description'),
-            'status' => $this->request->getPost('status')
+            'name' => $postData['name'],
+            'description' => $postData['description'] ?? null,
+            'status' => $postData['status']
         ];
         
         try {
-            $updated = $this->organizationModel->where('uuid', $uuid)->set($data)->update();
+            $builder = $this->organizationModel->builder();
+            $updated = $builder->where('uuid', $uuid)
+                             ->update($data);
             
             if ($updated === false) {
                 log_message('error', 'Update failed for organization UUID: ' . $uuid . '. Errors: ' . json_encode($this->organizationModel->errors()));

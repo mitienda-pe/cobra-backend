@@ -189,18 +189,8 @@ class UserController extends BaseController
         $postData = $this->request->getPost();
         log_message('debug', 'Update request for user ' . $uuid . ' with data: ' . json_encode($postData));
         
-        $rules = [
-            'name' => 'required|min_length[3]|max_length[100]',
-            'email' => "required|valid_email|is_unique[users.email,id,{$user['id']}]",
-            'phone' => "permit_empty|min_length[6]|max_length[20]|is_unique[users.phone,id,{$user['id']}]",
-            'role' => 'required|in_list[superadmin,admin,user]',
-            'status' => 'required|in_list[active,inactive]'
-        ];
-        
-        // Password is optional on update
-        if ($this->request->getPost('password')) {
-            $rules['password'] = 'min_length[8]';
-        }
+        // Get validation rules for update
+        $rules = $userModel->getValidationRulesForUpdate($user['id']);
         
         if (!$this->validate($rules)) {
             log_message('error', 'Validation errors: ' . json_encode($this->validator->getErrors()));
@@ -208,25 +198,27 @@ class UserController extends BaseController
         }
         
         $data = [
-            'name' => $this->request->getPost('name'),
-            'email' => $this->request->getPost('email'),
-            'phone' => $this->request->getPost('phone'),
-            'role' => $this->request->getPost('role'),
-            'status' => $this->request->getPost('status')
+            'name' => $postData['name'],
+            'email' => $postData['email'],
+            'phone' => $postData['phone'] ?? null,
+            'role' => $postData['role'],
+            'status' => $postData['status']
         ];
         
         // Only update organization_id if user is superadmin
-        if ($this->auth->hasRole('superadmin') && $this->request->getPost('organization_id')) {
-            $data['organization_id'] = $this->request->getPost('organization_id');
+        if ($this->auth->hasRole('superadmin') && isset($postData['organization_id'])) {
+            $data['organization_id'] = $postData['organization_id'];
         }
         
         // Only update password if provided
-        if ($this->request->getPost('password')) {
-            $data['password'] = password_hash($this->request->getPost('password'), PASSWORD_DEFAULT);
+        if (!empty($postData['password'])) {
+            $data['password'] = password_hash($postData['password'], PASSWORD_DEFAULT);
         }
         
         try {
-            $updated = $userModel->where('uuid', $uuid)->set($data)->update();
+            $builder = $userModel->builder();
+            $updated = $builder->where('uuid', $uuid)
+                             ->update($data);
             
             if ($updated === false) {
                 log_message('error', 'Update failed for user UUID: ' . $uuid . '. Errors: ' . json_encode($userModel->errors()));
