@@ -43,6 +43,7 @@ class Filters extends BaseConfig
             'honeypot',
             'csrf' => ['except' => [
                 'api/*',
+                'api',
                 'clients/import*',
                 'invoices/import*',
                 'login*',
@@ -76,7 +77,9 @@ class Filters extends BaseConfig
                 'auth/*',
                 'auth',
                 '/',
-                'debug/*'
+                'debug/*',
+                'clients/import*',
+                'invoices/import*'
             ]
         ],
         'apiAuth' => [

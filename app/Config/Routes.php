@@ -39,8 +39,8 @@ $routes->get('debug/test-api', 'Debug::testApi');
 
 // API Routes - Public (sin ningún filtro)
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
-    // Auth API Routes - No CSRF required
-    $routes->group('auth', ['filter' => ['-csrf', 'cors']], function ($routes) {
+    // Auth API Routes - No CSRF required (CSRF is excluded in Filters.php)
+    $routes->group('auth', ['filter' => 'cors'], function ($routes) {
         $routes->match(['post', 'options'], 'request-otp', 'AuthController::requestOtp');
         $routes->match(['post', 'options'], 'verify-otp', 'AuthController::verifyOtp');
         $routes->match(['post', 'options'], 'refresh-token', 'AuthController::refreshToken');
@@ -52,7 +52,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 });
 
 // API Routes - Protected 
-$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => ['cors', 'apiAuth', 'apiLog']], function ($routes) {
+$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors apiAuth apiLog'], function ($routes) {
     // Auth Protected Routes
     $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
     
