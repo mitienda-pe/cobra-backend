@@ -143,4 +143,21 @@ class PortfolioModel extends Model
         
         return $builder->get()->getResultArray();
     }
+    
+    /**
+     * Get portfolios by client ID
+     */
+    public function getByClient($clientId)
+    {
+        $db = \Config\Database::connect();
+        
+        $query = $db->table('portfolios p')
+            ->select('p.*, c.name as client_name')
+            ->join('portfolio_clients pc', 'pc.portfolio_id = p.id')
+            ->join('clients c', 'c.id = pc.client_id')
+            ->where('pc.client_id', $clientId)
+            ->get();
+        
+        return $query->getResultArray();
+    }
 }

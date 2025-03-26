@@ -3,164 +3,168 @@
 <?= $this->section('title') ?>Ver Organización<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><?= esc($organization['name']) ?></h1>
+    <div>
+        <?php if ($auth->hasRole('superadmin')): ?>
+            <a href="<?= site_url('organizations/' . $organization['uuid'] . '/edit') ?>" class="btn btn-primary">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
+        <?php endif; ?>
+        <a href="<?= site_url('organizations') ?>" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<?= view('partials/_alerts') ?>
+
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Información General</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>RUC:</strong> <?= esc($organization['ruc']) ?></p>
+                        <p><strong>Razón Social:</strong> <?= esc($organization['name']) ?></p>
+                        <p><strong>Nombre Comercial:</strong> <?= esc($organization['commercial_name']) ?></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Estado:</strong> <?= esc($organization['status']) ?></p>
+                        <p><strong>Fecha de Creación:</strong> <?= date('d/m/Y', strtotime($organization['created_at'])) ?></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Usuarios de la Organización</h5>
+                    <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $organization['id'])): ?>
+                        <a href="<?= site_url('users/create') ?>" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-circle"></i> Nuevo Usuario
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div class="card-body">
+                <?php if (!empty($users)): ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($users as $user): ?>
+                                    <tr>
+                                        <td><?= esc($user['name']) ?></td>
+                                        <td><?= esc($user['email']) ?></td>
+                                        <td><?= ucfirst(esc($user['role'])) ?></td>
+                                        <td>
+                                            <span class="badge bg-<?= $user['status'] == 'active' ? 'success' : 'danger' ?>">
+                                                <?= $user['status'] == 'active' ? 'Activo' : 'Inactivo' ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="<?= site_url('users/' . $user['uuid']) ?>" class="btn btn-info btn-sm" title="Ver">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $organization['id'])): ?>
+                                                    <a href="<?= site_url('users/' . $user['uuid'] . '/edit') ?>" class="btn btn-primary btn-sm" title="Editar">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php else: ?>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No hay usuarios registrados en esta organización.
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h3 class="mb-0">Detalles de la Organización</h3>
-                    <a href="<?= site_url('organizations') ?>" class="btn btn-secondary">Volver</a>
+                    <h5 class="mb-0">Clientes de la Organización</h5>
+                    <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $organization['id'])): ?>
+                        <a href="<?= site_url('clients/create') ?>" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-circle"></i> Nuevo Cliente
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="card-body">
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <h5>Información General</h5>
-                        <table class="table">
-                            <tr>
-                                <th style="width: 150px;">ID:</th>
-                                <td><?= $organization['id'] ?></td>
-                            </tr>
-                            <tr>
-                                <th>Nombre:</th>
-                                <td><?= $organization['name'] ?></td>
-                            </tr>
-                            <tr>
-                                <th>Descripción:</th>
-                                <td><?= $organization['description'] ?? 'N/A' ?></td>
-                            </tr>
-                            <tr>
-                                <th>Estado:</th>
-                                <td>
-                                    <?php if ($organization['status'] == 'active'): ?>
-                                        <span class="badge bg-success">Activo</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-danger">Inactivo</span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Fecha de Creación:</th>
-                                <td><?= date('d/m/Y H:i', strtotime($organization['created_at'])) ?></td>
-                            </tr>
-                            <tr>
-                                <th>Última Actualización:</th>
-                                <td><?= date('d/m/Y H:i', strtotime($organization['updated_at'])) ?></td>
-                            </tr>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <h5>Estadísticas</h5>
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <div class="card bg-primary text-white">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Usuarios</h6>
-                                        <h2 class="mb-0"><?= count($users) ?></h2>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card bg-success text-white">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Clientes</h6>
-                                        <h2 class="mb-0"><?= count($clients) ?></h2>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card bg-info text-white">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Carteras</h6>
-                                        <h2 class="mb-0"><?= count($portfolios) ?></h2>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-4">
-                            <h5>Acciones</h5>
-                            <div class="d-flex gap-2">
-                                <a href="<?= site_url('organizations/' . $organization['id'] . '/edit') ?>" class="btn btn-primary">
-                                    <i class="bi bi-pencil"></i> Editar
-                                </a>
-                                <a href="<?= site_url('organizations/' . $organization['id'] . '/delete') ?>" class="btn btn-danger" onclick="return confirm('¿Está seguro de eliminar esta organización? Esta acción no se puede deshacer.')">
-                                    <i class="bi bi-trash"></i> Eliminar
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="mb-0">Usuarios de la Organización</h5>
-                            <a href="<?= site_url('users/create?organization_id=' . $organization['id']) ?>" class="btn btn-primary btn-sm">
-                                <i class="bi bi-plus-circle"></i> Nuevo Usuario
-                            </a>
-                        </div>
-                        
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover">
-                                <thead>
+                <?php if (!empty($clients)): ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Nombre</th>
+                                    <th>RUC</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($clients as $client): ?>
                                     <tr>
-                                        <th>ID</th>
-                                        <th>Nombre</th>
-                                        <th>Email</th>
-                                        <th>Rol</th>
-                                        <th>Estado</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (empty($users)): ?>
-                                        <tr>
-                                            <td colspan="6" class="text-center">No hay usuarios asociados a esta organización.</td>
-                                        </tr>
-                                    <?php else: ?>
-                                        <?php foreach ($users as $user): ?>
-                                            <tr>
-                                                <td><?= $user['id'] ?></td>
-                                                <td><?= $user['name'] ?></td>
-                                                <td><?= $user['email'] ?></td>
-                                                <td>
-                                                    <?php if ($user['role'] == 'superadmin'): ?>
-                                                        <span class="badge bg-danger">Superadmin</span>
-                                                    <?php elseif ($user['role'] == 'admin'): ?>
-                                                        <span class="badge bg-primary">Administrador</span>
-                                                    <?php else: ?>
-                                                        <span class="badge bg-secondary">Usuario</span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td>
-                                                    <?php if ($user['status'] == 'active'): ?>
-                                                        <span class="badge bg-success">Activo</span>
-                                                    <?php else: ?>
-                                                        <span class="badge bg-danger">Inactivo</span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td>
-                                                    <a href="<?= site_url('users/' . $user['id']) ?>" class="btn btn-sm btn-info">
-                                                        <i class="bi bi-eye"></i>
-                                                    </a>
-                                                    <a href="<?= site_url('users/' . $user['id'] . '/edit') ?>" class="btn btn-sm btn-primary">
+                                        <td><?= esc($client['code']) ?></td>
+                                        <td><?= esc($client['name']) ?></td>
+                                        <td><?= esc($client['document_number']) ?></td>
+                                        <td>
+                                            <span class="badge bg-<?= $client['status'] == 'active' ? 'success' : 'danger' ?>">
+                                                <?= $client['status'] == 'active' ? 'Activo' : 'Inactivo' ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="<?= site_url('clients/' . $client['uuid']) ?>" class="btn btn-info btn-sm" title="Ver">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $organization['id'])): ?>
+                                                    <a href="<?= site_url('clients/' . $client['uuid'] . '/edit') ?>" class="btn btn-primary btn-sm" title="Editar">
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
-                                                    <?php if ($user['id'] != $auth->user()['id']): ?>
-                                                        <a href="<?= site_url('users/' . $user['id'] . '/delete') ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de eliminar este usuario?')">
-                                                            <i class="bi bi-trash"></i>
-                                                        </a>
-                                                    <?php endif; ?>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
-                </div>
+                <?php else: ?>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No hay clientes registrados en esta organización.
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
