@@ -36,70 +36,68 @@ $routes->get('debug/csrf', 'Debug::csrf');
 $routes->get('debug/db-test', 'Debug::dbTest');
 $routes->get('debug/test-api', 'Debug::testApi');
 
-// API Routes - Public (sin ningún filtro)
+// API Routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
-    // Debug endpoint - useful for troubleshooting
-    $routes->match(['get', 'post', 'options'], 'debug', 'AuthController::debug');
-    $routes->match(['get', 'post', 'options'], 'test-otp', 'AuthController::testOtp');
+    // Debug endpoints - useful for troubleshooting
+    $routes->match(['get', 'post', 'options'], 'debug', 'AuthController::debug', ['filter' => 'cors']);
+    $routes->match(['get', 'post', 'options'], 'test-otp', 'AuthController::testOtp', ['filter' => 'cors']);
     
-    // Auth API Routes - No CSRF required (CSRF is excluded in Filters.php)
-    $routes->group('auth', ['filter' => 'cors'], function ($routes) {
-        $routes->post('request-otp', 'AuthController::requestOtp');
-        $routes->post('verify-otp', 'AuthController::verifyOtp');
-        $routes->post('refresh-token', 'AuthController::refreshToken');
-        // OPTIONS routes for CORS preflight
-        $routes->match(['options'], 'request-otp', 'AuthController::requestOtp');
-        $routes->match(['options'], 'verify-otp', 'AuthController::verifyOtp');
-        $routes->match(['options'], 'refresh-token', 'AuthController::refreshToken');
-    });
+    // Auth Public Routes
+    $routes->post('auth/request-otp', 'AuthController::requestOtp', ['filter' => 'cors']);
+    $routes->post('auth/verify-otp', 'AuthController::verifyOtp', ['filter' => 'cors']);
+    $routes->post('auth/refresh-token', 'AuthController::refreshToken', ['filter' => 'cors']);
+    // OPTIONS routes for CORS preflight
+    $routes->match(['options'], 'auth/request-otp', 'AuthController::requestOtp', ['filter' => 'cors']);
+    $routes->match(['options'], 'auth/verify-otp', 'AuthController::verifyOtp', ['filter' => 'cors']);
+    $routes->match(['options'], 'auth/refresh-token', 'AuthController::refreshToken', ['filter' => 'cors']);
     
     // Client Routes
-    $routes->match(['get', 'options'], 'clients', 'ClientController::index');
-    $routes->match(['post', 'options'], 'clients/create', 'ClientController::create');
-    $routes->match(['get', 'options'], 'clients/(:segment)', 'ClientController::show/$1');
-    $routes->match(['put', 'options'], 'clients/(:segment)', 'ClientController::update/$1');
-    $routes->match(['delete', 'options'], 'clients/(:segment)', 'ClientController::delete/$1');
-    $routes->match(['get', 'options'], 'clients/uuid/(:segment)', 'ClientController::findByUuid/$1');
-    $routes->match(['get', 'options'], 'clients/external/(:segment)', 'ClientController::findByExternalId/$1');
-    $routes->match(['get', 'options'], 'clients/document/(:segment)', 'ClientController::findByDocument/$1');
+    $routes->match(['get', 'options'], 'clients', 'ClientController::index', ['filter' => 'cors']);
+    $routes->match(['post', 'options'], 'clients/create', 'ClientController::create', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'clients/(:segment)', 'ClientController::show/$1', ['filter' => 'cors']);
+    $routes->match(['put', 'options'], 'clients/(:segment)', 'ClientController::update/$1', ['filter' => 'cors']);
+    $routes->match(['delete', 'options'], 'clients/(:segment)', 'ClientController::delete/$1', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'clients/uuid/(:segment)', 'ClientController::findByUuid/$1', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'clients/external/(:segment)', 'ClientController::findByExternalId/$1', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'clients/document/(:segment)', 'ClientController::findByDocument/$1', ['filter' => 'cors']);
     
     // Portfolio Routes
-    $routes->match(['get', 'options'], 'portfolios', 'PortfolioController::index');
-    $routes->match(['get', 'options'], 'portfolios/(:segment)', 'PortfolioController::show/$1');
-    $routes->match(['get', 'options'], 'portfolios/my', 'PortfolioController::myPortfolios');
+    $routes->match(['get', 'options'], 'portfolios', 'PortfolioController::index', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'portfolios/(:segment)', 'PortfolioController::show/$1', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'portfolios/my', 'PortfolioController::myPortfolios', ['filter' => 'cors']);
 
     // Invoice Routes
-    $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index');
-    $routes->match(['post', 'options'], 'invoices', 'InvoiceController::create');
-    $routes->match(['get', 'options'], 'invoices/(:num)', 'InvoiceController::show/$1');
-    $routes->match(['put', 'options'], 'invoices/(:num)', 'InvoiceController::update/$1');
-    $routes->match(['delete', 'options'], 'invoices/(:num)', 'InvoiceController::delete/$1');
-    $routes->match(['get', 'options'], 'invoices/external/(:segment)', 'InvoiceController::findByExternalId/$1');
-    $routes->match(['get', 'options'], 'invoices/overdue', 'InvoiceController::overdue');
+    $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index', ['filter' => 'cors']);
+    $routes->match(['post', 'options'], 'invoices', 'InvoiceController::create', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'invoices/(:num)', 'InvoiceController::show/$1', ['filter' => 'cors']);
+    $routes->match(['put', 'options'], 'invoices/(:num)', 'InvoiceController::update/$1', ['filter' => 'cors']);
+    $routes->match(['delete', 'options'], 'invoices/(:num)', 'InvoiceController::delete/$1', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'invoices/external/(:segment)', 'InvoiceController::findByExternalId/$1', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'invoices/overdue', 'InvoiceController::overdue', ['filter' => 'cors']);
 
     // User Routes
-    $routes->match(['get', 'options'], 'users', 'UserController::index');
+    $routes->match(['get', 'options'], 'users', 'UserController::index', ['filter' => 'cors']);
     // $routes->match(['post', 'options'], 'users', 'UserController::create');
-    $routes->match(['get', 'options'], 'users/(:num)', 'UserController::show/$1');
-    $routes->match(['put', 'options'], 'users/(:num)', 'UserController::update/$1');
-    $routes->match(['delete', 'options'], 'users/(:num)', 'UserController::delete/$1');
-    $routes->match(['get', 'options'], 'users/portfolio/(:num)', 'UserController::byPortfolio/$1');
-    $routes->match(['get', 'options'], 'user/profile', 'UserController::profile');
+    $routes->match(['get', 'options'], 'users/(:num)', 'UserController::show/$1', ['filter' => 'cors']);
+    $routes->match(['put', 'options'], 'users/(:num)', 'UserController::update/$1', ['filter' => 'cors']);
+    $routes->match(['delete', 'options'], 'users/(:num)', 'UserController::delete/$1', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'users/portfolio/(:num)', 'UserController::byPortfolio/$1', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'user/profile', 'UserController::profile', ['filter' => 'cors']);
 
     // Payment Routes
-    $routes->match(['get', 'options'], 'payments', 'PaymentController::index');
-    $routes->match(['post', 'options'], 'payments', 'PaymentController::create');
-    $routes->match(['get', 'options'], 'payments/(:num)', 'PaymentController::show/$1');
-    $routes->match(['put', 'options'], 'payments/(:num)', 'PaymentController::update/$1');
-    $routes->match(['delete', 'options'], 'payments/(:num)', 'PaymentController::delete/$1');
-    $routes->match(['get', 'options'], 'payments/external/(:segment)', 'PaymentController::findByExternalId/$1');
+    $routes->match(['get', 'options'], 'payments', 'PaymentController::index', ['filter' => 'cors']);
+    $routes->match(['post', 'options'], 'payments', 'PaymentController::create', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'payments/(:num)', 'PaymentController::show/$1', ['filter' => 'cors']);
+    $routes->match(['put', 'options'], 'payments/(:num)', 'PaymentController::update/$1', ['filter' => 'cors']);
+    $routes->match(['delete', 'options'], 'payments/(:num)', 'PaymentController::delete/$1', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'payments/external/(:segment)', 'PaymentController::findByExternalId/$1', ['filter' => 'cors']);
 
     // Organization Routes
-    $routes->match(['get', 'options'], 'organizations', 'OrganizationController::index');
-    $routes->match(['post', 'options'], 'organizations', 'OrganizationController::create');
-    $routes->match(['get', 'options'], 'organizations/(:segment)', 'OrganizationController::show/$1');
-    $routes->match(['put', 'options'], 'organizations/(:segment)', 'OrganizationController::update/$1');
-    $routes->match(['delete', 'options'], 'organizations/(:segment)', 'OrganizationController::delete/$1');
+    $routes->match(['get', 'options'], 'organizations', 'OrganizationController::index', ['filter' => 'cors']);
+    $routes->match(['post', 'options'], 'organizations', 'OrganizationController::create', ['filter' => 'cors']);
+    $routes->match(['get', 'options'], 'organizations/(:segment)', 'OrganizationController::show/$1', ['filter' => 'cors']);
+    $routes->match(['put', 'options'], 'organizations/(:segment)', 'OrganizationController::update/$1', ['filter' => 'cors']);
+    $routes->match(['delete', 'options'], 'organizations/(:segment)', 'OrganizationController::delete/$1', ['filter' => 'cors']);
 });
 
 // API Routes - Protected 
