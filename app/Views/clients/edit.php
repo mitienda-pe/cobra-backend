@@ -157,25 +157,46 @@
                         </div>
                     </div>
                     
-                    <h5 class="mt-4 mb-3">Asignación a Carteras</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Carteras de Cobro</label>
-                        <?php if(empty($portfolios)): ?>
-                            <p class="text-muted">No hay carteras disponibles</p>
-                        <?php else: ?>
-                            <?php foreach ($portfolios as $portfolio): ?>
-                                <div class="form-check">
-                                    <input class="form-check-input portfolio-checkbox" type="checkbox" 
-                                        name="portfolio_ids[]" id="portfolio_<?= $portfolio['uuid'] ?>" 
-                                        value="<?= $portfolio['uuid'] ?>" 
-                                        <?= (in_array($portfolio['uuid'], $assigned_portfolio_ids)) ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="portfolio_<?= $portfolio['uuid'] ?>">
-                                        <?= $portfolio['name'] ?>
-                                    </label>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                    <h5 class="mt-4 mb-3">Carteras Asignadas</h5>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Las asignaciones de carteras se gestionan desde la vista de edición de cada cartera.
                     </div>
+                    <?php if (empty($assignedPortfolios)): ?>
+                        <p class="text-muted">Este cliente no está asignado a ninguna cartera.</p>
+                    <?php else: ?>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>UUID</th>
+                                        <th>Nombre</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($assignedPortfolios as $portfolio): ?>
+                                        <tr>
+                                            <td><?= $portfolio['uuid'] ?></td>
+                                            <td><?= $portfolio['name'] ?></td>
+                                            <td>
+                                                <?php if ($portfolio['status'] == 'active'): ?>
+                                                    <span class="badge bg-success">Activo</span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-danger">Inactivo</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <a href="<?= site_url('portfolios/' . $portfolio['uuid']) ?>" class="btn btn-sm btn-info">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
                     
                     <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">

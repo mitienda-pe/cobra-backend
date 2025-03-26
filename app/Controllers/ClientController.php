@@ -362,62 +362,23 @@ class ClientController extends BaseController
             ];
 
             try {
-                $db = \Config\Database::connect();
-                $db->transStart();
-
-                // Update client
                 if (!$this->clientModel->update($client['uuid'], $data)) {
-                    $db->transRollback();
                     return redirect()->back()->withInput()->with('error', 'Error al actualizar el cliente: ' . implode(', ', $this->clientModel->errors()));
-                }
-
-                // Update portfolio assignments
-                $portfolioUuids = $this->request->getPost('portfolio_ids') ?: [];
-                
-                // Delete existing assignments
-                $db->table('client_portfolio')
-                   ->where('client_uuid', $client['uuid'])
-                   ->delete();
-
-                // Insert new assignments
-                foreach ($portfolioUuids as $portfolioUuid) {
-                    $db->table('client_portfolio')->insert([
-                        'portfolio_uuid' => $portfolioUuid,
-                        'client_uuid' => $client['uuid'],
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
-                }
-
-                $db->transComplete();
-
-                if ($db->transStatus() === false) {
-                    return redirect()->back()->withInput()->with('error', 'Error al actualizar las carteras del cliente.');
                 }
 
                 return redirect()->to('/clients')->with('message', 'Cliente actualizado exitosamente.');
 
             } catch (\Exception $e) {
-                $db->transRollback();
                 return redirect()->back()->withInput()->with('error', 'Error al actualizar el cliente: ' . $e->getMessage());
             }
         }
 
-        // Get assigned portfolios
+        // Get assigned portfolios for display only
         $assignedPortfolios = $this->clientModel->getPortfolios($client['uuid']);
-        $assignedPortfolioIds = array_column($assignedPortfolios, 'uuid');
-
-        // Get available portfolios
-        if ($this->auth->hasRole('superadmin')) {
-            $portfolios = $this->portfolioModel->findAll();
-        } else {
-            $portfolios = $this->portfolioModel->where('organization_id', $this->auth->organizationId())->findAll();
-        }
 
         $data = [
             'client' => $client,
-            'portfolios' => $portfolios,
-            'assigned_portfolio_ids' => $assignedPortfolioIds,
+            'assignedPortfolios' => $assignedPortfolios,
             'auth' => $this->auth
         ];
 
