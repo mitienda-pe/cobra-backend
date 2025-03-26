@@ -19,13 +19,13 @@ class AddCodeToOrganizations extends Migration
         ]);
 
         // Paso 2: Crear el índice único
-        $this->db->query('CREATE UNIQUE INDEX organizations_code_unique ON organizations(code) WHERE code IS NOT NULL');
+        $this->db->query('CREATE UNIQUE INDEX idx_organizations_code ON organizations(code) WHERE code IS NOT NULL');
     }
 
     public function down()
     {
         // Eliminar el índice primero
-        $this->db->query('DROP INDEX IF EXISTS organizations_code_unique');
+        $this->db->query('DROP INDEX IF EXISTS idx_organizations_code');
         
         // Luego eliminar la columna
         $this->forge->dropColumn('organizations', 'code');

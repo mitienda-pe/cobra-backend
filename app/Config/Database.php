@@ -27,18 +27,23 @@ class Database extends Config
      * @var array<string, mixed>
      */
     public array $default = [
-        'DSN'          => '',
-        'hostname'     => '',
-        'username'     => '',
-        'password'     => '',
-        'database'     => WRITEPATH . 'db/cobranzas.db',  // Debe ser la ruta correcta
-        'DBDriver'     => 'SQLite3',
-        'pConnect'     => false,  // Importante que sea FALSE en SQLite
-        'DBDebug'      => true,
-        'charset'      => 'utf8',
-        'DBCollat'     => 'utf8_general_ci',
-        'foreignKeys'  => true,
-        'busyTimeout'  => 1000,
+        'DSN'      => '',
+        'hostname' => '',
+        'username' => '',
+        'password' => '',
+        'database' => WRITEPATH . 'db/cobranzas.db',
+        'DBDriver' => 'SQLite3',
+        'DBPrefix' => '',
+        'pConnect' => false,
+        'DBDebug'  => true,
+        'charset'  => 'utf8',
+        'DBCollat' => 'utf8_general_ci',
+        'swapPre'  => '',
+        'encrypt'  => false,
+        'compress' => false,
+        'strictOn' => false,
+        'failover' => [],
+        'port'     => 3306,
     ];
 
     /**
