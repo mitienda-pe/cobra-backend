@@ -114,12 +114,32 @@ class UserController extends BaseController
             'status' => 'active'
         ];
         
+        // Log para debug
+        log_message('debug', 'Intentando crear usuario con datos: ' . json_encode([
+            'email' => $data['email'],
+            'phone' => $data['phone']
+        ]));
+        
+        // Verificar usuarios existentes manualmente
+        $db = \Config\Database::connect();
+        $existingUsers = $db->table('users')
+            ->select('id, email, phone, deleted_at')
+            ->where('email', $data['email'])
+            ->orWhere('phone', $data['phone'])
+            ->get()
+            ->getResultArray();
+            
+        log_message('debug', 'Usuarios existentes encontrados: ' . json_encode($existingUsers));
+        
         try {
             // Intentar insertar el usuario - el modelo manejará la validación
             if ($userModel->insert($data) === false) {
+                $errors = $userModel->errors();
+                log_message('debug', 'Errores de validación: ' . json_encode($errors));
+                
                 return redirect()->back()
                                ->withInput()
-                               ->with('errors', $userModel->errors());
+                               ->with('errors', $errors);
             }
 
             return redirect()->to('/users')
