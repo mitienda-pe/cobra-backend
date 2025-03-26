@@ -25,13 +25,16 @@ class Filters extends BaseConfig
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
+        'cors'          => CorsFilter::class,
         'auth'          => AuthFilter::class,
         'apiAuth'       => ApiAuthFilter::class,
         'apiLog'        => ApiLogFilter::class,
-        'cors'          => CorsFilter::class,
         // Alias combinados para múltiples filtros
         'auth csrf'     => [AuthFilter::class, CSRF::class],
         'cors apiAuth apiLog' => [CorsFilter::class, ApiAuthFilter::class, ApiLogFilter::class],
+        // Combined filter aliases
+        'api-public'    => ['cors'],
+        'api-auth'      => ['cors', 'apiAuth', 'apiLog'],
     ];
 
     /**
