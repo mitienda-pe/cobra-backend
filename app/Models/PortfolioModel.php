@@ -87,89 +87,87 @@ class PortfolioModel extends Model
     /**
      * Assign users to a portfolio
      */
-    public function assignUsers($portfolioId, array $userIds)
+    public function assignUsers($portfolioUuid, array $userUuids)
     {
         $db = \Config\Database::connect();
-        $builder = $db->table('portfolio_user');
         
-        // First, delete existing assignments
-        $builder->where('portfolio_id', $portfolioId)->delete();
+        // Eliminar asignaciones existentes
+        $db->table('portfolio_user')
+           ->where('portfolio_uuid', $portfolioUuid)
+           ->delete();
         
-        // Then, create new assignments
+        // Insertar nuevas asignaciones
         $data = [];
-        foreach ($userIds as $userId) {
+        foreach ($userUuids as $userUuid) {
             $data[] = [
-                'portfolio_id' => $portfolioId,
-                'user_id'      => $userId,
-                'created_at'   => date('Y-m-d H:i:s'),
-                'updated_at'   => date('Y-m-d H:i:s'),
+                'portfolio_uuid' => $portfolioUuid,
+                'user_uuid' => $userUuid,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
             ];
         }
         
         if (!empty($data)) {
-            $builder->insertBatch($data);
+            $db->table('portfolio_user')->insertBatch($data);
         }
-        
-        return true;
     }
     
     /**
      * Assign clients to a portfolio
      */
-    public function assignClients($portfolioId, array $clientIds)
+    public function assignClients($portfolioUuid, array $clientUuids)
     {
         $db = \Config\Database::connect();
-        $builder = $db->table('client_portfolio');
         
-        // First, delete existing assignments
-        $builder->where('portfolio_id', $portfolioId)->delete();
+        // Eliminar asignaciones existentes
+        $db->table('client_portfolio')
+           ->where('portfolio_uuid', $portfolioUuid)
+           ->delete();
         
-        // Then, create new assignments
+        // Insertar nuevas asignaciones
         $data = [];
-        foreach ($clientIds as $clientId) {
+        foreach ($clientUuids as $clientUuid) {
             $data[] = [
-                'portfolio_id' => $portfolioId,
-                'client_id'    => $clientId,
-                'created_at'   => date('Y-m-d H:i:s'),
-                'updated_at'   => date('Y-m-d H:i:s'),
+                'portfolio_uuid' => $portfolioUuid,
+                'client_uuid' => $clientUuid,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
             ];
         }
         
         if (!empty($data)) {
-            $builder->insertBatch($data);
+            $db->table('client_portfolio')->insertBatch($data);
         }
-        
-        return true;
     }
     
     /**
      * Get users assigned to a portfolio
      */
-    public function getAssignedUsers($portfolioId)
+    public function getAssignedUsers($portfolioUuid)
     {
         $db = \Config\Database::connect();
-        $builder = $db->table('users u');
-        $builder->select('u.id, u.name, u.email, u.role');
-        $builder->join('portfolio_user pu', 'u.id = pu.user_id');
-        $builder->where('pu.portfolio_id', $portfolioId);
-        $builder->where('u.deleted_at IS NULL');
-        
-        return $builder->get()->getResultArray();
+        return $db->table('users u')
+                 ->select('u.*')
+                 ->join('portfolio_user pu', 'pu.user_uuid = u.uuid')
+                 ->where('pu.portfolio_uuid', $portfolioUuid)
+                 ->where('u.deleted_at IS NULL')
+                 ->get()
+                 ->getResultArray();
     }
     
     /**
      * Get clients assigned to a portfolio
      */
-    public function getAssignedClients($portfolioId)
+    public function getAssignedClients($portfolioUuid)
     {
         $db = \Config\Database::connect();
-        $builder = $db->table('clients c');
-        $builder->select('c.*');
-        $builder->join('client_portfolio cp', 'c.id = cp.client_id');
-        $builder->where('cp.portfolio_id', $portfolioId);
-        $builder->where('c.deleted_at IS NULL');
-        
-        return $builder->get()->getResultArray();
+        return $db->table('clients c')
+                 ->select('c.*')
+                 ->join('client_portfolio cp', 'cp.client_uuid = c.uuid')
+                 ->where('cp.portfolio_uuid', $portfolioUuid)
+                 ->where('c.deleted_at IS NULL')
+                 ->get()
+                 ->getResultArray();
     }
     
     /**
