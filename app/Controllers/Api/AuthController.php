@@ -7,8 +7,9 @@ use App\Models\UserOtpModel;
 use App\Models\UserApiTokenModel;
 use App\Libraries\Twilio;
 use CodeIgniter\HTTP\ResponseInterface;
+use CodeIgniter\RESTful\ResourceController;
 
-class AuthController extends BaseApiController
+class AuthController extends ResourceController
 {
     protected $format = 'json';
 
@@ -34,66 +35,14 @@ class AuthController extends BaseApiController
             session_write_close();
         }
         
-        // Desactivar CSRF
-        $security = \Config\Services::security();
-        try {
-            $reflectionClass = new \ReflectionClass($security);
-            $property = $reflectionClass->getProperty('CSRFVerify');
-            if ($property) {
-                $property->setAccessible(true);
-                $property->setValue($security, false);
-            }
-        } catch (\Exception $e) {
-            log_message('error', 'Error al desactivar CSRF: ' . $e->getMessage());
-        }
-        
         // Log para depuración
         log_message('debug', 'API Request: ' . ($_SERVER['REQUEST_URI'] ?? 'unknown') . ' - Method: ' . ($_SERVER['REQUEST_METHOD'] ?? 'unknown'));
-        
-        // Set CORS headers manually
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization');
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
-        header('Content-Type: application/json');
-        
-        // Si es OPTIONS, responde inmediatamente con 200
-        if (($_SERVER['REQUEST_METHOD'] ?? '') == 'OPTIONS') {
-            header('HTTP/1.1 200 OK');
-            exit;
-        }
-    }
-    
-    /**
-     * Una función especial para responder en JSON y terminar la ejecución
-     */
-    private function jsonResponse($data, $code = 200) 
-    {
-        header('HTTP/1.1 ' . $code . ' ' . $this->getStatusMessage($code));
-        echo json_encode($data);
-        exit;
-    }
-    
-    /**
-     * Obtiene mensaje para cada código HTTP
-     */
-    private function getStatusMessage($code)
-    {
-        $statusMessages = [
-            200 => 'OK',
-            201 => 'Created',
-            400 => 'Bad Request',
-            401 => 'Unauthorized',
-            404 => 'Not Found',
-            500 => 'Internal Server Error'
-        ];
-        
-        return $statusMessages[$code] ?? 'Unknown Status';
     }
 
     /**
      * Request OTP for login
      */
-    public function requestOtp()
+    public function request_otp()
     {
         try {
             // Create API log file for detailed request diagnostics
@@ -149,142 +98,83 @@ class AuthController extends BaseApiController
             if (!empty($email)) {
                 // Validación de email
                 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    $errors['email'] = 'Email inválido';
+                    $errors[] = 'Invalid email format';
                 }
-            } else if (!empty($phone)) {
-                // Validación de teléfono
-                if (strlen($phone) < 10 || strlen($phone) > 15) {
-                    $errors['phone'] = 'El teléfono debe tener entre 10 y 15 caracteres';
-                }
-                
-                if (empty($clientId) || !is_numeric($clientId)) {
-                    $errors['client_id'] = 'Client ID es requerido y debe ser numérico';
-                }
-            } else {
-                $errors['identifier'] = 'Email o teléfono es requerido';
             }
             
-            // Validar método
-            if (!in_array($method, ['email', 'sms'])) {
-                $errors['method'] = 'Método debe ser email o sms';
+            if (!empty($phone)) {
+                // Validación básica de teléfono (debe empezar con + y tener entre 8 y 15 dígitos)
+                if (!preg_match('/^\+[0-9]{8,15}$/', $phone)) {
+                    $errors[] = 'Invalid phone format. Must start with + and have 8-15 digits';
+                }
             }
             
-            // Si hay errores, responder con 400
+            if (empty($email) && empty($phone)) {
+                $errors[] = 'Either email or phone is required';
+            }
+            
+            if (empty($clientId)) {
+                $errors[] = 'Client ID is required';
+            }
+            
             if (!empty($errors)) {
-                log_message('error', 'OTP Validation Error: ' . json_encode($errors));
-                file_put_contents($logFile, "Validation Errors: " . json_encode($errors) . "\n", FILE_APPEND);
-                $this->jsonResponse(['success' => false, 'errors' => $errors], 400);
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $errors
+                ]);
             }
 
-            // Buscar usuario
-            $userModel = new UserModel();
+            // Generate OTP
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             
-            if (!empty($email)) {
-                $user = $userModel->where('email', $email)
-                    ->where('status', 'active')
-                    ->first();
-            } else {
-                $user = $userModel->where('phone', $phone)
-                    ->where('client_id', $clientId)
-                    ->where('status', 'active')
-                    ->first();
-            }
-
-            if (!$user) {
-                $identifier = !empty($email) ? $email : $phone;
-                log_message('error', 'OTP User Not Found: ' . $identifier);
-                file_put_contents($logFile, "User Not Found: {$identifier}\n", FILE_APPEND);
-                $this->jsonResponse([
-                    'success' => false, 
-                    'message' => 'Usuario no encontrado o inactivo'
-                ], 404);
-            }
-
-            // Para SMS, verificar que el usuario tenga teléfono
-            if ($method === 'sms' && empty($user['phone'])) {
-                log_message('error', 'OTP No Phone: User ID ' . $user['id']);
-                file_put_contents($logFile, "No Phone Number: User ID {$user['id']}\n", FILE_APPEND);
-                $this->jsonResponse([
-                    'success' => false,
-                    'message' => 'Usuario no tiene número telefónico registrado'
-                ], 400);
-            }
-
-            // Generar OTP
+            // Store OTP
             $otpModel = new UserOtpModel();
-            $otpData = $otpModel->generateOTP(
-                $user['id'],
-                $deviceInfo,
-                $method
-            );
-
-            if (!$otpData) {
-                log_message('error', 'OTP Generation Error: User ID ' . $user['id']);
-                file_put_contents($logFile, "OTP Generation Error: User ID {$user['id']}\n", FILE_APPEND);
-                $this->jsonResponse([
-                    'success' => false,
-                    'message' => 'Error al generar OTP'
-                ], 500);
-            }
-
-            log_message('debug', 'OTP Generated: ' . $otpData['code'] . ' for User ID ' . $user['id']);
-            file_put_contents($logFile, "OTP Generated: {$otpData['code']} for User ID {$user['id']}\n", FILE_APPEND);
-
-            // Enviar OTP por el método seleccionado
-            if ($method === 'sms') {
-                $twilio = new Twilio();
-                $message = "Your OTP code is: {$otpData['code']}";
-                $result = $twilio->sendSMS($user['phone'], $message);
-
-                log_message('debug', 'OTP SMS Result: ' . ($result ? 'Success' : 'Failed'));
-                file_put_contents($logFile, "SMS Result: " . ($result ? 'Success' : 'Failed') . "\n", FILE_APPEND);
-                if (!$result) {
-                    $this->jsonResponse([
-                        'success' => false,
-                        'message' => 'Error al enviar OTP por SMS'
-                    ], 500);
-                }
-            } else {
-                // For testing, log the OTP code (remove in production)
-                log_message('debug', 'OTP Email would be sent: ' . $otpData['code']);
-                file_put_contents($logFile, "Email would be sent with OTP: {$otpData['code']}\n", FILE_APPEND);
-                // TODO: Implement email sending
-            }
-
-            // Preparar respuesta
-            $response = [
-                'success' => true,
-                'message' => 'OTP enviado exitosamente',
-                'data' => [
-                    'expires_at' => $otpData['expires_at'],
-                    'method' => $method
-                ]
+            $otpData = [
+                'otp' => password_hash($otp, PASSWORD_DEFAULT),
+                'email' => $email,
+                'phone' => $phone,
+                'client_id' => $clientId,
+                'device_info' => $deviceInfo,
+                'expires_at' => date('Y-m-d H:i:s', strtotime('+5 minutes')),
+                'created_at' => date('Y-m-d H:i:s')
             ];
             
-            // Solo en desarrollo, incluir el código OTP
-            if (ENVIRONMENT === 'development') {
-                $response['data']['otp'] = $otpData['code'];
+            $otpModel->insert($otpData);
+            
+            // Send OTP
+            if ($method === 'email' && !empty($email)) {
+                // TODO: Implement email sending
+                log_message('info', 'OTP sent via email to: ' . $email);
+            } elseif ($method === 'sms' && !empty($phone)) {
+                try {
+                    $twilio = new Twilio();
+                    $message = "Your OTP is: {$otp}";
+                    $twilio->sendSMS($phone, $message);
+                    log_message('info', 'OTP sent via SMS to: ' . $phone);
+                } catch (\Exception $e) {
+                    log_message('error', 'Twilio error: ' . $e->getMessage());
+                    return $this->response->setStatusCode(500)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Failed to send OTP via SMS'
+                    ]);
+                }
             }
-
-            log_message('debug', 'OTP Response: ' . json_encode($response));
-            file_put_contents($logFile, "Response: " . json_encode($response) . "\n", FILE_APPEND);
-            $this->jsonResponse($response);
+            
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'OTP sent successfully',
+                'data' => [
+                    'expires_in' => 300 // 5 minutes in seconds
+                ]
+            ]);
             
         } catch (\Exception $e) {
-            // Log any exceptions
-            $errorFile = WRITEPATH . 'logs/api/errors-' . date('Y-m-d') . '.log';
-            $errorLog = date('Y-m-d H:i:s') . ' - Exception in requestOtp: ' . $e->getMessage() . 
-                       ' in ' . $e->getFile() . ' on line ' . $e->getLine() . PHP_EOL .
-                       'Stack Trace: ' . $e->getTraceAsString() . PHP_EOL . PHP_EOL;
-            file_put_contents($errorFile, $errorLog, FILE_APPEND);
-            
-            log_message('error', 'API Exception: ' . $e->getMessage());
-            
-            $this->jsonResponse([
-                'success' => false,
-                'message' => 'Error interno del servidor',
-                'debug' => ENVIRONMENT === 'development' ? $e->getMessage() : null
-            ], 500);
+            log_message('error', 'OTP Request Error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Internal server error'
+            ]);
         }
     }
 
@@ -307,30 +197,34 @@ class AuthController extends BaseApiController
         $errors = [];
         
         if (empty($code)) {
-            $errors['code'] = 'Código OTP es requerido';
+            $errors[] = 'Código OTP es requerido';
         }
         
         if (!empty($email)) {
             // Validación de email
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $errors['email'] = 'Email inválido';
+                $errors[] = 'Invalid email format';
             }
         } else if (!empty($phone)) {
             // Validación de teléfono
             if (strlen($phone) < 10 || strlen($phone) > 15) {
-                $errors['phone'] = 'El teléfono debe tener entre 10 y 15 caracteres';
+                $errors[] = 'El teléfono debe tener entre 10 y 15 caracteres';
             }
             
             if (empty($clientId) || !is_numeric($clientId)) {
-                $errors['client_id'] = 'Client ID es requerido y debe ser numérico';
+                $errors[] = 'Client ID es requerido y debe ser numérico';
             }
         } else {
-            $errors['identifier'] = 'Email o teléfono es requerido';
+            $errors[] = 'Either email or phone is required';
         }
         
         // Si hay errores, responder con 400
         if (!empty($errors)) {
-            $this->jsonResponse(['success' => false, 'errors' => $errors], 400);
+            return $this->response->setStatusCode(400)->setJSON([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $errors
+            ]);
         }
 
         // Buscar usuario
@@ -349,10 +243,10 @@ class AuthController extends BaseApiController
 
         if (!$user) {
             $identifier = !empty($email) ? $email : $phone;
-            $this->jsonResponse([
-                'success' => false, 
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
                 'message' => 'Usuario no encontrado o inactivo'
-            ], 404);
+            ]);
         }
 
         // Verificar OTP
@@ -363,10 +257,10 @@ class AuthController extends BaseApiController
         );
 
         if (!$verified) {
-            $this->jsonResponse([
-                'success' => false,
+            return $this->response->setStatusCode(401)->setJSON([
+                'status' => 'error',
                 'message' => 'Código OTP inválido o expirado'
-            ], 401);
+            ]);
         }
 
         // Generar token
@@ -387,8 +281,8 @@ class AuthController extends BaseApiController
         ];
 
         // Responder con token y datos
-        $this->jsonResponse([
-            'success' => true,
+        return $this->response->setJSON([
+            'status' => 'success',
             'user' => $userData,
             'token' => $token['accessToken'],
             'refresh_token' => $token['refreshToken'],
@@ -408,10 +302,10 @@ class AuthController extends BaseApiController
         $refreshToken = $_POST['refresh_token'] ?? $jsonData['refresh_token'] ?? null;
         
         if (empty($refreshToken)) {
-            $this->jsonResponse([
-                'success' => false,
+            return $this->response->setStatusCode(400)->setJSON([
+                'status' => 'error',
                 'message' => 'Refresh token es requerido'
-            ], 400);
+            ]);
         }
 
         // Refrescar token
@@ -419,15 +313,15 @@ class AuthController extends BaseApiController
         $token = $tokenModel->refreshToken($refreshToken);
 
         if (!$token) {
-            $this->jsonResponse([
-                'success' => false,
+            return $this->response->setStatusCode(401)->setJSON([
+                'status' => 'error',
                 'message' => 'Refresh token inválido o expirado'
-            ], 401);
+            ]);
         }
 
         // Responder con nuevo token
-        $this->jsonResponse([
-            'success' => true,
+        return $this->response->setJSON([
+            'status' => 'success',
             'token' => $token['accessToken'],
             'refresh_token' => $token['refreshToken'],
             'expires_at' => $token['expiresAt']
@@ -448,10 +342,10 @@ class AuthController extends BaseApiController
         }
 
         if (empty($token)) {
-            $this->jsonResponse([
-                'success' => false,
+            return $this->response->setStatusCode(401)->setJSON([
+                'status' => 'error',
                 'message' => 'No se proporcionó token'
-            ], 401);
+            ]);
         }
 
         // Revocar token
@@ -459,8 +353,8 @@ class AuthController extends BaseApiController
         $tokenModel->revokeToken($token);
 
         // Responder
-        $this->jsonResponse([
-            'success' => true,
+        return $this->response->setJSON([
+            'status' => 'success',
             'message' => 'Sesión cerrada exitosamente'
         ]);
     }
@@ -499,8 +393,8 @@ class AuthController extends BaseApiController
         );
         
         // Return debug info
-        return $this->respond([
-            'success' => true,
+        return $this->response->setJSON([
+            'status' => 'success',
             'message' => 'API debug info',
             'time' => date('Y-m-d H:i:s'),
             'server_info' => [
@@ -588,8 +482,8 @@ class AuthController extends BaseApiController
             $otpData = $result->fetchArray(SQLITE3_ASSOC);
             
             // Return success
-            return $this->respond([
-                'success' => true,
+            return $this->response->setJSON([
+                'status' => 'success',
                 'message' => 'OTP test successful',
                 'database_info' => $dbInfo,
                 'test_user' => [
@@ -608,8 +502,8 @@ class AuthController extends BaseApiController
             file_put_contents($logFile, "Error: " . $e->getMessage() . "\n", FILE_APPEND);
             file_put_contents($logFile, "Trace: " . $e->getTraceAsString() . "\n", FILE_APPEND);
             
-            return $this->respond([
-                'success' => false,
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'database_info' => isset($dbInfo) ? $dbInfo : [
@@ -618,7 +512,7 @@ class AuthController extends BaseApiController
                     'permissions' => substr(sprintf('%o', fileperms($dbPath)), -4),
                     'size' => file_exists($dbPath) ? filesize($dbPath) : 0
                 ]
-            ], 500);
+            ]);
         }
     }
 }
