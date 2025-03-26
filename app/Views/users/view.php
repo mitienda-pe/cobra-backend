@@ -85,39 +85,45 @@
                     </div>
                 </div>
                 
-                <?php if ($portfolios && count($portfolios) > 0): ?>
                 <div class="row mt-4">
                     <div class="col-12">
                         <h5 class="mb-4">Carteras Asignadas</h5>
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Nombre</th>
-                                        <th>Descripción</th>
-                                        <th>Estado</th>
-                                        <th>Clientes</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($portfolios as $portfolio): ?>
-                                    <tr>
-                                        <td><?= esc($portfolio['name']) ?></td>
-                                        <td><?= esc($portfolio['description'] ?? '-') ?></td>
-                                        <td>
-                                            <span class="badge bg-<?= $portfolio['status'] == 'active' ? 'success' : 'danger' ?>">
-                                                <?= $portfolio['status'] == 'active' ? 'Activo' : 'Inactivo' ?>
-                                            </span>
-                                        </td>
-                                        <td><?= $portfolio['client_count'] ?? 0 ?></td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                        <?php if (!empty($portfolios)): ?>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Descripción</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($portfolios as $portfolio): ?>
+                                            <tr>
+                                                <td><?= esc($portfolio['name']) ?></td>
+                                                <td><?= esc($portfolio['description'] ?? 'N/A') ?></td>
+                                                <td>
+                                                    <span class="badge bg-<?= $portfolio['status'] == 'active' ? 'success' : 'danger' ?>">
+                                                        <?= $portfolio['status'] == 'active' ? 'Activo' : 'Inactivo' ?>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <a href="<?= site_url('portfolios/' . $portfolio['uuid']) ?>" class="btn btn-sm btn-info">
+                                                        <i class="bi bi-eye"></i> Ver
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <p class="text-muted">No hay carteras asignadas a este usuario.</p>
+                        <?php endif; ?>
                     </div>
                 </div>
-                <?php endif; ?>
             </div>
         </div>
     </div>

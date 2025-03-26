@@ -56,7 +56,7 @@
                                 <div class="card bg-primary text-white">
                                     <div class="card-body">
                                         <h6 class="card-title">Usuarios</h6>
-                                        <h2 class="mb-0"><?= $stats['users'] ?></h2>
+                                        <h2 class="mb-0"><?= count($users) ?></h2>
                                     </div>
                                 </div>
                             </div>
@@ -64,7 +64,7 @@
                                 <div class="card bg-success text-white">
                                     <div class="card-body">
                                         <h6 class="card-title">Clientes</h6>
-                                        <h2 class="mb-0"><?= $stats['clients'] ?></h2>
+                                        <h2 class="mb-0"><?= count($clients) ?></h2>
                                     </div>
                                 </div>
                             </div>
@@ -72,15 +72,7 @@
                                 <div class="card bg-info text-white">
                                     <div class="card-body">
                                         <h6 class="card-title">Carteras</h6>
-                                        <h2 class="mb-0"><?= $stats['portfolios'] ?></h2>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card bg-warning text-white">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Facturas</h6>
-                                        <h2 class="mb-0"><?= $stats['invoices'] ?></h2>
+                                        <h2 class="mb-0"><?= count($portfolios) ?></h2>
                                     </div>
                                 </div>
                             </div>

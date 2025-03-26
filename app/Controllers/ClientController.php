@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\ClientModel;
+use App\Models\OrganizationModel;
 use App\Models\PortfolioModel;
 use App\Libraries\Auth;
 use App\Traits\OrganizationTrait;
@@ -11,11 +12,17 @@ class ClientController extends BaseController
 {
     use OrganizationTrait;
     
+    protected $clientModel;
+    protected $organizationModel;
+    protected $portfolioModel;
     protected $auth;
     protected $session;
     
     public function __construct()
     {
+        $this->clientModel = new ClientModel();
+        $this->organizationModel = new OrganizationModel();
+        $this->portfolioModel = new PortfolioModel();
         $this->auth = new Auth();
         $this->session = \Config\Services::session();
         helper(['form', 'url']);
@@ -28,7 +35,6 @@ class ClientController extends BaseController
         // Refresh organization context from session
         $currentOrgId = $this->refreshOrganizationContext();
         
-        $clientModel = new ClientModel();
         $auth = $this->auth;
         
         // Filter clients based on role
@@ -36,30 +42,29 @@ class ClientController extends BaseController
             // Superadmin can see all clients or filter by organization
             if ($currentOrgId) {
                 // Use the trait method to apply organization filter
-                $this->applyOrganizationFilter($clientModel, $currentOrgId);
-                $clients = $clientModel->findAll();
-                log_message('debug', 'SQL Query: ' . $clientModel->getLastQuery()->getQuery());
+                $this->applyOrganizationFilter($this->clientModel, $currentOrgId);
+                $clients = $this->clientModel->findAll();
+                log_message('debug', 'SQL Query: ' . $this->clientModel->getLastQuery()->getQuery());
                 log_message('debug', 'Superadmin fetched ' . count($clients) . ' clients for organization ' . $currentOrgId);
             } else {
-                $clients = $clientModel->findAll();
+                $clients = $this->clientModel->findAll();
                 log_message('debug', 'Superadmin fetched all ' . count($clients) . ' clients');
             }
         } else if ($auth->hasRole('admin')) {
             // Admin can see all clients from their organization
             $adminOrgId = $auth->user()['organization_id']; // Always use admin's fixed organization
-            $this->applyOrganizationFilter($clientModel, $adminOrgId);
-            $clients = $clientModel->findAll();
-            log_message('debug', 'SQL Query: ' . $clientModel->getLastQuery()->getQuery());
+            $this->applyOrganizationFilter($this->clientModel, $adminOrgId);
+            $clients = $this->clientModel->findAll();
+            log_message('debug', 'SQL Query: ' . $this->clientModel->getLastQuery()->getQuery());
             log_message('debug', 'Admin fetched ' . count($clients) . ' clients for organization ' . $adminOrgId);
         } else {
             // Regular users can only see clients from their portfolios
-            $portfolioModel = new PortfolioModel();
-            $portfolios = $portfolioModel->getByUser($auth->user()['id']);
+            $portfolios = $this->portfolioModel->getByUser($auth->user()['id']);
             log_message('debug', 'User has ' . count($portfolios) . ' portfolios');
             
             $clients = [];
             foreach ($portfolios as $portfolio) {
-                $portfolioClients = $clientModel->getByPortfolio($portfolio['id']);
+                $portfolioClients = $this->clientModel->getByPortfolio($portfolio['id']);
                 log_message('debug', 'Portfolio ' . $portfolio['id'] . ' has ' . count($portfolioClients) . ' clients');
                 $clients = array_merge($clients, $portfolioClients);
             }
@@ -76,7 +81,7 @@ class ClientController extends BaseController
         
         // If no clients found with role-based filtering, try direct fetching to debug
         if (empty($clients)) {
-            $allClients = $clientModel->findAll();
+            $allClients = $this->clientModel->findAll();
             log_message('debug', 'No clients found with filtering. Total clients in database: ' . count($allClients));
             
             // For debugging, log all available organizations
@@ -132,8 +137,6 @@ class ClientController extends BaseController
         
         log_message('debug', 'Organization context: ' . $currentOrgId);
         
-        $clientModel = new ClientModel();
-        
         $rules = [
             'name' => 'required|min_length[3]',
             'code' => 'required|min_length[2]|is_unique[clients.code]',
@@ -159,11 +162,11 @@ class ClientController extends BaseController
         log_message('debug', 'Attempting to insert client with data: ' . json_encode($data));
         
         try {
-            $result = $clientModel->insert($data);
+            $result = $this->clientModel->insert($data);
             
             if ($result === false) {
-                log_message('error', 'Error inserting client: ' . json_encode($clientModel->errors()));
-                return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . implode(', ', $clientModel->errors()));
+                log_message('error', 'Error inserting client: ' . json_encode($this->clientModel->errors()));
+                return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . implode(', ', $this->clientModel->errors()));
             }
             
             log_message('debug', 'Client created successfully with ID: ' . $result);
@@ -188,8 +191,7 @@ class ClientController extends BaseController
         
         // Get organization options for dropdown (only for superadmin)
         if ($this->auth->hasRole('superadmin')) {
-            $organizationModel = new \App\Models\OrganizationModel();
-            $organizations = $organizationModel->getActiveOrganizations();
+            $organizations = $this->organizationModel->getActiveOrganizations();
             $data['organizations'] = $organizations;
         }
         
@@ -197,17 +199,7 @@ class ClientController extends BaseController
         $organizationId = $this->auth->organizationId();
         
         // Get portfolios for the dropdown
-        $portfolioModel = new PortfolioModel();
-        
-        // Use organization filter when available
-        if ($organizationId) {
-            $portfolios = $portfolioModel->where('organization_id', $organizationId)->findAll();
-            log_message('info', 'Filtered portfolios by organization: ' . $organizationId . ', found: ' . count($portfolios));
-        } else {
-            // For superadmin without filter, show all portfolios
-            $portfolios = $portfolioModel->findAll();
-            log_message('info', 'Showing all portfolios: ' . count($portfolios));
-        }
+        $portfolios = $this->portfolioModel->where('organization_id', $organizationId)->findAll();
         
         $data['portfolios'] = $portfolios;
         
@@ -238,8 +230,6 @@ class ClientController extends BaseController
             
             // Process form data
             try {
-                $clientModel = new ClientModel();
-                
                 // Determine organization_id
                 $organizationId = $this->auth->organizationId();
                 
@@ -270,7 +260,7 @@ class ClientController extends BaseController
                 log_message('info', 'Inserting client data: ' . json_encode($insertData));
                 
                 // Insert the client
-                $clientId = $clientModel->insert($insertData);
+                $clientId = $this->clientModel->insert($insertData);
                 
                 if ($clientId) {
                     // Handle portfolio assignments
@@ -327,65 +317,56 @@ class ClientController extends BaseController
     
     public function edit($uuid)
     {
-        log_message('debug', '====== CLIENT EDIT ======');
-        log_message('debug', 'UUID: ' . $uuid);
-        
-        // Only superadmins and admins can edit clients
-        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
-            return redirect()->to('/clients')->with('error', 'No tiene permisos para editar clientes.');
-        }
-        
-        $clientModel = new ClientModel();
-        $client = $clientModel->where('uuid', $uuid)->first();
+        $client = $this->clientModel->where('uuid', $uuid)->first();
         
         if (!$client) {
             return redirect()->to('/clients')->with('error', 'Cliente no encontrado.');
         }
         
-        // Admins can only edit clients from their organization
+        // Check permissions
         if (!$this->auth->hasRole('superadmin') && $client['organization_id'] != $this->auth->organizationId()) {
             return redirect()->to('/clients')->with('error', 'No tiene permisos para editar este cliente.');
         }
         
+        // Get organizations for dropdown
+        $organizations = [];
+        
+        if ($this->auth->hasRole('superadmin')) {
+            $organizations = $this->organizationModel->findAll();
+        } else {
+            $organizations = [$this->organizationModel->find($this->auth->organizationId())];
+        }
+        
+        // Get portfolios for dropdown
+        $portfolios = $this->portfolioModel->where('organization_id', $client['organization_id'])->findAll();
+        
         $data = [
             'client' => $client,
+            'organizations' => $organizations,
+            'portfolios' => $portfolios,
             'auth' => $this->auth
         ];
-        
-        // Get organization options for dropdown (only for superadmin)
-        if ($this->auth->hasRole('superadmin')) {
-            $organizationModel = new \App\Models\OrganizationModel();
-            $organizations = $organizationModel->getActiveOrganizations();
-            $data['organizations'] = $organizations;
-        }
         
         return view('clients/edit', $data);
     }
     
     public function update($uuid)
     {
-        log_message('debug', '====== CLIENT UPDATE ======');
-        log_message('debug', 'UUID: ' . $uuid);
-        
-        // Only superadmins and admins can update clients
-        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
-            return redirect()->to('/clients')->with('error', 'No tiene permisos para actualizar clientes.');
-        }
-        
-        $clientModel = new ClientModel();
-        $client = $clientModel->where('uuid', $uuid)->first();
+        $client = $this->clientModel->where('uuid', $uuid)->first();
         
         if (!$client) {
             return redirect()->to('/clients')->with('error', 'Cliente no encontrado.');
         }
         
-        // Admins can only update clients from their organization
+        // Check permissions
         if (!$this->auth->hasRole('superadmin') && $client['organization_id'] != $this->auth->organizationId()) {
             return redirect()->to('/clients')->with('error', 'No tiene permisos para actualizar este cliente.');
         }
         
         $rules = [
             'name' => 'required|min_length[3]',
+            'email' => 'permit_empty|valid_email',
+            'phone' => 'permit_empty|min_length[6]|max_length[20]',
             'status' => 'required|in_list[active,inactive]'
         ];
         
@@ -395,23 +376,23 @@ class ClientController extends BaseController
         
         $data = [
             'name' => $this->request->getPost('name'),
-            'contact_name' => $this->request->getPost('contact_name'),
-            'contact_email' => $this->request->getPost('contact_email'),
-            'contact_phone' => $this->request->getPost('contact_phone'),
+            'email' => $this->request->getPost('email'),
+            'phone' => $this->request->getPost('phone'),
+            'address' => $this->request->getPost('address'),
             'status' => $this->request->getPost('status'),
-            'description' => $this->request->getPost('description')
+            'portfolio_id' => $this->request->getPost('portfolio_id')
         ];
         
         // Only superadmin can change organization
-        if ($this->auth->hasRole('superadmin') && $this->request->getPost('organization_id')) {
+        if ($this->auth->hasRole('superadmin')) {
             $data['organization_id'] = $this->request->getPost('organization_id');
         }
         
         try {
-            $result = $clientModel->update($client['id'], $data);
+            $result = $this->clientModel->update($client['id'], $data);
             
             if ($result === false) {
-                return redirect()->back()->withInput()->with('error', 'Error al actualizar el cliente: ' . implode(', ', $clientModel->errors()));
+                return redirect()->back()->withInput()->with('error', 'Error al actualizar el cliente: ' . implode(', ', $this->clientModel->errors()));
             }
             
             return redirect()->to('/clients/' . $uuid)->with('message', 'Cliente actualizado exitosamente');
@@ -423,31 +404,22 @@ class ClientController extends BaseController
     
     public function delete($uuid)
     {
-        log_message('debug', '====== CLIENT DELETE ======');
-        log_message('debug', 'UUID: ' . $uuid);
-        
-        // Only superadmins and admins can delete clients
-        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
-            return redirect()->to('/clients')->with('error', 'No tiene permisos para eliminar clientes.');
-        }
-        
-        $clientModel = new ClientModel();
-        $client = $clientModel->where('uuid', $uuid)->first();
+        $client = $this->clientModel->where('uuid', $uuid)->first();
         
         if (!$client) {
             return redirect()->to('/clients')->with('error', 'Cliente no encontrado.');
         }
         
-        // Admins can only delete clients from their organization
+        // Check permissions
         if (!$this->auth->hasRole('superadmin') && $client['organization_id'] != $this->auth->organizationId()) {
             return redirect()->to('/clients')->with('error', 'No tiene permisos para eliminar este cliente.');
         }
         
         try {
-            $result = $clientModel->delete($client['id']);
+            $result = $this->clientModel->delete($client['id']);
             
             if ($result === false) {
-                return redirect()->back()->with('error', 'Error al eliminar el cliente: ' . implode(', ', $clientModel->errors()));
+                return redirect()->back()->with('error', 'Error al eliminar el cliente: ' . implode(', ', $this->clientModel->errors()));
             }
             
             return redirect()->to('/clients')->with('message', 'Cliente eliminado exitosamente');
@@ -462,8 +434,7 @@ class ClientController extends BaseController
         log_message('debug', '====== CLIENT VIEW ======');
         log_message('debug', 'UUID: ' . $uuid);
         
-        $clientModel = new ClientModel();
-        $client = $clientModel->where('uuid', $uuid)->first();
+        $client = $this->clientModel->where('uuid', $uuid)->first();
         
         if (!$client) {
             return redirect()->to('/clients')->with('error', 'Cliente no encontrado.');
@@ -478,12 +449,11 @@ class ClientController extends BaseController
                 }
             } else {
                 // Regular users can only view clients from their portfolios
-                $portfolioModel = new PortfolioModel();
-                $portfolios = $portfolioModel->getByUser($this->auth->user()['id']);
+                $portfolios = $this->portfolioModel->getByUser($this->auth->user()['id']);
                 $hasAccess = false;
                 
                 foreach ($portfolios as $portfolio) {
-                    $portfolioClients = $clientModel->getByPortfolio($portfolio['id']);
+                    $portfolioClients = $this->clientModel->getByPortfolio($portfolio['id']);
                     foreach ($portfolioClients as $portfolioClient) {
                         if ($portfolioClient['id'] == $client['id']) {
                             $hasAccess = true;
@@ -499,16 +469,14 @@ class ClientController extends BaseController
         }
         
         // Get portfolios this client belongs to
-        $portfolioModel = new PortfolioModel();
-        $portfolios = $portfolioModel->getByClient($client['id']);
+        $portfolios = $this->portfolioModel->getByClient($client['id']);
         
         // Get invoices for this client
         $invoiceModel = new \App\Models\InvoiceModel();
         $invoices = $invoiceModel->where('client_id', $client['id'])->findAll();
         
         // Get organization data
-        $organizationModel = new \App\Models\OrganizationModel();
-        $organization = $organizationModel->find($client['organization_id']);
+        $organization = $this->organizationModel->find($client['organization_id']);
         $client['organization'] = $organization;
         
         $data = [
@@ -638,15 +606,13 @@ class ClientController extends BaseController
     
     private function insertImportedClient($data)
     {
-        $clientModel = new ClientModel();
-        
         // Required fields validation
         if (empty($data['business_name']) || empty($data['document_number'])) {
             throw new \Exception('Faltan campos requeridos (Razón Social o RUC)');
         }
         
         // Check if client already exists by document number
-        $existingClient = $clientModel->where('document_number', $data['document_number'])->first();
+        $existingClient = $this->clientModel->where('document_number', $data['document_number'])->first();
         
         if ($existingClient) {
             throw new \Exception("Cliente con RUC {$data['document_number']} ya existe");
@@ -668,7 +634,7 @@ class ClientController extends BaseController
         ];
         
         // Insert client
-        $clientId = $clientModel->insert($clientData);
+        $clientId = $this->clientModel->insert($clientData);
         
         if (!$clientId) {
             throw new \Exception('Error al insertar cliente en la base de datos');
