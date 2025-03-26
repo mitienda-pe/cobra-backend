@@ -153,7 +153,7 @@ class PortfolioModel extends Model
         
         $query = $db->table('portfolios p')
             ->select('p.*')
-            ->join('portfolio_clients pc', 'pc.portfolio_id = p.id')
+            ->join('client_portfolio pc', 'pc.portfolio_id = p.id')
             ->where('pc.client_id', $clientId)
             ->where('p.deleted_at IS NULL')
             ->get();

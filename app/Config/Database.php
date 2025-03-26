@@ -31,7 +31,7 @@ class Database extends Config
         'hostname' => '',
         'username' => '',
         'password' => '',
-        'database' => WRITEPATH . 'database.sqlite',
+        'database' => WRITEPATH . 'db/cobranzas.db',
         'DBDriver' => 'SQLite3',
         'DBPrefix' => '',
         'pConnect' => false,
