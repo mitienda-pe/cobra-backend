@@ -14,12 +14,14 @@ class AuthController extends BaseApiController
     protected $userOtpModel;
     protected $twilioService;
     protected $userApiTokenModel;
+    protected $userModel;
 
     public function __construct()
     {
         $this->twilioService = new \App\Libraries\Twilio();
         $this->userOtpModel = new \App\Models\UserOtpModel();
         $this->userApiTokenModel = new \App\Models\UserApiTokenModel();
+        $this->userModel = new \App\Models\UserModel();
     }
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
@@ -55,43 +57,14 @@ class AuthController extends BaseApiController
      */
     public function requestOtp()
     {
-        // Log method entry
-        log_message('debug', 'Entering requestOtp method');
-        
         try {
-            // Create API log file for detailed request diagnostics
-            $logFile = WRITEPATH . 'logs/api/otp-requests-' . date('Y-m-d') . '.log';
-            
-            // Log request details
-            ob_start();
-            echo "=== OTP Request at " . date('Y-m-d H:i:s') . " ===\n";
-            echo "Request URI: " . ($_SERVER['REQUEST_URI'] ?? 'unknown') . "\n";
-            echo "Request Method: " . ($_SERVER['REQUEST_METHOD'] ?? 'unknown') . "\n";
-            echo "Content Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'unknown') . "\n";
-            echo "Raw Input: " . file_get_contents('php://input') . "\n";
-            echo "POST Data: " . print_r($_POST, true) . "\n";
-            echo "Headers: \n";
-            foreach (getallheaders() as $name => $value) {
-                echo "  $name: $value\n";
-            }
-            echo "Route Info: " . print_r(service('router')->getMatchedRoute(), true) . "\n";
-            echo "CodeIgniter Version: " . \CodeIgniter\CodeIgniter::CI_VERSION . "\n";
-            echo "PHP Version: " . phpversion() . "\n";
-            $logOutput = ob_get_clean();
-            file_put_contents($logFile, $logOutput . "\n\n", FILE_APPEND);
-            
             // Get request data
             $rawBody = file_get_contents('php://input');
             $jsonData = json_decode($rawBody, true);
             
-            // Check for JSON decode error
-            if (json_last_error() !== JSON_ERROR_NONE && !empty($rawBody)) {
-                file_put_contents($logFile, "JSON Decode Error: " . json_last_error_msg() . "\n", FILE_APPEND);
-            }
-            
             $email = $_POST['email'] ?? $jsonData['email'] ?? null;
             $phone = $_POST['phone'] ?? $jsonData['phone'] ?? null;
-            $clientId = $_POST['client_id'] ?? $jsonData['client_id'] ?? null;
+            $organizationCode = $_POST['organization_code'] ?? $jsonData['organization_code'] ?? null;
             $deviceInfo = $_POST['device_info'] ?? $jsonData['device_info'] ?? 'Unknown Device';
             
             // Validate required fields
@@ -102,11 +75,52 @@ class AuthController extends BaseApiController
                 ]);
             }
 
-            if (empty($clientId)) {
-                return $this->response->setStatusCode(400)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Client ID is required'
-                ]);
+            // If phone is provided, check if user exists and get organizations
+            if (!empty($phone)) {
+                $users = $this->userModel->getOrganizationsByPhone($phone);
+                
+                if (empty($users)) {
+                    return $this->response->setStatusCode(404)->setJSON([
+                        'status' => 'error',
+                        'message' => 'No user found with this phone number'
+                    ]);
+                }
+                
+                // If user has multiple organizations and no organization_code provided
+                if (count($users) > 1 && empty($organizationCode)) {
+                    $organizations = array_map(function($user) {
+                        return [
+                            'code' => $user['org_code'],
+                            'name' => $user['org_name']
+                        ];
+                    }, $users);
+                    
+                    return $this->response->setJSON([
+                        'status' => 'multiple_organizations',
+                        'message' => 'Please specify which organization you want to access',
+                        'data' => [
+                            'organizations' => $organizations
+                        ]
+                    ]);
+                }
+                
+                // If organization_code is provided, validate it
+                if (!empty($organizationCode)) {
+                    $validOrg = false;
+                    foreach ($users as $user) {
+                        if ($user['org_code'] === $organizationCode) {
+                            $validOrg = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!$validOrg) {
+                        return $this->response->setStatusCode(400)->setJSON([
+                            'status' => 'error',
+                            'message' => 'Invalid organization code'
+                        ]);
+                    }
+                }
             }
 
             // Generate OTP
@@ -114,10 +128,10 @@ class AuthController extends BaseApiController
             
             // Store OTP in database
             $otpData = [
-                'client_id' => $clientId,
                 'phone' => $phone,
                 'email' => $email,
                 'code' => $otp,
+                'organization_code' => $organizationCode,
                 'device_info' => $deviceInfo,
                 'expires_at' => date('Y-m-d H:i:s', strtotime('+5 minutes')),
                 'created_at' => date('Y-m-d H:i:s')
@@ -142,7 +156,7 @@ class AuthController extends BaseApiController
                     
                     // Update delivery status
                     $this->userOtpModel->updateDeliveryStatus(
-                        $clientId,
+                        $phone,
                         $otp,
                         'sent',
                         'Twilio SID: ' . ($result['sid'] ?? 'unknown')
@@ -171,7 +185,7 @@ class AuthController extends BaseApiController
                 'data' => [
                     'email' => $email,
                     'phone' => $phone,
-                    'client_id' => $clientId,
+                    'organization_code' => $organizationCode,
                     'device_info' => $deviceInfo,
                     'expires_in' => '5 minutes'
                 ]
@@ -189,12 +203,6 @@ class AuthController extends BaseApiController
         }
     }
 
-    // Alias method for backward compatibility
-    public function request_otp()
-    {
-        return $this->requestOtp();
-    }
-
     /**
      * Verify OTP and generate JWT token
      */
@@ -207,8 +215,8 @@ class AuthController extends BaseApiController
             
             $email = $_POST['email'] ?? $jsonData['email'] ?? null;
             $phone = $_POST['phone'] ?? $jsonData['phone'] ?? null;
-            $clientId = $_POST['client_id'] ?? $jsonData['client_id'] ?? null;
             $code = $_POST['code'] ?? $jsonData['code'] ?? null;
+            $organizationCode = $_POST['organization_code'] ?? $jsonData['organization_code'] ?? null;
             $deviceInfo = $_POST['device_info'] ?? $jsonData['device_info'] ?? 'Unknown Device';
             
             // Validate required fields
@@ -219,13 +227,6 @@ class AuthController extends BaseApiController
                 ]);
             }
 
-            if (empty($clientId)) {
-                return $this->response->setStatusCode(400)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Client ID is required'
-                ]);
-            }
-
             if (empty($phone) && empty($email)) {
                 return $this->response->setStatusCode(400)->setJSON([
                     'status' => 'error',
@@ -233,8 +234,44 @@ class AuthController extends BaseApiController
                 ]);
             }
 
+            // Get user data
+            if (!empty($phone)) {
+                $users = $this->userModel->getOrganizationsByPhone($phone);
+                
+                if (empty($users)) {
+                    return $this->response->setStatusCode(404)->setJSON([
+                        'status' => 'error',
+                        'message' => 'No user found with this phone number'
+                    ]);
+                }
+                
+                // If user has multiple organizations, organization_code is required
+                if (count($users) > 1 && empty($organizationCode)) {
+                    return $this->response->setStatusCode(400)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Organization code is required for users with multiple organizations'
+                    ]);
+                }
+                
+                // Get user data for the specified organization
+                $userData = null;
+                foreach ($users as $user) {
+                    if (empty($organizationCode) || $user['org_code'] === $organizationCode) {
+                        $userData = $user;
+                        break;
+                    }
+                }
+                
+                if (!$userData) {
+                    return $this->response->setStatusCode(400)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Invalid organization code'
+                    ]);
+                }
+            }
+
             // Verify OTP
-            $otpData = $this->userOtpModel->verifyOTP($clientId, $code, $phone, $email);
+            $otpData = $this->userOtpModel->verifyOTP($phone, $email, $code, $organizationCode);
             
             if (!$otpData) {
                 return $this->response->setStatusCode(400)->setJSON([
@@ -248,7 +285,7 @@ class AuthController extends BaseApiController
             
             // Store token in database
             $tokenData = [
-                'client_id' => $clientId,
+                'user_id' => $userData['id'],
                 'token' => $token,
                 'device_info' => $deviceInfo,
                 'expires_at' => date('Y-m-d H:i:s', strtotime('+30 days')),
@@ -257,14 +294,26 @@ class AuthController extends BaseApiController
             
             $this->userApiTokenModel->insert($tokenData);
             
-            // Return success response with token
+            // Return success response with token and user data
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => 'OTP verified successfully',
                 'data' => [
                     'token' => $token,
                     'expires_in' => '30 days',
-                    'token_type' => 'Bearer'
+                    'token_type' => 'Bearer',
+                    'user' => [
+                        'id' => $userData['id'],
+                        'name' => $userData['name'],
+                        'email' => $userData['email'],
+                        'phone' => $userData['phone'],
+                        'role' => $userData['role'],
+                        'organization' => [
+                            'id' => $userData['org_id'],
+                            'name' => $userData['org_name'],
+                            'code' => $userData['org_code']
+                        ]
+                    ]
                 ]
             ]);
             
@@ -354,50 +403,16 @@ class AuthController extends BaseApiController
      */
     public function debug()
     {
-        // Write to a special debug log file
-        $debugLogFile = WRITEPATH . 'logs/api_debug.log';
-        
-        // Get request info
-        $requestData = [
-            'time' => date('Y-m-d H:i:s'),
-            'uri' => $_SERVER['REQUEST_URI'] ?? 'unknown',
-            'method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown',
-            'remote_addr' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
-            'headers' => function_exists('getallheaders') ? getallheaders() : [],
-            'get' => $_GET,
-            'post' => $_POST,
-            'input' => file_get_contents('php://input'),
-            'server' => $_SERVER,
-            'route' => service('router')->getMatchedRoute(),
-            'codeigniter_version' => \CodeIgniter\CodeIgniter::CI_VERSION,
-            'php_version' => phpversion()
-        ];
-        
-        // Log to file
-        file_put_contents(
-            $debugLogFile, 
-            "=== API Debug at " . date('Y-m-d H:i:s') . " ===\n" . 
-            print_r($requestData, true) . "\n\n", 
-            FILE_APPEND
-        );
-        
-        // Return debug info
         return $this->response->setJSON([
             'status' => 'success',
-            'message' => 'API debug info',
-            'time' => date('Y-m-d H:i:s'),
-            'server_info' => [
+            'message' => 'API is working correctly',
+            'data' => [
+                'request_method' => $this->request->getMethod(),
+                'request_headers' => $this->request->headers(),
+                'request_body' => $this->request->getBody(),
+                'server_time' => date('Y-m-d H:i:s'),
                 'php_version' => phpversion(),
-                'codeigniter_version' => \CodeIgniter\CodeIgniter::CI_VERSION,
-                'environment' => ENVIRONMENT
-            ],
-            'request_info' => [
-                'uri' => $_SERVER['REQUEST_URI'] ?? 'unknown',
-                'path' => $_SERVER['PATH_INFO'] ?? 'unknown',
-                'method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown',
-                'query_string' => $_SERVER['QUERY_STRING'] ?? '',
-                'route' => service('router')->getMatchedRoute()
+                'codeigniter_version' => \CodeIgniter\CodeIgniter::CI_VERSION
             ]
         ]);
     }
@@ -407,102 +422,13 @@ class AuthController extends BaseApiController
      */
     public function testOtp()
     {
-        // Create a log
-        $logFile = WRITEPATH . 'logs/test_otp.log';
-        file_put_contents(
-            $logFile, 
-            "=== Test OTP at " . date('Y-m-d H:i:s') . " ===\n", 
-            FILE_APPEND
-        );
-        
-        // Define database path
-        $dbPath = WRITEPATH . 'db/cobranzas.db';
-        
-        try {
-            // Check database permissions
-            $dbInfo = [
-                'exists' => file_exists($dbPath),
-                'writable' => is_writable($dbPath),
-                'permissions' => substr(sprintf('%o', fileperms($dbPath)), -4),
-                'size' => file_exists($dbPath) ? filesize($dbPath) : 0
-            ];
-            
-            file_put_contents($logFile, "Database info: " . json_encode($dbInfo) . "\n", FILE_APPEND);
-            
-            // Try to create a test user if not exists
-            $db = new \SQLite3($dbPath);
-            $timestamp = date('Y-m-d H:i:s');
-            
-            // Create a test user if not exists
-            $testUser = 'test_api_user';
-            $testEmail = 'test@example.com';
-            $testPhone = '+51999309748';
-            
-            // Check if user exists
-            $result = $db->query("SELECT id FROM users WHERE email = '{$testEmail}' LIMIT 1");
-            $user = $result->fetchArray(SQLITE3_ASSOC);
-            
-            $userId = null;
-            if (!$user) {
-                // Create test user
-                $db->exec("INSERT INTO users (name, email, phone, role, status, created_at) 
-                          VALUES ('{$testUser}', '{$testEmail}', '{$testPhone}', 'user', 'active', '{$timestamp}')");
-                
-                $result = $db->query("SELECT last_insert_rowid() as id");
-                $userId = $result->fetchArray(SQLITE3_ASSOC)['id'];
-                file_put_contents($logFile, "Created test user with ID: {$userId}\n", FILE_APPEND);
-            } else {
-                $userId = $user['id'];
-                file_put_contents($logFile, "Using existing test user with ID: {$userId}\n", FILE_APPEND);
-            }
-            
-            // Generate OTP manually without auth
-            $otp = rand(100000, 999999);
-            $expiresAt = date('Y-m-d H:i:s', strtotime('+15 minutes'));
-            
-            // Try to delete old OTPs for this user
-            $db->exec("UPDATE user_otp_codes SET used_at = '{$timestamp}' WHERE user_id = {$userId} AND used_at IS NULL");
-            
-            // Insert new OTP
-            $db->exec("INSERT INTO user_otp_codes (user_id, code, device_info, expires_at, created_at, delivery_method, delivery_status) 
-                    VALUES ({$userId}, '{$otp}', 'Test Device', '{$expiresAt}', '{$timestamp}', 'email', 'sent')");
-            
-            // Get the OTP from database to verify it worked
-            $result = $db->query("SELECT * FROM user_otp_codes WHERE user_id = {$userId} ORDER BY id DESC LIMIT 1");
-            $otpData = $result->fetchArray(SQLITE3_ASSOC);
-            
-            // Return success
-            return $this->response->setJSON([
-                'status' => 'success',
-                'message' => 'OTP test successful',
-                'database_info' => $dbInfo,
-                'test_user' => [
-                    'id' => $userId,
-                    'email' => $testEmail,
-                    'phone' => $testPhone
-                ],
-                'otp_data' => [
-                    'code' => $otp,
-                    'expires_at' => $expiresAt
-                ],
-                'db_query_result' => $otpData
-            ]);
-            
-        } catch (\Exception $e) {
-            file_put_contents($logFile, "Error: " . $e->getMessage() . "\n", FILE_APPEND);
-            file_put_contents($logFile, "Trace: " . $e->getTraceAsString() . "\n", FILE_APPEND);
-            
-            return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'database_info' => isset($dbInfo) ? $dbInfo : [
-                    'exists' => file_exists($dbPath),
-                    'writable' => is_writable($dbPath),
-                    'permissions' => substr(sprintf('%o', fileperms($dbPath)), -4),
-                    'size' => file_exists($dbPath) ? filesize($dbPath) : 0
-                ]
-            ]);
-        }
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => 'Test OTP endpoint',
+            'data' => [
+                'test_otp' => '123456',
+                'expires_in' => '5 minutes'
+            ]
+        ]);
     }
 }

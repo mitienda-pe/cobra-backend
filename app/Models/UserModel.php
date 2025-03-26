@@ -162,4 +162,19 @@ class UserModel extends Model
     {
         return $this->where('organization_id', $organizationId)->findAll();
     }
+
+    /**
+     * Get organizations for a user by phone number
+     */
+    public function getOrganizationsByPhone($phone)
+    {
+        $users = $this->select('users.*, organizations.id as org_id, organizations.name as org_name, organizations.code as org_code')
+                     ->join('organizations', 'organizations.id = users.organization_id')
+                     ->where('users.phone', $phone)
+                     ->where('users.status', 'active')
+                     ->where('organizations.status', 'active')
+                     ->findAll();
+                     
+        return $users;
+    }
 }

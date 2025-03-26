@@ -13,7 +13,7 @@ class UserApiTokenModel extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'client_id',
+        'user_id',
         'token',
         'device_info',
         'expires_at',
