@@ -19,7 +19,7 @@ class PortfolioController extends BaseController
     {
         $this->auth = new Auth();
         $this->session = \Config\Services::session();
-        helper(['form', 'url']);
+        helper(['form', 'url', 'uuid']);
     }
     
     public function index()
@@ -90,32 +90,26 @@ class PortfolioController extends BaseController
     
     public function create()
     {
-        // Only admins and superadmins can create portfolios
         if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para crear carteras.');
         }
-        
-        log_message('debug', 'CSRF token value: ' . csrf_hash());
         
         $data = [
             'auth' => $this->auth,
         ];
         
-        // Get organizations for superadmin
         if ($this->auth->hasRole('superadmin')) {
             $organizationModel = new \App\Models\OrganizationModel();
             $data['organizations'] = $organizationModel->findAll();
         }
         
-        // Handle form submission
         if ($this->request->getMethod() === 'post') {
             $rules = [
-                'name'        => 'required|min_length[3]|max_length[100]',
+                'name' => 'required|min_length[3]|max_length[100]',
                 'description' => 'permit_empty',
-                'status'      => 'required|in_list[active,inactive]',
+                'status' => 'required|in_list[active,inactive]',
             ];
             
-            // Add organization_id rule for superadmins
             if ($this->auth->hasRole('superadmin')) {
                 $rules['organization_id'] = 'required|is_natural_no_zero';
             }
@@ -123,274 +117,193 @@ class PortfolioController extends BaseController
             if ($this->validate($rules)) {
                 $portfolioModel = new PortfolioModel();
                 
-                // Get organization_id based on role
                 $organizationId = $this->auth->hasRole('superadmin')
                     ? $this->request->getPost('organization_id')
                     : $this->auth->organizationId();
                 
-                // Prepare data
                 $data = [
+                    'uuid' => uuid_create(),
                     'organization_id' => $organizationId,
-                    'name'            => $this->request->getPost('name'),
-                    'description'     => $this->request->getPost('description'),
-                    'status'          => $this->request->getPost('status'),
+                    'name' => $this->request->getPost('name'),
+                    'description' => $this->request->getPost('description'),
+                    'status' => $this->request->getPost('status'),
                 ];
                 
                 $portfolioId = $portfolioModel->insert($data);
                 
                 if ($portfolioId) {
-                    // Assign users if specified
                     $userIds = $this->request->getPost('user_ids') ?: [];
-                    
                     if (!empty($userIds)) {
                         $portfolioModel->assignUsers($portfolioId, $userIds);
                     }
                     
-                    // Assign clients if specified
                     $clientIds = $this->request->getPost('client_ids') ?: [];
-                    
                     if (!empty($clientIds)) {
                         $portfolioModel->assignClients($portfolioId, $clientIds);
                     }
                     
                     return redirect()->to('/portfolios')->with('message', 'Cartera creada exitosamente.');
-                } else {
-                    return redirect()->back()->withInput()
-                        ->with('error', 'Error al crear la cartera.');
                 }
-            } else {
-                return redirect()->back()->withInput()
-                    ->with('errors', $this->validator->getErrors());
+                
+                return redirect()->back()->withInput()->with('error', 'Error al crear la cartera.');
             }
-        }
-        
-        // In create form, we don't prefill users and clients
-        // They will be loaded dynamically when user selects an organization
-        $organizationId = $this->auth->organizationId();
-        log_message('info', 'Create portfolio - Current user organization ID: ' . $organizationId);
-        
-        // For non-superadmin users, load their organization's users and clients
-        if (!$this->auth->hasRole('superadmin')) {
-            $userModel = new UserModel();
-            $users = $userModel->where('organization_id', $organizationId)
-                             ->where('role !=', 'superadmin')
-                             ->findAll();
             
-            $clientModel = new ClientModel();
-            $clients = $clientModel->where('organization_id', $organizationId)
-                                 ->where('status', 'active')
-                                 ->findAll();
-            
-            $data['users'] = $users;
-            $data['clients'] = $clients;
-            
-            log_message('info', 'Non-superadmin: Found ' . count($users) . ' users and ' . count($clients) . ' clients');
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
         
         return view('portfolios/create', $data);
     }
-    
-    public function edit($id = null)
+
+    public function view($uuid = null)
     {
-        // Only admins and superadmins can edit portfolios
+        if (!$uuid) {
+            return redirect()->to('/portfolios')->with('error', 'UUID de cartera no proporcionado.');
+        }
+
+        $portfolioModel = new PortfolioModel();
+        $portfolio = $portfolioModel->where('uuid', $uuid)->first();
+
+        if (!$portfolio) {
+            return redirect()->to('/portfolios')->with('error', 'Cartera no encontrada.');
+        }
+
+        // Verificar permisos
+        if (!$this->auth->hasRole('superadmin')) {
+            if ($this->auth->hasRole('admin')) {
+                if ($portfolio['organization_id'] != $this->auth->organizationId()) {
+                    return redirect()->to('/portfolios')->with('error', 'No tiene permisos para ver esta cartera.');
+                }
+            } else {
+                $userPortfolios = $portfolioModel->getByUser($this->auth->user()['id']);
+                $hasAccess = false;
+                foreach ($userPortfolios as $up) {
+                    if ($up['id'] == $portfolio['id']) {
+                        $hasAccess = true;
+                        break;
+                    }
+                }
+                if (!$hasAccess) {
+                    return redirect()->to('/portfolios')->with('error', 'No tiene permisos para ver esta cartera.');
+                }
+            }
+        }
+
+        // Cargar usuarios y clientes asignados
+        $userModel = new UserModel();
+        $clientModel = new ClientModel();
+        
+        $users = $portfolioModel->getAssignedUsers($portfolio['id']);
+        $clients = $portfolioModel->getAssignedClients($portfolio['id']);
+        
+        $organizationModel = new \App\Models\OrganizationModel();
+        $organization = $organizationModel->find($portfolio['organization_id']);
+
+        $data = [
+            'portfolio' => $portfolio,
+            'organization' => $organization,
+            'users' => $users,
+            'clients' => $clients,
+            'auth' => $this->auth
+        ];
+
+        return view('portfolios/view', $data);
+    }
+
+    public function edit($uuid = null)
+    {
         if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para editar carteras.');
         }
         
-        if (!$id) {
-            return redirect()->to('/portfolios')->with('error', 'ID de cartera no proporcionado.');
+        if (!$uuid) {
+            return redirect()->to('/portfolios')->with('error', 'UUID de cartera no proporcionado.');
         }
         
         $portfolioModel = new PortfolioModel();
-        $portfolio = $portfolioModel->find($id);
+        $portfolio = $portfolioModel->where('uuid', $uuid)->first();
         
         if (!$portfolio) {
             return redirect()->to('/portfolios')->with('error', 'Cartera no encontrada.');
         }
         
-        // Check if admin has access to this portfolio's organization
-        if ($this->auth->hasRole('admin') && $portfolio['organization_id'] !== $this->auth->organizationId()) {
+        // Verificar permisos para admin
+        if ($this->auth->hasRole('admin') && $portfolio['organization_id'] != $this->auth->organizationId()) {
             return redirect()->to('/portfolios')->with('error', 'No tiene permisos para editar esta cartera.');
         }
         
-        $data = [
-            'portfolio' => $portfolio,
-            'auth' => $this->auth,
-        ];
-        
-        // Get organizations for superadmin
-        if ($this->auth->hasRole('superadmin')) {
-            $organizationModel = new \App\Models\OrganizationModel();
-            $data['organizations'] = $organizationModel->findAll();
-        }
-        
-        // Get users and clients for the portfolio's organization
-        $userModel = new UserModel();
-        $users = $userModel->where('organization_id', $portfolio['organization_id'])
-                         ->where('role !=', 'superadmin')
-                         ->findAll();
-        
-        $clientModel = new ClientModel();
-        $clients = $clientModel->where('organization_id', $portfolio['organization_id'])
-                             ->where('status', 'active')
-                             ->findAll();
-        
-        // Get currently assigned users and clients
-        $assignedUsers = $portfolioModel->getAssignedUsers($id);
-        $assignedClients = $portfolioModel->getAssignedClients($id);
-        
-        $data['users'] = $users;
-        $data['clients'] = $clients;
-        $data['assigned_user_ids'] = array_column($assignedUsers, 'id');
-        $data['assigned_client_ids'] = array_column($assignedClients, 'id');
-        
-        // Handle form submission
         if ($this->request->getMethod() === 'post') {
             $rules = [
-                'name'        => 'required|min_length[3]|max_length[100]',
+                'name' => 'required|min_length[3]|max_length[100]',
                 'description' => 'permit_empty',
-                'status'      => 'required|in_list[active,inactive]',
+                'status' => 'required|in_list[active,inactive]',
             ];
             
-            // Add organization_id rule for superadmins
-            if ($this->auth->hasRole('superadmin')) {
-                $rules['organization_id'] = 'required|is_natural_no_zero';
-            }
-            
             if ($this->validate($rules)) {
-                // Get organization_id based on role
-                $organizationId = $this->auth->hasRole('superadmin')
-                    ? $this->request->getPost('organization_id')
-                    : $portfolio['organization_id']; // Non-superadmins can't change organization
-                
-                // Prepare data
-                $updateData = [
-                    'organization_id' => $organizationId,
-                    'name'            => $this->request->getPost('name'),
-                    'description'     => $this->request->getPost('description'),
-                    'status'          => $this->request->getPost('status'),
+                $data = [
+                    'name' => $this->request->getPost('name'),
+                    'description' => $this->request->getPost('description'),
+                    'status' => $this->request->getPost('status'),
                 ];
                 
-                $updated = $portfolioModel->update($id, $updateData);
-                
-                if ($updated) {
-                    // Update user assignments
+                if ($portfolioModel->update($portfolio['id'], $data)) {
+                    // Actualizar usuarios asignados
                     $userIds = $this->request->getPost('user_ids') ?: [];
-                    $portfolioModel->updateUsers($id, $userIds);
+                    $portfolioModel->updateAssignedUsers($portfolio['id'], $userIds);
                     
-                    // Update client assignments
+                    // Actualizar clientes asignados
                     $clientIds = $this->request->getPost('client_ids') ?: [];
-                    $portfolioModel->updateClients($id, $clientIds);
+                    $portfolioModel->updateAssignedClients($portfolio['id'], $clientIds);
                     
-                    return redirect()->to('/portfolios')->with('message', 'Cartera actualizada exitosamente.');
-                } else {
-                    return redirect()->back()->withInput()
-                        ->with('error', 'Error al actualizar la cartera.');
+                    return redirect()->to('/portfolios/' . $uuid)->with('message', 'Cartera actualizada exitosamente.');
                 }
-            } else {
-                return redirect()->back()->withInput()
-                    ->with('errors', $this->validator->getErrors());
+                
+                return redirect()->back()->withInput()->with('error', 'Error al actualizar la cartera.');
             }
+            
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
+        
+        // Cargar usuarios y clientes asignados
+        $users = $portfolioModel->getAssignedUsers($portfolio['id']);
+        $clients = $portfolioModel->getAssignedClients($portfolio['id']);
+        
+        $data = [
+            'portfolio' => $portfolio,
+            'users' => $users,
+            'clients' => $clients,
+            'auth' => $this->auth
+        ];
         
         return view('portfolios/edit', $data);
     }
-    
-    public function delete($id = null)
+
+    public function delete($uuid = null)
     {
-        // Only admins and superadmins can delete portfolios
         if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para eliminar carteras.');
         }
         
-        if (!$id) {
-            return redirect()->to('/portfolios')->with('error', 'ID de cartera no proporcionado.');
+        if (!$uuid) {
+            return redirect()->to('/portfolios')->with('error', 'UUID de cartera no proporcionado.');
         }
         
         $portfolioModel = new PortfolioModel();
-        $portfolio = $portfolioModel->find($id);
+        $portfolio = $portfolioModel->where('uuid', $uuid)->first();
         
         if (!$portfolio) {
             return redirect()->to('/portfolios')->with('error', 'Cartera no encontrada.');
         }
         
-        // Check if admin has access to this portfolio's organization
-        if ($this->auth->hasRole('admin') && $portfolio['organization_id'] !== $this->auth->organizationId()) {
+        // Verificar permisos para admin
+        if ($this->auth->hasRole('admin') && $portfolio['organization_id'] != $this->auth->organizationId()) {
             return redirect()->to('/portfolios')->with('error', 'No tiene permisos para eliminar esta cartera.');
         }
         
-        // Delete portfolio and its relationships
-        try {
-            $portfolioModel->deletePortfolio($id);
+        if ($portfolioModel->delete($portfolio['id'])) {
             return redirect()->to('/portfolios')->with('message', 'Cartera eliminada exitosamente.');
-        } catch (\Exception $e) {
-            return redirect()->to('/portfolios')->with('error', 'Error al eliminar la cartera: ' . $e->getMessage());
-        }
-    }
-    
-    public function view($id = null)
-    {
-        if (!$id) {
-            return redirect()->to('/portfolios')->with('error', 'ID de cartera no proporcionado.');
         }
         
-        $portfolioModel = new PortfolioModel();
-        $portfolio = $portfolioModel->find($id);
-        
-        if (!$portfolio) {
-            return redirect()->to('/portfolios')->with('error', 'Cartera no encontrada.');
-        }
-        
-        // Check access based on role
-        if (!$this->hasAccessToPortfolio($portfolio)) {
-            return redirect()->to('/portfolios')->with('error', 'No tiene permisos para ver esta cartera.');
-        }
-        
-        // Get assigned users and clients
-        $assignedUsers = $portfolioModel->getAssignedUsers($id);
-        $assignedClients = $portfolioModel->getAssignedClients($id);
-        
-        // Get organization information
-        $organizationModel = new \App\Models\OrganizationModel();
-        $organization = $organizationModel->find($portfolio['organization_id']);
-        
-        $data = [
-            'portfolio' => $portfolio,
-            'organization' => $organization,
-            'users' => $assignedUsers,
-            'assignedClients' => $assignedClients,
-            'auth' => $this->auth,
-            'request' => $this->request
-        ];
-        
-        return view('portfolios/view', $data);
-    }
-    
-    private function hasAccessToPortfolio($portfolio)
-    {
-        $auth = $this->auth;
-        
-        // Superadmin can access all portfolios
-        if ($auth->hasRole('superadmin')) {
-            return true;
-        }
-        
-        // Admin can access portfolios from their organization
-        if ($auth->hasRole('admin')) {
-            return $portfolio['organization_id'] === $auth->organizationId();
-        }
-        
-        // Regular users can only access their assigned portfolios
-        $portfolioModel = new PortfolioModel();
-        $userPortfolios = $portfolioModel->getByUser($auth->user()['id']);
-        
-        foreach ($userPortfolios as $userPortfolio) {
-            if ($userPortfolio['id'] === $portfolio['id']) {
-                return true;
-            }
-        }
-        
-        return false;
+        return redirect()->to('/portfolios')->with('error', 'Error al eliminar la cartera.');
     }
     
     /**
