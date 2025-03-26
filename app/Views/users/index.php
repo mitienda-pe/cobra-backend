@@ -75,27 +75,10 @@
                                 <td><?= $user['id'] ?></td>
                                 <td><?= $user['name'] ?></td>
                                 <td><?= $user['email'] ?></td>
-                                <td><?= isset($user['phone']) ? $user['phone'] : '-' ?></td>
-                                <td>
-                                    <?php if ($user['role'] == 'superadmin'): ?>
-                                        <span class="badge bg-danger">Superadmin</span>
-                                    <?php elseif ($user['role'] == 'admin'): ?>
-                                        <span class="badge bg-primary">Administrador</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">Usuario</span>
-                                    <?php endif; ?>
-                                </td>
+                                <td><?= $user['phone'] ?? 'N/A' ?></td>
+                                <td><?= ucfirst($user['role']) ?></td>
                                 <?php if ($auth->hasRole('superadmin')): ?>
-                                    <td>
-                                        <?php if ($user['organization_id']): ?>
-                                            <?= isset($user['organization_name']) ? $user['organization_name'] : '' ?>
-                                            <a href="<?= site_url('organizations/view/' . $user['organization_id']) ?>" class="ms-1">
-                                                <i class="bi bi-box-arrow-up-right small"></i>
-                                            </a>
-                                        <?php else: ?>
-                                            <span class="text-muted">N/A</span>
-                                        <?php endif; ?>
-                                    </td>
+                                    <td><?= $user['organization_name'] ?? 'N/A' ?></td>
                                 <?php endif; ?>
                                 <td>
                                     <?php if ($user['status'] == 'active'): ?>
@@ -105,9 +88,10 @@
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <a href="<?= site_url('users/edit/' . $user['id']) ?>" class="btn btn-sm btn-primary">Editar</a>
+                                    <a href="<?= site_url('users/' . $user['id']) ?>" class="btn btn-sm btn-info">Ver</a>
+                                    <a href="<?= site_url('users/' . $user['id'] . '/edit') ?>" class="btn btn-sm btn-primary">Editar</a>
                                     <?php if ($user['id'] != $auth->user()['id']): ?>
-                                        <a href="<?= site_url('users/delete/' . $user['id']) ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de eliminar este usuario?')">Eliminar</a>
+                                        <a href="<?= site_url('users/' . $user['id'] . '/delete') ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de eliminar este usuario?')">Eliminar</a>
                                     <?php endif; ?>
                                 </td>
                             </tr>

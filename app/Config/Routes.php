@@ -129,6 +129,7 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
     // Client Routes
     $routes->get('clients', 'ClientController::index');
     $routes->get('clients/create', 'ClientController::create');
+    $routes->post('clients/create', 'ClientController::create');  
     $routes->post('clients', 'ClientController::store');
     $routes->get('clients/(:num)/edit', 'ClientController::edit/$1');
     $routes->post('clients/(:num)', 'ClientController::update/$1');

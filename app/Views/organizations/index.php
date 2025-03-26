@@ -44,9 +44,9 @@
                                 </td>
                                 <td><?= date('d/m/Y', strtotime($org['created_at'])) ?></td>
                                 <td>
-                                    <a href="<?= site_url('organizations/view/' . $org['id']) ?>" class="btn btn-sm btn-info">Ver</a>
-                                    <a href="<?= site_url('organizations/edit/' . $org['id']) ?>" class="btn btn-sm btn-primary">Editar</a>
-                                    <a href="<?= site_url('organizations/delete/' . $org['id']) ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de eliminar esta organización?')">Eliminar</a>
+                                    <a href="<?= site_url('organizations/' . $org['id']) ?>" class="btn btn-sm btn-info">Ver</a>
+                                    <a href="<?= site_url('organizations/' . $org['id'] . '/edit') ?>" class="btn btn-sm btn-primary">Editar</a>
+                                    <a href="<?= site_url('organizations/' . $org['id'] . '/delete') ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de eliminar esta organización?')">Eliminar</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
