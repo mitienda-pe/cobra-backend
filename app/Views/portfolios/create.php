@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
             checkbox.checked = this.checked;
         }, this);
     });
-    
+
     // Seleccionar todos los clientes
     document.getElementById('select_all_clients').addEventListener('change', function() {
         var checkboxes = document.querySelectorAll('.client-checkbox');
@@ -149,148 +149,87 @@ document.addEventListener('DOMContentLoaded', function() {
             checkbox.checked = this.checked;
         }, this);
     });
-    
-    // Para superadmin: cargar usuarios y clientes al seleccionar organización
-    const organizationSelect = document.getElementById('organization_id');
-    const hiddenOrgInput = document.querySelector('input[type="hidden"][name="organization_id"]');
-    
-    // Load clients and users once at page load if we have a hidden organization ID (using global selector)
-    if (hiddenOrgInput) {
-        const organizationId = hiddenOrgInput.value;
-        if (organizationId) {
-            // Mostrar mensaje de carga
-            document.getElementById('users-container').innerHTML = '<p class="text-muted">Cargando usuarios...</p>';
-            document.getElementById('clients-container').innerHTML = '<p class="text-muted">Cargando clientes...</p>';
-            
-            // Fetch users for selected organization
-            fetch('<?= site_url('debug/get-users-by-organization') ?>/' + organizationId)
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Users response:', data);
-                    updateUsersContainer(data);
-                })
-                .catch(error => {
-                    console.error('Error fetching users:', error);
-                    document.getElementById('users-container').innerHTML = '<p class="text-danger">Error al cargar usuarios</p>';
-                });
-            
-            // Fetch clients for selected organization
-            fetch('<?= site_url('debug/get-clients-by-organization') ?>/' + organizationId)
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Clients response:', data);
-                    updateClientsContainer(data);
-                })
-                .catch(error => {
-                    console.error('Error fetching clients:', error);
-                    document.getElementById('clients-container').innerHTML = '<p class="text-danger">Error al cargar clientes</p>';
-                });
-        }
-    }
-    // If we're using the dropdown organization selector 
-    else if (organizationSelect) {
+
+    // Manejar el cambio de organización para superadmin
+    var organizationSelect = document.getElementById('organization_id');
+    var usersContainer = document.getElementById('users-container');
+    var clientsContainer = document.getElementById('clients-container');
+
+    if (organizationSelect) {
         // Limpiar los contenedores al inicio
-        document.getElementById('users-container').innerHTML = '<p class="text-muted">Seleccione una organización para ver usuarios disponibles</p>';
-        document.getElementById('clients-container').innerHTML = '<p class="text-muted">Seleccione una organización para ver clientes disponibles</p>';
-        
+        usersContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver usuarios disponibles</p>';
+        clientsContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver clientes disponibles</p>';
+
         organizationSelect.addEventListener('change', function() {
-            const organizationId = this.value;
+            var organizationId = this.value;
+            
             if (organizationId) {
-                // Mostrar mensaje de carga
-                document.getElementById('users-container').innerHTML = '<p class="text-muted">Cargando usuarios...</p>';
-                document.getElementById('clients-container').innerHTML = '<p class="text-muted">Cargando clientes...</p>';
-                
-                // Fetch users for selected organization
-                fetch('<?= site_url('debug/get-users-by-organization') ?>/' + organizationId)
+                // Cargar usuarios
+                fetch(`/portfolios/organization/${organizationId}/users`)
                     .then(response => response.json())
                     .then(data => {
-                        console.log('Users response:', data);
-                        updateUsersContainer(data);
+                        updateUsersContainer(data.users);
                     })
                     .catch(error => {
-                        console.error('Error fetching users:', error);
-                        document.getElementById('users-container').innerHTML = '<p class="text-danger">Error al cargar usuarios</p>';
+                        console.error('Error loading users:', error);
+                        usersContainer.innerHTML = '<p class="text-danger">Error al cargar usuarios</p>';
                     });
-                
-                // Fetch clients for selected organization
-                fetch('<?= site_url('debug/get-clients-by-organization') ?>/' + organizationId)
+
+                // Cargar clientes
+                fetch(`/portfolios/organization/${organizationId}/clients`)
                     .then(response => response.json())
                     .then(data => {
-                        console.log('Clients response:', data);
-                        updateClientsContainer(data);
+                        updateClientsContainer(data.clients);
                     })
                     .catch(error => {
-                        console.error('Error fetching clients:', error);
-                        document.getElementById('clients-container').innerHTML = '<p class="text-danger">Error al cargar clientes</p>';
+                        console.error('Error loading clients:', error);
+                        clientsContainer.innerHTML = '<p class="text-danger">Error al cargar clientes</p>';
                     });
             } else {
-                // Clear containers if no organization selected
-                document.getElementById('users-container').innerHTML = '<p class="text-muted">Seleccione una organización para ver usuarios disponibles</p>';
-                document.getElementById('clients-container').innerHTML = '<p class="text-muted">Seleccione una organización para ver clientes disponibles</p>';
+                usersContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver usuarios disponibles</p>';
+                clientsContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver clientes disponibles</p>';
             }
         });
     }
-    
-    function updateUsersContainer(data) {
-        const container = document.getElementById('users-container');
-        // API puede devolver users o directamente un array
-        const users = Array.isArray(data) ? data : (data.users || []);
-        
-        if (users.length === 0) {
-            container.innerHTML = '<p class="text-muted">No hay usuarios disponibles para esta organización</p>';
+
+    function updateUsersContainer(users) {
+        if (!users || users.length === 0) {
+            usersContainer.innerHTML = '<p class="text-muted">No hay usuarios disponibles</p>';
             return;
         }
-        
+
         let html = '';
         users.forEach(user => {
-            if (user.role === 'admin' || user.role === 'user') {
-                html += `
-                    <div class="form-check">
-                        <input class="form-check-input user-checkbox" type="checkbox" name="user_ids[]" id="user_${user.id}" value="${user.id}">
-                        <label class="form-check-label" for="user_${user.id}">
-                            ${user.name} (${user.role.charAt(0).toUpperCase() + user.role.slice(1)})
-                        </label>
-                    </div>
-                `;
-            }
+            html += `
+                <div class="form-check">
+                    <input class="form-check-input user-checkbox" type="checkbox" name="user_ids[]" id="user_${user.id}" value="${user.id}">
+                    <label class="form-check-label" for="user_${user.id}">
+                        ${user.name} (${user.email})
+                    </label>
+                </div>
+            `;
         });
-        
-        if (html === '') {
-            container.innerHTML = '<p class="text-muted">No hay usuarios con roles adecuados para esta organización</p>';
-        } else {
-            container.innerHTML = html;
-        }
-        
-        // Reactivar el checkbox "seleccionar todos"
-        document.getElementById('select_all_users').checked = false;
+        usersContainer.innerHTML = html;
     }
-    
-    function updateClientsContainer(data) {
-        const container = document.getElementById('clients-container');
-        // API puede devolver clients o directamente un array
-        const clients = Array.isArray(data) ? data : (data.clients || []);
-        
-        if (clients.length === 0) {
-            container.innerHTML = '<p class="text-muted">No hay clientes disponibles para esta organización</p>';
+
+    function updateClientsContainer(clients) {
+        if (!clients || clients.length === 0) {
+            clientsContainer.innerHTML = '<p class="text-muted">No hay clientes disponibles</p>';
             return;
         }
-        
+
         let html = '';
         clients.forEach(client => {
             html += `
                 <div class="form-check">
                     <input class="form-check-input client-checkbox" type="checkbox" name="client_ids[]" id="client_${client.id}" value="${client.id}">
                     <label class="form-check-label" for="client_${client.id}">
-                        ${client.business_name} (${client.document_number || 'Sin documento'})
+                        ${client.business_name}
                     </label>
                 </div>
             `;
         });
-        
-        container.innerHTML = html;
-        
-        // Reactivar el checkbox "seleccionar todos"
-        document.getElementById('select_all_clients').checked = false;
+        clientsContainer.innerHTML = html;
     }
 });
 </script>

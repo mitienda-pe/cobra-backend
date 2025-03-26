@@ -392,4 +392,39 @@ class PortfolioController extends BaseController
         
         return false;
     }
+    
+    /**
+     * Get users by organization
+     */
+    public function getUsersByOrganization($organizationId)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid request']);
+        }
+
+        $userModel = new UserModel();
+        $users = $userModel->where('organization_id', $organizationId)
+                          ->where('role !=', 'superadmin')
+                          ->where('status', 'active')
+                          ->findAll();
+
+        return $this->response->setJSON(['users' => $users]);
+    }
+
+    /**
+     * Get clients by organization
+     */
+    public function getClientsByOrganization($organizationId)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid request']);
+        }
+
+        $clientModel = new ClientModel();
+        $clients = $clientModel->where('organization_id', $organizationId)
+                             ->where('status', 'active')
+                             ->findAll();
+
+        return $this->response->setJSON(['clients' => $clients]);
+    }
 }

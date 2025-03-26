@@ -162,11 +162,13 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
     $routes->group('portfolios', function($routes) {
         $routes->get('/', 'PortfolioController::index');
         $routes->get('create', 'PortfolioController::create');
-        $routes->post('/', 'PortfolioController::store');
-        $routes->get('(:num)', 'PortfolioController::view/$1');
-        $routes->get('(:num)/edit', 'PortfolioController::edit/$1');
-        $routes->post('(:num)', 'PortfolioController::update/$1');
-        $routes->get('(:num)/delete', 'PortfolioController::delete/$1');
+        $routes->post('create', 'PortfolioController::create');
+        $routes->get('(:segment)', 'PortfolioController::view/$1');
+        $routes->get('(:segment)/edit', 'PortfolioController::edit/$1');
+        $routes->post('(:segment)/edit', 'PortfolioController::edit/$1');
+        $routes->get('(:segment)/delete', 'PortfolioController::delete/$1');
+        $routes->get('organization/(:num)/users', 'PortfolioController::getUsersByOrganization/$1');
+        $routes->get('organization/(:num)/clients', 'PortfolioController::getClientsByOrganization/$1');
     });
 
     // Payment Routes
