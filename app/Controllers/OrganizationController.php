@@ -93,10 +93,12 @@ class OrganizationController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para editar organizaciones.');
         }
         
-        $organization = $this->organizationModel->find($id);
+        $organization = $this->organizationModel->select($this->organizationModel->selectedFields)->find($id);
         if (!$organization) {
             return redirect()->to('/organizations')->with('error', 'Organization not found');
         }
+
+        log_message('debug', 'Organization data for edit: ' . json_encode($organization));
 
         return view('organizations/edit', [
             'title' => 'Edit Organization',

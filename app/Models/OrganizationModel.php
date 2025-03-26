@@ -30,7 +30,10 @@ class OrganizationModel extends Model
     protected $validationMessages   = [];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
-    
+
+    // Select fields
+    protected $selectedFields = ['id', 'uuid', 'name', 'code', 'description', 'status', 'created_at', 'updated_at'];
+
     // Callbacks
     protected $beforeInsert   = ['generateUuid'];
     
