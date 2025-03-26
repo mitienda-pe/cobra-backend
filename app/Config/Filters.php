@@ -20,15 +20,15 @@ class Filters extends BaseConfig
      * make reading things nicer and simpler.
      */
     public array $aliases = [
-        'csrf'          => \CodeIgniter\Filters\CSRF::class,
-        'toolbar'       => \CodeIgniter\Filters\DebugToolbar::class,
-        'honeypot'      => \CodeIgniter\Filters\Honeypot::class,
-        'invalidchars'  => \CodeIgniter\Filters\InvalidChars::class,
-        'secureheaders' => \CodeIgniter\Filters\SecureHeaders::class,
-        'cors'          => \App\Filters\CorsFilter::class,
-        'auth'          => \App\Filters\AuthFilter::class,
-        'apiAuth'       => \App\Filters\ApiAuthFilter::class,
-        'apiLog'        => \App\Filters\ApiLogFilter::class,
+        'csrf'          => CSRF::class,
+        'toolbar'       => DebugToolbar::class,
+        'honeypot'      => Honeypot::class,
+        'invalidchars'  => InvalidChars::class,
+        'secureheaders' => SecureHeaders::class,
+        'cors'          => CorsFilter::class,
+        'auth'          => AuthFilter::class,
+        'apiAuth'       => ApiAuthFilter::class,
+        'apiLog'        => ApiLogFilter::class,
         // Combined filter aliases
         'api-public'    => ['cors'],
         'api-auth'      => ['cors', 'apiAuth', 'apiLog'],
@@ -61,22 +61,12 @@ class Filters extends BaseConfig
     /**
      * List of filter aliases that works on a
      * particular HTTP method (GET, POST, etc.).
-     *
-     * Example:
-     * 'post' => ['foo', 'bar']
-     *
-     * If you use this, you should disable auto-routing because auto-routing
-     * permits any HTTP method to access a controller. Accessing the controller
-     * with a method you don't expect could bypass the filter.
      */
     public array $methods = [];
 
     /**
      * List of filter aliases that should run on any
      * before or after URI patterns.
-     *
-     * Example:
-     * 'isLoggedIn' => ['before' => ['account/*', 'profiles/*']]
      */
     public array $filters = [
         'auth' => [
