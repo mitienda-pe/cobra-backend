@@ -253,22 +253,13 @@ class UserController extends BaseController
         return view('users/edit', $data);
     }
     
-    public function view($id)
+    public function view($uuid)
     {
         $userModel = new UserModel();
-        $organizationModel = new OrganizationModel();
-        
-        // Get the user with organization info
-        $db = \Config\Database::connect();
-        $builder = $db->table('users');
-        $builder->select('users.*, organizations.name as organization_name');
-        $builder->join('organizations', 'organizations.id = users.organization_id', 'left');
-        $builder->where('users.id', $id);
-        $builder->where('users.deleted_at IS NULL');
-        $user = $builder->get()->getRowArray();
+        $user = $userModel->where('uuid', $uuid)->first();
         
         if (!$user) {
-            return redirect()->to('/users')->with('error', 'Usuario no encontrado.');
+            return redirect()->to('/users')->with('error', 'Usuario no encontrado');
         }
         
         // Check permissions
@@ -276,11 +267,22 @@ class UserController extends BaseController
             return redirect()->to('/users')->with('error', 'No tiene permisos para ver este usuario.');
         }
         
-        return view('users/view', [
-            'title' => 'Ver Usuario',
+        // Get organization info
+        $organizationModel = new OrganizationModel();
+        $organization = $organizationModel->find($user['organization_id']);
+        
+        // Get portfolios assigned to this user
+        $portfolioModel = new \App\Models\PortfolioModel();
+        $portfolios = $portfolioModel->getByUser($user['id']);
+        
+        $data = [
             'user' => $user,
-            'auth' => $this->auth,
-        ]);
+            'organization' => $organization,
+            'portfolios' => $portfolios,
+            'auth' => $this->auth
+        ];
+        
+        return view('users/view', $data);
     }
     
     public function delete($id = null)

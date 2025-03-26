@@ -62,14 +62,13 @@ class UserModel extends Model
     }
     
     /**
-     * Generate a UUID for new users
+     * Generate UUID before insert
      */
     protected function generateUuid(array $data)
     {
-        if (! isset($data['data']['uuid']) || empty($data['data']['uuid'])) {
-            $data['data']['uuid'] = generate_unique_uuid('users', 'uuid');
+        if (!isset($data['data']['uuid'])) {
+            $data['data']['uuid'] = bin2hex(random_bytes(16));
         }
-        
         return $data;
     }
 

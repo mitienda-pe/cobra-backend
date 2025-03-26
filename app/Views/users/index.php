@@ -10,7 +10,6 @@
     </a>
 </div>
 
-
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">
@@ -18,9 +17,9 @@
                 <thead>
                     <tr>
                         <th>
-                            <a href="<?= site_url('users?sort=id&order=' . ($currentSort == 'id' && $currentOrder == 'asc' ? 'desc' : 'asc') . ($filterOrgId ? '&organization_id=' . $filterOrgId : '')) ?>">
-                                ID
-                                <?php if ($currentSort == 'id'): ?>
+                            <a href="<?= site_url('users?sort=uuid&order=' . ($currentSort == 'uuid' && $currentOrder == 'asc' ? 'desc' : 'asc') . ($filterOrgId ? '&organization_id=' . $filterOrgId : '')) ?>">
+                                UUID
+                                <?php if ($currentSort == 'uuid'): ?>
                                     <i class="bi bi-arrow-<?= $currentOrder == 'asc' ? 'up' : 'down' ?>"></i>
                                 <?php endif; ?>
                             </a>
@@ -72,7 +71,7 @@
                     <?php else: ?>
                         <?php foreach ($users as $user): ?>
                             <tr>
-                                <td><?= $user['id'] ?></td>
+                                <td><?= $user['uuid'] ?></td>
                                 <td><?= $user['name'] ?></td>
                                 <td><?= $user['email'] ?></td>
                                 <td><?= $user['phone'] ?? 'N/A' ?></td>
@@ -88,10 +87,16 @@
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <a href="<?= site_url('users/' . $user['id']) ?>" class="btn btn-sm btn-info">Ver</a>
-                                    <a href="<?= site_url('users/' . $user['id'] . '/edit') ?>" class="btn btn-sm btn-primary">Editar</a>
-                                    <?php if ($user['id'] != $auth->user()['id']): ?>
-                                        <a href="<?= site_url('users/' . $user['id'] . '/delete') ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de eliminar este usuario?')">Eliminar</a>
+                                    <a href="<?= site_url('users/' . $user['uuid']) ?>" class="btn btn-sm btn-info">
+                                        <i class="bi bi-eye"></i> Ver
+                                    </a>
+                                    <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                                        <a href="<?= site_url('users/' . $user['uuid'] . '/edit') ?>" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-uuid="<?= $user['uuid'] ?>" data-name="<?= esc($user['name']) ?>">
+                                            <i class="bi bi-trash"></i> Eliminar
+                                        </button>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -102,4 +107,42 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Está seguro que desea eliminar el usuario <strong id="userName"></strong>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" action="" method="post" class="d-inline">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteModal = document.getElementById('deleteModal');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const uuid = button.getAttribute('data-uuid');
+            const name = button.getAttribute('data-name');
+            
+            deleteModal.querySelector('#userName').textContent = name;
+            deleteModal.querySelector('#deleteForm').action = '<?= site_url('users/') ?>' + uuid + '/delete';
+        });
+    }
+});
+</script>
 <?= $this->endSection() ?>
