@@ -87,7 +87,7 @@
                                                     value="<?= $client['uuid'] ?>" 
                                                     <?= (in_array($client['uuid'], $assigned_client_ids)) ? 'checked' : '' ?>>
                                                 <label class="form-check-label" for="client_<?= $client['uuid'] ?>">
-                                                    <?= $client['name'] ?>
+                                                    <?= $client['business_name'] ?> (<?= $client['document_number'] ?>)
                                                 </label>
                                             </div>
                                         <?php endforeach; ?>

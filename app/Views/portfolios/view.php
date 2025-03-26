@@ -99,10 +99,9 @@
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Razón Social</th>
-                                    <th>Documento</th>
-                                    <th>Estado</th>
-                                    <th>Acción</th>
+                                    <th>Nombre/Razón Social</th>
+                                    <th>RUC/DNI</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -112,18 +111,8 @@
                                         <td><?= $client['business_name'] ?></td>
                                         <td><?= $client['document_number'] ?></td>
                                         <td>
-                                            <?php if ($client['status'] == 'active'): ?>
-                                                <span class="badge bg-success">Activo</span>
-                                            <?php else: ?>
-                                                <span class="badge bg-danger">Inactivo</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
                                             <a href="<?= site_url('clients/' . $client['uuid']) ?>" class="btn btn-sm btn-info">
-                                                <i class="bi bi-eye"></i> Ver
-                                            </a>
-                                            <a href="<?= current_url() . '?client_id=' . $client['uuid'] ?>" class="btn btn-sm btn-primary">
-                                                <i class="bi bi-list-check"></i> Ver Facturas
+                                                <i class="bi bi-eye"></i>
                                             </a>
                                         </td>
                                     </tr>

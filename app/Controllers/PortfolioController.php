@@ -164,61 +164,32 @@ class PortfolioController extends BaseController
         }
 
         $portfolioModel = new PortfolioModel();
-        
-        // Intentar encontrar el portfolio por UUID
         $portfolio = $portfolioModel->where('uuid', $uuid)->first();
-        
-        // Si no se encuentra, intentar buscar por hash MD5
-        if (!$portfolio) {
-            $portfolio = $portfolioModel->where('md5_hash', $uuid)->first();
-        }
 
         if (!$portfolio) {
             return redirect()->to('/portfolios')->with('error', 'Cartera no encontrada.');
         }
 
-        // Verificar permisos
-        if (!$this->auth->hasRole('superadmin')) {
-            if ($this->auth->hasRole('admin')) {
-                if ($portfolio['organization_id'] != $this->auth->organizationId()) {
-                    return redirect()->to('/portfolios')->with('error', 'No tiene permisos para ver esta cartera.');
-                }
-            } else {
-                $userPortfolios = $portfolioModel->getByUser($this->auth->user()['id']);
-                $hasAccess = false;
-                foreach ($userPortfolios as $up) {
-                    if ($up['id'] == $portfolio['id']) {
-                        $hasAccess = true;
-                        break;
-                    }
-                }
-                if (!$hasAccess) {
-                    return redirect()->to('/portfolios')->with('error', 'No tiene permisos para ver esta cartera.');
-                }
-            }
+        // Verificar permisos de organización
+        if (!$this->auth->hasRole('superadmin') && $portfolio['organization_id'] !== $this->auth->organizationId()) {
+            return redirect()->to('/portfolios')->with('error', 'No tiene permisos para ver esta cartera.');
         }
 
-        // Cargar usuarios y clientes asignados
-        $userModel = new UserModel();
-        $clientModel = new ClientModel();
-        
-        $users = $portfolioModel->getAssignedUsers($portfolio['id']);
-        $clients = $portfolioModel->getAssignedClients($portfolio['id']);
-        
-        $organizationModel = new \App\Models\OrganizationModel();
-        $organization = $organizationModel->find($portfolio['organization_id']);
+        // Obtener usuarios y clientes asignados
+        $assignedUsers = $portfolioModel->getAssignedUsers($portfolio['uuid']);
+        $assignedClients = $portfolioModel->getAssignedClients($portfolio['uuid']);
 
         $data = [
             'portfolio' => $portfolio,
-            'organization' => $organization,
-            'users' => $users,
-            'clients' => $clients,
-            'auth' => $this->auth
+            'assignedUsers' => $assignedUsers,
+            'assignedClients' => $assignedClients,
+            'auth' => $this->auth,
+            'request' => $this->request
         ];
 
         return view('portfolios/view', $data);
     }
-
+    
     public function edit($uuid = null)
     {
         if (!$uuid) {
