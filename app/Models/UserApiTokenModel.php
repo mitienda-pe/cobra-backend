@@ -17,7 +17,6 @@ class UserApiTokenModel extends Model
         'token',
         'device_info',
         'expires_at',
-        'revoked',
         'created_at'
     ];
 

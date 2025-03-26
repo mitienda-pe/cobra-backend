@@ -5,23 +5,24 @@ namespace App\Controllers\Api;
 use App\Models\UserModel;
 use App\Models\UserOtpModel;
 use App\Models\UserApiTokenModel;
-use App\Libraries\Twilio;
-use CodeIgniter\HTTP\ResponseInterface;
+use CodeIgniter\API\ResponseTrait;
+use CodeIgniter\RESTful\ResourceController;
 
-class AuthController extends BaseApiController
+class AuthController extends ResourceController
 {
-    protected $format = 'json';
-    protected $userOtpModel;
-    protected $twilioService;
-    protected $userApiTokenModel;
+    use ResponseTrait;
+
     protected $userModel;
+    protected $userOtpModel;
+    protected $userApiTokenModel;
+    protected $db;
 
     public function __construct()
     {
-        $this->twilioService = new \App\Libraries\Twilio();
-        $this->userOtpModel = new \App\Models\UserOtpModel();
-        $this->userApiTokenModel = new \App\Models\UserApiTokenModel();
-        $this->userModel = new \App\Models\UserModel();
+        $this->userModel = new UserModel();
+        $this->userOtpModel = new UserOtpModel();
+        $this->userApiTokenModel = new UserApiTokenModel();
+        $this->db = \Config\Database::connect();
     }
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
@@ -283,16 +284,14 @@ class AuthController extends BaseApiController
             // Generate API token
             $token = bin2hex(random_bytes(32)); // 64 caracteres hexadecimales
             
-            // Store token in database
-            $tokenData = [
-                'user_id' => $userData['id'],
-                'token' => $token,
-                'device_info' => $deviceInfo,
-                'expires_at' => date('Y-m-d H:i:s', strtotime('+30 days')),
-                'created_at' => date('Y-m-d H:i:s')
-            ];
-            
-            $this->userApiTokenModel->insert($tokenData);
+            // Store token in database using direct query
+            $sql = "INSERT INTO user_api_tokens (user_id, token, expires_at, created_at) VALUES (?, ?, ?, ?)";
+            $this->db->query($sql, [
+                $userData['id'],
+                $token,
+                date('Y-m-d H:i:s', strtotime('+30 days')),
+                date('Y-m-d H:i:s')
+            ]);
             
             // Return success response with token and user data
             return $this->response->setJSON([
