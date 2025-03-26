@@ -104,19 +104,18 @@ class UserController extends BaseController
         $userModel = new UserModel();
         $email = $this->request->getPost('email');
         
-        // Check if email exists (excluding deleted records)
-        $db = \Config\Database::connect();
-        $existingUser = $db->table('users')
-            ->where('email', $email)
-            ->where('deleted_at IS NULL')
-            ->get()
-            ->getRow();
-            
+        // Verificar si el email ya existe (excluyendo registros eliminados)
+        $existingUser = $userModel->where('email', $email)
+                                ->where('deleted_at IS NULL')
+                                ->first();
+                                
         if ($existingUser) {
-            return redirect()->back()->withInput()->with('errors', ['email' => 'Este correo electrónico ya está registrado']);
+            return redirect()->back()
+                           ->withInput()
+                           ->with('error', 'Este correo electrónico ya está registrado.');
         }
         
-        // Validate form
+        // Validar el formulario
         if (!$this->validate([
             'name' => 'required|min_length[3]',
             'email' => 'required|valid_email',
@@ -126,28 +125,38 @@ class UserController extends BaseController
             'password' => 'required|min_length[6]',
             'password_confirm' => 'required|matches[password]'
         ])) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->back()
+                           ->withInput()
+                           ->with('errors', $this->validator->getErrors());
         }
 
-        // Hash password
-        $password = password_hash($this->request->getPost('password'), PASSWORD_DEFAULT);
+        try {
+            // Crear usuario
+            $result = $userModel->insert([
+                'name' => $this->request->getPost('name'),
+                'email' => $email,
+                'phone' => $this->request->getPost('phone'),
+                'role' => $this->request->getPost('role'),
+                'organization_id' => $this->request->getPost('organization_id') ?: null,
+                'password' => $this->request->getPost('password'), // El modelo se encargará de hashear la contraseña
+                'status' => 'active'
+            ]);
 
-        // Create user
-        $result = $userModel->insert([
-            'name' => $this->request->getPost('name'),
-            'email' => $email,
-            'phone' => $this->request->getPost('phone'),
-            'role' => $this->request->getPost('role'),
-            'organization_id' => $this->request->getPost('organization_id') ?: null,
-            'password' => $password,
-            'status' => 'active'
-        ]);
+            if (!$result) {
+                return redirect()->back()
+                               ->withInput()
+                               ->with('error', 'Error al crear el usuario: ' . implode(', ', $userModel->errors()));
+            }
 
-        if (!$result) {
-            return redirect()->back()->withInput()->with('error', 'Error creating user');
+            return redirect()->to('/users')
+                           ->with('message', 'Usuario creado exitosamente.');
+                           
+        } catch (\Exception $e) {
+            log_message('error', '[UserController::store] Error al crear usuario: ' . $e->getMessage());
+            return redirect()->back()
+                           ->withInput()
+                           ->with('error', 'Error al crear el usuario. Por favor, intente nuevamente.');
         }
-
-        return redirect()->to('/users')->with('message', 'User created successfully');
     }
     
     public function edit($uuid)

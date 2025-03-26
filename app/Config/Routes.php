@@ -80,7 +80,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors a
 
     // User Routes
     $routes->match(['get', 'options'], 'users', 'UserController::index');
-    $routes->match(['post', 'options'], 'users', 'UserController::create');
+    // $routes->match(['post', 'options'], 'users', 'UserController::create');
     $routes->match(['get', 'options'], 'users/(:num)', 'UserController::show/$1');
     $routes->match(['put', 'options'], 'users/(:num)', 'UserController::update/$1');
     $routes->match(['delete', 'options'], 'users/(:num)', 'UserController::delete/$1');
@@ -123,7 +123,7 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
     $routes->group('users', function($routes) {
         $routes->get('/', 'UserController::index');
         $routes->get('create', 'UserController::create');
-        $routes->post('store', 'UserController::store');
+        $routes->post('/', 'UserController::store');
         $routes->get('(:segment)', 'UserController::view/$1');
         $routes->get('(:segment)/edit', 'UserController::edit/$1');
         $routes->post('(:segment)', 'UserController::update/$1');

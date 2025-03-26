@@ -15,7 +15,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <form action="<?= site_url('users/store') ?>" method="post">
+                <form action="<?= site_url('users') ?>" method="post">
                     <?= csrf_field() ?>
                     
                     <div class="mb-3">
