@@ -30,8 +30,8 @@ class Filters extends BaseConfig
         'apiAuth'       => ApiAuthFilter::class,
         'apiLog'        => ApiLogFilter::class,
         // Combined filter aliases
-        'api-public'    => [CorsFilter::class],
-        'api-auth'      => [CorsFilter::class, ApiAuthFilter::class, ApiLogFilter::class],
+        'api-public'    => ['cors'],
+        'api-auth'      => ['cors', 'apiAuth', 'apiLog'],
     ];
 
     /**
