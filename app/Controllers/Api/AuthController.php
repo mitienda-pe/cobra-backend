@@ -5,6 +5,7 @@ namespace App\Controllers\Api;
 use App\Models\UserModel;
 use App\Models\UserOtpModel;
 use App\Models\UserApiTokenModel;
+use App\Libraries\Twilio;
 use CodeIgniter\API\ResponseTrait;
 use CodeIgniter\RESTful\ResourceController;
 
@@ -16,6 +17,7 @@ class AuthController extends ResourceController
     protected $userOtpModel;
     protected $userApiTokenModel;
     protected $db;
+    protected $twilioService;
 
     public function __construct()
     {
@@ -23,6 +25,7 @@ class AuthController extends ResourceController
         $this->userOtpModel = new UserOtpModel();
         $this->userApiTokenModel = new UserApiTokenModel();
         $this->db = \Config\Database::connect();
+        $this->twilioService = new Twilio();
     }
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
@@ -285,10 +288,11 @@ class AuthController extends ResourceController
             $token = bin2hex(random_bytes(32)); // 64 caracteres hexadecimales
             
             // Store token in database using direct query
-            $sql = "INSERT INTO user_api_tokens (user_id, token, expires_at, created_at) VALUES (?, ?, ?, ?)";
+            $sql = "INSERT INTO user_api_tokens (user_id, token, name, expires_at, created_at) VALUES (?, ?, ?, ?, ?)";
             $this->db->query($sql, [
                 $userData['id'],
                 $token,
+                'OTP Login', // Nombre descriptivo para el token
                 date('Y-m-d H:i:s', strtotime('+30 days')),
                 date('Y-m-d H:i:s')
             ]);
