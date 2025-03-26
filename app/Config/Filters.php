@@ -8,10 +8,10 @@ use CodeIgniter\Filters\DebugToolbar;
 use CodeIgniter\Filters\Honeypot;
 use CodeIgniter\Filters\InvalidChars;
 use CodeIgniter\Filters\SecureHeaders;
+use App\Filters\CorsFilter;
 use App\Filters\AuthFilter;
 use App\Filters\ApiAuthFilter;
 use App\Filters\ApiLogFilter;
-use App\Filters\CorsFilter;
 
 class Filters extends BaseConfig
 {
@@ -29,12 +29,9 @@ class Filters extends BaseConfig
         'auth'          => AuthFilter::class,
         'apiAuth'       => ApiAuthFilter::class,
         'apiLog'        => ApiLogFilter::class,
-        // Alias combinados para múltiples filtros
-        'auth csrf'     => [AuthFilter::class, CSRF::class],
-        'cors apiAuth apiLog' => [CorsFilter::class, ApiAuthFilter::class, ApiLogFilter::class],
         // Combined filter aliases
-        'api-public'    => ['cors'],
-        'api-auth'      => ['cors', 'apiAuth', 'apiLog'],
+        'api-public'    => [CorsFilter::class],
+        'api-auth'      => [CorsFilter::class, ApiAuthFilter::class, ApiLogFilter::class],
     ];
 
     /**
@@ -64,35 +61,30 @@ class Filters extends BaseConfig
     /**
      * List of filter aliases that works on a
      * particular HTTP method (GET, POST, etc.).
+     *
+     * Example:
+     * 'post' => ['foo', 'bar']
+     *
+     * If you use this, you should disable auto-routing because auto-routing
+     * permits any HTTP method to access a controller. Accessing the controller
+     * with a method you don't expect could bypass the filter.
      */
     public array $methods = [];
 
     /**
      * List of filter aliases that should run on any
      * before or after URI patterns.
+     *
+     * Example:
+     * 'isLoggedIn' => ['before' => ['account/*', 'profiles/*']]
      */
     public array $filters = [
         'auth' => [
             'before' => ['dashboard', 'dashboard/*', 'organizations/*', 'clients/*', 'invoices/*', 'users/*', 'profile/*', 'portfolios/*', 'payments/*', 'webhooks/*'],
             'except' => [
-                'api/*',
-                'api',
-                'auth/*',
-                'auth',
-                '/',
-                'debug/*',
                 'clients/import*',
                 'invoices/import*'
             ]
         ],
-        'apiAuth' => [
-            'before' => ['api/auth/logout', 'api/clients/*', 'api/invoices/*', 'api/users/*', 'api/portfolios/*', 'api/payments/*', 'api/organizations/*'],
-            'except' => []
-        ],
-        'apiLog' => ['before' => ['api/*']],
-        'cors' => [
-            'before' => ['api/*', 'api'],
-            'after' => ['api/*', 'api']
-        ]
     ];
 }
