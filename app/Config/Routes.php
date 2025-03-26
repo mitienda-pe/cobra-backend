@@ -3,9 +3,6 @@
 namespace Config;
 
 use CodeIgniter\Router\RouteCollection;
-use App\Filters\CorsFilter;
-use App\Filters\ApiAuthFilter;
-use App\Filters\ApiLogFilter;
 
 /**
  * @var RouteCollection $routes
@@ -42,7 +39,7 @@ $routes->get('debug/test-api', 'Debug::testApi');
 // API Routes - Public (sin ningún filtro)
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth API Routes - No CSRF required (CSRF is excluded in Filters.php)
-    $routes->group('auth', ['filter' => \App\Filters\CorsFilter::class], function ($routes) {
+    $routes->group('auth', ['filter' => 'cors'], function ($routes) {
         $routes->post('request-otp', 'AuthController::request_otp');
         $routes->post('verify-otp', 'AuthController::verifyOtp');
         $routes->post('refresh-token', 'AuthController::refreshToken');
@@ -58,7 +55,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 });
 
 // API Routes - Protected 
-$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => [\App\Filters\CorsFilter::class, \App\Filters\ApiAuthFilter::class, \App\Filters\ApiLogFilter::class]], function ($routes) {
+$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'api-auth'], function ($routes) {
     // Auth Protected Routes
     $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
     
@@ -112,7 +109,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => [\App\F
 });
 
 // Web Routes - Protected
-$routes->group('', ['namespace' => 'App\Controllers', 'filter' => \App\Filters\ApiAuthFilter::class], function ($routes) {
+$routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'api-auth'], function ($routes) {
     // Dashboard Routes
     $routes->get('dashboard', 'Dashboard::index');
 
