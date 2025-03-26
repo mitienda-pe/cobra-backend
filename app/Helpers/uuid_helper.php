@@ -1,6 +1,16 @@
 <?php
 
 /**
+ * Generate a UUID v4 string
+ * 
+ * @return string UUID v4
+ */
+function generate_uuid()
+{
+    return generate_base62_uuid(8);
+}
+
+/**
  * Generate a short UUID (8 characters) that is unique and url-safe
  *
  * @return string

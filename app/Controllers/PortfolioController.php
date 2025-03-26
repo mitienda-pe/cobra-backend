@@ -121,8 +121,11 @@ class PortfolioController extends BaseController
                     ? $this->request->getPost('organization_id')
                     : $this->auth->organizationId();
                 
+                helper('uuid');
+                $uuid = substr(generate_uuid(), 0, 8);
+                
                 $data = [
-                    'uuid' => uuid_create(),
+                    'uuid' => $uuid,
                     'organization_id' => $organizationId,
                     'name' => $this->request->getPost('name'),
                     'description' => $this->request->getPost('description'),
@@ -161,7 +164,14 @@ class PortfolioController extends BaseController
         }
 
         $portfolioModel = new PortfolioModel();
+        
+        // Intentar encontrar el portfolio por UUID
         $portfolio = $portfolioModel->where('uuid', $uuid)->first();
+        
+        // Si no se encuentra, intentar buscar por hash MD5
+        if (!$portfolio) {
+            $portfolio = $portfolioModel->where('md5_hash', $uuid)->first();
+        }
 
         if (!$portfolio) {
             return redirect()->to('/portfolios')->with('error', 'Cartera no encontrada.');

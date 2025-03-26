@@ -13,7 +13,14 @@ class PortfolioModel extends Model
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'organization_id', 'name', 'description', 'status', 'uuid'
+        'organization_id',
+        'uuid',
+        'name',
+        'description',
+        'status',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     // Dates
@@ -35,13 +42,22 @@ class PortfolioModel extends Model
     protected $cleanValidationRules = true;
 
     protected $beforeInsert = ['generateUuid'];
+    protected $beforeUpdate = ['updateTimestamp'];
 
-    protected function generateUuid($data)
+    protected function generateUuid(array $data)
     {
         if (!isset($data['data']['uuid'])) {
             helper('uuid');
-            $data['data']['uuid'] = generate_unique_uuid('portfolios', 'uuid');
+            $uuid = generate_uuid();
+            $data['data']['uuid'] = substr($uuid, 0, 8); // Usar solo los primeros 8 caracteres
         }
+        
+        return $data;
+    }
+
+    protected function updateTimestamp(array $data)
+    {
+        $data['data']['updated_at'] = date('Y-m-d H:i:s');
         return $data;
     }
 
