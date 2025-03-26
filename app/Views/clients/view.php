@@ -28,10 +28,12 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <p><strong>Código:</strong> <?= esc($client['code']) ?></p>
                         <p><strong>RUC:</strong> <?= esc($client['document_number']) ?></p>
                         <p><strong>Razón Social:</strong> <?= esc($client['legal_name']) ?></p>
                         <p><strong>Nombre Comercial:</strong> <?= esc($client['business_name']) ?></p>
+                        <?php if (isset($client['external_id']) && !empty($client['external_id'])): ?>
+                            <p><strong>ID Externo:</strong> <?= esc($client['external_id']) ?></p>
+                        <?php endif; ?>
                     </div>
                     <div class="col-md-6">
                         <p><strong>Estado:</strong> 
@@ -41,6 +43,9 @@
                         </p>
                         <p><strong>Organización:</strong> <?= esc($organization['name']) ?></p>
                         <p><strong>Fecha de Creación:</strong> <?= date('d/m/Y', strtotime($client['created_at'])) ?></p>
+                        <?php if (isset($client['contact_name']) && !empty($client['contact_name'])): ?>
+                            <p><strong>Contacto:</strong> <?= esc($client['contact_name']) ?></p>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
