@@ -265,14 +265,14 @@ class UserController extends BaseController
         return view('users/view', $data);
     }
     
-    public function delete($id = null)
+    public function delete($uuid = null)
     {
-        if (!$id) {
-            return redirect()->to('/users')->with('error', 'ID de usuario no proporcionado.');
+        if (!$uuid) {
+            return redirect()->to('/users')->with('error', 'UUID de usuario no proporcionado.');
         }
         
         $userModel = new UserModel();
-        $user = $userModel->find($id);
+        $user = $userModel->where('uuid', $uuid)->first();
         
         if (!$user) {
             return redirect()->to('/users')->with('error', 'Usuario no encontrado.');
@@ -289,7 +289,7 @@ class UserController extends BaseController
             return redirect()->to('/users')->with('error', 'No puede eliminar su propio usuario.');
         }
         
-        $userModel->delete($id);
+        $userModel->delete($user['id']);
         
         return redirect()->to('/users')->with('message', 'Usuario eliminado exitosamente.');
     }

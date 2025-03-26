@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Generate a short UUID (6 characters) that is unique and url-safe
+ * Generate a short UUID (8 characters) that is unique and url-safe
  *
  * @return string
  */
-function generate_short_uuid($length = 6)
+function generate_short_uuid($length = 8)
 {
     // Use random_bytes() for secure random data
     $bytes = random_bytes(ceil($length / 2));
@@ -18,12 +18,12 @@ function generate_short_uuid($length = 6)
 }
 
 /**
- * Generate a random 6-character UUID using base62 characters (a-zA-Z0-9)
+ * Generate a random 8-character UUID using base62 characters (a-zA-Z0-9)
  * This ensures the UUID is shorter, url-safe, and visually distinguishable
  *
  * @return string
  */
-function generate_base62_uuid($length = 6)
+function generate_base62_uuid($length = 8)
 {
     $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     $uuid = '';
@@ -63,7 +63,7 @@ function uuid_exists($uuid, $table, $column)
  * @param int $length UUID length
  * @return string Unique UUID
  */
-function generate_unique_uuid($table, $column, $length = 6)
+function generate_unique_uuid($table, $column, $length = 8)
 {
     $uuid = generate_base62_uuid($length);
     

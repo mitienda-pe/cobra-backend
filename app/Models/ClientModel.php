@@ -59,7 +59,8 @@ class ClientModel extends Model
     protected function generateUuid(array $data)
     {
         if (!isset($data['data']['uuid'])) {
-            $data['data']['uuid'] = bin2hex(random_bytes(16));
+            helper('uuid');
+            $data['data']['uuid'] = generate_unique_uuid('clients', 'uuid');
         }
         return $data;
     }
