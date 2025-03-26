@@ -53,8 +53,13 @@ class OrganizationController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para crear organizaciones.');
         }
         
-        log_message('debug', 'POST data received: ' . json_encode($this->request->getPost()));
+        $postData = $this->request->getPost();
+        log_message('debug', 'Method: ' . $this->request->getMethod());
+        log_message('debug', 'POST data received in store: ' . json_encode($postData));
         
+        // DEBUG: Temporary redirect to see if we're reaching this point
+        return redirect()->to('/organizations')->with('message', 'Debug: Reached store method with data: ' . json_encode($postData));
+
         if (!$this->validate([
             'name' => 'required|min_length[3]',
             'code' => 'required|min_length[2]|is_unique[organizations.code]',
@@ -107,8 +112,13 @@ class OrganizationController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para editar organizaciones.');
         }
         
-        log_message('debug', 'PUT/POST data received for update: ' . json_encode($this->request->getPost()));
+        $postData = $this->request->getPost();
+        log_message('debug', 'Method: ' . $this->request->getMethod());
+        log_message('debug', 'POST/PUT data received in update: ' . json_encode($postData));
         
+        // DEBUG: Temporary redirect to see if we're reaching this point
+        return redirect()->to('/organizations')->with('message', 'Debug: Reached update method with data: ' . json_encode($postData));
+
         $organization = $this->organizationModel->find($id);
         if (!$organization) {
             return redirect()->to('/organizations')->with('error', 'Organization not found');
