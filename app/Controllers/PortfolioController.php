@@ -229,12 +229,12 @@ class PortfolioController extends BaseController
 
                 if ($portfolioModel->update($portfolio['id'], $data)) {
                     // Actualizar usuarios asignados
-                    $userIds = $this->request->getPost('user_ids') ?: [];
-                    $portfolioModel->assignUsers($portfolio['uuid'], $userIds);
+                    $userUuids = $this->request->getPost('user_ids') ?: [];
+                    $portfolioModel->assignUsers($uuid, $userUuids);
 
                     // Actualizar clientes asignados
-                    $clientIds = $this->request->getPost('client_ids') ?: [];
-                    $portfolioModel->assignClients($portfolio['uuid'], $clientIds);
+                    $clientUuids = $this->request->getPost('client_ids') ?: [];
+                    $portfolioModel->assignClients($uuid, $clientUuids);
 
                     return redirect()->to('/portfolios')->with('message', 'Cartera actualizada exitosamente.');
                 }
@@ -246,10 +246,10 @@ class PortfolioController extends BaseController
         }
 
         // Obtener usuarios y clientes asignados
-        $assignedUsers = $portfolioModel->getAssignedUsers($portfolio['uuid']);
+        $assignedUsers = $portfolioModel->getAssignedUsers($uuid);
         $assignedUserIds = array_column($assignedUsers, 'uuid');
 
-        $assignedClients = $portfolioModel->getAssignedClients($portfolio['uuid']);
+        $assignedClients = $portfolioModel->getAssignedClients($uuid);
         $assignedClientIds = array_column($assignedClients, 'uuid');
 
         // Obtener todos los usuarios y clientes disponibles

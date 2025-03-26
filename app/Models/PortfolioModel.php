@@ -72,16 +72,16 @@ class PortfolioModel extends Model
     /**
      * Get portfolios assigned to a user
      */
-    public function getByUser($userId)
+    public function getByUser($userUuid)
     {
         $db = \Config\Database::connect();
-        $builder = $db->table('portfolios p');
-        $builder->select('p.*');
-        $builder->join('portfolio_user pu', 'p.id = pu.portfolio_id');
-        $builder->where('pu.user_id', $userId);
-        $builder->where('p.deleted_at IS NULL');
-        
-        return $builder->get()->getResultArray();
+        return $db->table('portfolios p')
+                 ->select('p.*')
+                 ->join('portfolio_user pu', 'pu.portfolio_uuid = p.uuid')
+                 ->where('pu.user_uuid', $userUuid)
+                 ->where('p.deleted_at IS NULL')
+                 ->get()
+                 ->getResultArray();
     }
     
     /**
@@ -173,14 +173,14 @@ class PortfolioModel extends Model
     /**
      * Get portfolios by client ID
      */
-    public function getByClient($clientId)
+    public function getByClient($clientUuid)
     {
         $db = \Config\Database::connect();
         
         $query = $db->table('portfolios p')
             ->select('p.*')
-            ->join('client_portfolio pc', 'pc.portfolio_id = p.id')
-            ->where('pc.client_id', $clientId)
+            ->join('client_portfolio cp', 'cp.portfolio_uuid = p.uuid')
+            ->where('cp.client_uuid', $clientUuid)
             ->where('p.deleted_at IS NULL')
             ->get();
         
