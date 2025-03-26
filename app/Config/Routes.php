@@ -40,9 +40,11 @@ $routes->get('debug/test-api', 'Debug::testApi');
 // API Routes - Public (sin ningún filtro)
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth API Routes
-    $routes->match(['post', 'options'], 'auth/request-otp', 'AuthController::requestOtp');
-    $routes->match(['post', 'options'], 'auth/verify-otp', 'AuthController::verifyOtp');
-    $routes->match(['post', 'options'], 'auth/refresh-token', 'AuthController::refreshToken');
+    $routes->group('auth', ['filter' => 'cors'], function ($routes) {
+        $routes->match(['post', 'options'], 'request-otp', 'AuthController::requestOtp');
+        $routes->match(['post', 'options'], 'verify-otp', 'AuthController::verifyOtp');
+        $routes->match(['post', 'options'], 'refresh-token', 'AuthController::refreshToken');
+    });
     
     // Debug endpoint - useful for troubleshooting
     $routes->match(['get', 'post', 'options'], 'debug', 'AuthController::debug');
