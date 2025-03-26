@@ -25,7 +25,17 @@ class UserController extends BaseController
     
     public function index()
     {
-        $selectedOrganizationId = $this->request->getGet('organization_id');
+        // Get organization filter from session or query parameter
+        $selectedOrgId = $this->request->getGet('org_id');
+        if ($this->request->getGet('clear_org')) {
+            $selectedOrgId = null;
+            session()->remove('selected_organization_id');
+        } else if ($selectedOrgId) {
+            session()->set('selected_organization_id', $selectedOrgId);
+        } else {
+            $selectedOrgId = session()->get('selected_organization_id');
+        }
+
         $sort = $this->request->getGet('sort') ?? 'uuid';
         $order = $this->request->getGet('order') ?? 'asc';
         
@@ -35,8 +45,8 @@ class UserController extends BaseController
                                 ->where('users.deleted_at IS NULL');
 
         // Apply organization filter
-        if ($selectedOrganizationId) {
-            $query->where('users.organization_id', $selectedOrganizationId);
+        if ($selectedOrgId) {
+            $query->where('users.organization_id', $selectedOrgId);
         } else if (!$this->auth->hasRole('superadmin')) {
             // If not superadmin and no org selected, only show users from their org
             $query->where('users.organization_id', $this->auth->organizationId());
@@ -62,7 +72,7 @@ class UserController extends BaseController
         $data = [
             'users' => $users,
             'organizations' => $organizations,
-            'selectedOrganizationId' => $selectedOrganizationId,
+            'selectedOrgId' => $selectedOrgId,
             'currentSort' => $sort,
             'currentOrder' => $order,
             'auth' => $this->auth

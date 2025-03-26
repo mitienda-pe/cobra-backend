@@ -14,13 +14,13 @@
     <div class="mb-3">
         <form action="<?= site_url('users') ?>" method="get" class="row g-3 align-items-center">
             <div class="col-auto">
-                <label for="organization_id" class="col-form-label">Organización:</label>
+                <label for="org_id" class="col-form-label">Organización:</label>
             </div>
             <div class="col-auto">
-                <select name="organization_id" id="organization_id" class="form-select" onchange="this.form.submit()">
+                <select name="org_id" id="org_id" class="form-select" onchange="this.form.submit()">
                     <option value="">Todas las organizaciones</option>
                     <?php foreach ($organizations as $org): ?>
-                        <option value="<?= $org['id'] ?>" <?= ($selectedOrganizationId == $org['id']) ? 'selected' : '' ?>>
+                        <option value="<?= $org['id'] ?>" <?= ($selectedOrgId == $org['id']) ? 'selected' : '' ?>>
                             <?= esc($org['name']) ?>
                         </option>
                     <?php endforeach; ?>
@@ -37,7 +37,7 @@
                 <thead>
                     <tr>
                         <th>
-                            <a href="<?= site_url('users?sort=uuid&order=' . ($currentSort === 'uuid' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrganizationId ? '&organization_id=' . $selectedOrganizationId : '')) ?>">
+                            <a href="<?= site_url('users?sort=uuid&order=' . ($currentSort === 'uuid' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrgId ? '&org_id=' . $selectedOrgId : '')) ?>">
                                 UUID
                                 <?php if ($currentSort === 'uuid'): ?>
                                     <i class="bi bi-arrow-<?= $currentOrder === 'asc' ? 'up' : 'down' ?>"></i>
@@ -45,7 +45,7 @@
                             </a>
                         </th>
                         <th>
-                            <a href="<?= site_url('users?sort=name&order=' . ($currentSort === 'name' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrganizationId ? '&organization_id=' . $selectedOrganizationId : '')) ?>">
+                            <a href="<?= site_url('users?sort=name&order=' . ($currentSort === 'name' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrgId ? '&org_id=' . $selectedOrgId : '')) ?>">
                                 Nombre
                                 <?php if ($currentSort === 'name'): ?>
                                     <i class="bi bi-arrow-<?= $currentOrder === 'asc' ? 'up' : 'down' ?>"></i>
@@ -53,7 +53,7 @@
                             </a>
                         </th>
                         <th>
-                            <a href="<?= site_url('users?sort=email&order=' . ($currentSort === 'email' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrganizationId ? '&organization_id=' . $selectedOrganizationId : '')) ?>">
+                            <a href="<?= site_url('users?sort=email&order=' . ($currentSort === 'email' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrgId ? '&org_id=' . $selectedOrgId : '')) ?>">
                                 Email
                                 <?php if ($currentSort === 'email'): ?>
                                     <i class="bi bi-arrow-<?= $currentOrder === 'asc' ? 'up' : 'down' ?>"></i>
@@ -63,7 +63,7 @@
                         <th>Teléfono</th>
                         <?php if ($auth->hasRole('superadmin')): ?>
                             <th>
-                                <a href="<?= site_url('users?sort=organization&order=' . ($currentSort === 'organization' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrganizationId ? '&organization_id=' . $selectedOrganizationId : '')) ?>">
+                                <a href="<?= site_url('users?sort=organization&order=' . ($currentSort === 'organization' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrgId ? '&org_id=' . $selectedOrgId : '')) ?>">
                                     Organización
                                     <?php if ($currentSort === 'organization'): ?>
                                         <i class="bi bi-arrow-<?= $currentOrder === 'asc' ? 'up' : 'down' ?>"></i>
@@ -72,7 +72,7 @@
                             </th>
                         <?php endif; ?>
                         <th>
-                            <a href="<?= site_url('users?sort=status&order=' . ($currentSort === 'status' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrganizationId ? '&organization_id=' . $selectedOrganizationId : '')) ?>">
+                            <a href="<?= site_url('users?sort=status&order=' . ($currentSort === 'status' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrgId ? '&org_id=' . $selectedOrgId : '')) ?>">
                                 Estado
                                 <?php if ($currentSort === 'status'): ?>
                                     <i class="bi bi-arrow-<?= $currentOrder === 'asc' ? 'up' : 'down' ?>"></i>
