@@ -106,7 +106,7 @@ class ClientController extends BaseController
     public function create()
     {
         // Permission check (enable to enforce role)
-        // if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
+        // if (!$this->auth->hasRole(['superadmin', 'admin'])) {
         //     return redirect()->to('/dashboard')->with('error', 'No tiene permisos para crear clientes.');
         // }
         
@@ -139,18 +139,10 @@ class ClientController extends BaseController
         
         $data['portfolios'] = $portfolios;
         
-        // Check if this is an AJAX request to create client
-        if ($this->request->isAJAX() && $this->request->getMethod() === 'post') {
-            // CSRF protection manually to ensure security with AJAX
-            if (!$this->validateCsrfToken()) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'error' => 'CSRF token validation failed. Please refresh the page and try again.'
-                ]);
-            }
-            
+        // Handle form submission
+        if ($this->request->getMethod() === 'post') {
             // Log submission data
-            log_message('info', 'AJAX Client form submitted: ' . json_encode($this->request->getPost()));
+            log_message('info', 'Client form submitted: ' . json_encode($this->request->getPost()));
             
             // Validation
             $rules = [
@@ -160,11 +152,16 @@ class ClientController extends BaseController
             ];
             
             if (!$this->validate($rules)) {
-                log_message('error', 'AJAX Validation failed: ' . json_encode($this->validator->getErrors()));
-                return $this->response->setJSON([
-                    'success' => false,
-                    'errors' => $this->validator->getErrors()
-                ]);
+                log_message('error', 'Validation failed: ' . json_encode($this->validator->getErrors()));
+                
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'errors' => $this->validator->getErrors()
+                    ]);
+                }
+                
+                return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
             }
             
             // Process form data
@@ -182,7 +179,7 @@ class ClientController extends BaseController
                 
                 // Prepare data
                 $insertData = [
-                    'organization_id' => $organizationId ?: 1,
+                    'organization_id' => $organizationId,
                     'business_name'   => $this->request->getPost('business_name'),
                     'legal_name'      => $this->request->getPost('legal_name'),
                     'document_number' => $this->request->getPost('document_number'),
@@ -198,7 +195,7 @@ class ClientController extends BaseController
                 ];
                 
                 // Log before insert
-                log_message('info', 'AJAX Inserting client data: ' . json_encode($insertData));
+                log_message('info', 'Inserting client data: ' . json_encode($insertData));
                 
                 // Insert the client
                 $clientId = $clientModel->insert($insertData);
@@ -217,24 +214,39 @@ class ClientController extends BaseController
                         log_message('info', 'Assigned client to portfolios: ' . json_encode($portfolioIds));
                     }
                     
-                    return $this->response->setJSON([
-                        'success' => true,
-                        'message' => 'Cliente creado exitosamente',
-                        'client_id' => $clientId
-                    ]);
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON([
+                            'success' => true,
+                            'message' => 'Cliente creado exitosamente',
+                            'redirect' => site_url('clients'),
+                            'client_id' => $clientId
+                        ]);
+                    }
+                    
+                    return redirect()->to('clients')->with('message', 'Cliente creado exitosamente');
                 } else {
                     log_message('error', 'Failed to insert client');
-                    return $this->response->setJSON([
-                        'success' => false,
-                        'error' => 'Error al crear el cliente'
-                    ]);
+                    
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'error' => 'Error al crear el cliente'
+                        ]);
+                    }
+                    
+                    return redirect()->back()->withInput()->with('error', 'Error al crear el cliente');
                 }
             } catch (\Exception $e) {
                 log_message('error', 'Exception creating client: ' . $e->getMessage());
-                return $this->response->setJSON([
-                    'success' => false,
-                    'error' => 'Error al crear el cliente: ' . $e->getMessage()
-                ]);
+                
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'error' => 'Error al crear el cliente: ' . $e->getMessage()
+                    ]);
+                }
+                
+                return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . $e->getMessage());
             }
         }
         
