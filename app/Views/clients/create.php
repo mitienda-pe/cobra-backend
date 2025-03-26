@@ -16,7 +16,7 @@
                 <div id="errorMessage" class="alert alert-danger d-none"></div>
                 <div id="successMessage" class="alert alert-success d-none"></div>
                 
-                <form id="clientForm" action="<?= site_url('clients/create') ?>" method="post">
+                <form id="clientForm" action="<?= site_url('clients') ?>" method="post">
                     <?= csrf_field() ?>
                     
                     <?php if (isset($organizations) && $auth->hasRole('superadmin')): ?>
@@ -39,107 +39,101 @@
                                     <?php else: ?>
                                         <div class="form-group">
                                             <label for="organization_id" class="form-label">Organización *</label>
-                                            <select class="form-select" id="organization_id" name="organization_id" required>
-                                                <option value="">Seleccione una organización</option>
+                                            <select class="form-select <?= session('errors.organization_id') ? 'is-invalid' : '' ?>" id="organization_id" name="organization_id" required>
+                                                <option value="">Seleccionar organización</option>
                                                 <?php foreach ($organizations as $org): ?>
-                                                    <option value="<?= $org['id'] ?>">
+                                                    <option value="<?= $org['id'] ?>" <?= old('organization_id') == $org['id'] ? 'selected' : '' ?>>
                                                         <?= esc($org['name']) ?> <?= ($org['status'] == 'inactive') ? '(Inactiva)' : '' ?>
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <div class="invalid-feedback" id="error-organization_id"></div>
+                                            <?php if (session('errors.organization_id')): ?>
+                                                <div class="invalid-feedback"><?= session('errors.organization_id') ?></div>
+                                            <?php endif; ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <?php elseif (!$auth->hasRole('superadmin')): ?>
-                    <!-- For non-superadmins, just add the hidden organization ID -->
-                    <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
                     <?php endif; ?>
                     
+                    <!-- Client Information -->
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="business_name" class="form-label">Nombre Comercial *</label>
-                            <input type="text" class="form-control" id="business_name" name="business_name" value="<?= old('business_name') ?>" required>
-                            <div class="invalid-feedback" id="error-business_name"></div>
+                            <label for="name" class="form-label">Nombre *</label>
+                            <input type="text" class="form-control <?= session('errors.name') ? 'is-invalid' : '' ?>" id="name" name="name" value="<?= old('name') ?>" required>
+                            <?php if (session('errors.name')): ?>
+                                <div class="invalid-feedback"><?= session('errors.name') ?></div>
+                            <?php endif; ?>
                         </div>
-                        
                         <div class="col-md-6 mb-3">
-                            <label for="legal_name" class="form-label">Razón Social *</label>
-                            <input type="text" class="form-control" id="legal_name" name="legal_name" value="<?= old('legal_name') ?>" required>
-                            <div class="invalid-feedback" id="error-legal_name"></div>
+                            <label for="code" class="form-label">Código *</label>
+                            <input type="text" class="form-control <?= session('errors.code') ? 'is-invalid' : '' ?>" id="code" name="code" value="<?= old('code') ?>" required>
+                            <?php if (session('errors.code')): ?>
+                                <div class="invalid-feedback"><?= session('errors.code') ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="document_number" class="form-label">RUC/Documento *</label>
-                            <input type="text" class="form-control" id="document_number" name="document_number" value="<?= old('document_number') ?>" required>
-                            <div class="invalid-feedback" id="error-document_number"></div>
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label for="external_id" class="form-label">ID Externo (para integración)</label>
-                            <input type="text" class="form-control" id="external_id" name="external_id" value="<?= old('external_id') ?>" placeholder="Dejar en blanco para generar automáticamente">
-                        </div>
-                    </div>
-                    
-                    <h5 class="mt-4 mb-3">Información de Contacto</h5>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="contact_name" class="form-label">Nombre de Contacto</label>
-                            <input type="text" class="form-control" id="contact_name" name="contact_name" value="<?= old('contact_name') ?>">
+                            <input type="text" class="form-control <?= session('errors.contact_name') ? 'is-invalid' : '' ?>" id="contact_name" name="contact_name" value="<?= old('contact_name') ?>">
+                            <?php if (session('errors.contact_name')): ?>
+                                <div class="invalid-feedback"><?= session('errors.contact_name') ?></div>
+                            <?php endif; ?>
                         </div>
-                        
+                        <div class="col-md-6 mb-3">
+                            <label for="contact_email" class="form-label">Correo de Contacto</label>
+                            <input type="email" class="form-control <?= session('errors.contact_email') ? 'is-invalid' : '' ?>" id="contact_email" name="contact_email" value="<?= old('contact_email') ?>">
+                            <?php if (session('errors.contact_email')): ?>
+                                <div class="invalid-feedback"><?= session('errors.contact_email') ?></div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="contact_phone" class="form-label">Teléfono de Contacto</label>
-                            <input type="text" class="form-control" id="contact_phone" name="contact_phone" value="<?= old('contact_phone') ?>">
+                            <input type="tel" class="form-control <?= session('errors.contact_phone') ? 'is-invalid' : '' ?>" id="contact_phone" name="contact_phone" value="<?= old('contact_phone') ?>">
+                            <?php if (session('errors.contact_phone')): ?>
+                                <div class="invalid-feedback"><?= session('errors.contact_phone') ?></div>
+                            <?php endif; ?>
                         </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="address" class="form-label">Dirección</label>
-                        <textarea class="form-control" id="address" name="address" rows="2"><?= old('address') ?></textarea>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="ubigeo" class="form-label">Ubigeo</label>
-                            <input type="text" class="form-control" id="ubigeo" name="ubigeo" value="<?= old('ubigeo') ?>">
-                        </div>
-                        
-                        <div class="col-md-4 mb-3">
-                            <label for="zip_code" class="form-label">Código Postal</label>
-                            <input type="text" class="form-control" id="zip_code" name="zip_code" value="<?= old('zip_code') ?>">
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">Estado *</label>
+                            <select class="form-select <?= session('errors.status') ? 'is-invalid' : '' ?>" id="status" name="status" required>
+                                <option value="active" <?= old('status') == 'active' ? 'selected' : '' ?>>Activo</option>
+                                <option value="inactive" <?= old('status') == 'inactive' ? 'selected' : '' ?>>Inactivo</option>
+                            </select>
+                            <?php if (session('errors.status')): ?>
+                                <div class="invalid-feedback"><?= session('errors.status') ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="latitude" class="form-label">Latitud</label>
-                            <input type="text" class="form-control" id="latitude" name="latitude" value="<?= old('latitude') ?>">
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label for="longitude" class="form-label">Longitud</label>
-                            <input type="text" class="form-control" id="longitude" name="longitude" value="<?= old('longitude') ?>">
+                        <div class="col-md-12 mb-3">
+                            <label for="description" class="form-label">Descripción</label>
+                            <textarea class="form-control <?= session('errors.description') ? 'is-invalid' : '' ?>" id="description" name="description" rows="3"><?= old('description') ?></textarea>
+                            <?php if (session('errors.description')): ?>
+                                <div class="invalid-feedback"><?= session('errors.description') ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     
-                    <!-- Se eliminó la sección de carteras ya que los clientes se asignarán automáticamente -->
-                    
-                    <div class="d-grid gap-2 mt-4">
-                        <button type="submit" id="submitButton" class="btn btn-primary">Guardar Cliente</button>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Crear Cliente
+                        </button>
                     </div>
                 </form>
                 
                 <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     const form = document.getElementById('clientForm');
-                    const submitButton = document.getElementById('submitButton');
+                    const submitButton = document.querySelector('button[type="submit"]');
                     const errorMessage = document.getElementById('errorMessage');
                     const successMessage = document.getElementById('successMessage');
                     
@@ -170,7 +164,7 @@
                         .then(response => response.json())
                         .then(data => {
                             submitButton.disabled = false;
-                            submitButton.textContent = 'Guardar Cliente';
+                            submitButton.textContent = 'Crear Cliente';
                             
                             if (data.success) {
                                 // Show success message
@@ -189,7 +183,7 @@
                                         const input = document.querySelector(`[name="${field}"]`);
                                         if (input) {
                                             input.classList.add('is-invalid');
-                                            const errorElement = document.getElementById(`error-${field}`);
+                                            const errorElement = document.querySelector(`[id="error-${field}"]`);
                                             if (errorElement) {
                                                 errorElement.textContent = data.errors[field];
                                             }
@@ -207,7 +201,7 @@
                         })
                         .catch(error => {
                             submitButton.disabled = false;
-                            submitButton.textContent = 'Guardar Cliente';
+                            submitButton.textContent = 'Crear Cliente';
                             
                             // Show error message
                             errorMessage.textContent = 'Error de conexión. Por favor intente nuevamente.';

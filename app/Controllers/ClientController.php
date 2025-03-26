@@ -103,6 +103,78 @@ class ClientController extends BaseController
         return view('clients/index', $data);
     }
     
+    public function store()
+    {
+        log_message('debug', '====== CLIENT STORE ======');
+        
+        // Get the current organization context
+        $currentOrgId = $this->refreshOrganizationContext();
+        
+        // If not superadmin, use the user's organization
+        if (!$this->auth->hasRole('superadmin')) {
+            $currentOrgId = $this->auth->organizationId();
+            if (!$currentOrgId) {
+                log_message('error', 'User has no organization assigned');
+                return redirect()->back()->withInput()->with('error', 'No tiene una organización asignada.');
+            }
+        }
+        
+        // Validate organization_id if provided
+        $organizationId = $this->request->getPost('organization_id');
+        if ($organizationId && $this->auth->hasRole('superadmin')) {
+            $currentOrgId = $organizationId;
+        }
+        
+        if (!$currentOrgId) {
+            log_message('error', 'No organization context found');
+            return redirect()->back()->withInput()->with('error', 'Debe seleccionar una organización.');
+        }
+        
+        log_message('debug', 'Organization context: ' . $currentOrgId);
+        
+        $clientModel = new ClientModel();
+        
+        $rules = [
+            'name' => 'required|min_length[3]',
+            'code' => 'required|min_length[2]|is_unique[clients.code]',
+            'status' => 'required|in_list[active,inactive]'
+        ];
+        
+        if (!$this->validate($rules)) {
+            log_message('debug', 'Validation errors: ' . json_encode($this->validator->getErrors()));
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+        
+        $data = [
+            'organization_id' => $currentOrgId,
+            'name' => $this->request->getPost('name'),
+            'code' => $this->request->getPost('code'),
+            'contact_name' => $this->request->getPost('contact_name'),
+            'contact_email' => $this->request->getPost('contact_email'),
+            'contact_phone' => $this->request->getPost('contact_phone'),
+            'status' => $this->request->getPost('status'),
+            'description' => $this->request->getPost('description')
+        ];
+        
+        log_message('debug', 'Attempting to insert client with data: ' . json_encode($data));
+        
+        try {
+            $result = $clientModel->insert($data);
+            
+            if ($result === false) {
+                log_message('error', 'Error inserting client: ' . json_encode($clientModel->errors()));
+                return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . implode(', ', $clientModel->errors()));
+            }
+            
+            log_message('debug', 'Client created successfully with ID: ' . $result);
+            return redirect()->to('/clients')->with('message', 'Cliente creado exitosamente');
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Exception creating client: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . $e->getMessage());
+        }
+    }
+    
     public function create()
     {
         // Permission check (enable to enforce role)

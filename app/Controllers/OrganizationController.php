@@ -185,9 +185,32 @@ class OrganizationController extends BaseController
             return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');
         }
         
+        // Get users of this organization
+        $db = \Config\Database::connect();
+        $users = $db->table('users')
+                   ->where('organization_id', $id)
+                   ->where('deleted_at IS NULL')
+                   ->get()
+                   ->getResultArray();
+        
+        // Get stats about the organization
+        $clientCount = $db->table('clients')->where('organization_id', $id)->countAllResults();
+        $portfolioCount = $db->table('portfolios')->where('organization_id', $id)->countAllResults();
+        $invoiceCount = $db->table('invoices')
+                          ->join('clients', 'clients.id = invoices.client_id')
+                          ->where('clients.organization_id', $id)
+                          ->countAllResults();
+        
         return view('organizations/view', [
             'title' => 'Ver Organización',
             'organization' => $organization,
+            'users' => $users,
+            'stats' => [
+                'clients' => $clientCount,
+                'users' => count($users),
+                'portfolios' => $portfolioCount,
+                'invoices' => $invoiceCount,
+            ],
             'auth' => $this->auth,
         ]);
     }

@@ -109,75 +109,88 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
     $routes->get('dashboard', 'Dashboard::index');
 
     // Organization Routes
-    $routes->get('organizations', 'OrganizationController::index');
-    $routes->get('organizations/create', 'OrganizationController::create');
-    $routes->post('organizations', 'OrganizationController::store');
-    $routes->get('organizations/(:num)/edit', 'OrganizationController::edit/$1');
-    $routes->post('organizations/(:num)', 'OrganizationController::update/$1');
-    $routes->get('organizations/(:num)/delete', 'OrganizationController::delete/$1');
-    $routes->get('organizations/(:num)', 'OrganizationController::view/$1');
+    $routes->group('organizations', function($routes) {
+        $routes->get('/', 'OrganizationController::index');
+        $routes->get('create', 'OrganizationController::create');
+        $routes->post('/', 'OrganizationController::store');
+        $routes->get('(:num)', 'OrganizationController::view/$1');
+        $routes->get('(:num)/edit', 'OrganizationController::edit/$1');
+        $routes->post('(:num)', 'OrganizationController::update/$1');
+        $routes->get('(:num)/delete', 'OrganizationController::delete/$1');
+    });
 
     // User Routes
-    $routes->get('users', 'UserController::index');
-    $routes->get('users/create', 'UserController::create');
-    $routes->post('users', 'UserController::store');
-    $routes->get('users/(:num)/edit', 'UserController::edit/$1');
-    $routes->post('users/(:num)', 'UserController::update/$1');
-    $routes->get('users/(:num)/delete', 'UserController::delete/$1');
-    $routes->get('users/(:num)', 'UserController::view/$1');
+    $routes->group('users', function($routes) {
+        $routes->get('/', 'UserController::index');
+        $routes->get('create', 'UserController::create');
+        $routes->post('/', 'UserController::store');
+        $routes->get('(:num)', 'UserController::view/$1');
+        $routes->get('(:num)/edit', 'UserController::edit/$1');
+        $routes->post('(:num)', 'UserController::update/$1');
+        $routes->get('(:num)/delete', 'UserController::delete/$1');
+    });
 
     // Client Routes
-    $routes->get('clients', 'ClientController::index');
-    $routes->get('clients/create', 'ClientController::create');
-    $routes->post('clients/create', 'ClientController::create');  
-    $routes->post('clients', 'ClientController::store');
-    $routes->get('clients/(:num)/edit', 'ClientController::edit/$1');
-    $routes->post('clients/(:num)', 'ClientController::update/$1');
-    $routes->get('clients/(:num)/delete', 'ClientController::delete/$1');
-    $routes->get('clients/(:num)', 'ClientController::view/$1');
-    // Client import routes (with CSRF bypass)
-    $routes->get('clients/import', 'ClientController::import', ['csrf' => false]);
-    $routes->post('clients/import', 'ClientController::import', ['csrf' => false]);
+    $routes->group('clients', function($routes) {
+        $routes->get('/', 'ClientController::index');
+        $routes->get('create', 'ClientController::create');
+        $routes->post('/', 'ClientController::store');
+        $routes->get('(:num)', 'ClientController::view/$1');
+        $routes->get('(:num)/edit', 'ClientController::edit/$1');
+        $routes->post('(:num)', 'ClientController::update/$1');
+        $routes->get('(:num)/delete', 'ClientController::delete/$1');
+        // Client import routes (with CSRF bypass)
+        $routes->get('import', 'ClientController::import', ['csrf' => false]);
+        $routes->post('import', 'ClientController::import', ['csrf' => false]);
+    });
 
     // Invoice Routes
-    $routes->get('invoices', 'InvoiceController::index');
-    $routes->get('invoices/create', 'InvoiceController::create');
-    $routes->post('invoices', 'InvoiceController::store');
-    $routes->get('invoices/(:num)/edit', 'InvoiceController::edit/$1');
-    $routes->post('invoices/(:num)', 'InvoiceController::update/$1');
-    $routes->get('invoices/(:num)/delete', 'InvoiceController::delete/$1');
-    $routes->get('invoices/(:num)', 'InvoiceController::view/$1');
-    // Invoice import routes (with CSRF bypass)
-    $routes->get('invoices/import', 'InvoiceController::import', ['csrf' => false]);
-    $routes->post('invoices/import', 'InvoiceController::import', ['csrf' => false]);
+    $routes->group('invoices', function($routes) {
+        $routes->get('/', 'InvoiceController::index');
+        $routes->get('create', 'InvoiceController::create');
+        $routes->post('/', 'InvoiceController::store');
+        $routes->get('(:num)', 'InvoiceController::view/$1');
+        $routes->get('(:num)/edit', 'InvoiceController::edit/$1');
+        $routes->post('(:num)', 'InvoiceController::update/$1');
+        $routes->get('(:num)/delete', 'InvoiceController::delete/$1');
+        // Invoice import routes (with CSRF bypass)
+        $routes->get('import', 'InvoiceController::import', ['csrf' => false]);
+        $routes->post('import', 'InvoiceController::import', ['csrf' => false]);
+    });
 
     // Portfolio Routes
-    $routes->get('portfolios', 'PortfolioController::index');
-    $routes->get('portfolios/create', 'PortfolioController::create');
-    $routes->post('portfolios', 'PortfolioController::store');
-    $routes->get('portfolios/(:num)/edit', 'PortfolioController::edit/$1');
-    $routes->post('portfolios/(:num)', 'PortfolioController::update/$1');
-    $routes->get('portfolios/(:num)/delete', 'PortfolioController::delete/$1');
-    $routes->get('portfolios/(:num)', 'PortfolioController::view/$1');
+    $routes->group('portfolios', function($routes) {
+        $routes->get('/', 'PortfolioController::index');
+        $routes->get('create', 'PortfolioController::create');
+        $routes->post('/', 'PortfolioController::store');
+        $routes->get('(:num)', 'PortfolioController::view/$1');
+        $routes->get('(:num)/edit', 'PortfolioController::edit/$1');
+        $routes->post('(:num)', 'PortfolioController::update/$1');
+        $routes->get('(:num)/delete', 'PortfolioController::delete/$1');
+    });
 
     // Payment Routes
-    $routes->get('payments', 'PaymentController::index');
-    $routes->get('payments/create', 'PaymentController::create');
-    $routes->post('payments', 'PaymentController::store');
-    $routes->get('payments/(:num)/edit', 'PaymentController::edit/$1');
-    $routes->post('payments/(:num)', 'PaymentController::update/$1');
-    $routes->get('payments/(:num)/delete', 'PaymentController::delete/$1');
-    $routes->get('payments/(:num)', 'PaymentController::view/$1');
-    $routes->get('payments/report', 'PaymentController::report');
+    $routes->group('payments', function($routes) {
+        $routes->get('/', 'PaymentController::index');
+        $routes->get('create', 'PaymentController::create');
+        $routes->post('/', 'PaymentController::store');
+        $routes->get('(:num)', 'PaymentController::view/$1');
+        $routes->get('(:num)/edit', 'PaymentController::edit/$1');
+        $routes->post('(:num)', 'PaymentController::update/$1');
+        $routes->get('(:num)/delete', 'PaymentController::delete/$1');
+        $routes->get('report', 'PaymentController::report');
+    });
 
     // Webhook Routes
-    $routes->get('webhooks', 'WebhookController::index');
-    $routes->get('webhooks/create', 'WebhookController::create');
-    $routes->post('webhooks', 'WebhookController::store');
-    $routes->get('webhooks/(:num)/edit', 'WebhookController::edit/$1');
-    $routes->post('webhooks/(:num)', 'WebhookController::update/$1');
-    $routes->get('webhooks/(:num)/delete', 'WebhookController::delete/$1');
-    $routes->get('webhooks/(:num)/logs', 'WebhookController::logs/$1');
-    $routes->get('webhooks/(:num)/test', 'WebhookController::test/$1');
-    $routes->get('webhooks/(:num)/retry', 'WebhookController::retry/$1');
+    $routes->group('webhooks', function($routes) {
+        $routes->get('/', 'WebhookController::index');
+        $routes->get('create', 'WebhookController::create');
+        $routes->post('/', 'WebhookController::store');
+        $routes->get('(:num)/edit', 'WebhookController::edit/$1');
+        $routes->post('(:num)', 'WebhookController::update/$1');
+        $routes->get('(:num)/delete', 'WebhookController::delete/$1');
+        $routes->get('(:num)/logs', 'WebhookController::logs/$1');
+        $routes->get('(:num)/test', 'WebhookController::test/$1');
+        $routes->get('(:num)/retry', 'WebhookController::retry/$1');
+    });
 });
