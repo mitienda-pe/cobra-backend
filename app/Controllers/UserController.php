@@ -137,120 +137,100 @@ class UserController extends BaseController
         return redirect()->to('/users')->with('message', 'User created successfully');
     }
     
-    public function edit($id = null)
+    public function edit($uuid)
     {
-        if (!$id) {
-            return redirect()->to('/users')->with('error', 'ID de usuario no proporcionado.');
-        }
-        
         $userModel = new UserModel();
-        $user = $userModel->find($id);
+        $user = $userModel->where('uuid', $uuid)->first();
         
         if (!$user) {
-            return redirect()->to('/users')->with('error', 'Usuario no encontrado.');
+            return redirect()->to('/users')->with('error', 'Usuario no encontrado');
         }
         
         // Check permissions
-        if (!$this->auth->hasRole('superadmin') && 
-            ($user['organization_id'] != $this->auth->organizationId() || $user['role'] === 'superadmin')) {
-            return redirect()->to('/users')->with('error', 'No tiene permisos para editar este usuario.');
+        if (!$this->auth->hasRole('superadmin') && $user['organization_id'] != $this->auth->user()['organization_id']) {
+            return redirect()->to('/users')->with('error', 'No tiene permisos para editar este usuario');
         }
         
+        // Get organizations for dropdown (only for superadmin)
         $organizationModel = new OrganizationModel();
+        $organizations = [];
         
-        // Get list of organizations for the dropdown
         if ($this->auth->hasRole('superadmin')) {
             $organizations = $organizationModel->findAll();
         } else {
-            $organizations = $organizationModel->where('id', $this->auth->organizationId())->findAll();
+            $organizations = [$organizationModel->find($this->auth->organizationId())];
         }
         
         $data = [
             'user' => $user,
             'organizations' => $organizations,
-            'auth' => $this->auth,
+            'auth' => $this->auth
         ];
         
-        // Handle form submission
-        if ($this->request->getMethod() === 'post') {
-            $rules = [
-                'name' => 'required|min_length[3]|max_length[100]',
-                'email' => "required|valid_email|is_unique[users.email,id,{$id},deleted_at,IS NULL]",
-                'phone' => "permit_empty|min_length[6]|max_length[20]|is_unique[users.phone,id,{$id},deleted_at,IS NULL]",
-                'role' => 'required|in_list[superadmin,admin,user]',
-                'status' => 'required|in_list[active,inactive]',
-            ];
-            
-            // Add password validation only if a new password is provided
-            if ($this->request->getPost('password')) {
-                $rules['password'] = 'min_length[8]';
-                $rules['password_confirm'] = 'matches[password]';
-            }
-            
-            // Only superadmin can create/edit superadmins
-            if (!$this->auth->hasRole('superadmin') && $this->request->getPost('role') === 'superadmin') {
-                return redirect()->back()->withInput()
-                    ->with('error', 'No tiene permisos para crear usuarios superadministradores.');
-            }
-            
-            if ($this->validate($rules)) {
-                // Prepare data
-                $userData = [
-                    'name' => $this->request->getPost('name'),
-                    'email' => $this->request->getPost('email'),
-                    'phone' => $this->request->getPost('phone'),
-                    'role' => $this->request->getPost('role'),
-                    'status' => $this->request->getPost('status'),
-                ];
-                
-                // Add password only if provided
-                if ($this->request->getPost('password')) {
-                    $userData['password'] = $this->request->getPost('password');
-                }
-                
-                // Set organization ID if superadmin
-                if ($this->auth->hasRole('superadmin')) {
-                    $userData['organization_id'] = $this->request->getPost('organization_id');
-                }
-                
-                // Superadmin doesn't need an organization
-                if ($userData['role'] === 'superadmin') {
-                    $userData['organization_id'] = null;
-                }
-                
-                try {
-                    // For debugging - log userData before update
-                    log_message('debug', 'Updating user ID: ' . $id . ' with data: ' . print_r($userData, true));
-                    
-                    // Get current user data to compare
-                    $currentUser = $userModel->find($id);
-                    log_message('debug', 'Current user data before update: ' . print_r($currentUser, true));
-                    
-                    // Update directly with the database builder to ensure proper update
-                    $db = \Config\Database::connect();
-                    $builder = $db->table('users');
-                    $builder->where('id', $id);
-                    $result = $builder->update($userData);
-                    
-                    log_message('debug', 'Direct DB update result: ' . ($result ? 'true' : 'false'));
-                    
-                    // For debugging - get user after update
-                    $updatedUser = $userModel->find($id);
-                    log_message('debug', 'User after update: ' . print_r($updatedUser, true));
-                    
-                    return redirect()->to('/users')->with('message', 'Usuario actualizado exitosamente.');
-                } catch (\Exception $e) {
-                    log_message('error', 'Error updating user: ' . $e->getMessage());
-                    return redirect()->back()->withInput()
-                        ->with('error', 'Error al actualizar usuario: ' . $e->getMessage());
-                }
-            } else {
-                return redirect()->back()->withInput()
-                    ->with('errors', $this->validator->getErrors());
-            }
+        return view('users/edit', $data);
+    }
+    
+    public function update($uuid)
+    {
+        $userModel = new UserModel();
+        $user = $userModel->where('uuid', $uuid)->first();
+        
+        if (!$user) {
+            return redirect()->to('/users')->with('error', 'Usuario no encontrado');
         }
         
-        return view('users/edit', $data);
+        // Check permissions
+        if (!$this->auth->hasRole('superadmin') && $user['organization_id'] != $this->auth->user()['organization_id']) {
+            return redirect()->to('/users')->with('error', 'No tiene permisos para actualizar este usuario');
+        }
+        
+        $rules = [
+            'name' => 'required|min_length[3]|max_length[100]',
+            'email' => 'required|valid_email|is_unique[users.email,id,' . $user['id'] . ',deleted_at,IS NULL]',
+            'phone' => 'permit_empty|min_length[6]|max_length[20]|is_unique[users.phone,id,' . $user['id'] . ',deleted_at,IS NULL]',
+            'role' => 'required|in_list[superadmin,admin,user]',
+            'status' => 'required|in_list[active,inactive]'
+        ];
+        
+        // Password is optional on update
+        if ($this->request->getPost('password')) {
+            $rules['password'] = 'min_length[8]';
+        }
+        
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+        
+        $data = [
+            'name' => $this->request->getPost('name'),
+            'email' => $this->request->getPost('email'),
+            'phone' => $this->request->getPost('phone'),
+            'role' => $this->request->getPost('role'),
+            'status' => $this->request->getPost('status')
+        ];
+        
+        // Only update password if provided
+        if ($this->request->getPost('password')) {
+            $data['password'] = password_hash($this->request->getPost('password'), PASSWORD_DEFAULT);
+        }
+        
+        // Only superadmin can change organization
+        if ($this->auth->hasRole('superadmin')) {
+            $data['organization_id'] = $this->request->getPost('organization_id');
+        }
+        
+        try {
+            $result = $userModel->update($user['id'], $data);
+            
+            if ($result === false) {
+                return redirect()->back()->withInput()->with('error', 'Error al actualizar el usuario: ' . implode(', ', $userModel->errors()));
+            }
+            
+            return redirect()->to('/users/' . $uuid)->with('message', 'Usuario actualizado exitosamente');
+            
+        } catch (\Exception $e) {
+            return redirect()->back()->withInput()->with('error', 'Error al actualizar el usuario: ' . $e->getMessage());
+        }
     }
     
     public function view($uuid)

@@ -9,11 +9,15 @@
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <h3 class="mb-0">Editar Usuario</h3>
-                    <a href="<?= site_url('users') ?>" class="btn btn-secondary">Volver</a>
+                    <a href="<?= site_url('users') ?>" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </a>
                 </div>
             </div>
             <div class="card-body">
-                <form action="<?= site_url('users/' . $user['id']) ?>" method="post">
+                <?= view('partials/_alerts') ?>
+                
+                <form action="<?= site_url('users/' . $user['uuid'] . '/update') ?>" method="post">
                     <?= csrf_field() ?>
                     
                     <div class="mb-3">
