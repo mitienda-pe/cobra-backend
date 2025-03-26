@@ -13,7 +13,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <form action="<?= site_url('organizations/' . $organization['id']) ?>" method="post">
+                <form action="<?= site_url('organizations/' . $organization['uuid']) ?>" method="post">
                     <?= csrf_field() ?>
                     
                     <div class="mb-3">

@@ -120,29 +120,23 @@ class OrganizationController extends BaseController
             return redirect()->to('/organizations')->with('error', 'No tiene permisos para actualizar organizaciones.');
         }
         
+        // Log the UUID we're trying to update
+        log_message('debug', 'Attempting to update organization with UUID: ' . $uuid);
+        
         // Get current POST data for logging
         $postData = $this->request->getPost();
-        log_message('debug', 'Update request for organization ' . $uuid . ' with data: ' . json_encode($postData));
+        log_message('debug', 'Update request for organization with data: ' . json_encode($postData));
         
         // Check if organization exists
         $organization = $this->organizationModel->where('uuid', $uuid)->first();
         
         if (!$organization) {
             log_message('error', 'Organization not found with UUID: ' . $uuid);
+            log_message('error', 'Last query: ' . $this->organizationModel->getLastQuery());
             return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');
         }
         
-        // Check if code is unique (excluding current organization)
-        if (isset($postData['code'])) {
-            $codeExists = $this->organizationModel->where('code', $postData['code'])
-                                                ->where('id !=', $organization['id'])
-                                                ->where('deleted_at IS NULL')
-                                                ->first();
-                                                
-            if ($codeExists) {
-                return redirect()->back()->withInput()->with('error', 'El código ya está en uso por otra organización.');
-            }
-        }
+        log_message('debug', 'Found organization: ' . json_encode($organization));
         
         $rules = [
             'name' => 'required|min_length[3]',
@@ -167,13 +161,16 @@ class OrganizationController extends BaseController
             
             if ($updated === false) {
                 log_message('error', 'Update failed for organization UUID: ' . $uuid . '. Errors: ' . json_encode($this->organizationModel->errors()));
+                log_message('error', 'Last query: ' . $this->organizationModel->getLastQuery());
                 return redirect()->back()->withInput()->with('error', 'Error al actualizar la organización: ' . implode(', ', $this->organizationModel->errors()));
             }
             
+            log_message('debug', 'Organization updated successfully');
             return redirect()->to('/organizations/' . $uuid)->with('message', 'Organización actualizada exitosamente');
             
         } catch (\Exception $e) {
             log_message('error', 'Exception updating organization: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
             return redirect()->back()->withInput()->with('error', 'Error al actualizar la organización: ' . $e->getMessage());
         }
     }
