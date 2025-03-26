@@ -104,7 +104,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors a
 });
 
 // Web Routes - Protected
-$routes->group('', ['filter' => 'auth csrf'], function ($routes) {
+$routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth csrf'], function ($routes) {
     // Dashboard Routes
     $routes->get('dashboard', 'Dashboard::index');
 
