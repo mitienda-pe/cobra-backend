@@ -69,7 +69,7 @@ class Security extends BaseConfig
      * CSRF Regenerate
      * --------------------------------------------------------------------------
      *
-     * Regenerate token on every submission.
+     * Regenerate CSRF Token on every submission.
      */
     public bool $regenerate = false;
 

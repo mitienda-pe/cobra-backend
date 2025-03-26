@@ -40,13 +40,20 @@ class Filters extends BaseConfig
      */
     public array $globals = [
         'before' => [
-            // 'honeypot',
-            // 'invalidchars',
+            'honeypot',
+            'csrf' => ['except' => [
+                'api/*',
+                'clients/import*',
+                'invoices/import*',
+                'login*',
+                'logout'
+            ]],
+            'invalidchars',
         ],
         'after' => [
             'toolbar',
-            // 'honeypot',
-            // 'secureheaders',
+            'honeypot',
+            'secureheaders',
         ],
     ];
 
@@ -61,17 +68,6 @@ class Filters extends BaseConfig
      * before or after URI patterns.
      */
     public array $filters = [
-        'csrf' => [
-            'before' => ['*'],
-            'except' => [
-                'api/*',
-                'api',
-                'clients/import*',
-                'invoices/import*',
-                'login*',
-                'logout'
-            ]
-        ],
         'auth' => [
             'before' => ['dashboard', 'dashboard/*', 'organizations/*', 'clients/*', 'invoices/*', 'users/*', 'profile/*', 'portfolios/*', 'payments/*', 'webhooks/*'],
             'except' => [
