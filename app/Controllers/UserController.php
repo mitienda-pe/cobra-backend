@@ -92,70 +92,49 @@ class UserController extends BaseController
     {
         $organizationModel = new OrganizationModel();
         
-        // Get list of organizations for the dropdown
-        if ($this->auth->hasRole('superadmin')) {
-            $organizations = $organizationModel->findAll();
-        } else {
-            $organizations = $organizationModel->where('id', $this->auth->organizationId())->findAll();
-        }
-        
-        $data = [
-            'organizations' => $organizations,
+        return view('users/create', [
+            'title' => 'Create User',
+            'organizations' => $organizationModel->findAll(),
             'auth' => $this->auth,
-        ];
+        ]);
+    }
+
+    public function store()
+    {
+        $userModel = new UserModel();
         
-        // Handle form submission
-        if ($this->request->getMethod() === 'post') {
-            $rules = [
-                'name' => 'required|min_length[3]|max_length[100]',
-                'email' => 'required|valid_email|is_unique[users.email,id,0,deleted_at,IS NULL]',
-                'phone' => 'permit_empty|min_length[6]|max_length[20]|is_unique[users.phone,id,0,deleted_at,IS NULL]',
-                'password' => 'required|min_length[8]',
-                'password_confirm' => 'required|matches[password]',
-                'role' => 'required|in_list[superadmin,admin,user]',
-            ];
-            
-            // Only superadmin can create superadmins
-            if (!$this->auth->hasRole('superadmin') && $this->request->getPost('role') === 'superadmin') {
-                return redirect()->back()->withInput()
-                    ->with('error', 'No tiene permisos para crear usuarios superadministradores.');
-            }
-            
-            if ($this->validate($rules)) {
-                $userModel = new UserModel();
-                
-                // Prepare data
-                $userData = [
-                    'name' => $this->request->getPost('name'),
-                    'email' => $this->request->getPost('email'),
-                    'phone' => $this->request->getPost('phone'),
-                    'password' => $this->request->getPost('password'),
-                    'role' => $this->request->getPost('role'),
-                    'status' => 'active',
-                ];
-                
-                // Set organization ID
-                if ($this->auth->hasRole('superadmin')) {
-                    $userData['organization_id'] = $this->request->getPost('organization_id');
-                } else {
-                    $userData['organization_id'] = $this->auth->organizationId();
-                }
-                
-                // Superadmin doesn't need an organization
-                if ($userData['role'] === 'superadmin') {
-                    $userData['organization_id'] = null;
-                }
-                
-                $userModel->insert($userData);
-                
-                return redirect()->to('/users')->with('message', 'Usuario creado exitosamente.');
-            } else {
-                return redirect()->back()->withInput()
-                    ->with('errors', $this->validator->getErrors());
-            }
+        // Validate form
+        if (!$this->validate([
+            'name' => 'required|min_length[3]',
+            'email' => 'required|valid_email|is_unique[users.email]',
+            'phone' => 'required|min_length[10]',
+            'role' => 'required|in_list[superadmin,admin,user]',
+            'organization_id' => 'permit_empty|numeric',
+            'password' => 'required|min_length[6]',
+            'confirm_password' => 'required|matches[password]'
+        ])) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
-        
-        return view('users/create', $data);
+
+        // Hash password
+        $password = password_hash($this->request->getPost('password'), PASSWORD_DEFAULT);
+
+        // Create user
+        $result = $userModel->insert([
+            'name' => $this->request->getPost('name'),
+            'email' => $this->request->getPost('email'),
+            'phone' => $this->request->getPost('phone'),
+            'role' => $this->request->getPost('role'),
+            'organization_id' => $this->request->getPost('organization_id') ?: null,
+            'password' => $password,
+            'status' => 'active'
+        ]);
+
+        if (!$result) {
+            return redirect()->back()->withInput()->with('error', 'Error creating user');
+        }
+
+        return redirect()->to('/users')->with('message', 'User created successfully');
     }
     
     public function edit($id = null)
