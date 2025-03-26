@@ -15,7 +15,7 @@ class Auth
 
     public function __construct()
     {
-        $this->session = session();
+        $this->session = \Config\Services::session();
         $this->key = getenv('JWT_SECRET_KEY');
         $this->algorithm = 'HS256';
         $this->tokenDuration = 86400; // 24 hours
@@ -122,11 +122,7 @@ class Auth
     public function hasRole($role)
     {
         $user = $this->user();
-        if (!$user) {
-            return false;
-        }
-
-        return $user['role'] === $role;
+        return $user && $user['role'] === $role;
     }
 
     /**
@@ -149,26 +145,19 @@ class Auth
     public function organizationId()
     {
         $user = $this->user();
-        if (!$user) {
-            return null;
-        }
-
-        // For superadmins, check if there's a selected organization in the session
-        if ($user['role'] === 'superadmin') {
+        
+        // If superadmin, check for selected organization in session
+        if ($this->hasRole('superadmin')) {
             $selectedOrgId = $this->session->get('selected_organization_id');
-
-            // Debug log to help track the session value
-            log_message('debug', '[Auth.organizationId] Superadmin check - Session selected_organization_id: ' .
-                       ($selectedOrgId ? $selectedOrgId : 'null'));
-
             if ($selectedOrgId) {
                 return $selectedOrgId;
             }
+            // If no organization selected, superadmin can see all
+            return null;
         }
-
-        // For other users, return their assigned organization
-        log_message('debug', '[Auth.organizationId] Using user\'s assigned organization: ' . $user['organization_id']);
-        return $user['organization_id'];
+        
+        // For other roles, return their fixed organization
+        return $user ? $user['organization_id'] : null;
     }
 
     /**

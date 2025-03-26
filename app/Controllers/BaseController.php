@@ -8,6 +8,7 @@ use CodeIgniter\HTTP\IncomingRequest;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use App\Libraries\Auth;
 
 /**
  * Class BaseController
@@ -35,13 +36,14 @@ abstract class BaseController extends Controller
      *
      * @var list<string>
      */
-    protected $helpers = [];
+    protected $helpers = ['form', 'url'];
 
     /**
      * Be sure to declare properties for any property fetch you initialized.
      * The creation of dynamic property is deprecated in PHP 8.2.
      */
-    // protected $session;
+    protected $session;
+    protected $auth;
 
     /**
      * @return void
@@ -51,8 +53,24 @@ abstract class BaseController extends Controller
         // Do Not Edit This Line
         parent::initController($request, $response, $logger);
 
-        // Preload any models, libraries, etc, here.
+        // Initialize session and auth
+        $this->session = \Config\Services::session();
+        $this->auth = new Auth();
 
-        // E.g.: $this->session = \Config\Services::session();
+        // Handle organization selection for superadmins
+        if ($this->auth->hasRole('superadmin')) {
+            // Clear organization selection
+            if ($this->request->getGet('clear_org')) {
+                $this->session->remove('selected_organization_id');
+                return redirect()->to(current_url());
+            }
+
+            // Set selected organization
+            $orgId = $this->request->getGet('org_id');
+            if ($orgId) {
+                $this->session->set('selected_organization_id', $orgId);
+                return redirect()->to(current_url());
+            }
+        }
     }
 }
