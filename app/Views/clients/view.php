@@ -11,9 +11,13 @@
                     <h3 class="mb-0">Detalles del Cliente</h3>
                     <div>
                         <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                            <a href="<?= site_url('clients/edit/' . $client['id']) ?>" class="btn btn-primary me-2">Editar</a>
+                            <a href="<?= site_url('clients/' . $client['uuid'] . '/edit') ?>" class="btn btn-primary me-2">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
                         <?php endif; ?>
-                        <a href="<?= site_url('clients') ?>" class="btn btn-secondary">Volver</a>
+                        <a href="<?= site_url('clients') ?>" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </a>
                     </div>
                 </div>
             </div>

@@ -113,10 +113,10 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
         $routes->get('/', 'OrganizationController::index');
         $routes->get('create', 'OrganizationController::create');
         $routes->post('/', 'OrganizationController::store');
-        $routes->get('(:num)', 'OrganizationController::view/$1');
-        $routes->get('(:num)/edit', 'OrganizationController::edit/$1');
-        $routes->post('(:num)', 'OrganizationController::update/$1');
-        $routes->get('(:num)/delete', 'OrganizationController::delete/$1');
+        $routes->get('(:segment)', 'OrganizationController::view/$1');
+        $routes->get('(:segment)/edit', 'OrganizationController::edit/$1');
+        $routes->post('(:segment)', 'OrganizationController::update/$1');
+        $routes->get('(:segment)/delete', 'OrganizationController::delete/$1');
     });
 
     // User Routes
@@ -124,10 +124,10 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
         $routes->get('/', 'UserController::index');
         $routes->get('create', 'UserController::create');
         $routes->post('/', 'UserController::store');
-        $routes->get('(:num)', 'UserController::view/$1');
-        $routes->get('(:num)/edit', 'UserController::edit/$1');
-        $routes->post('(:num)', 'UserController::update/$1');
-        $routes->get('(:num)/delete', 'UserController::delete/$1');
+        $routes->get('(:segment)', 'UserController::view/$1');
+        $routes->get('(:segment)/edit', 'UserController::edit/$1');
+        $routes->post('(:segment)', 'UserController::update/$1');
+        $routes->get('(:segment)/delete', 'UserController::delete/$1');
     });
 
     // Client Routes
@@ -135,10 +135,10 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
         $routes->get('/', 'ClientController::index');
         $routes->get('create', 'ClientController::create');
         $routes->post('/', 'ClientController::store');
-        $routes->get('(:num)', 'ClientController::view/$1');
-        $routes->get('(:num)/edit', 'ClientController::edit/$1');
-        $routes->post('(:num)', 'ClientController::update/$1');
-        $routes->get('(:num)/delete', 'ClientController::delete/$1');
+        $routes->get('(:segment)', 'ClientController::view/$1');
+        $routes->get('(:segment)/edit', 'ClientController::edit/$1');
+        $routes->post('(:segment)', 'ClientController::update/$1');
+        $routes->get('(:segment)/delete', 'ClientController::delete/$1');
         // Client import routes (with CSRF bypass)
         $routes->get('import', 'ClientController::import', ['csrf' => false]);
         $routes->post('import', 'ClientController::import', ['csrf' => false]);

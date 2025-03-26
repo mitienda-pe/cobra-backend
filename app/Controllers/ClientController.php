@@ -325,18 +325,32 @@ class ClientController extends BaseController
         return view('clients/create', $data);
     }
     
-    public function edit($id = null)
+    public function edit($uuid)
     {
-        if (!$id) {
-            return redirect()->to('/clients')->with('error', 'ID de cliente no especificado');
+        log_message('debug', '====== CLIENT EDIT ======');
+        log_message('debug', 'UUID: ' . $uuid);
+        
+        // Only superadmins and admins can edit clients
+        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
+            return redirect()->to('/clients')->with('error', 'No tiene permisos para editar clientes.');
         }
         
         $clientModel = new ClientModel();
-        $client = $clientModel->find($id);
+        $client = $clientModel->where('uuid', $uuid)->first();
         
         if (!$client) {
-            return redirect()->to('/clients')->with('error', 'Cliente no encontrado');
+            return redirect()->to('/clients')->with('error', 'Cliente no encontrado.');
         }
+        
+        // Admins can only edit clients from their organization
+        if (!$this->auth->hasRole('superadmin') && $client['organization_id'] != $this->auth->organizationId()) {
+            return redirect()->to('/clients')->with('error', 'No tiene permisos para editar este cliente.');
+        }
+        
+        $data = [
+            'client' => $client,
+            'auth' => $this->auth
+        ];
         
         // Get organization options for dropdown (only for superadmin)
         if ($this->auth->hasRole('superadmin')) {
@@ -345,95 +359,66 @@ class ClientController extends BaseController
             $data['organizations'] = $organizations;
         }
         
-        // Get portfolios for the dropdown
-        $portfolioModel = new PortfolioModel();
-        $organizationId = $client['organization_id'];
+        return view('clients/edit', $data);
+    }
+    
+    public function update($uuid)
+    {
+        log_message('debug', '====== CLIENT UPDATE ======');
+        log_message('debug', 'UUID: ' . $uuid);
         
-        if ($organizationId) {
-            $portfolios = $portfolioModel->where('organization_id', $organizationId)->findAll();
-        } else {
-            $portfolios = $portfolioModel->findAll();
+        // Only superadmins and admins can update clients
+        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
+            return redirect()->to('/clients')->with('error', 'No tiene permisos para actualizar clientes.');
         }
         
-        // Get current portfolio assignments
-        $db = \Config\Database::connect();
-        $currentPortfolios = $db->table('client_portfolio')
-            ->where('client_id', $id)
-            ->get()
-            ->getResultArray();
+        $clientModel = new ClientModel();
+        $client = $clientModel->where('uuid', $uuid)->first();
         
-        $selectedPortfolios = array_column($currentPortfolios, 'portfolio_id');
+        if (!$client) {
+            return redirect()->to('/clients')->with('error', 'Cliente no encontrado.');
+        }
         
-        $data = [
-            'client' => $client,
-            'portfolios' => $portfolios,
-            'selectedPortfolios' => $selectedPortfolios,
-            'auth' => $this->auth,
+        // Admins can only update clients from their organization
+        if (!$this->auth->hasRole('superadmin') && $client['organization_id'] != $this->auth->organizationId()) {
+            return redirect()->to('/clients')->with('error', 'No tiene permisos para actualizar este cliente.');
+        }
+        
+        $rules = [
+            'name' => 'required|min_length[3]',
+            'status' => 'required|in_list[active,inactive]'
         ];
         
-        // Handle form submission
-        if ($this->request->getMethod() === 'post') {
-            // Validation
-            $rules = [
-                'business_name'   => 'required|min_length[3]|max_length[100]',
-                'legal_name'      => 'required|min_length[3]|max_length[100]',
-                'document_number' => 'required|min_length[3]|max_length[20]',
-            ];
-            
-            if (!$this->validate($rules)) {
-                return view('clients/edit', array_merge($data, ['validation' => $this->validator]));
-            }
-            
-            try {
-                // Determine organization_id
-                $organizationId = $client['organization_id']; // Keep existing organization by default
-                
-                // If superadmin, allow changing organization
-                if ($this->auth->hasRole('superadmin') && $this->request->getPost('organization_id')) {
-                    $organizationId = $this->request->getPost('organization_id');
-                }
-                
-                // Update data
-                $updateData = [
-                    'organization_id' => $organizationId,
-                    'business_name'   => $this->request->getPost('business_name'),
-                    'legal_name'      => $this->request->getPost('legal_name'),
-                    'document_number' => $this->request->getPost('document_number'),
-                    'contact_name'    => $this->request->getPost('contact_name'),
-                    'contact_phone'   => $this->request->getPost('contact_phone'),
-                    'address'         => $this->request->getPost('address'),
-                    'ubigeo'          => $this->request->getPost('ubigeo'),
-                    'zip_code'        => $this->request->getPost('zip_code'),
-                    'latitude'        => $this->request->getPost('latitude') ?: null,
-                    'longitude'       => $this->request->getPost('longitude') ?: null,
-                    'external_id'     => $this->request->getPost('external_id') ?: null,
-                ];
-                
-                if ($clientModel->update($id, $updateData)) {
-                    // Update portfolio assignments
-                    $newPortfolios = $this->request->getPost('portfolios') ?: [];
-                    
-                    // Remove existing assignments
-                    $db->table('client_portfolio')->where('client_id', $id)->delete();
-                    
-                    // Add new assignments
-                    foreach ($newPortfolios as $portfolioId) {
-                        $db->table('client_portfolio')->insert([
-                            'portfolio_id' => $portfolioId,
-                            'client_id' => $id
-                        ]);
-                    }
-                    
-                    return redirect()->to('/clients')->with('success', 'Cliente actualizado exitosamente');
-                } else {
-                    return redirect()->back()->withInput()->with('error', 'Error al actualizar el cliente');
-                }
-            } catch (\Exception $e) {
-                return redirect()->back()->withInput()->with('error', 'Error al actualizar el cliente: ' . $e->getMessage());
-            }
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
         
-        return view('clients/edit', $data);
+        $data = [
+            'name' => $this->request->getPost('name'),
+            'contact_name' => $this->request->getPost('contact_name'),
+            'contact_email' => $this->request->getPost('contact_email'),
+            'contact_phone' => $this->request->getPost('contact_phone'),
+            'status' => $this->request->getPost('status'),
+            'description' => $this->request->getPost('description')
+        ];
+        
+        // Only superadmin can change organization
+        if ($this->auth->hasRole('superadmin') && $this->request->getPost('organization_id')) {
+            $data['organization_id'] = $this->request->getPost('organization_id');
+        }
+        
+        try {
+            $result = $clientModel->update($client['id'], $data);
+            
+            if ($result === false) {
+                return redirect()->back()->withInput()->with('error', 'Error al actualizar el cliente: ' . implode(', ', $clientModel->errors()));
+            }
+            
+            return redirect()->to('/clients/' . $uuid)->with('message', 'Cliente actualizado exitosamente');
+            
+        } catch (\Exception $e) {
+            return redirect()->back()->withInput()->with('error', 'Error al actualizar el cliente: ' . $e->getMessage());
+        }
     }
     
     public function delete($id = null)
@@ -455,31 +440,64 @@ class ClientController extends BaseController
         }
     }
     
-    public function view($id = null)
+    public function view($uuid)
     {
-        if (!$id) {
-            return redirect()->to('/clients')->with('error', 'ID de cliente no especificado');
-        }
+        log_message('debug', '====== CLIENT VIEW ======');
+        log_message('debug', 'UUID: ' . $uuid);
         
         $clientModel = new ClientModel();
-        $client = $clientModel->find($id);
+        $client = $clientModel->where('uuid', $uuid)->first();
         
         if (!$client) {
-            return redirect()->to('/clients')->with('error', 'Cliente no encontrado');
+            return redirect()->to('/clients')->with('error', 'Cliente no encontrado.');
         }
         
-        // Get portfolios for this client
-        $db = \Config\Database::connect();
-        $portfolios = $db->table('portfolios')
-            ->select('portfolios.*, client_portfolio.created_at as assigned_date')
-            ->join('client_portfolio', 'portfolios.id = client_portfolio.portfolio_id')
-            ->where('client_portfolio.client_id', $id)
-            ->get()
-            ->getResultArray();
+        // Check if user has access to this client
+        if (!$this->auth->hasRole('superadmin')) {
+            if ($this->auth->hasRole('admin')) {
+                // Admin can only view clients from their organization
+                if ($client['organization_id'] != $this->auth->organizationId()) {
+                    return redirect()->to('/clients')->with('error', 'No tiene permisos para ver este cliente.');
+                }
+            } else {
+                // Regular users can only view clients from their portfolios
+                $portfolioModel = new PortfolioModel();
+                $portfolios = $portfolioModel->getByUser($this->auth->user()['id']);
+                $hasAccess = false;
+                
+                foreach ($portfolios as $portfolio) {
+                    $portfolioClients = $clientModel->getByPortfolio($portfolio['id']);
+                    foreach ($portfolioClients as $portfolioClient) {
+                        if ($portfolioClient['id'] == $client['id']) {
+                            $hasAccess = true;
+                            break 2;
+                        }
+                    }
+                }
+                
+                if (!$hasAccess) {
+                    return redirect()->to('/clients')->with('error', 'No tiene permisos para ver este cliente.');
+                }
+            }
+        }
+        
+        // Get portfolios this client belongs to
+        $portfolioModel = new PortfolioModel();
+        $portfolios = $portfolioModel->getByClient($client['id']);
+        
+        // Get invoices for this client
+        $invoiceModel = new \App\Models\InvoiceModel();
+        $invoices = $invoiceModel->where('client_id', $client['id'])->findAll();
+        
+        // Get organization data
+        $organizationModel = new \App\Models\OrganizationModel();
+        $organization = $organizationModel->find($client['organization_id']);
+        $client['organization'] = $organization;
         
         $data = [
             'client' => $client,
             'portfolios' => $portfolios,
+            'invoices' => $invoices,
             'auth' => $this->auth
         ];
         
