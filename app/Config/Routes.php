@@ -66,7 +66,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors a
     
     // Portfolio Routes
     $routes->match(['get', 'options'], 'portfolios', 'PortfolioController::index');
-    $routes->match(['get', 'options'], 'portfolios/(:num)', 'PortfolioController::show/$1');
+    $routes->match(['get', 'options'], 'portfolios/(:segment)', 'PortfolioController::show/$1');
     $routes->match(['get', 'options'], 'portfolios/my', 'PortfolioController::myPortfolios');
 
     // Invoice Routes
@@ -167,8 +167,8 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
         $routes->get('(:segment)/edit', 'PortfolioController::edit/$1');
         $routes->post('(:segment)/edit', 'PortfolioController::edit/$1');
         $routes->get('(:segment)/delete', 'PortfolioController::delete/$1');
-        $routes->get('organization/(:num)/users', 'PortfolioController::getUsersByOrganization/$1');
-        $routes->get('organization/(:num)/clients', 'PortfolioController::getClientsByOrganization/$1');
+        $routes->get('organization/(:segment)/users', 'PortfolioController::getUsersByOrganization/$1');
+        $routes->get('organization/(:segment)/clients', 'PortfolioController::getClientsByOrganization/$1');
     });
 
     // Payment Routes

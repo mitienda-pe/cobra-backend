@@ -396,14 +396,21 @@ class PortfolioController extends BaseController
     /**
      * Get users by organization
      */
-    public function getUsersByOrganization($organizationId)
+    public function getUsersByOrganization($uuid)
     {
         if (!$this->request->isAJAX()) {
             return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid request']);
         }
 
+        $organizationModel = new \App\Models\OrganizationModel();
+        $organization = $organizationModel->where('uuid', $uuid)->first();
+        
+        if (!$organization) {
+            return $this->response->setStatusCode(404)->setJSON(['error' => 'Organization not found']);
+        }
+
         $userModel = new UserModel();
-        $users = $userModel->where('organization_id', $organizationId)
+        $users = $userModel->where('organization_id', $organization['id'])
                           ->where('role !=', 'superadmin')
                           ->where('status', 'active')
                           ->findAll();
@@ -414,14 +421,21 @@ class PortfolioController extends BaseController
     /**
      * Get clients by organization
      */
-    public function getClientsByOrganization($organizationId)
+    public function getClientsByOrganization($uuid)
     {
         if (!$this->request->isAJAX()) {
             return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid request']);
         }
 
+        $organizationModel = new \App\Models\OrganizationModel();
+        $organization = $organizationModel->where('uuid', $uuid)->first();
+        
+        if (!$organization) {
+            return $this->response->setStatusCode(404)->setJSON(['error' => 'Organization not found']);
+        }
+
         $clientModel = new ClientModel();
-        $clients = $clientModel->where('organization_id', $organizationId)
+        $clients = $clientModel->where('organization_id', $organization['id'])
                              ->where('status', 'active')
                              ->findAll();
 
