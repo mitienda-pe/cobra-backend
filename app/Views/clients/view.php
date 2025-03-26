@@ -88,11 +88,11 @@
                                         </td>
                                         <td>
                                             <div class="btn-group">
-                                                <a href="<?= site_url('portfolios/' . $portfolio['uuid']) ?>" class="btn btn-info btn-sm" title="Ver">
+                                                <a href="<?= site_url('portfolios/' . ($portfolio['uuid'] ?? $portfolio['id'])) ?>" class="btn btn-info btn-sm" title="Ver">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
                                                 <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $client['organization_id'])): ?>
-                                                    <a href="<?= site_url('portfolios/' . $portfolio['uuid'] . '/edit') ?>" class="btn btn-primary btn-sm" title="Editar">
+                                                    <a href="<?= site_url('portfolios/' . ($portfolio['uuid'] ?? $portfolio['id']) . '/edit') ?>" class="btn btn-primary btn-sm" title="Editar">
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
                                                 <?php endif; ?>

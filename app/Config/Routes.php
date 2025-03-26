@@ -112,7 +112,7 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
     $routes->group('organizations', function($routes) {
         $routes->get('/', 'OrganizationController::index');
         $routes->get('create', 'OrganizationController::create');
-        $routes->post('create', 'OrganizationController::store');
+        $routes->post('/', 'OrganizationController::store');
         $routes->get('(:segment)', 'OrganizationController::view/$1');
         $routes->get('(:segment)/edit', 'OrganizationController::edit/$1');
         $routes->post('(:segment)', 'OrganizationController::update/$1');

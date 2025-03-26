@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use Ramsey\Uuid\Uuid;
 
 class PortfolioModel extends Model
 {
@@ -13,7 +14,7 @@ class PortfolioModel extends Model
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'organization_id', 'name', 'description', 'status'
+        'organization_id', 'name', 'description', 'status', 'uuid'
     ];
 
     // Dates
@@ -28,10 +29,21 @@ class PortfolioModel extends Model
         'organization_id' => 'required|is_natural_no_zero',
         'name'            => 'required|min_length[3]|max_length[100]',
         'status'          => 'required|in_list[active,inactive]',
+        'uuid'            => 'required|is_unique[portfolios.uuid,id,{id}]'
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
+
+    protected $beforeInsert = ['generateUuid'];
+
+    protected function generateUuid($data)
+    {
+        if (!isset($data['data']['uuid'])) {
+            $data['data']['uuid'] = Uuid::uuid4()->toString();
+        }
+        return $data;
+    }
 
     /**
      * Get portfolios by organization
