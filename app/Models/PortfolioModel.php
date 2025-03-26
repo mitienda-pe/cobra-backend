@@ -152,10 +152,10 @@ class PortfolioModel extends Model
         $db = \Config\Database::connect();
         
         $query = $db->table('portfolios p')
-            ->select('p.*, c.name as client_name')
+            ->select('p.*')
             ->join('portfolio_clients pc', 'pc.portfolio_id = p.id')
-            ->join('clients c', 'c.id = pc.client_id')
             ->where('pc.client_id', $clientId)
+            ->where('p.deleted_at IS NULL')
             ->get();
         
         return $query->getResultArray();
