@@ -13,14 +13,18 @@ class AuthController extends BaseApiController
     protected $format = 'json';
     protected $userOtpModel;
     protected $twilioService;
+    protected $userApiTokenModel;
+
+    public function __construct()
+    {
+        $this->twilioService = new \App\Libraries\Twilio();
+        $this->userOtpModel = new \App\Models\UserOtpModel();
+        $this->userApiTokenModel = new \App\Models\UserApiTokenModel();
+    }
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
         parent::initController($request, $response, $logger);
-        
-        // Initialize models and services
-        $this->userOtpModel = new UserOtpModel();
-        $this->twilioService = new Twilio();
         
         // Create API log directory if it doesn't exist
         if (!is_dir(WRITEPATH . 'logs/api')) {
@@ -196,111 +200,84 @@ class AuthController extends BaseApiController
      */
     public function verifyOtp()
     {
-        // Get request data
-        $rawBody = file_get_contents('php://input');
-        $jsonData = json_decode($rawBody, true);
-        
-        $email = $_POST['email'] ?? $jsonData['email'] ?? null;
-        $phone = $_POST['phone'] ?? $jsonData['phone'] ?? null;
-        $clientId = $_POST['client_id'] ?? $jsonData['client_id'] ?? null;
-        $code = $_POST['code'] ?? $jsonData['code'] ?? null;
-        $deviceName = $_POST['device_name'] ?? $jsonData['device_name'] ?? 'Mobile App';
-        
-        // Validar parámetros
-        $errors = [];
-        
-        if (empty($code)) {
-            $errors[] = 'Código OTP es requerido';
-        }
-        
-        if (!empty($email)) {
-            // Validación de email
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $errors[] = 'Invalid email format';
+        try {
+            // Get request data
+            $rawBody = file_get_contents('php://input');
+            $jsonData = json_decode($rawBody, true);
+            
+            $email = $_POST['email'] ?? $jsonData['email'] ?? null;
+            $phone = $_POST['phone'] ?? $jsonData['phone'] ?? null;
+            $clientId = $_POST['client_id'] ?? $jsonData['client_id'] ?? null;
+            $code = $_POST['code'] ?? $jsonData['code'] ?? null;
+            $deviceInfo = $_POST['device_info'] ?? $jsonData['device_info'] ?? 'Unknown Device';
+            
+            // Validate required fields
+            if (empty($code)) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => 'OTP code is required'
+                ]);
             }
-        } else if (!empty($phone)) {
-            // Validación de teléfono
-            if (strlen($phone) < 10 || strlen($phone) > 15) {
-                $errors[] = 'El teléfono debe tener entre 10 y 15 caracteres';
+
+            if (empty($clientId)) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Client ID is required'
+                ]);
+            }
+
+            if (empty($phone) && empty($email)) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Either phone or email is required'
+                ]);
+            }
+
+            // Verify OTP
+            $otpData = $this->userOtpModel->verifyOTP($clientId, $code, $phone, $email);
+            
+            if (!$otpData) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Invalid or expired OTP code'
+                ]);
             }
             
-            if (empty($clientId) || !is_numeric($clientId)) {
-                $errors[] = 'Client ID es requerido y debe ser numérico';
-            }
-        } else {
-            $errors[] = 'Either email or phone is required';
-        }
-        
-        // Si hay errores, responder con 400
-        if (!empty($errors)) {
-            return $this->response->setStatusCode(400)->setJSON([
+            // Generate API token
+            $token = bin2hex(random_bytes(32)); // 64 caracteres hexadecimales
+            
+            // Store token in database
+            $tokenData = [
+                'client_id' => $clientId,
+                'token' => $token,
+                'device_info' => $deviceInfo,
+                'expires_at' => date('Y-m-d H:i:s', strtotime('+30 days')),
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            
+            $this->userApiTokenModel->insert($tokenData);
+            
+            // Return success response with token
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'OTP verified successfully',
+                'data' => [
+                    'token' => $token,
+                    'expires_in' => '30 days',
+                    'token_type' => 'Bearer'
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Error in verifyOtp: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            
+            return $this->response->setStatusCode(500)->setJSON([
                 'status' => 'error',
-                'message' => 'Validation failed',
-                'errors' => $errors
+                'message' => 'Internal server error',
+                'error' => $e->getMessage()
             ]);
         }
-
-        // Buscar usuario
-        $userModel = new UserModel();
-        
-        if (!empty($email)) {
-            $user = $userModel->where('email', $email)
-                ->where('status', 'active')
-                ->first();
-        } else {
-            $user = $userModel->where('phone', $phone)
-                ->where('client_id', $clientId)
-                ->where('status', 'active')
-                ->first();
-        }
-
-        if (!$user) {
-            $identifier = !empty($email) ? $email : $phone;
-            return $this->response->setStatusCode(404)->setJSON([
-                'status' => 'error',
-                'message' => 'Usuario no encontrado o inactivo'
-            ]);
-        }
-
-        // Verificar OTP
-        $otpModel = new UserOtpModel();
-        $verified = $otpModel->verifyOTP(
-            $user['id'],
-            $code
-        );
-
-        if (!$verified) {
-            return $this->response->setStatusCode(401)->setJSON([
-                'status' => 'error',
-                'message' => 'Código OTP inválido o expirado'
-            ]);
-        }
-
-        // Generar token
-        $tokenModel = new UserApiTokenModel();
-        $token = $tokenModel->createToken(
-            $user['id'],
-            $deviceName,
-            ['*'] // All scopes
-        );
-
-        // Preparar datos de usuario
-        $userData = [
-            'id' => $user['id'],
-            'name' => $user['name'],
-            'email' => $user['email'],
-            'role' => $user['role'],
-            'organization_id' => $user['organization_id']
-        ];
-
-        // Responder con token y datos
-        return $this->response->setJSON([
-            'status' => 'success',
-            'user' => $userData,
-            'token' => $token['accessToken'],
-            'refresh_token' => $token['refreshToken'],
-            'expires_at' => $token['expiresAt']
-        ]);
     }
 
     /**
