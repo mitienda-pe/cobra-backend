@@ -40,11 +40,11 @@ $routes->get('debug/test-api', 'Debug::testApi');
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth API Routes - No CSRF required (CSRF is excluded in Filters.php)
     $routes->group('auth', ['filter' => 'cors'], function ($routes) {
-        $routes->post('request-otp', 'AuthController::request_otp');
+        $routes->post('request-otp', 'AuthController::requestOtp');
         $routes->post('verify-otp', 'AuthController::verifyOtp');
         $routes->post('refresh-token', 'AuthController::refreshToken');
         // OPTIONS routes for CORS preflight
-        $routes->match(['options'], 'request-otp', 'AuthController::request_otp');
+        $routes->match(['options'], 'request-otp', 'AuthController::requestOtp');
         $routes->match(['options'], 'verify-otp', 'AuthController::verifyOtp');
         $routes->match(['options'], 'refresh-token', 'AuthController::refreshToken');
     });
