@@ -111,7 +111,7 @@ class UserController extends BaseController
             'role' => 'required|in_list[superadmin,admin,user]',
             'organization_id' => 'permit_empty|numeric',
             'password' => 'required|min_length[6]',
-            'confirm_password' => 'required|matches[password]'
+            'password_confirm' => 'required|matches[password]'
         ])) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
