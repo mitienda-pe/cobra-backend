@@ -16,61 +16,18 @@ Options -Indexes
     # http://httpd.apache.org/docs/current/mod/mod_rewrite.html#rewritebase
     RewriteBase /
 
-    # Add logging for debugging
-    # RewriteLog "/Users/carlosvidal/www/cobra-backend/writable/logs/rewrite.log"
-    # RewriteLogLevel 9
-
-    # Handle OPTIONS requests for CORS
-    RewriteCond %{REQUEST_METHOD} OPTIONS
-    RewriteRule ^(.*)$ $1 [R=200,L]
-
-    # Special handling for index.php/api paths - normalize and strip index.php
-    RewriteCond %{REQUEST_URI} ^/index\.php/api/ [NC]
-    RewriteRule ^index\.php/(.*)$ $1 [L]
-
-    # For API requests
-    RewriteCond %{REQUEST_URI} ^/api/ [NC]
-    RewriteRule ^(.*)$ index.php/$1 [L,QSA]
-
     # Redirect Trailing Slashes...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
-    # Allow direct access to debug scripts
-    RewriteCond %{REQUEST_URI} !^/debug_direct\.php [NC]
-    RewriteCond %{REQUEST_URI} !^/check-db-permissions\.php [NC]
-    RewriteCond %{REQUEST_URI} !^/fix-locked-db\.php [NC]
-    
+    # Handle OPTIONS requests for CORS
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule .* - [R=200,L]
+
     # Checks to see if the user is attempting to access a valid file,
-    # such as an image or css document, if this isn't true it sends the
-    # request to the front controller, index.php
+    # such as an image or css document
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ index.php/$1 [L,QSA]
-
-    # Ensure Authorization header is passed along
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 </IfModule>
-
-<IfModule !mod_rewrite.c>
-    # If we don't have mod_rewrite installed, all 404's
-    # can be sent to index.php, and everything works as normal.
-    ErrorDocument 404 index.php
-</IfModule>
-
-# Set CORS headers for API URLs
-<IfModule mod_headers.c>
-    <FilesMatch "^index\.php$">
-        SetEnvIf Request_URI "^/(?:index\.php/)?api/" API_REQUEST=1
-        
-        Header always set Access-Control-Allow-Origin "*" env=API_REQUEST
-        Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE" env=API_REQUEST
-        Header always set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization" env=API_REQUEST
-        Header always set Access-Control-Max-Age "1728000" env=API_REQUEST
-    </FilesMatch>
-</IfModule>
-
-# Disable server signature
-ServerSignature Off
