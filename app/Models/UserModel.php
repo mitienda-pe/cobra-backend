@@ -28,7 +28,7 @@ class UserModel extends Model
     protected $validationRules      = [
         'name'     => 'required|min_length[3]|max_length[100]',
         'email'    => 'required|valid_email|is_unique[users.email,deleted_at,NULL]',
-        'phone'    => 'permit_empty|min_length[6]|max_length[20]|is_unique[users.phone,deleted_at,NULL]',
+        'phone'    => 'required|min_length[10]|is_unique[users.phone,deleted_at,NULL]',
         'password' => 'required|min_length[8]',
         'role'     => 'required|in_list[superadmin,admin,user]',
         'status'   => 'required|in_list[active,inactive]',
@@ -42,26 +42,33 @@ class UserModel extends Model
         return [
             'name'     => 'required|min_length[3]|max_length[100]',
             'email'    => "required|valid_email|is_unique[users.email,id,$id,deleted_at,NULL]",
-            'phone'    => "permit_empty|min_length[6]|max_length[20]|is_unique[users.phone,id,$id,deleted_at,NULL]",
+            'phone'    => "required|min_length[10]|is_unique[users.phone,id,$id,deleted_at,NULL]",
             'role'     => 'required|in_list[superadmin,admin,user]',
             'status'   => 'required|in_list[active,inactive]',
             'password' => 'permit_empty|min_length[8]'
         ];
     }
     
-    protected $validationMessages   = [];
+    protected $validationMessages   = [
+        'phone' => [
+            'required' => 'El número de teléfono es requerido',
+            'min_length' => 'El número de teléfono debe tener al menos 10 dígitos',
+            'is_unique' => 'Este número de teléfono ya está registrado'
+        ]
+    ];
+    
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
 
     /**
      * Before insert callbacks
      */
-    protected $beforeInsert = ['hashPassword', 'generateUuid'];
+    protected $beforeInsert = ['hashPassword', 'generateUuid', 'formatPhone'];
     
     /**
      * Before update callbacks
      */
-    protected $beforeUpdate = ['hashPassword'];
+    protected $beforeUpdate = ['hashPassword', 'formatPhone'];
 
     /**
      * Hash password before inserting or updating
@@ -85,6 +92,23 @@ class UserModel extends Model
         if (!isset($data['data']['uuid'])) {
             helper('uuid');
             $data['data']['uuid'] = generate_unique_uuid('users', 'uuid');
+        }
+        return $data;
+    }
+
+    /**
+     * Format phone number to E.164 format
+     */
+    protected function formatPhone(array $data)
+    {
+        if (isset($data['data']['phone'])) {
+            helper('phone');
+            $data['data']['phone'] = format_phone_e164($data['data']['phone']);
+            
+            // If phone formatting failed, unset it to prevent invalid data
+            if ($data['data']['phone'] === null || !is_valid_e164($data['data']['phone'])) {
+                unset($data['data']['phone']);
+            }
         }
         return $data;
     }

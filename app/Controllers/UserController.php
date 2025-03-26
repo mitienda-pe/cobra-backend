@@ -103,6 +103,20 @@ class UserController extends BaseController
     {
         $userModel = new UserModel();
         
+        // Debug: Log the email we're trying to use
+        $email = $this->request->getPost('email');
+        log_message('debug', 'Attempting to create user with email: ' . $email);
+        
+        // Debug: Check if there are any users with this email (including deleted)
+        $db = \Config\Database::connect();
+        $existingUser = $db->table('users')
+            ->where('email', $email)
+            ->get()
+            ->getRow();
+        if ($existingUser) {
+            log_message('debug', 'Found existing user with this email: ' . print_r($existingUser, true));
+        }
+        
         // Validate form
         if (!$this->validate([
             'name' => 'required|min_length[3]',
@@ -113,6 +127,8 @@ class UserController extends BaseController
             'password' => 'required|min_length[6]',
             'password_confirm' => 'required|matches[password]'
         ])) {
+            // Debug: Log validation errors
+            log_message('debug', 'Validation errors: ' . print_r($this->validator->getErrors(), true));
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
