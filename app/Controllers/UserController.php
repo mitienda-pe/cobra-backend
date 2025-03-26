@@ -6,7 +6,7 @@ use App\Libraries\Auth;
 use App\Models\UserModel;
 use App\Models\OrganizationModel;
 
-class Users extends BaseController
+class UserController extends BaseController
 {
     protected $auth;
     protected $session;
@@ -18,7 +18,7 @@ class Users extends BaseController
         helper(['form', 'url']);
         
         // Debug logs
-        log_message('debug', 'Users controller initialized');
+        log_message('debug', 'UserController initialized');
     }
     
     public function index()

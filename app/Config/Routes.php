@@ -117,6 +117,15 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
     $routes->get('organizations/delete/(:num)', 'OrganizationController::delete/$1');
     $routes->get('organizations/view/(:num)', 'OrganizationController::view/$1');
 
+    // User Routes
+    $routes->get('users', 'UserController::index');
+    $routes->get('users/create', 'UserController::create');
+    $routes->post('users/store', 'UserController::store');
+    $routes->get('users/edit/(:num)', 'UserController::edit/$1');
+    $routes->post('users/update/(:num)', 'UserController::update/$1');
+    $routes->get('users/delete/(:num)', 'UserController::delete/$1');
+    $routes->get('users/view/(:num)', 'UserController::view/$1');
+
     // Client Routes
     $routes->get('clients', 'ClientController::index');
     $routes->get('clients/create', 'ClientController::create');
@@ -140,15 +149,6 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
     // Invoice import routes (with CSRF bypass)
     $routes->get('invoices/import', 'InvoiceController::import', ['csrf' => false]);
     $routes->post('invoices/import', 'InvoiceController::import', ['csrf' => false]);
-
-    // User Routes
-    $routes->get('users', 'UserController::index');
-    $routes->get('users/create', 'UserController::create');
-    $routes->post('users/create', 'UserController::store');
-    $routes->get('users/edit/(:num)', 'UserController::edit/$1');
-    $routes->post('users/edit/(:num)', 'UserController::update/$1');
-    $routes->get('users/delete/(:num)', 'UserController::delete/$1');
-    $routes->get('users/view/(:num)', 'UserController::view/$1');
 
     // Portfolio Routes
     $routes->get('portfolios', 'PortfolioController::index');
