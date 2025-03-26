@@ -10,6 +10,26 @@
     </a>
 </div>
 
+<?php if ($auth->hasRole('superadmin')): ?>
+    <div class="mb-3">
+        <form action="<?= site_url('users') ?>" method="get" class="row g-3 align-items-center">
+            <div class="col-auto">
+                <label for="organization_id" class="col-form-label">Organización:</label>
+            </div>
+            <div class="col-auto">
+                <select name="organization_id" id="organization_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">Todas las organizaciones</option>
+                    <?php foreach ($organizations as $org): ?>
+                        <option value="<?= $org['id'] ?>" <?= ($selectedOrganizationId == $org['id']) ? 'selected' : '' ?>>
+                            <?= esc($org['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </form>
+    </div>
+<?php endif; ?>
+
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">

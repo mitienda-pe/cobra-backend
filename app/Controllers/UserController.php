@@ -10,11 +10,13 @@ class UserController extends BaseController
 {
     protected $auth;
     protected $session;
+    protected $userModel;
     
     public function __construct()
     {
         $this->auth = new Auth();
         $this->session = \Config\Services::session();
+        $this->userModel = new UserModel();
         helper(['form', 'url']);
         
         // Debug logs
@@ -23,68 +25,38 @@ class UserController extends BaseController
     
     public function index()
     {
-        $userModel = new UserModel();
-        $organizationModel = new OrganizationModel();
-        $auth = $this->auth;
-        $db = \Config\Database::connect();
+        $selectedOrganizationId = $this->request->getGet('organization_id');
         
-        // Get sorting parameters
-        $sort = $this->request->getGet('sort') ?? 'id';
-        $order = $this->request->getGet('order') ?? 'asc';
-        $filterOrgId = $this->request->getGet('organization_id') ?? '';
-        
-        // Filter users based on role
-        if ($auth->hasRole('superadmin')) {
-            // Superadmin can see all users with organization name
-            $builder = $db->table('users');
-            $builder->select('users.*, organizations.name as organization_name');
-            $builder->join('organizations', 'organizations.id = users.organization_id', 'left');
-            $builder->where('users.deleted_at IS NULL');
-            
-            // Apply organization filter if selected
-            if (!empty($filterOrgId)) {
-                $builder->where('users.organization_id', $filterOrgId);
-            }
-            
-            // Apply sorting
-            if ($sort == 'organization') {
-                $builder->orderBy('organizations.name', $order);
-            } else {
-                $builder->orderBy("users.$sort", $order);
-            }
-            
-            $users = $builder->get()->getResultArray();
-            
-            // Get all organizations for the filter dropdown
-            $organizations = $organizationModel->findAll();
-        } elseif ($auth->hasRole('admin')) {
-            // Admin can only see users from their organization
-            $organizationId = $auth->organizationId();
-            
-            $builder = $db->table('users');
-            $builder->select('users.*, organizations.name as organization_name');
-            $builder->join('organizations', 'organizations.id = users.organization_id', 'left');
-            $builder->where('users.deleted_at IS NULL');
-            $builder->where('users.organization_id', $organizationId);
-            $builder->orderBy("users.$sort", $order);
-            
-            $users = $builder->get()->getResultArray();
-            
-            $organizations = []; // Admin doesn't need the organization filter
-        } else {
-            // Regular users shouldn't access this page, but just in case
-            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para acceder a esta página.');
+        // Base query
+        $query = $this->userModel->select('users.*, organizations.name as organization_name')
+                                ->join('organizations', 'organizations.id = users.organization_id')
+                                ->where('users.deleted_at IS NULL');
+
+        // Apply organization filter
+        if ($selectedOrganizationId) {
+            $query->where('users.organization_id', $selectedOrganizationId);
+        } else if (!$this->auth->hasRole('superadmin')) {
+            // If not superadmin and no org selected, only show users from their org
+            $query->where('users.organization_id', $this->auth->organizationId());
         }
-        
+
+        $users = $query->findAll();
+
+        // Get organizations for filter
+        $organizationModel = new \App\Models\OrganizationModel();
+        if ($this->auth->hasRole('superadmin')) {
+            $organizations = $organizationModel->findAll();
+        } else {
+            $organizations = [$organizationModel->find($this->auth->organizationId())];
+        }
+
         $data = [
             'users' => $users,
-            'auth' => $this->auth,
             'organizations' => $organizations,
-            'currentSort' => $sort,
-            'currentOrder' => $order,
-            'filterOrgId' => $filterOrgId,
+            'selectedOrganizationId' => $selectedOrganizationId,
+            'auth' => $this->auth
         ];
-        
+
         return view('users/index', $data);
     }
     
