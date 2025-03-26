@@ -37,46 +37,45 @@
                 <thead>
                     <tr>
                         <th>
-                            <a href="<?= site_url('users?sort=uuid&order=' . ($currentSort == 'uuid' && $currentOrder == 'asc' ? 'desc' : 'asc') . ($filterOrgId ? '&organization_id=' . $filterOrgId : '')) ?>">
+                            <a href="<?= site_url('users?sort=uuid&order=' . ($currentSort === 'uuid' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrganizationId ? '&organization_id=' . $selectedOrganizationId : '')) ?>">
                                 UUID
-                                <?php if ($currentSort == 'uuid'): ?>
-                                    <i class="bi bi-arrow-<?= $currentOrder == 'asc' ? 'up' : 'down' ?>"></i>
+                                <?php if ($currentSort === 'uuid'): ?>
+                                    <i class="bi bi-arrow-<?= $currentOrder === 'asc' ? 'up' : 'down' ?>"></i>
                                 <?php endif; ?>
                             </a>
                         </th>
                         <th>
-                            <a href="<?= site_url('users?sort=name&order=' . ($currentSort == 'name' && $currentOrder == 'asc' ? 'desc' : 'asc') . ($filterOrgId ? '&organization_id=' . $filterOrgId : '')) ?>">
+                            <a href="<?= site_url('users?sort=name&order=' . ($currentSort === 'name' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrganizationId ? '&organization_id=' . $selectedOrganizationId : '')) ?>">
                                 Nombre
-                                <?php if ($currentSort == 'name'): ?>
-                                    <i class="bi bi-arrow-<?= $currentOrder == 'asc' ? 'up' : 'down' ?>"></i>
+                                <?php if ($currentSort === 'name'): ?>
+                                    <i class="bi bi-arrow-<?= $currentOrder === 'asc' ? 'up' : 'down' ?>"></i>
                                 <?php endif; ?>
                             </a>
                         </th>
                         <th>
-                            <a href="<?= site_url('users?sort=email&order=' . ($currentSort == 'email' && $currentOrder == 'asc' ? 'desc' : 'asc') . ($filterOrgId ? '&organization_id=' . $filterOrgId : '')) ?>">
+                            <a href="<?= site_url('users?sort=email&order=' . ($currentSort === 'email' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrganizationId ? '&organization_id=' . $selectedOrganizationId : '')) ?>">
                                 Email
-                                <?php if ($currentSort == 'email'): ?>
-                                    <i class="bi bi-arrow-<?= $currentOrder == 'asc' ? 'up' : 'down' ?>"></i>
+                                <?php if ($currentSort === 'email'): ?>
+                                    <i class="bi bi-arrow-<?= $currentOrder === 'asc' ? 'up' : 'down' ?>"></i>
                                 <?php endif; ?>
                             </a>
                         </th>
                         <th>Teléfono</th>
-                        <th>Rol</th>
                         <?php if ($auth->hasRole('superadmin')): ?>
                             <th>
-                                <a href="<?= site_url('users?sort=organization&order=' . ($currentSort == 'organization' && $currentOrder == 'asc' ? 'desc' : 'asc') . ($filterOrgId ? '&organization_id=' . $filterOrgId : '')) ?>">
+                                <a href="<?= site_url('users?sort=organization&order=' . ($currentSort === 'organization' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrganizationId ? '&organization_id=' . $selectedOrganizationId : '')) ?>">
                                     Organización
-                                    <?php if ($currentSort == 'organization'): ?>
-                                        <i class="bi bi-arrow-<?= $currentOrder == 'asc' ? 'up' : 'down' ?>"></i>
+                                    <?php if ($currentSort === 'organization'): ?>
+                                        <i class="bi bi-arrow-<?= $currentOrder === 'asc' ? 'up' : 'down' ?>"></i>
                                     <?php endif; ?>
                                 </a>
                             </th>
                         <?php endif; ?>
                         <th>
-                            <a href="<?= site_url('users?sort=status&order=' . ($currentSort == 'status' && $currentOrder == 'asc' ? 'desc' : 'asc') . ($filterOrgId ? '&organization_id=' . $filterOrgId : '')) ?>">
+                            <a href="<?= site_url('users?sort=status&order=' . ($currentSort === 'status' && $currentOrder === 'asc' ? 'desc' : 'asc') . ($selectedOrganizationId ? '&organization_id=' . $selectedOrganizationId : '')) ?>">
                                 Estado
-                                <?php if ($currentSort == 'status'): ?>
-                                    <i class="bi bi-arrow-<?= $currentOrder == 'asc' ? 'up' : 'down' ?>"></i>
+                                <?php if ($currentSort === 'status'): ?>
+                                    <i class="bi bi-arrow-<?= $currentOrder === 'asc' ? 'up' : 'down' ?>"></i>
                                 <?php endif; ?>
                             </a>
                         </th>
@@ -95,7 +94,6 @@
                                 <td><?= $user['name'] ?></td>
                                 <td><?= $user['email'] ?></td>
                                 <td><?= $user['phone'] ?? 'N/A' ?></td>
-                                <td><?= ucfirst($user['role']) ?></td>
                                 <?php if ($auth->hasRole('superadmin')): ?>
                                     <td><?= $user['organization_name'] ?? 'N/A' ?></td>
                                 <?php endif; ?>

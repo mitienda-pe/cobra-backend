@@ -26,6 +26,8 @@ class UserController extends BaseController
     public function index()
     {
         $selectedOrganizationId = $this->request->getGet('organization_id');
+        $sort = $this->request->getGet('sort') ?? 'uuid';
+        $order = $this->request->getGet('order') ?? 'asc';
         
         // Base query
         $query = $this->userModel->select('users.*, organizations.name as organization_name')
@@ -38,6 +40,13 @@ class UserController extends BaseController
         } else if (!$this->auth->hasRole('superadmin')) {
             // If not superadmin and no org selected, only show users from their org
             $query->where('users.organization_id', $this->auth->organizationId());
+        }
+
+        // Apply sorting
+        if ($sort === 'organization') {
+            $query->orderBy('organizations.name', $order);
+        } else {
+            $query->orderBy("users.$sort", $order);
         }
 
         $users = $query->findAll();
@@ -54,6 +63,8 @@ class UserController extends BaseController
             'users' => $users,
             'organizations' => $organizations,
             'selectedOrganizationId' => $selectedOrganizationId,
+            'currentSort' => $sort,
+            'currentOrder' => $order,
             'auth' => $this->auth
         ];
 
