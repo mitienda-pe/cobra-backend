@@ -27,8 +27,8 @@ class UserModel extends Model
     // Validation
     protected $validationRules      = [
         'name'     => 'required|min_length[3]|max_length[100]',
-        'email'    => 'required|valid_email|is_unique[users.email,deleted_at,NULL]',
-        'phone'    => 'required|min_length[10]|is_unique[users.phone,deleted_at,NULL]',
+        'email'    => 'required|valid_email|is_unique[users.email,id,null,deleted_at,NOW()]',
+        'phone'    => 'required|min_length[10]|is_unique[users.phone,id,null,deleted_at,NOW()]',
         'password' => 'required|min_length[8]',
         'role'     => 'required|in_list[superadmin,admin,user]',
         'status'   => 'required|in_list[active,inactive]',
@@ -41,8 +41,8 @@ class UserModel extends Model
     {
         return [
             'name'     => 'required|min_length[3]|max_length[100]',
-            'email'    => "required|valid_email|is_unique[users.email,id,$id,deleted_at,NULL]",
-            'phone'    => "required|min_length[10]|is_unique[users.phone,id,$id,deleted_at,NULL]",
+            'email'    => "required|valid_email|is_unique[users.email,id,{$id},deleted_at,NOW()]",
+            'phone'    => "required|min_length[10]|is_unique[users.phone,id,{$id},deleted_at,NOW()]",
             'role'     => 'required|in_list[superadmin,admin,user]',
             'status'   => 'required|in_list[active,inactive]',
             'password' => 'permit_empty|min_length[8]'
