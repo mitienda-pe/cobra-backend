@@ -7,15 +7,11 @@ use App\Models\UserOtpModel;
 use App\Models\UserApiTokenModel;
 use App\Libraries\Twilio;
 use CodeIgniter\HTTP\ResponseInterface;
-use CodeIgniter\RESTful\ResourceController;
 
-class AuthController extends ResourceController
+class AuthController extends BaseApiController
 {
     protected $format = 'json';
 
-    /**
-     * Constructor - establece headers CORS y maneja OPTIONS
-     */
     public function __construct()
     {
         // Create API log directory if it doesn't exist
