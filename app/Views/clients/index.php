@@ -80,15 +80,15 @@
                             <?php endif; ?>
                         </td>
                         <td>
-                            <a href="<?= site_url('clients/view/' . $client['id']) ?>" class="btn btn-sm btn-info">
-                                Ver
+                            <a href="<?= site_url('clients/' . $client['uuid']) ?>" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i> Ver
                             </a>
                             <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                <a href="<?= site_url('clients/edit/' . $client['id']) ?>" class="btn btn-sm btn-primary">
-                                    Editar
+                                <a href="<?= site_url('clients/' . $client['uuid'] . '/edit') ?>" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-pencil"></i> Editar
                                 </a>
-                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="<?= $client['id'] ?>" data-name="<?= esc($client['business_name']) ?>">
-                                    Eliminar
+                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-uuid="<?= $client['uuid'] ?>" data-name="<?= esc($client['business_name']) ?>">
+                                    <i class="bi bi-trash"></i> Eliminar
                                 </button>
                             <?php endif; ?>
                         </td>
@@ -99,7 +99,7 @@
     </div>
 <?php endif; ?>
 
-<!-- Modal de confirmación de eliminación -->
+<!-- Delete Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -108,33 +108,32 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                ¿Está seguro que desea eliminar a <span id="clientName" class="fw-bold"></span>?
-                <br><br>
-                <div class="alert alert-warning">
-                    Esta acción no se puede deshacer y eliminará todos los datos relacionados con este cliente.
-                </div>
+                ¿Está seguro que desea eliminar el cliente <strong id="clientName"></strong>?
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <a href="#" id="deleteBtn" class="btn btn-danger">Eliminar</a>
+                <form id="deleteForm" action="" method="post" class="d-inline">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const deleteModal = document.getElementById('deleteModal');
-        if (deleteModal) {
-            deleteModal.addEventListener('show.bs.modal', function(event) {
-                const button = event.relatedTarget;
-                const id = button.getAttribute('data-id');
-                const name = button.getAttribute('data-name');
-                
-                document.getElementById('clientName').textContent = name;
-                document.getElementById('deleteBtn').href = '<?= site_url('clients/delete/') ?>' + id;
-            });
-        }
-    });
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteModal = document.getElementById('deleteModal');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const uuid = button.getAttribute('data-uuid');
+            const name = button.getAttribute('data-name');
+            
+            deleteModal.querySelector('#clientName').textContent = name;
+            deleteModal.querySelector('#deleteForm').action = '<?= site_url('clients/') ?>' + uuid + '/delete';
+        });
+    }
+});
 </script>
 <?= $this->endSection() ?>

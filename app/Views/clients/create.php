@@ -16,7 +16,7 @@
                 <div id="errorMessage" class="alert alert-danger d-none"></div>
                 <div id="successMessage" class="alert alert-success d-none"></div>
                 
-                <form id="clientForm" action="<?= site_url('clients') ?>" method="post">
+                <form id="clientForm" action="<?= site_url('clients/create') ?>" method="post">
                     <?= csrf_field() ?>
                     
                     <?php if (isset($organizations) && $auth->hasRole('superadmin')): ?>

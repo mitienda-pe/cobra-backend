@@ -421,22 +421,39 @@ class ClientController extends BaseController
         }
     }
     
-    public function delete($id = null)
+    public function delete($uuid)
     {
-        if (!$id) {
-            return redirect()->to('/clients')->with('error', 'ID de cliente no especificado');
+        log_message('debug', '====== CLIENT DELETE ======');
+        log_message('debug', 'UUID: ' . $uuid);
+        
+        // Only superadmins and admins can delete clients
+        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
+            return redirect()->to('/clients')->with('error', 'No tiene permisos para eliminar clientes.');
         }
         
         $clientModel = new ClientModel();
+        $client = $clientModel->where('uuid', $uuid)->first();
+        
+        if (!$client) {
+            return redirect()->to('/clients')->with('error', 'Cliente no encontrado.');
+        }
+        
+        // Admins can only delete clients from their organization
+        if (!$this->auth->hasRole('superadmin') && $client['organization_id'] != $this->auth->organizationId()) {
+            return redirect()->to('/clients')->with('error', 'No tiene permisos para eliminar este cliente.');
+        }
         
         try {
-            if ($clientModel->delete($id)) {
-                return redirect()->to('/clients')->with('success', 'Cliente eliminado exitosamente');
-            } else {
-                return redirect()->to('/clients')->with('error', 'Error al eliminar el cliente');
+            $result = $clientModel->delete($client['id']);
+            
+            if ($result === false) {
+                return redirect()->back()->with('error', 'Error al eliminar el cliente: ' . implode(', ', $clientModel->errors()));
             }
+            
+            return redirect()->to('/clients')->with('message', 'Cliente eliminado exitosamente');
+            
         } catch (\Exception $e) {
-            return redirect()->to('/clients')->with('error', 'Error al eliminar el cliente: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al eliminar el cliente: ' . $e->getMessage());
         }
     }
     
