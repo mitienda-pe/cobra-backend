@@ -13,8 +13,9 @@
                 </div>
             </div>
             <div class="card-body">
-                <form action="<?= site_url('organizations/edit/' . $organization['id']) ?>" method="post">
+                <form action="<?= site_url('organizations/update/' . $organization['id']) ?>" method="post">
                     <?= csrf_field() ?>
+                    <input type="hidden" name="_method" value="PUT">
                     
                     <div class="mb-3">
                         <label for="name" class="form-label">Nombre</label>

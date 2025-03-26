@@ -110,9 +110,9 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
     // Organization Routes
     $routes->get('organizations', 'OrganizationController::index');
     $routes->get('organizations/create', 'OrganizationController::create');
-    $routes->post('organizations/create', 'OrganizationController::create');
+    $routes->post('organizations/store', 'OrganizationController::store');
     $routes->get('organizations/edit/(:num)', 'OrganizationController::edit/$1');
-    $routes->post('organizations/edit/(:num)', 'OrganizationController::edit/$1');
+    $routes->post('organizations/update/(:num)', 'OrganizationController::update/$1');
     $routes->get('organizations/delete/(:num)', 'OrganizationController::delete/$1');
     $routes->get('organizations/view/(:num)', 'OrganizationController::view/$1');
 
@@ -141,14 +141,13 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
     $routes->post('invoices/import', 'InvoiceController::import', ['csrf' => false]);
 
     // User Routes
-    $routes->get('users', 'Users::index');
-    $routes->get('users/create', 'Users::create');
-    $routes->post('users/create', 'Users::create');
-    $routes->get('users/edit/(:num)', 'Users::edit/$1');
-    $routes->post('users/edit/(:num)', 'Users::edit/$1');
-    $routes->get('users/delete/(:num)', 'Users::delete/$1');
-    $routes->get('users/profile', 'Users::profile');
-    $routes->post('users/profile', 'Users::profile');
+    $routes->get('users', 'UserController::index');
+    $routes->get('users/create', 'UserController::create');
+    $routes->post('users/create', 'UserController::store');
+    $routes->get('users/edit/(:num)', 'UserController::edit/$1');
+    $routes->post('users/edit/(:num)', 'UserController::update/$1');
+    $routes->get('users/delete/(:num)', 'UserController::delete/$1');
+    $routes->get('users/view/(:num)', 'UserController::view/$1');
 
     // Portfolio Routes
     $routes->get('portfolios', 'PortfolioController::index');
