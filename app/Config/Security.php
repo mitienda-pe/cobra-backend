@@ -55,12 +55,14 @@ class Security extends BaseConfig
 
     /**
      * --------------------------------------------------------------------------
-     * CSRF Expire
+     * CSRF Expires
      * --------------------------------------------------------------------------
      *
-     * The number in seconds the token should expire.
+     * Expiration time for Cross Site Request Forgery protection cookie.
+     *
+     * Defaults to two hours (in seconds).
      */
-    public int $expire = 7200;
+    public int $expires = 7200;
 
     /**
      * --------------------------------------------------------------------------
