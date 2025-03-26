@@ -28,12 +28,20 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <p><strong>RUC:</strong> <?= esc($organization['ruc']) ?></p>
-                        <p><strong>Razón Social:</strong> <?= esc($organization['name']) ?></p>
-                        <p><strong>Nombre Comercial:</strong> <?= esc($organization['commercial_name']) ?></p>
+                        <p><strong>Nombre:</strong> <?= esc($organization['name']) ?></p>
+                        <?php if (isset($organization['code']) && !empty($organization['code'])): ?>
+                            <p><strong>Código:</strong> <?= esc($organization['code']) ?></p>
+                        <?php endif; ?>
+                        <?php if (isset($organization['description']) && !empty($organization['description'])): ?>
+                            <p><strong>Descripción:</strong> <?= esc($organization['description']) ?></p>
+                        <?php endif; ?>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Estado:</strong> <?= esc($organization['status']) ?></p>
+                        <p><strong>Estado:</strong> 
+                            <span class="badge bg-<?= $organization['status'] == 'active' ? 'success' : 'danger' ?>">
+                                <?= $organization['status'] == 'active' ? 'Activo' : 'Inactivo' ?>
+                            </span>
+                        </p>
                         <p><strong>Fecha de Creación:</strong> <?= date('d/m/Y', strtotime($organization['created_at'])) ?></p>
                     </div>
                 </div>
@@ -43,12 +51,12 @@
 </div>
 
 <div class="row">
-    <div class="col-md-12 mb-4">
+    <div class="col-md-6">
         <div class="card">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Usuarios de la Organización</h5>
-                    <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $organization['id'])): ?>
+                    <h5 class="mb-0">Usuarios</h5>
+                    <?php if ($auth->hasRole('superadmin')): ?>
                         <a href="<?= site_url('users/create') ?>" class="btn btn-primary btn-sm">
                             <i class="bi bi-plus-circle"></i> Nuevo Usuario
                         </a>
@@ -63,7 +71,6 @@
                                 <tr>
                                     <th>Nombre</th>
                                     <th>Email</th>
-                                    <th>Rol</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -73,7 +80,6 @@
                                     <tr>
                                         <td><?= esc($user['name']) ?></td>
                                         <td><?= esc($user['email']) ?></td>
-                                        <td><?= ucfirst(esc($user['role'])) ?></td>
                                         <td>
                                             <span class="badge bg-<?= $user['status'] == 'active' ? 'success' : 'danger' ?>">
                                                 <?= $user['status'] == 'active' ? 'Activo' : 'Inactivo' ?>
@@ -84,7 +90,7 @@
                                                 <a href="<?= site_url('users/' . $user['uuid']) ?>" class="btn btn-info btn-sm" title="Ver">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
-                                                <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $organization['id'])): ?>
+                                                <?php if ($auth->hasRole('superadmin')): ?>
                                                     <a href="<?= site_url('users/' . $user['uuid'] . '/edit') ?>" class="btn btn-primary btn-sm" title="Editar">
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
@@ -104,15 +110,13 @@
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-md-12">
+    <div class="col-md-6">
         <div class="card">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Clientes de la Organización</h5>
-                    <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $organization['id'])): ?>
+                    <h5 class="mb-0">Clientes</h5>
+                    <?php if ($auth->hasRole('superadmin')): ?>
                         <a href="<?= site_url('clients/create') ?>" class="btn btn-primary btn-sm">
                             <i class="bi bi-plus-circle"></i> Nuevo Cliente
                         </a>
@@ -125,9 +129,7 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>Código</th>
                                     <th>Nombre</th>
-                                    <th>RUC</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -135,9 +137,7 @@
                             <tbody>
                                 <?php foreach ($clients as $client): ?>
                                     <tr>
-                                        <td><?= esc($client['code']) ?></td>
-                                        <td><?= esc($client['name']) ?></td>
-                                        <td><?= esc($client['document_number']) ?></td>
+                                        <td><?= esc($client['business_name']) ?></td>
                                         <td>
                                             <span class="badge bg-<?= $client['status'] == 'active' ? 'success' : 'danger' ?>">
                                                 <?= $client['status'] == 'active' ? 'Activo' : 'Inactivo' ?>
@@ -148,7 +148,7 @@
                                                 <a href="<?= site_url('clients/' . $client['uuid']) ?>" class="btn btn-info btn-sm" title="Ver">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
-                                                <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $organization['id'])): ?>
+                                                <?php if ($auth->hasRole('superadmin')): ?>
                                                     <a href="<?= site_url('clients/' . $client['uuid'] . '/edit') ?>" class="btn btn-primary btn-sm" title="Editar">
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
