@@ -30,7 +30,6 @@ class UserApiTokenModel extends Model
 
     // Validation
     protected $validationRules      = [
-        'client_id' => 'required',
         'token'    => 'required',
     ];
     protected $validationMessages   = [];
