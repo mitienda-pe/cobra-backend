@@ -14,7 +14,6 @@ $routes->setDefaultMethod('index');
 $routes->setTranslateURIDashes(false);
 $routes->set404Override();
 $routes->setAutoRoute(false);
-$routes->setHTTPVerb('post');
 
 // Public Routes (No auth required)
 $routes->get('/', 'Home::index');
@@ -44,6 +43,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->post('request-otp', 'AuthController::request_otp');
         $routes->post('verify-otp', 'AuthController::verifyOtp');
         $routes->post('refresh-token', 'AuthController::refreshToken');
+        // OPTIONS routes for CORS preflight
         $routes->match(['options'], 'request-otp', 'AuthController::request_otp');
         $routes->match(['options'], 'verify-otp', 'AuthController::verifyOtp');
         $routes->match(['options'], 'refresh-token', 'AuthController::refreshToken');
