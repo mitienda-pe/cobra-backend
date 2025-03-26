@@ -253,6 +253,36 @@ class UserController extends BaseController
         return view('users/edit', $data);
     }
     
+    public function view($id)
+    {
+        $userModel = new UserModel();
+        $organizationModel = new OrganizationModel();
+        
+        // Get the user with organization info
+        $db = \Config\Database::connect();
+        $builder = $db->table('users');
+        $builder->select('users.*, organizations.name as organization_name');
+        $builder->join('organizations', 'organizations.id = users.organization_id', 'left');
+        $builder->where('users.id', $id);
+        $builder->where('users.deleted_at IS NULL');
+        $user = $builder->get()->getRowArray();
+        
+        if (!$user) {
+            return redirect()->to('/users')->with('error', 'Usuario no encontrado.');
+        }
+        
+        // Check permissions
+        if (!$this->auth->hasRole('superadmin') && $user['organization_id'] != $this->auth->user()['organization_id']) {
+            return redirect()->to('/users')->with('error', 'No tiene permisos para ver este usuario.');
+        }
+        
+        return view('users/view', [
+            'title' => 'Ver Usuario',
+            'user' => $user,
+            'auth' => $this->auth,
+        ]);
+    }
+    
     public function delete($id = null)
     {
         if (!$id) {

@@ -172,15 +172,11 @@ class OrganizationController extends BaseController
         return redirect()->to('/organizations')->with('message', 'Organization deleted successfully');
     }
     
-    public function view($id = null)
+    public function view($id)
     {
-        // Only superadmins can view organization details
+        // Only superadmins can view organizations
         if (!$this->auth->hasRole('superadmin')) {
-            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para ver detalles de organizaciones.');
-        }
-        
-        if (!$id) {
-            return redirect()->to('/organizations')->with('error', 'ID de organización no proporcionado.');
+            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para ver organizaciones.');
         }
         
         $organization = $this->organizationModel->find($id);
@@ -189,27 +185,10 @@ class OrganizationController extends BaseController
             return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');
         }
         
-        // Get stats about the organization
-        $db = \Config\Database::connect();
-        $clientCount = $db->table('clients')->where('organization_id', $id)->countAllResults();
-        $userCount = $db->table('users')->where('organization_id', $id)->countAllResults();
-        $portfolioCount = $db->table('portfolios')->where('organization_id', $id)->countAllResults();
-        $invoiceCount = $db->table('invoices')
-                          ->join('clients', 'clients.id = invoices.client_id')
-                          ->where('clients.organization_id', $id)
-                          ->countAllResults();
-        
-        $data = [
+        return view('organizations/view', [
+            'title' => 'Ver Organización',
             'organization' => $organization,
-            'stats' => [
-                'clients' => $clientCount,
-                'users' => $userCount,
-                'portfolios' => $portfolioCount,
-                'invoices' => $invoiceCount,
-            ],
             'auth' => $this->auth,
-        ];
-        
-        return view('organizations/view', $data);
+        ]);
     }
 }
