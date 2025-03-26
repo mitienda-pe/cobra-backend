@@ -7,8 +7,8 @@ use CodeIgniter\Model;
 class ClientModel extends Model
 {
     protected $table            = 'clients';
-    protected $primaryKey       = 'id';
-    protected $useAutoIncrement = true;
+    protected $primaryKey       = 'uuid';
+    protected $useAutoIncrement = false;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
@@ -76,16 +76,16 @@ class ClientModel extends Model
     /**
      * Get clients by portfolio
      */
-    public function getByPortfolio($portfolioId)
+    public function getByPortfolio($portfolioUuid)
     {
         $db = \Config\Database::connect();
-        $builder = $db->table('clients c');
-        $builder->select('c.*');
-        $builder->join('client_portfolio cp', 'c.id = cp.client_id');
-        $builder->where('cp.portfolio_id', $portfolioId);
-        $builder->where('c.deleted_at IS NULL');
-        
-        return $builder->get()->getResultArray();
+        return $db->table('clients c')
+                 ->select('c.*')
+                 ->join('client_portfolio cp', 'cp.client_uuid = c.uuid')
+                 ->where('cp.portfolio_uuid', $portfolioUuid)
+                 ->where('c.deleted_at IS NULL')
+                 ->get()
+                 ->getResultArray();
     }
     
     /**
@@ -114,5 +114,20 @@ class ClientModel extends Model
         }
         
         return $query->first();
+    }
+    
+    /**
+     * Get portfolios by client
+     */
+    public function getPortfolios($clientUuid)
+    {
+        $db = \Config\Database::connect();
+        return $db->table('portfolios p')
+                 ->select('p.*')
+                 ->join('client_portfolio cp', 'cp.portfolio_uuid = p.uuid')
+                 ->where('cp.client_uuid', $clientUuid)
+                 ->where('p.deleted_at IS NULL')
+                 ->get()
+                 ->getResultArray();
     }
 }

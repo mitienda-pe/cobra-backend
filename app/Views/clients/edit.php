@@ -160,16 +160,21 @@
                     <h5 class="mt-4 mb-3">Asignación a Carteras</h5>
                     <div class="mb-3">
                         <label class="form-label">Carteras de Cobro</label>
-                        <div>
+                        <?php if(empty($portfolios)): ?>
+                            <p class="text-muted">No hay carteras disponibles</p>
+                        <?php else: ?>
                             <?php foreach ($portfolios as $portfolio): ?>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="portfolio_ids[]" id="portfolio_<?= $portfolio['id'] ?>" value="<?= $portfolio['id'] ?>" 
-                                        <?= (old('portfolio_ids') && in_array($portfolio['id'], old('portfolio_ids'))) || 
-                                            (!old('portfolio_ids') && in_array($portfolio['id'], $assignedPortfolioIds)) ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="portfolio_<?= $portfolio['id'] ?>"><?= $portfolio['name'] ?></label>
+                                <div class="form-check">
+                                    <input class="form-check-input portfolio-checkbox" type="checkbox" 
+                                        name="portfolio_ids[]" id="portfolio_<?= $portfolio['uuid'] ?>" 
+                                        value="<?= $portfolio['uuid'] ?>" 
+                                        <?= (in_array($portfolio['uuid'], $assigned_portfolio_ids)) ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="portfolio_<?= $portfolio['uuid'] ?>">
+                                        <?= $portfolio['name'] ?>
+                                    </label>
                                 </div>
                             <?php endforeach; ?>
-                        </div>
+                        <?php endif; ?>
                     </div>
                     
                     <div class="d-grid gap-2 mt-4">

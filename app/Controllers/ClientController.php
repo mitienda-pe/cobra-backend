@@ -59,41 +59,24 @@ class ClientController extends BaseController
             log_message('debug', 'Admin fetched ' . count($clients) . ' clients for organization ' . $adminOrgId);
         } else {
             // Regular users can only see clients from their portfolios
-            $portfolios = $this->portfolioModel->getByUser($auth->user()['id']);
+            $portfolios = $this->portfolioModel->getByUser($auth->user()['uuid']);
             log_message('debug', 'User has ' . count($portfolios) . ' portfolios');
             
             $clients = [];
             foreach ($portfolios as $portfolio) {
-                $portfolioClients = $this->clientModel->getByPortfolio($portfolio['id']);
-                log_message('debug', 'Portfolio ' . $portfolio['id'] . ' has ' . count($portfolioClients) . ' clients');
+                $portfolioClients = $this->clientModel->getByPortfolio($portfolio['uuid']);
+                log_message('debug', 'Portfolio ' . $portfolio['uuid'] . ' has ' . count($portfolioClients) . ' clients');
                 $clients = array_merge($clients, $portfolioClients);
             }
             
             // Remove duplicates
             $uniqueClients = [];
             foreach ($clients as $client) {
-                $uniqueClients[$client['id']] = $client;
+                $uniqueClients[$client['uuid']] = $client;
             }
             
             $clients = array_values($uniqueClients);
             log_message('debug', 'User has ' . count($clients) . ' unique clients');
-        }
-        
-        // If no clients found with role-based filtering, try direct fetching to debug
-        if (empty($clients)) {
-            $allClients = $this->clientModel->findAll();
-            log_message('debug', 'No clients found with filtering. Total clients in database: ' . count($allClients));
-            
-            // For debugging, log all available organizations
-            $db = \Config\Database::connect();
-            $orgs = $db->table('organizations')->get()->getResultArray();
-            log_message('debug', 'Available organizations: ' . json_encode(array_column($orgs, 'id')));
-            
-            // If admin/superadmin and no clients found, use all clients
-            if (($auth->hasRole('superadmin') || $auth->hasRole('admin')) && count($allClients) > 0) {
-                $clients = $allClients;
-                log_message('debug', 'Admin/Superadmin fallback to all clients: ' . count($clients));
-            }
         }
         
         // Initialize view data
@@ -163,20 +146,22 @@ class ClientController extends BaseController
             $db->transStart();
             
             // Insert client
-            $clientId = $this->clientModel->insert($data);
+            $client = $this->clientModel->insert($data);
             
-            if ($clientId === false) {
+            if ($client === false) {
                 $db->transRollback();
                 return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . implode(', ', $this->clientModel->errors()));
             }
             
             // Handle portfolio assignments
-            $portfolioIds = $this->request->getPost('portfolio_ids');
-            if ($portfolioIds) {
-                foreach ($portfolioIds as $portfolioId) {
+            $portfolioUuids = $this->request->getPost('portfolio_ids');
+            if ($portfolioUuids) {
+                foreach ($portfolioUuids as $portfolioUuid) {
                     $db->table('client_portfolio')->insert([
-                        'portfolio_id' => $portfolioId,
-                        'client_id' => $clientId
+                        'portfolio_uuid' => $portfolioUuid,
+                        'client_uuid' => $client['uuid'],
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
                     ]);
                 }
             }
@@ -332,47 +317,110 @@ class ClientController extends BaseController
         return view('clients/create', $data);
     }
     
-    public function edit($uuid)
+    public function edit($uuid = null)
     {
+        if (!$uuid) {
+            return redirect()->to('/clients')->with('error', 'UUID de cliente no proporcionado.');
+        }
+
+        // Get client
         $client = $this->clientModel->where('uuid', $uuid)->first();
-        
         if (!$client) {
             return redirect()->to('/clients')->with('error', 'Cliente no encontrado.');
         }
-        
-        // Check permissions
-        if (!$this->auth->hasRole('superadmin') && $client['organization_id'] != $this->auth->organizationId()) {
+
+        // Check organization permissions
+        if (!$this->auth->hasRole('superadmin') && $client['organization_id'] !== $this->auth->organizationId()) {
             return redirect()->to('/clients')->with('error', 'No tiene permisos para editar este cliente.');
         }
-        
-        // Get organizations for dropdown
-        $organizations = [];
-        
-        if ($this->auth->hasRole('superadmin')) {
-            $organizations = $this->organizationModel->findAll();
-        } else {
-            $organizations = [$this->organizationModel->find($this->auth->organizationId())];
+
+        if ($this->request->getMethod() === 'post') {
+            $rules = [
+                'business_name' => 'required|min_length[3]|max_length[100]',
+                'legal_name' => 'required|min_length[3]|max_length[100]',
+                'document_number' => 'required|min_length[8]',
+                'status' => 'required|in_list[active,inactive]'
+            ];
+
+            if (!$this->validate($rules)) {
+                return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            }
+
+            $data = [
+                'business_name' => $this->request->getPost('business_name'),
+                'legal_name' => $this->request->getPost('legal_name'),
+                'document_number' => $this->request->getPost('document_number'),
+                'external_id' => $this->request->getPost('external_id'),
+                'contact_name' => $this->request->getPost('contact_name'),
+                'contact_phone' => $this->request->getPost('contact_phone'),
+                'address' => $this->request->getPost('address'),
+                'ubigeo' => $this->request->getPost('ubigeo'),
+                'zip_code' => $this->request->getPost('zip_code'),
+                'latitude' => $this->request->getPost('latitude'),
+                'longitude' => $this->request->getPost('longitude'),
+                'status' => $this->request->getPost('status')
+            ];
+
+            try {
+                $db = \Config\Database::connect();
+                $db->transStart();
+
+                // Update client
+                if (!$this->clientModel->update($client['uuid'], $data)) {
+                    $db->transRollback();
+                    return redirect()->back()->withInput()->with('error', 'Error al actualizar el cliente: ' . implode(', ', $this->clientModel->errors()));
+                }
+
+                // Update portfolio assignments
+                $portfolioUuids = $this->request->getPost('portfolio_ids') ?: [];
+                
+                // Delete existing assignments
+                $db->table('client_portfolio')
+                   ->where('client_uuid', $client['uuid'])
+                   ->delete();
+
+                // Insert new assignments
+                foreach ($portfolioUuids as $portfolioUuid) {
+                    $db->table('client_portfolio')->insert([
+                        'portfolio_uuid' => $portfolioUuid,
+                        'client_uuid' => $client['uuid'],
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+
+                $db->transComplete();
+
+                if ($db->transStatus() === false) {
+                    return redirect()->back()->withInput()->with('error', 'Error al actualizar las carteras del cliente.');
+                }
+
+                return redirect()->to('/clients')->with('message', 'Cliente actualizado exitosamente.');
+
+            } catch (\Exception $e) {
+                $db->transRollback();
+                return redirect()->back()->withInput()->with('error', 'Error al actualizar el cliente: ' . $e->getMessage());
+            }
         }
-        
-        // Get portfolios for dropdown
-        $portfolios = $this->portfolioModel->where('organization_id', $client['organization_id'])->findAll();
-        
+
         // Get assigned portfolios
-        $db = \Config\Database::connect();
-        $assignedPortfolios = $db->table('client_portfolio')
-                                ->where('client_id', $client['id'])
-                                ->get()
-                                ->getResultArray();
-        $assignedPortfolioIds = array_column($assignedPortfolios, 'portfolio_id');
-        
+        $assignedPortfolios = $this->clientModel->getPortfolios($client['uuid']);
+        $assignedPortfolioIds = array_column($assignedPortfolios, 'uuid');
+
+        // Get available portfolios
+        if ($this->auth->hasRole('superadmin')) {
+            $portfolios = $this->portfolioModel->findAll();
+        } else {
+            $portfolios = $this->portfolioModel->where('organization_id', $this->auth->organizationId())->findAll();
+        }
+
         $data = [
             'client' => $client,
-            'organizations' => $organizations,
             'portfolios' => $portfolios,
-            'assignedPortfolioIds' => $assignedPortfolioIds,
+            'assigned_portfolio_ids' => $assignedPortfolioIds,
             'auth' => $this->auth
         ];
-        
+
         return view('clients/edit', $data);
     }
     
