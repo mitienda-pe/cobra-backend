@@ -30,4 +30,21 @@ Options -Indexes
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ index.php/$1 [L,QSA]
+
+    # Ensure Authorization header is passed along
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 </IfModule>
+
+# Set CORS headers for API URLs
+<IfModule mod_headers.c>
+    SetEnvIf Request_URI "^/api/" API_REQUEST=1
+    
+    Header always set Access-Control-Allow-Origin "*" env=API_REQUEST
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE" env=API_REQUEST
+    Header always set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization" env=API_REQUEST
+    Header always set Access-Control-Max-Age "1728000" env=API_REQUEST
+</IfModule>
+
+# Disable server signature
+ServerSignature Off
