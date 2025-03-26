@@ -41,9 +41,12 @@ $routes->get('debug/test-api', 'Debug::testApi');
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth API Routes - No CSRF required (CSRF is excluded in Filters.php)
     $routes->group('auth', ['filter' => 'api-public'], function ($routes) {
-        $routes->match(['post', 'options'], 'request-otp', 'AuthController::requestOtp');
-        $routes->match(['post', 'options'], 'verify-otp', 'AuthController::verifyOtp');
-        $routes->match(['post', 'options'], 'refresh-token', 'AuthController::refreshToken');
+        $routes->post('request-otp', 'AuthController::requestOtp');
+        $routes->post('verify-otp', 'AuthController::verifyOtp');
+        $routes->post('refresh-token', 'AuthController::refreshToken');
+        $routes->match(['options'], 'request-otp', 'AuthController::requestOtp');
+        $routes->match(['options'], 'verify-otp', 'AuthController::verifyOtp');
+        $routes->match(['options'], 'refresh-token', 'AuthController::refreshToken');
     });
     
     // Debug endpoint - useful for troubleshooting
