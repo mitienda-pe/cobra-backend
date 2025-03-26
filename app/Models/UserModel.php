@@ -50,10 +50,28 @@ class UserModel extends Model
     }
     
     protected $validationMessages   = [
+        'name' => [
+            'required' => 'El nombre es requerido',
+            'min_length' => 'El nombre debe tener al menos 3 caracteres',
+            'max_length' => 'El nombre no puede tener más de 100 caracteres'
+        ],
+        'email' => [
+            'required' => 'El correo electrónico es requerido',
+            'valid_email' => 'El correo electrónico no es válido',
+            'is_unique' => 'Este correo electrónico ya está registrado'
+        ],
         'phone' => [
             'required' => 'El número de teléfono es requerido',
             'min_length' => 'El número de teléfono debe tener al menos 10 dígitos',
             'is_unique' => 'Este número de teléfono ya está registrado'
+        ],
+        'password' => [
+            'required' => 'La contraseña es requerida',
+            'min_length' => 'La contraseña debe tener al menos 8 caracteres'
+        ],
+        'role' => [
+            'required' => 'El rol es requerido',
+            'in_list' => 'El rol seleccionado no es válido'
         ]
     ];
     
