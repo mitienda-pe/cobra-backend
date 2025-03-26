@@ -40,11 +40,6 @@ class Filters extends BaseConfig
      */
     public array $globals = [
         'before' => [
-            'csrf' => ['except' => [
-                'api/*',  // Exclude CSRF check for API routes
-                'login*', // Exclude CSRF check for login routes
-                'logout'  // Exclude CSRF check for logout
-            ]],
             // 'honeypot',
             // 'invalidchars',
         ],
@@ -82,7 +77,9 @@ class Filters extends BaseConfig
                 'api/*',
                 'api',
                 'clients/import*',
-                'invoices/import*'
+                'invoices/import*',
+                'login*',
+                'logout'
             ]
         ],
         'auth' => [
