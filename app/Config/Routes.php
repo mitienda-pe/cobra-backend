@@ -123,7 +123,7 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
     $routes->group('users', function($routes) {
         $routes->get('/', 'UserController::index');
         $routes->get('create', 'UserController::create');
-        $routes->post('/', 'UserController::store');
+        $routes->post('store', 'UserController::store');
         $routes->get('(:segment)', 'UserController::view/$1');
         $routes->get('(:segment)/edit', 'UserController::edit/$1');
         $routes->post('(:segment)', 'UserController::update/$1');
