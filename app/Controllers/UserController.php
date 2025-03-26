@@ -105,63 +105,72 @@ class UserController extends BaseController
         $email = $this->request->getPost('email');
         $phone = $this->request->getPost('phone');
         
-        // Verificar email duplicado
-        $existingEmail = $db->table('users')
-            ->where('email', $email)
-            ->where('deleted_at IS NULL')
-            ->get()
-            ->getRow();
-            
-        if ($existingEmail) {
-            return redirect()->back()
-                ->withInput()
-                ->with('errors', ['email' => 'Este correo electrónico ya está registrado']);
-        }
-        
-        // Verificar teléfono duplicado
-        $existingPhone = $db->table('users')
-            ->where('phone', $phone)
-            ->where('deleted_at IS NULL')
-            ->get()
-            ->getRow();
-            
-        if ($existingPhone) {
-            return redirect()->back()
-                ->withInput()
-                ->with('errors', ['phone' => 'Este número de teléfono ya está registrado']);
-        }
-        
-        // Validación básica
-        $rules = [
-            'name' => 'required|min_length[3]',
-            'email' => 'required|valid_email',
-            'phone' => 'required|min_length[10]',
-            'password' => 'required|min_length[6]',
-            'password_confirm' => 'required|matches[password]',
-            'role' => 'required|in_list[superadmin,admin,user]'
-        ];
-        
-        if (!$this->validate($rules)) {
-            return redirect()->back()
-                ->withInput()
-                ->with('errors', $this->validator->getErrors());
-        }
+        // Iniciar transacción
+        $db->transStart();
         
         try {
+            // Verificar email duplicado
+            $existingUser = $db->table('users')
+                ->where('email', $email)
+                ->where('deleted_at IS NULL')
+                ->get()
+                ->getRow();
+                
+            if ($existingUser) {
+                $db->transRollback();
+                return redirect()->back()
+                    ->withInput()
+                    ->with('errors', ['email' => 'Este correo electrónico ya está registrado']);
+            }
+            
+            // Verificar teléfono duplicado
+            $existingPhone = $db->table('users')
+                ->where('phone', $phone)
+                ->where('deleted_at IS NULL')
+                ->get()
+                ->getRow();
+                
+            if ($existingPhone) {
+                $db->transRollback();
+                return redirect()->back()
+                    ->withInput()
+                    ->with('errors', ['phone' => 'Este número de teléfono ya está registrado']);
+            }
+            
+            // Validación básica
+            $rules = [
+                'name' => 'required|min_length[3]',
+                'email' => 'required|valid_email',
+                'phone' => 'required|min_length[10]',
+                'password' => 'required|min_length[6]',
+                'password_confirm' => 'required|matches[password]',
+                'role' => 'required|in_list[superadmin,admin,user]'
+            ];
+            
+            if (!$this->validate($rules)) {
+                $db->transRollback();
+                return redirect()->back()
+                    ->withInput()
+                    ->with('errors', $this->validator->getErrors());
+            }
+            
+            // Generar UUID
+            helper('uuid');
+            $uuid = generate_unique_uuid('users', 'uuid');
+            
             // Preparar datos
             $data = [
+                'uuid' => $uuid,
                 'name' => $this->request->getPost('name'),
                 'email' => $email,
                 'phone' => $phone,
                 'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
                 'role' => $this->request->getPost('role'),
                 'organization_id' => $this->request->getPost('organization_id') ?: null,
-                'status' => 'active'
+                'status' => 'active',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
             ];
-            
-            // Generar UUID
-            helper('uuid');
-            $data['uuid'] = generate_unique_uuid('users', 'uuid');
             
             // Insertar usuario
             $result = $db->table('users')->insert($data);
@@ -170,15 +179,24 @@ class UserController extends BaseController
                 throw new \Exception('Error al insertar el usuario en la base de datos');
             }
             
+            // Confirmar transacción
+            if ($db->transStatus() === false) {
+                $db->transRollback();
+                throw new \Exception('Error en la transacción');
+            }
+            
+            $db->transCommit();
+            
             return redirect()->to('/users')
                 ->with('message', 'Usuario creado exitosamente');
                 
         } catch (\Exception $e) {
+            $db->transRollback();
             log_message('error', '[UserController::store] Error: ' . $e->getMessage());
             
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Error al crear el usuario. Por favor, intente nuevamente.');
+                ->with('error', 'Error al crear el usuario: ' . $e->getMessage());
         }
     }
     
@@ -217,64 +235,120 @@ class UserController extends BaseController
     
     public function update($uuid)
     {
-        $userModel = new UserModel();
-        $user = $userModel->where('uuid', $uuid)->first();
+        $db = \Config\Database::connect();
         
-        if (!$user) {
-            log_message('error', 'User not found with UUID: ' . $uuid);
-            return redirect()->to('/users')->with('error', 'Usuario no encontrado');
+        // Obtener el usuario actual
+        $currentUser = $db->table('users')
+            ->where('uuid', $uuid)
+            ->get()
+            ->getRow();
+            
+        if (!$currentUser) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Usuario no encontrado');
         }
         
-        // Check permissions
-        if (!$this->auth->hasRole('superadmin') && $user['organization_id'] != $this->auth->user()['organization_id']) {
-            return redirect()->to('/users')->with('error', 'No tiene permisos para actualizar este usuario');
-        }
+        $email = $this->request->getPost('email');
+        $phone = $this->request->getPost('phone');
         
-        // Get current POST data for logging
-        $postData = $this->request->getPost();
-        log_message('debug', 'Update request for user ' . $uuid . ' with data: ' . json_encode($postData));
-        
-        // Get validation rules for update
-        $rules = $userModel->getValidationRulesForUpdate($user['id']);
-        
-        if (!$this->validate($rules)) {
-            log_message('error', 'Validation errors: ' . json_encode($this->validator->getErrors()));
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-        
-        $data = [
-            'name' => $postData['name'],
-            'email' => $postData['email'],
-            'phone' => $postData['phone'] ?? null,
-            'role' => $postData['role'],
-            'status' => $postData['status']
-        ];
-        
-        // Only update organization_id if user is superadmin
-        if ($this->auth->hasRole('superadmin') && isset($postData['organization_id'])) {
-            $data['organization_id'] = $postData['organization_id'];
-        }
-        
-        // Only update password if provided
-        if (!empty($postData['password'])) {
-            $data['password'] = password_hash($postData['password'], PASSWORD_DEFAULT);
-        }
+        // Iniciar transacción
+        $db->transStart();
         
         try {
-            $builder = $userModel->builder();
-            $updated = $builder->where('uuid', $uuid)
-                             ->update($data);
-            
-            if ($updated === false) {
-                log_message('error', 'Update failed for user UUID: ' . $uuid . '. Errors: ' . json_encode($userModel->errors()));
-                return redirect()->back()->withInput()->with('error', 'Error al actualizar el usuario: ' . implode(', ', $userModel->errors()));
+            // Verificar email duplicado (excluyendo el usuario actual)
+            $existingUser = $db->table('users')
+                ->where('email', $email)
+                ->where('id !=', $currentUser->id)
+                ->where('deleted_at IS NULL')
+                ->get()
+                ->getRow();
+                
+            if ($existingUser) {
+                $db->transRollback();
+                return redirect()->back()
+                    ->withInput()
+                    ->with('errors', ['email' => 'Este correo electrónico ya está registrado']);
             }
             
-            return redirect()->to('/users/' . $uuid)->with('message', 'Usuario actualizado exitosamente');
+            // Verificar teléfono duplicado (excluyendo el usuario actual)
+            $existingPhone = $db->table('users')
+                ->where('phone', $phone)
+                ->where('id !=', $currentUser->id)
+                ->where('deleted_at IS NULL')
+                ->get()
+                ->getRow();
+                
+            if ($existingPhone) {
+                $db->transRollback();
+                return redirect()->back()
+                    ->withInput()
+                    ->with('errors', ['phone' => 'Este número de teléfono ya está registrado']);
+            }
             
+            // Validación básica
+            $rules = [
+                'name' => 'required|min_length[3]',
+                'email' => 'required|valid_email',
+                'phone' => 'required|min_length[10]',
+                'role' => 'required|in_list[superadmin,admin,user]'
+            ];
+            
+            // Solo validar contraseña si se proporciona una nueva
+            if ($this->request->getPost('password')) {
+                $rules['password'] = 'required|min_length[6]';
+                $rules['password_confirm'] = 'required|matches[password]';
+            }
+            
+            if (!$this->validate($rules)) {
+                $db->transRollback();
+                return redirect()->back()
+                    ->withInput()
+                    ->with('errors', $this->validator->getErrors());
+            }
+            
+            // Preparar datos
+            $data = [
+                'name' => $this->request->getPost('name'),
+                'email' => $email,
+                'phone' => $phone,
+                'role' => $this->request->getPost('role'),
+                'organization_id' => $this->request->getPost('organization_id') ?: null,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            // Actualizar contraseña solo si se proporciona una nueva
+            if ($this->request->getPost('password')) {
+                $data['password'] = password_hash($this->request->getPost('password'), PASSWORD_DEFAULT);
+            }
+            
+            // Actualizar usuario
+            $result = $db->table('users')
+                ->where('id', $currentUser->id)
+                ->update($data);
+            
+            if (!$result) {
+                throw new \Exception('Error al actualizar el usuario en la base de datos');
+            }
+            
+            // Confirmar transacción
+            if ($db->transStatus() === false) {
+                $db->transRollback();
+                throw new \Exception('Error en la transacción');
+            }
+            
+            $db->transCommit();
+            
+            return redirect()->to('/users')
+                ->with('message', 'Usuario actualizado exitosamente');
+                
         } catch (\Exception $e) {
-            log_message('error', 'Exception updating user: ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Error al actualizar el usuario: ' . $e->getMessage());
+            $db->transRollback();
+            log_message('error', '[UserController::update] Error: ' . $e->getMessage());
+            
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Error al actualizar el usuario: ' . $e->getMessage());
         }
     }
     
