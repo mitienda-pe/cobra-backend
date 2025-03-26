@@ -20,6 +20,11 @@
                         <label for="name" class="form-label">Nombre</label>
                         <input type="text" class="form-control" id="name" name="name" value="<?= old('name') ?>" required>
                     </div>
+
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Código</label>
+                        <input type="text" class="form-control" id="code" name="code" value="<?= old('code') ?>" required>
+                    </div>
                     
                     <div class="mb-3">
                         <label for="description" class="form-label">Descripción</label>

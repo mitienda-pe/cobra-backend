@@ -112,7 +112,7 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
     $routes->get('organizations/create', 'OrganizationController::create');
     $routes->post('organizations/store', 'OrganizationController::store');
     $routes->get('organizations/edit/(:num)', 'OrganizationController::edit/$1');
-    $routes->post('organizations/update/(:num)', 'OrganizationController::update/$1');
+    $routes->put('organizations/update/(:num)', 'OrganizationController::update/$1');
     $routes->get('organizations/delete/(:num)', 'OrganizationController::delete/$1');
     $routes->get('organizations/view/(:num)', 'OrganizationController::view/$1');
 

@@ -23,6 +23,11 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label for="code" class="form-label">Código</label>
+                        <input type="text" class="form-control" id="code" name="code" value="<?= old('code', $organization['code']) ?>" required>
+                    </div>
+                    
+                    <div class="mb-3">
                         <label for="description" class="form-label">Descripción</label>
                         <textarea class="form-control" id="description" name="description" rows="3"><?= old('description', $organization['description']) ?></textarea>
                     </div>
