@@ -38,6 +38,10 @@ $routes->get('debug/test-api', 'Debug::testApi');
 
 // API Routes - Public (sin ningún filtro)
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
+    // Debug endpoint - useful for troubleshooting
+    $routes->match(['get', 'post', 'options'], 'debug', 'AuthController::debug');
+    $routes->match(['get', 'post', 'options'], 'test-otp', 'AuthController::testOtp');
+    
     // Auth API Routes - No CSRF required (CSRF is excluded in Filters.php)
     $routes->group('auth', ['filter' => 'cors'], function ($routes) {
         $routes->post('request-otp', 'AuthController::requestOtp');
@@ -48,16 +52,6 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->match(['options'], 'verify-otp', 'AuthController::verifyOtp');
         $routes->match(['options'], 'refresh-token', 'AuthController::refreshToken');
     });
-    
-    // Debug endpoint - useful for troubleshooting
-    $routes->match(['get', 'post', 'options'], 'debug', 'AuthController::debug');
-    $routes->match(['get', 'post', 'options'], 'test-otp', 'AuthController::testOtp');
-});
-
-// API Routes - Protected 
-$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'api-auth'], function ($routes) {
-    // Auth Protected Routes
-    $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
     
     // Client Routes
     $routes->match(['get', 'options'], 'clients', 'ClientController::index');
@@ -106,6 +100,12 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'api-au
     $routes->match(['get', 'options'], 'organizations/(:segment)', 'OrganizationController::show/$1');
     $routes->match(['put', 'options'], 'organizations/(:segment)', 'OrganizationController::update/$1');
     $routes->match(['delete', 'options'], 'organizations/(:segment)', 'OrganizationController::delete/$1');
+});
+
+// API Routes - Protected 
+$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'api-auth'], function ($routes) {
+    // Auth Protected Routes
+    $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
 });
 
 // Web Routes - Protected
