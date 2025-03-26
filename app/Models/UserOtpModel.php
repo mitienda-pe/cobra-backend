@@ -13,145 +13,79 @@ class UserOtpModel extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'user_id',
+        'phone',
+        'email',
         'code',
+        'organization_code',
         'device_info',
+        'delivery_status',
+        'delivery_info',
         'expires_at',
-        'used_at',
-        'delivery_method',
-        'delivery_status'
+        'created_at'
     ];
 
     // Dates
-    protected $useTimestamps = true;
+    protected $useTimestamps = false; // We'll manage timestamps manually
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = '';
     protected $deletedField  = '';
 
     // Validation
-    protected $validationRules      = [
-        'user_id'          => 'required|is_natural_no_zero',
-        'code'             => 'required|min_length[4]|max_length[10]',
-        'expires_at'       => 'required',
-        'delivery_method'  => 'permit_empty|in_list[email,sms]',
-    ];
+    protected $validationRules      = [];
     protected $validationMessages   = [];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
 
     /**
-     * Generate a new OTP code for a user
-     *
-     * @param int $userId User ID
-     * @param string|null $deviceInfo Information about the device
-     * @param string $deliveryMethod Method to deliver OTP ('email' or 'sms')
-     * @param int $expiresInMinutes Minutes until expiration
-     * @param int $codeLength Length of the generated code
-     * @return array OTP data including code and delivery status
+     * Verify OTP code
      */
-    public function generateOTP($userId, $deviceInfo = null, $deliveryMethod = 'email', $expiresInMinutes = 15, $codeLength = 6)
+    public function verifyOTP($phone, $email, $code, $organizationCode = null)
     {
-        // Invalidate all previous OTPs for this user
-        $this->where('user_id', $userId)
-            ->where('used_at IS NULL')
-            ->set(['used_at' => date('Y-m-d H:i:s')])
-            ->update();
+        $where = [
+            'code' => $code,
+            'expires_at >' => date('Y-m-d H:i:s')
+        ];
 
-        // Generate a random numeric code
-        $code = '';
-        for ($i = 0; $i < $codeLength; $i++) {
-            $code .= mt_rand(0, 9);
+        if (!empty($phone)) {
+            $where['phone'] = $phone;
         }
 
-        $expiresAt = date('Y-m-d H:i:s', strtotime("+{$expiresInMinutes} minutes"));
+        if (!empty($email)) {
+            $where['email'] = $email;
+        }
 
-        $data = [
-            'user_id'         => $userId,
-            'code'            => $code,
-            'device_info'     => $deviceInfo,
-            'expires_at'      => $expiresAt,
-            'delivery_method' => $deliveryMethod,
-            'delivery_status' => 'pending',
-        ];
+        if (!empty($organizationCode)) {
+            $where['organization_code'] = $organizationCode;
+        }
 
-        $this->insert($data);
+        $otp = $this->where($where)
+                   ->orderBy('created_at', 'DESC')
+                   ->first();
 
-        return [
-            'user_id'         => $userId,
-            'code'            => $code,
-            'expires_at'      => $expiresAt,
-            'delivery_method' => $deliveryMethod,
-            'delivery_status' => 'pending',
-        ];
+        return $otp;
     }
 
     /**
-     * Update the delivery status of an OTP
-     *
-     * @param int $userId User ID
-     * @param string $code OTP code
-     * @param string $status Delivery status ('sent', 'failed')
-     * @param string|null $details Additional details
-     * @return bool Success or failure
+     * Update delivery status
      */
-    public function updateDeliveryStatus($userId, $code, $status, $details = null)
+    public function updateDeliveryStatus($identifier, $code, $status, $info = null)
     {
-        $otp = $this->where('user_id', $userId)
-            ->where('code', $code)
-            ->where('used_at IS NULL')
-            ->where('expires_at >', date('Y-m-d H:i:s'))
-            ->first();
-
-        if (!$otp) {
-            return false;
-        }
-
-        $data = [
-            'delivery_status' => $status
+        $where = [
+            'code' => $code,
         ];
 
-        if ($details) {
-            $data['delivery_details'] = $details;
+        if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+            $where['email'] = $identifier;
+        } else {
+            $where['phone'] = $identifier;
         }
 
-        return $this->update($otp['id'], $data);
-    }
-
-    /**
-     * Verify an OTP code
-     *
-     * @param int $userId User ID
-     * @param string $code OTP code to verify
-     * @return bool True if valid, false otherwise
-     */
-    public function verifyOTP($userId, $code)
-    {
-        $otp = $this->where('user_id', $userId)
-            ->where('code', $code)
-            ->where('used_at IS NULL')
-            ->where('expires_at >', date('Y-m-d H:i:s'))
-            ->first();
-
-        if (!$otp) {
-            return false;
-        }
-
-        // Mark as used
-        $this->update($otp['id'], ['used_at' => date('Y-m-d H:i:s')]);
-
-        return true;
-    }
-
-    /**
-     * Clean up expired OTP codes
-     *
-     * @return bool Success or failure
-     */
-    public function cleanExpired()
-    {
-        return $this->where('expires_at <', date('Y-m-d H:i:s'))
-            ->where('used_at IS NULL')
-            ->delete();
+        return $this->where($where)
+                   ->set([
+                       'delivery_status' => $status,
+                       'delivery_info' => $info
+                   ])
+                   ->update();
     }
 }
