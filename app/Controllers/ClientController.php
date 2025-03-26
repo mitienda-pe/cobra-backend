@@ -431,58 +431,25 @@ class ClientController extends BaseController
     
     public function view($uuid)
     {
-        log_message('debug', '====== CLIENT VIEW ======');
-        log_message('debug', 'UUID: ' . $uuid);
-        
         $client = $this->clientModel->where('uuid', $uuid)->first();
         
         if (!$client) {
             return redirect()->to('/clients')->with('error', 'Cliente no encontrado.');
         }
         
-        // Check if user has access to this client
-        if (!$this->auth->hasRole('superadmin')) {
-            if ($this->auth->hasRole('admin')) {
-                // Admin can only view clients from their organization
-                if ($client['organization_id'] != $this->auth->organizationId()) {
-                    return redirect()->to('/clients')->with('error', 'No tiene permisos para ver este cliente.');
-                }
-            } else {
-                // Regular users can only view clients from their portfolios
-                $portfolios = $this->portfolioModel->getByUser($this->auth->user()['id']);
-                $hasAccess = false;
-                
-                foreach ($portfolios as $portfolio) {
-                    $portfolioClients = $this->clientModel->getByPortfolio($portfolio['id']);
-                    foreach ($portfolioClients as $portfolioClient) {
-                        if ($portfolioClient['id'] == $client['id']) {
-                            $hasAccess = true;
-                            break 2;
-                        }
-                    }
-                }
-                
-                if (!$hasAccess) {
-                    return redirect()->to('/clients')->with('error', 'No tiene permisos para ver este cliente.');
-                }
-            }
+        // Get organization info
+        $organization = $this->organizationModel->find($client['organization_id']);
+        if (!$organization) {
+            return redirect()->to('/clients')->with('error', 'Organización del cliente no encontrada.');
         }
         
-        // Get portfolios this client belongs to
+        // Get portfolios for this client
         $portfolios = $this->portfolioModel->getByClient($client['id']);
-        
-        // Get invoices for this client
-        $invoiceModel = new \App\Models\InvoiceModel();
-        $invoices = $invoiceModel->where('client_id', $client['id'])->findAll();
-        
-        // Get organization data
-        $organization = $this->organizationModel->find($client['organization_id']);
-        $client['organization'] = $organization;
         
         $data = [
             'client' => $client,
+            'organization' => $organization,
             'portfolios' => $portfolios,
-            'invoices' => $invoices,
             'auth' => $this->auth
         ];
         
