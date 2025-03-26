@@ -5,7 +5,8 @@ Sistema de gestión de cobranzas desarrollado con CodeIgniter 4 que incluye un b
 ## Características
 
 - **Arquitectura Multitenant**: Soporte para múltiples organizaciones con aislamiento de datos
-- **Autenticación y Autorización**: Basada en roles (superadmin, admin, usuario)
+- **Autenticación por OTP**: Inicio de sesión seguro mediante códigos de un solo uso enviados por SMS o email
+- **Autorización**: Basada en roles (superadmin, admin, usuario)
 - **Gestión de Organizaciones**: Administración completa de organizaciones independientes
 - **Administración de Usuarios**: Diferentes niveles de acceso por rol
 - **Gestión de Clientes**: Registro detallado de información de clientes
@@ -68,7 +69,10 @@ Sistema de gestión de cobranzas desarrollado con CodeIgniter 4 que incluye un b
    # database.default.username = root
    # database.default.password = password
    
-   JWT_SECRET = 'your-secret-key'
+   # Configuración de Twilio para envío de SMS
+   TWILIO_ACCOUNT_SID = 'your-account-sid'
+   TWILIO_AUTH_TOKEN = 'your-auth-token'
+   TWILIO_FROM_NUMBER = '+1234567890'
    ```
 
 5. Crear la carpeta para la base de datos:
@@ -99,48 +103,45 @@ Sistema de gestión de cobranzas desarrollado con CodeIgniter 4 que incluye un b
 
 El sistema utiliza un enfoque de "tenant por organización" para implementar la arquitectura multitenant:
 
-- Cada organización es un tenant independiente con sus propios usuarios, clientes, carteras, facturas y pagos
-- Los datos están segmentados por la columna `organization_id` en la mayoría de las tablas
-- Los superadmins pueden cambiar entre organizaciones
-- Los usuarios regulares solo ven datos de su organización asignada
+- Cada organización tiene su propio código único
+- Los usuarios están asociados a una organización específica
+- Los datos están completamente aislados entre organizaciones
+- Los superadmins pueden gestionar todas las organizaciones
 
-### Componentes Clave para Multitenant
+## Autenticación API
 
-- **OrganizationFilter**: Middleware que procesa la selección de organización para superadmins
-- **OrganizationTrait**: Trait que proporciona métodos consistentes para aplicar filtrado por organización
-- **Auth::organizationId()**: Método que determina qué organización usar según el rol y contexto
+La API utiliza autenticación basada en tokens con el siguiente flujo:
 
-## Configuración de la Aplicación Móvil
+1. **Solicitud de OTP**:
+   ```http
+   POST /api/auth/otp/request
+   Content-Type: application/json
 
-La aplicación móvil se comunica con el backend a través de una API REST. El sistema utiliza autenticación OTP (One-Time Password) para la autenticación de usuarios y JWT (JSON Web Tokens) para mantener las sesiones.
-
-### Integración con Flutter
-
-1. Configurar la URL base de la API en tu aplicación Flutter:
-   ```dart
-   final String baseUrl = 'http://tu-servidor.com/';
+   {
+     "phone": "+51999309748",
+     "device_info": "iPhone 12, iOS 15.0"
+   }
    ```
 
-2. Flujo de autenticación:
-   - Solicitar OTP: `POST /api/auth/otp/request`
-   - Verificar OTP: `POST /api/auth/otp/verify`
-   - Almacenar el token JWT para futuras solicitudes
+2. **Verificación de OTP**:
+   ```http
+   POST /api/auth/otp/verify
+   Content-Type: application/json
 
-3. Incluir el token JWT en todas las solicitudes a la API:
-   ```dart
-   final headers = {
-     'Authorization': 'Bearer $jwtToken',
-     'Content-Type': 'application/json',
-   };
+   {
+     "phone": "+51999309748",
+     "code": "123456",
+     "device_info": "iPhone 12, iOS 15.0"
+   }
    ```
 
-4. Implementar las principales funcionalidades:
-   - Consulta de carteras y clientes asignados
-   - Visualización de facturas pendientes
-   - Registro de pagos (con captura de coordenadas GPS)
-   - Historial de pagos registrados
+3. **Uso del Token**:
+   ```http
+   GET /api/clients
+   Authorization: Bearer 23e0dd25f8536379e600271784e7dac460592bcb31ef73a0590d0330d1c9083d
+   ```
 
-Para más detalles, consultar la documentación de la API en formato OpenAPI en el archivo `openapi.yaml`.
+Los tokens tienen una validez de 30 días y pueden ser utilizados para autenticar todas las solicitudes a la API.
 
 ## Webhooks
 
@@ -149,106 +150,39 @@ El sistema permite configurar webhooks para notificar a sistemas externos cuando
 ### Configuración de Webhooks
 
 1. Acceder a la sección Webhooks del sistema
-2. Crear un nuevo webhook con los siguientes datos:
-   - Nombre descriptivo
-   - URL de destino
-   - Eventos que activarán el webhook (payment.created, invoice.updated, etc.)
-3. El sistema generará una clave secreta para firmar las notificaciones
+2. Configurar la URL del endpoint que recibirá las notificaciones
+3. Seleccionar los eventos que se desean notificar:
+   - Nuevo pago registrado
+   - Cliente actualizado
+   - Factura pagada
+   - etc.
 
-### Seguridad de Webhooks
+### Formato de Notificaciones
 
-Las notificaciones incluyen una firma HMAC SHA256 en el encabezado `X-Webhook-Signature` para que el receptor pueda verificar la autenticidad de la solicitud.
+Las notificaciones se envían como POST requests con el siguiente formato:
 
-Ejemplo de verificación en PHP:
-```php
-$payload = file_get_contents('php://input');
-$signature = $_SERVER['HTTP_X_WEBHOOK_SIGNATURE'];
-$secret = 'your-webhook-secret';
-
-$calculatedSignature = hash_hmac('sha256', $payload, $secret);
-
-if (hash_equals($calculatedSignature, $signature)) {
-    // La solicitud es auténtica
-    $data = json_decode($payload, true);
-    // Procesar el evento
-} else {
-    // La solicitud podría ser falsificada
-    http_response_code(401);
-    echo json_encode(['error' => 'Signature verification failed']);
+```json
+{
+  "event": "payment.created",
+  "organization": "263274",
+  "data": {
+    "id": 123,
+    "amount": 100.00,
+    "currency": "PEN",
+    "status": "completed",
+    "created_at": "2025-03-26T15:45:30-05:00"
+  }
 }
 ```
 
-## Estructura del Proyecto
+## Contribución
 
-```
-app/
-├── Config/          # Archivos de configuración
-├── Controllers/     # Controladores web y API
-│   ├── Api/         # Controladores de la API REST
-│   └── ...
-├── Database/
-│   ├── Migrations/  # Migraciones de la base de datos
-│   └── Seeds/       # Seeders para datos iniciales
-├── Filters/         # Filtros de autenticación y autorización 
-│   ├── AuthFilter.php
-│   ├── OrganizationFilter.php
-│   └── ...
-├── Libraries/       # Librerías personalizadas
-│   ├── Auth.php
-│   └── ...
-├── Models/          # Modelos de datos
-├── Traits/          # Traits reutilizables
-│   ├── OrganizationTrait.php
-│   └── ...
-└── Views/           # Vistas del backend web
-    ├── auth/        # Vistas de autenticación
-    ├── clients/     # Vistas de gestión de clientes
-    ├── invoices/    # Vistas de cuentas por cobrar
-    ├── layouts/     # Plantillas y layouts
-    ├── payments/    # Vistas de pagos
-    ├── portfolios/  # Vistas de carteras
-    ├── users/       # Vistas de usuarios
-    └── webhooks/    # Vistas de webhooks
-```
-
-## Seguridad
-
-- **Autenticación Web**: Basada en sesiones con protección CSRF
-- **Autenticación API**: JWT con expiración configurable
-- **Verificación OTP**: Códigos temporales para inicio de sesión seguro
-- **Filtrado de Datos**: Separación estricta entre organizaciones
-- **Validación de Entrada**: Prevención de inyección SQL y XSS
-- **Encriptación**: Contraseñas con hash bcrypt
-- **Firmas de Webhook**: Verificación HMAC SHA256
-
-## Desarrollo
-
-### Convenciones de Código
-
-El proyecto sigue las convenciones PSR-12 para la codificación en PHP.
-
-### Comandos Útiles
-
-- Ejecutar servidor de desarrollo: `php spark serve`
-- Crear una migración: `php spark migrate:create NombreMigracion`
-- Ejecutar migraciones: `php spark migrate`
-- Revertir migraciones: `php spark migrate:rollback`
-- Crear un seeder: `php spark make:seeder NombreSeeder`
-- Ejecutar un seeder: `php spark db:seed NombreSeeder`
-- Limpiar caché: `php spark cache:clear`
-
-### Solución de Problemas Comunes
-
-- **Error CSRF**: Asegúrate de incluir el token CSRF en todos los formularios o usar las excepciones configuradas para rutas específicas
-- **Problemas de Filtrado por Organización**: Verifica que estás usando el trait `OrganizationTrait` y que el contexto de sesión es correcto
-- **Errores de SQLite**: Para desarrollo con SQLite, asegúrate de que la carpeta `writable/db` existe y tiene permisos de escritura
-
-## Documentación
-
-- **Análisis del Sistema**: Ver `ANALYSIS.md` para una descripción detallada de la arquitectura
-- **API OpenAPI**: Ver `openapi.yaml` para la documentación completa de la API REST
-- **Filtrado por Organización**: Ver `ORGANIZATION_FILTERING.md` para detalles sobre la implementación multitenant
+1. Fork el repositorio
+2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abrir un Pull Request
 
 ## Licencia
 
-Este proyecto está licenciado bajo la Licencia MIT - ver el archivo LICENSE para más detalles.
+Distribuido bajo la Licencia MIT. Ver `LICENSE` para más información.

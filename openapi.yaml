@@ -5,16 +5,16 @@ info:
     API para la aplicación móvil del Sistema de Cobranzas con arquitectura multitenant.
     
     Esta API permite a los cobradores:
-    * Autenticarse mediante OTP (One-Time Password)
+    * Autenticarse mediante OTP (One-Time Password) por email o teléfono
     * Ver sus carteras asignadas y clientes
     * Consultar facturas pendientes de cobro
     * Registrar pagos con geolocalización
     * Consultar historiales de pago
     
-    La API utiliza autenticación basada en JWT (JSON Web Tokens) y sigue el principio
+    La API utiliza autenticación basada en tokens y sigue el principio
     de filtrado por organización para garantizar que cada usuario solo acceda a los
     datos que le corresponden según su rol y asignaciones.
-  version: 1.1.0
+  version: 1.2.0
   contact:
     email: soporte@sistemacobranzas.com
 servers:
@@ -35,13 +35,23 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - email
               properties:
                 email:
                   type: string
                   format: email
                   example: cobrador@empresa.com
+                phone:
+                  type: string
+                  example: "+51999309748"
+                device_info:
+                  type: string
+                  example: "iPhone 12, iOS 15.0"
+                organization_code:
+                  type: string
+                  example: "263274"
+              oneOf:
+                - required: [email]
+                - required: [phone]
       responses:
         '200':
           description: OTP enviado correctamente
@@ -50,20 +60,30 @@ paths:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
+                  status:
+                    type: string
+                    example: "success"
                   message:
                     type: string
-                    example: Se ha enviado un código OTP a su correo electrónico
-                  expires_in:
-                    type: integer
-                    example: 300
-                    description: Tiempo de expiración del código en segundos
-                  otp:
-                    type: string
-                    example: "123456"
-                    description: Solo para ambiente de pruebas
+                    example: "OTP sent successfully"
+                  data:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                        example: "cobrador@empresa.com"
+                      phone:
+                        type: string
+                        example: "+51999309748"
+                      organization_code:
+                        type: string
+                        example: "263274"
+                      device_info:
+                        type: string
+                        example: "iPhone 12, iOS 15.0"
+                      expires_in:
+                        type: string
+                        example: "5 minutes"
         '400':
           description: Solicitud inválida
           content:
@@ -79,7 +99,7 @@ paths:
   /auth/otp/verify:
     post:
       summary: Verificar código OTP
-      description: Verifica el código OTP y genera un token JWT
+      description: Verifica el código OTP y genera un token de acceso
       tags:
         - Autenticación
       requestBody:
@@ -88,17 +108,25 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - email
-                - otp
               properties:
                 email:
                   type: string
                   format: email
                   example: cobrador@empresa.com
-                otp:
+                phone:
+                  type: string
+                  example: "+51999309748"
+                code:
                   type: string
                   example: "123456"
+                device_info:
+                  type: string
+                  example: "iPhone 12, iOS 15.0"
+              required:
+                - code
+              oneOf:
+                - required: [email]
+                - required: [phone]
       responses:
         '200':
           description: OTP verificado correctamente
@@ -107,26 +135,62 @@ paths:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
-                  token:
+                  status:
                     type: string
-                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-                  expires_in:
-                    type: integer
-                    example: 86400
-                    description: Tiempo de expiración del token en segundos
-                  user:
-                    $ref: '#/components/schemas/User'
+                    example: "success"
+                  message:
+                    type: string
+                    example: "OTP verified successfully"
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: "23e0dd25f8536379e600271784e7dac460592bcb31ef73a0590d0330d1c9083d"
+                      expires_in:
+                        type: string
+                        example: "30 days"
+                      token_type:
+                        type: string
+                        example: "Bearer"
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 3
+                          name:
+                            type: string
+                            example: "Carlos Vidal"
+                          email:
+                            type: string
+                            example: "carlos@mitienda.pe"
+                          phone:
+                            type: string
+                            example: "+51999309748"
+                          role:
+                            type: string
+                            example: "admin"
+                          organization:
+                            type: object
+                            properties:
+                              id:
+                                type: integer
+                                example: 1
+                              name:
+                                type: string
+                                example: "Carlos Vidal"
+                              code:
+                                type: string
+                                example: "263274"
         '400':
-          description: Solicitud inválida
+          description: Código OTP inválido o expirado
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '401':
-          description: Código OTP inválido o expirado
+        '404':
+          description: Usuario no encontrado
           content:
             application/json:
               schema:
