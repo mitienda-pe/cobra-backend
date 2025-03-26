@@ -8,121 +8,185 @@ class UpdateUserOtpCodes extends Migration
 {
     public function up()
     {
-        // Check if client_id column exists before dropping it
-        $query = $this->db->query("PRAGMA table_info(user_otp_codes)");
-        $columns = $query->getResultArray();
-        $hasClientId = false;
-        $hasOrganizationCode = false;
-        $hasDeliveryDetails = false;
-        $hasDeliveryInfo = false;
-        $hasUsedAt = false;
-        $hasDeliveryMethod = false;
+        // Check if table exists
+        $query = $this->db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='user_otp_codes'");
+        $exists = !empty($query->getResultArray());
 
-        foreach ($columns as $column) {
-            if ($column['name'] === 'client_id') {
-                $hasClientId = true;
-            } elseif ($column['name'] === 'organization_code') {
-                $hasOrganizationCode = true;
-            } elseif ($column['name'] === 'delivery_details') {
-                $hasDeliveryDetails = true;
-            } elseif ($column['name'] === 'delivery_info') {
-                $hasDeliveryInfo = true;
-            } elseif ($column['name'] === 'used_at') {
-                $hasUsedAt = true;
-            } elseif ($column['name'] === 'delivery_method') {
-                $hasDeliveryMethod = true;
-            }
-        }
-
-        // Drop client_id column if it exists
-        if ($hasClientId) {
-            $this->forge->dropColumn('user_otp_codes', 'client_id');
-        }
-
-        // Add organization_code if it doesn't exist
-        if (!$hasOrganizationCode) {
-            $this->forge->addColumn('user_otp_codes', [
+        if (!$exists) {
+            // Create the table if it doesn't exist
+            $this->forge->addField([
+                'id' => [
+                    'type'           => 'INT',
+                    'constraint'     => 11,
+                    'unsigned'       => true,
+                    'auto_increment' => true,
+                ],
+                'phone' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => 20,
+                    'null'      => true,
+                ],
+                'email' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => 255,
+                    'null'      => true,
+                ],
+                'code' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => 6,
+                ],
                 'organization_code' => [
-                    'type' => 'VARCHAR',
-                    'constraint' => 100,
-                    'null' => true,
-                    'after' => 'code'
-                ]
+                    'type'       => 'VARCHAR',
+                    'constraint' => 50,
+                    'null'      => true,
+                ],
+                'device_info' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => 255,
+                    'null'      => true,
+                ],
+                'delivery_method' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => 20,
+                    'null'      => true,
+                ],
+                'delivery_status' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => 20,
+                    'null'      => true,
+                ],
+                'delivery_info' => [
+                    'type'       => 'TEXT',
+                    'null'      => true,
+                ],
+                'expires_at' => [
+                    'type' => 'DATETIME',
+                ],
+                'created_at' => [
+                    'type' => 'DATETIME',
+                ],
             ]);
-        }
 
-        // Rename delivery_details to delivery_info if needed
-        if ($hasDeliveryDetails && !$hasDeliveryInfo) {
-            $this->forge->modifyColumn('user_otp_codes', [
-                'delivery_details' => [
-                    'name' => 'delivery_info',
-                    'type' => 'TEXT',
-                    'null' => true,
-                ]
-            ]);
-        }
+            $this->forge->addKey('id', true);
+            $this->forge->addKey(['phone', 'email']);
+            $this->forge->createTable('user_otp_codes');
+        } else {
+            // Check if organization_code column exists
+            $query = $this->db->query("PRAGMA table_info(user_otp_codes)");
+            $columns = $query->getResultArray();
+            $hasOrganizationCode = false;
 
-        // Drop unused columns if they exist
-        if ($hasUsedAt) {
-            $this->forge->dropColumn('user_otp_codes', 'used_at');
-        }
-        if ($hasDeliveryMethod) {
-            $this->forge->dropColumn('user_otp_codes', 'delivery_method');
+            foreach ($columns as $column) {
+                if ($column['name'] === 'organization_code') {
+                    $hasOrganizationCode = true;
+                    break;
+                }
+            }
+
+            // Add organization_code column if it doesn't exist
+            if (!$hasOrganizationCode) {
+                $this->forge->addColumn('user_otp_codes', [
+                    'organization_code' => [
+                        'type'       => 'VARCHAR',
+                        'constraint' => 50,
+                        'null'      => true,
+                        'after'     => 'code'
+                    ]
+                ]);
+            }
         }
     }
 
     public function down()
     {
-        // Check existing columns
-        $query = $this->db->query("PRAGMA table_info(user_otp_codes)");
-        $columns = $query->getResultArray();
-        $hasClientId = false;
-        $hasDeliveryInfo = false;
+        // Check if table exists
+        $query = $this->db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='user_otp_codes'");
+        $exists = !empty($query->getResultArray());
 
-        foreach ($columns as $column) {
-            if ($column['name'] === 'client_id') {
-                $hasClientId = true;
-            } elseif ($column['name'] === 'delivery_info') {
-                $hasDeliveryInfo = true;
+        if ($exists) {
+            // Check if organization_code column exists
+            $query = $this->db->query("PRAGMA table_info(user_otp_codes)");
+            $columns = $query->getResultArray();
+            $hasOrganizationCode = false;
+
+            foreach ($columns as $column) {
+                if ($column['name'] === 'organization_code') {
+                    $hasOrganizationCode = true;
+                    break;
+                }
+            }
+
+            if ($hasOrganizationCode) {
+                // SQLite doesn't support dropping columns, so we need to:
+                // 1. Create new table without the column
+                // 2. Copy data from old table
+                // 3. Drop old table
+                // 4. Rename new table to original name
+
+                // Create new table
+                $this->forge->addField([
+                    'id' => [
+                        'type'           => 'INT',
+                        'constraint'     => 11,
+                        'unsigned'       => true,
+                        'auto_increment' => true,
+                    ],
+                    'phone' => [
+                        'type'       => 'VARCHAR',
+                        'constraint' => 20,
+                        'null'      => true,
+                    ],
+                    'email' => [
+                        'type'       => 'VARCHAR',
+                        'constraint' => 255,
+                        'null'      => true,
+                    ],
+                    'code' => [
+                        'type'       => 'VARCHAR',
+                        'constraint' => 6,
+                    ],
+                    'device_info' => [
+                        'type'       => 'VARCHAR',
+                        'constraint' => 255,
+                        'null'      => true,
+                    ],
+                    'delivery_method' => [
+                        'type'       => 'VARCHAR',
+                        'constraint' => 20,
+                        'null'      => true,
+                    ],
+                    'delivery_status' => [
+                        'type'       => 'VARCHAR',
+                        'constraint' => 20,
+                        'null'      => true,
+                    ],
+                    'delivery_info' => [
+                        'type'       => 'TEXT',
+                        'null'      => true,
+                    ],
+                    'expires_at' => [
+                        'type' => 'DATETIME',
+                    ],
+                    'created_at' => [
+                        'type' => 'DATETIME',
+                    ],
+                ]);
+
+                $this->forge->addKey('id', true);
+                $this->forge->addKey(['phone', 'email']);
+                $this->forge->createTable('user_otp_codes_new');
+
+                // Copy data
+                $this->db->query('INSERT INTO user_otp_codes_new (id, phone, email, code, device_info, delivery_method, delivery_status, delivery_info, expires_at, created_at) 
+                                 SELECT id, phone, email, code, device_info, delivery_method, delivery_status, delivery_info, expires_at, created_at 
+                                 FROM user_otp_codes');
+
+                // Drop old table
+                $this->forge->dropTable('user_otp_codes');
+
+                // Rename new table
+                $this->db->query('ALTER TABLE user_otp_codes_new RENAME TO user_otp_codes');
             }
         }
-
-        // Add back the original columns if they don't exist
-        if (!$hasClientId) {
-            $this->forge->addColumn('user_otp_codes', [
-                'client_id' => [
-                    'type' => 'VARCHAR',
-                    'constraint' => 100,
-                    'after' => 'id'
-                ]
-            ]);
-        }
-
-        // Add back other columns
-        $this->forge->addColumn('user_otp_codes', [
-            'used_at' => [
-                'type' => 'DATETIME',
-                'null' => true,
-            ],
-            'delivery_method' => [
-                'type' => 'VARCHAR',
-                'constraint' => 20,
-                'null' => true,
-            ]
-        ]);
-
-        // Rename delivery_info back to delivery_details if needed
-        if ($hasDeliveryInfo) {
-            $this->forge->modifyColumn('user_otp_codes', [
-                'delivery_info' => [
-                    'name' => 'delivery_details',
-                    'type' => 'TEXT',
-                    'null' => true,
-                ]
-            ]);
-        }
-
-        // Drop organization_code column
-        $this->forge->dropColumn('user_otp_codes', 'organization_code');
     }
 }
