@@ -8,6 +8,9 @@ class RecreateOrganizationsTable extends Migration
 {
     public function up()
     {
+        // Eliminar la tabla de backup si existe
+        $this->db->query('DROP TABLE IF EXISTS organizations_backup');
+        
         // Primero hacemos backup de los datos existentes
         $this->db->query('CREATE TABLE organizations_backup AS SELECT * FROM organizations');
         
