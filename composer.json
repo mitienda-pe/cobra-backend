@@ -11,7 +11,7 @@
     },
     "require": {
         "php": "^7.4 || ^8.0",
-        "codeigniter4/framework": "^4.0",
+        "codeigniter4/framework": "^4.4.8",
         "firebase/php-jwt": "^6.0",
         "phpoffice/phpspreadsheet": "^1.29",
         "twilio/sdk": "^7.0"

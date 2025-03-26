@@ -14,6 +14,17 @@ class CorsFilter implements FilterInterface
     public function before(RequestInterface $request, $arguments = null)
     {
         // Log for debugging
+        $logFile = WRITEPATH . 'logs/cors-' . date('Y-m-d') . '.log';
+        $logMessage = date('Y-m-d H:i:s') . "\n" .
+                     "URI: " . $request->uri->getPath() . "\n" .
+                     "Method: " . $request->getMethod(true) . "\n" .
+                     "Headers: " . json_encode(getallheaders()) . "\n" .
+                     "Arguments: " . json_encode($arguments) . "\n" .
+                     "Route Info: " . json_encode(service('router')->getMatchedRoute()) . "\n" .
+                     "Controller: " . service('router')->controllerName() . "\n" .
+                     "Method: " . service('router')->methodName() . "\n\n";
+        file_put_contents($logFile, $logMessage, FILE_APPEND);
+        
         log_message('debug', 'CORS Filter: ' . $request->getMethod(true) . ' ' . $request->uri->getPath());
         
         $response = service('response');
