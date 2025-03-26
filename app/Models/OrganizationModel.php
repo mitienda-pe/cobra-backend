@@ -12,7 +12,7 @@ class OrganizationModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
-    protected $allowedFields    = ['uuid', 'name', 'description', 'status'];
+    protected $allowedFields    = ['uuid', 'name', 'code', 'description', 'status'];
 
     // Dates
     protected $useTimestamps = true;
@@ -24,6 +24,7 @@ class OrganizationModel extends Model
     // Validation
     protected $validationRules      = [
         'name'     => 'required|min_length[3]|max_length[100]',
+        'code'     => 'required|min_length[2]|max_length[50]',
         'status'   => 'required|in_list[active,inactive]',
     ];
     protected $validationMessages   = [];

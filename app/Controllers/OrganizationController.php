@@ -53,20 +53,30 @@ class OrganizationController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para crear organizaciones.');
         }
         
+        log_message('debug', 'POST data received: ' . json_encode($this->request->getPost()));
+        
         if (!$this->validate([
             'name' => 'required|min_length[3]',
             'code' => 'required|min_length[2]|is_unique[organizations.code]',
             'status' => 'required|in_list[active,inactive]'
         ])) {
+            log_message('debug', 'Validation errors: ' . json_encode($this->validator->getErrors()));
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->organizationModel->insert([
+        $result = $this->organizationModel->insert([
             'name' => $this->request->getPost('name'),
             'code' => $this->request->getPost('code'),
             'status' => $this->request->getPost('status'),
             'description' => $this->request->getPost('description')
         ]);
+        
+        log_message('debug', 'Insert result: ' . json_encode($result));
+
+        if (!$result) {
+            log_message('error', 'Database error: ' . json_encode($this->organizationModel->errors()));
+            return redirect()->back()->withInput()->with('error', 'Error al crear la organización');
+        }
 
         return redirect()->to('/organizations')->with('message', 'Organization created successfully');
     }
@@ -97,6 +107,8 @@ class OrganizationController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para editar organizaciones.');
         }
         
+        log_message('debug', 'PUT/POST data received for update: ' . json_encode($this->request->getPost()));
+        
         $organization = $this->organizationModel->find($id);
         if (!$organization) {
             return redirect()->to('/organizations')->with('error', 'Organization not found');
@@ -104,25 +116,32 @@ class OrganizationController extends BaseController
 
         $rules = [
             'name' => 'required|min_length[3]',
-            'code' => 'required|min_length[2]',
             'status' => 'required|in_list[active,inactive]'
         ];
 
         // Only validate code uniqueness if it changed
         if ($organization['code'] !== $this->request->getPost('code')) {
-            $rules['code'] .= '|is_unique[organizations.code]';
+            $rules['code'] = 'required|min_length[2]|is_unique[organizations.code]';
         }
 
         if (!$this->validate($rules)) {
+            log_message('debug', 'Validation errors in update: ' . json_encode($this->validator->getErrors()));
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->organizationModel->update($id, [
+        $result = $this->organizationModel->update($id, [
             'name' => $this->request->getPost('name'),
             'code' => $this->request->getPost('code'),
             'status' => $this->request->getPost('status'),
             'description' => $this->request->getPost('description')
         ]);
+        
+        log_message('debug', 'Update result: ' . json_encode($result));
+
+        if (!$result) {
+            log_message('error', 'Database error in update: ' . json_encode($this->organizationModel->errors()));
+            return redirect()->back()->withInput()->with('error', 'Error al actualizar la organización');
+        }
 
         return redirect()->to('/organizations')->with('message', 'Organization updated successfully');
     }
