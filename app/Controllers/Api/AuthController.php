@@ -12,8 +12,10 @@ class AuthController extends BaseApiController
 {
     protected $format = 'json';
 
-    public function __construct()
+    public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
+        parent::initController($request, $response, $logger);
+        
         // Create API log directory if it doesn't exist
         if (!is_dir(WRITEPATH . 'logs/api')) {
             mkdir(WRITEPATH . 'logs/api', 0755, true);
