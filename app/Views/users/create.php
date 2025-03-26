@@ -8,11 +8,15 @@
         <div class="card">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h3 class="mb-0">Nuevo Usuario</h3>
-                    <a href="<?= site_url('users') ?>" class="btn btn-secondary">Volver</a>
+                    <h3 class="mb-0">Crear Usuario</h3>
+                    <a href="<?= site_url('users') ?>" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </a>
                 </div>
             </div>
             <div class="card-body">
+                <?= view('partials/_alerts') ?>
+                
                 <form action="<?= site_url('users') ?>" method="post">
                     <?= csrf_field() ?>
                     

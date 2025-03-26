@@ -5,22 +5,23 @@
 <?= $this->section('content') ?>
 <div class="row">
     <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h3 class="mb-0">Detalles del Usuario</h3>
-                    <div>
-                        <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $user['organization_id'])): ?>
-                            <a href="<?= site_url('users/' . $user['uuid'] . '/edit') ?>" class="btn btn-primary">
-                                <i class="bi bi-pencil"></i> Editar
-                            </a>
-                        <?php endif; ?>
-                        <a href="<?= site_url('users') ?>" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Volver
-                        </a>
-                    </div>
-                </div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Detalles del Usuario</h1>
+            <div>
+                <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $user['organization_id'])): ?>
+                    <a href="<?= site_url('users/' . $user['uuid'] . '/edit') ?>" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> Editar
+                    </a>
+                <?php endif; ?>
+                <a href="<?= site_url('users') ?>" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
             </div>
+        </div>
+
+        <?= view('partials/_alerts') ?>
+
+        <div class="card">
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
