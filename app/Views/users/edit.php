@@ -15,9 +15,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <?= view('partials/_alerts') ?>
-                
-                <form action="<?= site_url('users/' . $user['uuid'] . '/update') ?>" method="post">
+                <form action="<?= site_url('users/' . $user['uuid']) ?>" method="post">
                     <?= csrf_field() ?>
                     
                     <div class="mb-3">

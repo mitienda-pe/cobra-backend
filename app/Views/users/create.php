@@ -15,8 +15,6 @@
                 </div>
             </div>
             <div class="card-body">
-                <?= view('partials/_alerts') ?>
-                
                 <form action="<?= site_url('users') ?>" method="post">
                     <?= csrf_field() ?>
                     

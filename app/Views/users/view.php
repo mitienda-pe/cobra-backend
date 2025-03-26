@@ -19,8 +19,6 @@
             </div>
         </div>
 
-        <?= view('partials/_alerts') ?>
-
         <div class="card">
             <div class="card-body">
                 <div class="row">

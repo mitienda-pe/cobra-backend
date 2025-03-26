@@ -17,8 +17,6 @@
     </div>
 </div>
 
-<?= view('partials/_alerts') ?>
-
 <div class="row">
     <div class="col-md-12 mb-4">
         <div class="card">

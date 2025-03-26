@@ -10,8 +10,6 @@
     </a>
 </div>
 
-<?= view('partials/_alerts') ?>
-
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">
@@ -133,18 +131,18 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const deleteModal = document.getElementById('deleteModal');
-    if (deleteModal) {
-        deleteModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            const uuid = button.getAttribute('data-uuid');
-            const name = button.getAttribute('data-name');
-            
-            deleteModal.querySelector('#userName').textContent = name;
-            deleteModal.querySelector('#deleteForm').action = '<?= site_url('users/') ?>' + uuid + '/delete';
-        });
-    }
-});
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteModal = document.getElementById('deleteModal');
+        if (deleteModal) {
+            deleteModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const uuid = button.getAttribute('data-uuid');
+                const name = button.getAttribute('data-name');
+
+                deleteModal.querySelector('#userName').textContent = name;
+                deleteModal.querySelector('#deleteForm').action = '<?= site_url('users/') ?>' + uuid + '/delete';
+            });
+        }
+    });
 </script>
 <?= $this->endSection() ?>
