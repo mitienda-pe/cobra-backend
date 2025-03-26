@@ -20,15 +20,15 @@ class Filters extends BaseConfig
      * make reading things nicer and simpler.
      */
     public array $aliases = [
-        'csrf'          => CSRF::class,
-        'toolbar'       => DebugToolbar::class,
-        'honeypot'      => Honeypot::class,
-        'invalidchars'  => InvalidChars::class,
-        'secureheaders' => SecureHeaders::class,
-        'cors'          => CorsFilter::class,
-        'auth'          => AuthFilter::class,
-        'apiAuth'       => ApiAuthFilter::class,
-        'apiLog'        => ApiLogFilter::class,
+        'csrf'          => \CodeIgniter\Filters\CSRF::class,
+        'toolbar'       => \CodeIgniter\Filters\DebugToolbar::class,
+        'honeypot'      => \CodeIgniter\Filters\Honeypot::class,
+        'invalidchars'  => \CodeIgniter\Filters\InvalidChars::class,
+        'secureheaders' => \CodeIgniter\Filters\SecureHeaders::class,
+        'cors'          => \App\Filters\CorsFilter::class,
+        'auth'          => \App\Filters\AuthFilter::class,
+        'apiAuth'       => \App\Filters\ApiAuthFilter::class,
+        'apiLog'        => \App\Filters\ApiLogFilter::class,
         // Combined filter aliases
         'api-public'    => ['cors'],
         'api-auth'      => ['cors', 'apiAuth', 'apiLog'],
