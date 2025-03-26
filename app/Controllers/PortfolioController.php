@@ -221,98 +221,116 @@ class PortfolioController extends BaseController
 
     public function edit($uuid = null)
     {
-        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
-            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para editar carteras.');
-        }
-        
         if (!$uuid) {
             return redirect()->to('/portfolios')->with('error', 'UUID de cartera no proporcionado.');
         }
-        
+
+        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
+            return redirect()->to('/portfolios')->with('error', 'No tiene permisos para editar carteras.');
+        }
+
         $portfolioModel = new PortfolioModel();
         $portfolio = $portfolioModel->where('uuid', $uuid)->first();
-        
+
         if (!$portfolio) {
             return redirect()->to('/portfolios')->with('error', 'Cartera no encontrada.');
         }
-        
-        // Verificar permisos para admin
-        if ($this->auth->hasRole('admin') && $portfolio['organization_id'] != $this->auth->organizationId()) {
+
+        // Verificar permisos de organización
+        if (!$this->auth->hasRole('superadmin') && $portfolio['organization_id'] !== $this->auth->organizationId()) {
             return redirect()->to('/portfolios')->with('error', 'No tiene permisos para editar esta cartera.');
         }
-        
+
         if ($this->request->getMethod() === 'post') {
             $rules = [
                 'name' => 'required|min_length[3]|max_length[100]',
                 'description' => 'permit_empty',
-                'status' => 'required|in_list[active,inactive]',
+                'status' => 'required|in_list[active,inactive]'
             ];
-            
+
             if ($this->validate($rules)) {
                 $data = [
                     'name' => $this->request->getPost('name'),
                     'description' => $this->request->getPost('description'),
                     'status' => $this->request->getPost('status'),
+                    'updated_at' => date('Y-m-d H:i:s')
                 ];
-                
+
                 if ($portfolioModel->update($portfolio['id'], $data)) {
                     // Actualizar usuarios asignados
                     $userIds = $this->request->getPost('user_ids') ?: [];
-                    $portfolioModel->updateAssignedUsers($portfolio['id'], $userIds);
-                    
+                    $portfolioModel->assignUsers($portfolio['uuid'], $userIds);
+
                     // Actualizar clientes asignados
                     $clientIds = $this->request->getPost('client_ids') ?: [];
-                    $portfolioModel->updateAssignedClients($portfolio['id'], $clientIds);
-                    
-                    return redirect()->to('/portfolios/' . $uuid)->with('message', 'Cartera actualizada exitosamente.');
+                    $portfolioModel->assignClients($portfolio['uuid'], $clientIds);
+
+                    return redirect()->to('/portfolios')->with('message', 'Cartera actualizada exitosamente.');
                 }
-                
+
                 return redirect()->back()->withInput()->with('error', 'Error al actualizar la cartera.');
             }
-            
+
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
-        
-        // Cargar usuarios y clientes asignados
-        $users = $portfolioModel->getAssignedUsers($portfolio['id']);
-        $clients = $portfolioModel->getAssignedClients($portfolio['id']);
-        
+
+        // Obtener usuarios y clientes asignados
+        $assignedUsers = $portfolioModel->getAssignedUsers($portfolio['uuid']);
+        $assignedUserIds = array_column($assignedUsers, 'uuid');
+
+        $assignedClients = $portfolioModel->getAssignedClients($portfolio['uuid']);
+        $assignedClientIds = array_column($assignedClients, 'uuid');
+
+        // Obtener todos los usuarios y clientes disponibles
+        $userModel = new UserModel();
+        $clientModel = new ClientModel();
+
+        if ($this->auth->hasRole('superadmin')) {
+            $users = $userModel->findAll();
+            $clients = $clientModel->findAll();
+        } else {
+            $users = $userModel->where('organization_id', $this->auth->organizationId())->findAll();
+            $clients = $clientModel->where('organization_id', $this->auth->organizationId())->findAll();
+        }
+
         $data = [
             'portfolio' => $portfolio,
             'users' => $users,
             'clients' => $clients,
+            'assigned_user_ids' => $assignedUserIds,
+            'assigned_client_ids' => $assignedClientIds,
             'auth' => $this->auth
         ];
-        
+
         return view('portfolios/edit', $data);
     }
 
     public function delete($uuid = null)
     {
-        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
-            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para eliminar carteras.');
-        }
-        
         if (!$uuid) {
             return redirect()->to('/portfolios')->with('error', 'UUID de cartera no proporcionado.');
         }
-        
+
+        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
+            return redirect()->to('/portfolios')->with('error', 'No tiene permisos para eliminar carteras.');
+        }
+
         $portfolioModel = new PortfolioModel();
         $portfolio = $portfolioModel->where('uuid', $uuid)->first();
-        
+
         if (!$portfolio) {
             return redirect()->to('/portfolios')->with('error', 'Cartera no encontrada.');
         }
-        
-        // Verificar permisos para admin
-        if ($this->auth->hasRole('admin') && $portfolio['organization_id'] != $this->auth->organizationId()) {
+
+        // Verificar permisos de organización
+        if (!$this->auth->hasRole('superadmin') && $portfolio['organization_id'] !== $this->auth->organizationId()) {
             return redirect()->to('/portfolios')->with('error', 'No tiene permisos para eliminar esta cartera.');
         }
-        
+
         if ($portfolioModel->delete($portfolio['id'])) {
             return redirect()->to('/portfolios')->with('message', 'Cartera eliminada exitosamente.');
         }
-        
+
         return redirect()->to('/portfolios')->with('error', 'Error al eliminar la cartera.');
     }
     
