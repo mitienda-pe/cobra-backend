@@ -176,6 +176,7 @@ class UserController extends BaseController
         $user = $userModel->where('uuid', $uuid)->first();
         
         if (!$user) {
+            log_message('error', 'User not found with UUID: ' . $uuid);
             return redirect()->to('/users')->with('error', 'Usuario no encontrado');
         }
         
@@ -184,10 +185,14 @@ class UserController extends BaseController
             return redirect()->to('/users')->with('error', 'No tiene permisos para actualizar este usuario');
         }
         
+        // Get current POST data for logging
+        $postData = $this->request->getPost();
+        log_message('debug', 'Update request for user ' . $uuid . ' with data: ' . json_encode($postData));
+        
         $rules = [
             'name' => 'required|min_length[3]|max_length[100]',
-            'email' => 'required|valid_email|is_unique[users.email,id,' . $user['id'] . ',deleted_at,IS NULL]',
-            'phone' => 'permit_empty|min_length[6]|max_length[20]|is_unique[users.phone,id,' . $user['id'] . ',deleted_at,IS NULL]',
+            'email' => "required|valid_email|is_unique[users.email,id,{$user['id']}]",
+            'phone' => "permit_empty|min_length[6]|max_length[20]|is_unique[users.phone,id,{$user['id']}]",
             'role' => 'required|in_list[superadmin,admin,user]',
             'status' => 'required|in_list[active,inactive]'
         ];
@@ -198,6 +203,7 @@ class UserController extends BaseController
         }
         
         if (!$this->validate($rules)) {
+            log_message('error', 'Validation errors: ' . json_encode($this->validator->getErrors()));
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
         
@@ -209,26 +215,28 @@ class UserController extends BaseController
             'status' => $this->request->getPost('status')
         ];
         
+        // Only update organization_id if user is superadmin
+        if ($this->auth->hasRole('superadmin') && $this->request->getPost('organization_id')) {
+            $data['organization_id'] = $this->request->getPost('organization_id');
+        }
+        
         // Only update password if provided
         if ($this->request->getPost('password')) {
             $data['password'] = password_hash($this->request->getPost('password'), PASSWORD_DEFAULT);
         }
         
-        // Only superadmin can change organization
-        if ($this->auth->hasRole('superadmin')) {
-            $data['organization_id'] = $this->request->getPost('organization_id');
-        }
-        
         try {
-            $result = $userModel->update($user['id'], $data);
+            $updated = $userModel->where('uuid', $uuid)->set($data)->update();
             
-            if ($result === false) {
+            if ($updated === false) {
+                log_message('error', 'Update failed for user UUID: ' . $uuid . '. Errors: ' . json_encode($userModel->errors()));
                 return redirect()->back()->withInput()->with('error', 'Error al actualizar el usuario: ' . implode(', ', $userModel->errors()));
             }
             
             return redirect()->to('/users/' . $uuid)->with('message', 'Usuario actualizado exitosamente');
             
         } catch (\Exception $e) {
+            log_message('error', 'Exception updating user: ' . $e->getMessage());
             return redirect()->back()->withInput()->with('error', 'Error al actualizar el usuario: ' . $e->getMessage());
         }
     }
@@ -307,8 +315,8 @@ class UserController extends BaseController
         if ($this->request->getMethod() === 'post') {
             $rules = [
                 'name' => 'required|min_length[3]|max_length[100]',
-                'email' => "required|valid_email|is_unique[users.email,id,{$user['id']},deleted_at,IS NULL]",
-                'phone' => "permit_empty|min_length[6]|max_length[20]|is_unique[users.phone,id,{$user['id']},deleted_at,IS NULL]",
+                'email' => "required|valid_email|is_unique[users.email,id,{$user['id']}]",
+                'phone' => "permit_empty|min_length[6]|max_length[20]|is_unique[users.phone,id,{$user['id']}]",
             ];
             
             // Add password validation only if a new password is provided

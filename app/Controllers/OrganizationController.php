@@ -123,6 +123,7 @@ class OrganizationController extends BaseController
         $organization = $this->organizationModel->where('uuid', $uuid)->first();
         
         if (!$organization) {
+            log_message('error', 'Organization not found with UUID: ' . $uuid);
             return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');
         }
         
@@ -132,6 +133,7 @@ class OrganizationController extends BaseController
         ];
         
         if (!$this->validate($rules)) {
+            log_message('error', 'Validation errors: ' . json_encode($this->validator->getErrors()));
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
         
@@ -142,15 +144,17 @@ class OrganizationController extends BaseController
         ];
         
         try {
-            $result = $this->organizationModel->update($organization['id'], $data);
+            $updated = $this->organizationModel->where('uuid', $uuid)->set($data)->update();
             
-            if ($result === false) {
+            if ($updated === false) {
+                log_message('error', 'Update failed for organization UUID: ' . $uuid . '. Errors: ' . json_encode($this->organizationModel->errors()));
                 return redirect()->back()->withInput()->with('error', 'Error al actualizar la organización: ' . implode(', ', $this->organizationModel->errors()));
             }
             
             return redirect()->to('/organizations/' . $uuid)->with('message', 'Organización actualizada exitosamente');
             
         } catch (\Exception $e) {
+            log_message('error', 'Exception updating organization: ' . $e->getMessage());
             return redirect()->back()->withInput()->with('error', 'Error al actualizar la organización: ' . $e->getMessage());
         }
     }
