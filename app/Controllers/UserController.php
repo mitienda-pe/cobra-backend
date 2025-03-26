@@ -106,7 +106,7 @@ class UserController extends BaseController
         // Validate form
         if (!$this->validate([
             'name' => 'required|min_length[3]',
-            'email' => 'required|valid_email|is_unique[users.email]',
+            'email' => 'required|valid_email|is_unique[users.email,deleted_at,NULL]',
             'phone' => 'required|min_length[10]',
             'role' => 'required|in_list[superadmin,admin,user]',
             'organization_id' => 'permit_empty|numeric',
