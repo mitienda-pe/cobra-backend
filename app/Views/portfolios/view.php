@@ -7,7 +7,7 @@
     <h1>Cartera: <?= $portfolio['name'] ?></h1>
     <div>
         <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-            <a href="<?= site_url('portfolios/edit/' . $portfolio['id']) ?>" class="btn btn-primary">
+            <a href="<?= site_url('portfolios/' . $portfolio['uuid'] . '/edit') ?>" class="btn btn-primary">
                 <i class="bi bi-pencil"></i> Editar
             </a>
         <?php endif; ?>
@@ -24,7 +24,7 @@
                 <h5>Información de la Cartera</h5>
             </div>
             <div class="card-body">
-                <p><strong>ID:</strong> <?= $portfolio['id'] ?></p>
+                <p><strong>ID:</strong> <?= $portfolio['uuid'] ?></p>
                 <p><strong>Nombre:</strong> <?= $portfolio['name'] ?></p>
                 <p><strong>Descripción:</strong> <?= $portfolio['description'] ?: 'N/A' ?></p>
                 <p>
@@ -70,7 +70,7 @@
                             <tbody>
                                 <?php foreach ($assignedUsers as $user): ?>
                                     <tr>
-                                        <td><?= $user['id'] ?></td>
+                                        <td><?= $user['uuid'] ?></td>
                                         <td><?= $user['name'] ?></td>
                                         <td><?= $user['email'] ?></td>
                                         <td><?= ucfirst($user['role']) ?></td>
@@ -108,7 +108,7 @@
                             <tbody>
                                 <?php foreach ($assignedClients as $client): ?>
                                     <tr>
-                                        <td><?= $client['id'] ?></td>
+                                        <td><?= $client['uuid'] ?></td>
                                         <td><?= $client['business_name'] ?></td>
                                         <td><?= $client['document_number'] ?></td>
                                         <td>
@@ -119,10 +119,10 @@
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <a href="<?= site_url('clients/view/' . $client['id']) ?>" class="btn btn-sm btn-info">
+                                            <a href="<?= site_url('clients/' . $client['uuid']) ?>" class="btn btn-sm btn-info">
                                                 <i class="bi bi-eye"></i> Ver
                                             </a>
-                                            <a href="<?= current_url() . '?client_id=' . $client['id'] ?>" class="btn btn-sm btn-primary">
+                                            <a href="<?= current_url() . '?client_id=' . $client['uuid'] ?>" class="btn btn-sm btn-primary">
                                                 <i class="bi bi-list-check"></i> Ver Facturas
                                             </a>
                                         </td>
@@ -143,7 +143,7 @@
                         <select name="client_id" class="form-select form-select-sm me-2" onchange="this.form.submit()">
                             <option value="">Todos los clientes</option>
                             <?php foreach ($assignedClients as $client): ?>
-                                <option value="<?= $client['id'] ?>" <?= $request->getGet('client_id') == $client['id'] ? 'selected' : '' ?>>
+                                <option value="<?= $client['uuid'] ?>" <?= $request->getGet('client_id') == $client['uuid'] ? 'selected' : '' ?>>
                                     <?= $client['business_name'] ?> (<?= $client['document_number'] ?>)
                                 </option>
                             <?php endforeach; ?>
@@ -158,7 +158,7 @@
                 $clientId = $request->getGet('client_id');
                 if ($clientId) {
                     foreach ($assignedClients as $client) {
-                        if ($client['id'] == $clientId) {
+                        if ($client['uuid'] == $clientId) {
                             echo '<div class="alert alert-info mb-3">
                                     <strong>Mostrando facturas de:</strong> ' . esc($client['business_name']) . ' (' . esc($client['document_number']) . ')
                                     <a href="' . current_url() . '" class="ms-2 btn btn-sm btn-outline-dark">Eliminar filtro</a>

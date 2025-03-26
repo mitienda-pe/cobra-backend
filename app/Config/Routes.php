@@ -163,10 +163,10 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth csrf'], 
         $routes->get('/', 'PortfolioController::index');
         $routes->get('create', 'PortfolioController::create');
         $routes->post('create', 'PortfolioController::create');
-        $routes->get('(:uuid)', 'PortfolioController::view/$1');
-        $routes->get('(:uuid)/edit', 'PortfolioController::edit/$1');
-        $routes->post('(:uuid)/edit', 'PortfolioController::edit/$1');
-        $routes->get('(:uuid)/delete', 'PortfolioController::delete/$1');
+        $routes->get('(:segment)', 'PortfolioController::view/$1');
+        $routes->get('(:segment)/edit', 'PortfolioController::edit/$1');
+        $routes->post('(:segment)/edit', 'PortfolioController::edit/$1');
+        $routes->get('(:segment)/delete', 'PortfolioController::delete/$1');
         $routes->get('organization/(:uuid)/users', 'PortfolioController::getUsersByOrganization/$1');
         $routes->get('organization/(:uuid)/clients', 'PortfolioController::getClientsByOrganization/$1');
     });

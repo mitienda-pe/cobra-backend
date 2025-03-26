@@ -41,7 +41,7 @@
                     <?php else: ?>
                         <?php foreach ($portfolios as $portfolio): ?>
                             <tr>
-                                <td><?= $portfolio['id'] ?></td>
+                                <td><?= $portfolio['uuid'] ?></td>
                                 <td><?= $portfolio['name'] ?></td>
                                 <?php if ($auth->hasRole('superadmin')): ?>
                                 <td>
@@ -63,7 +63,7 @@
                                     <?php 
                                     $db = \Config\Database::connect();
                                     $count = $db->table('client_portfolio')
-                                               ->where('portfolio_id', $portfolio['id'])
+                                               ->where('portfolio_uuid', $portfolio['uuid'])
                                                ->countAllResults();
                                     echo $count;
                                     ?>
@@ -71,16 +71,16 @@
                                 <td>
                                     <?php 
                                     $userCount = $db->table('portfolio_user')
-                                                   ->where('portfolio_id', $portfolio['id'])
+                                                   ->where('portfolio_uuid', $portfolio['uuid'])
                                                    ->countAllResults();
                                     echo $userCount;
                                     ?>
                                 </td>
                                 <td>
-                                    <a href="<?= site_url('portfolios/view/' . $portfolio['id']) ?>" class="btn btn-sm btn-info">Ver</a>
+                                    <a href="<?= site_url('portfolios/' . $portfolio['uuid']) ?>" class="btn btn-sm btn-info">Ver</a>
                                     <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                        <a href="<?= site_url('portfolios/edit/' . $portfolio['id']) ?>" class="btn btn-sm btn-primary">Editar</a>
-                                        <a href="<?= site_url('portfolios/delete/' . $portfolio['id']) ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de eliminar esta cartera?')">Eliminar</a>
+                                        <a href="<?= site_url('portfolios/' . $portfolio['uuid'] . '/edit') ?>" class="btn btn-sm btn-primary">Editar</a>
+                                        <a href="<?= site_url('portfolios/' . $portfolio['uuid'] . '/delete') ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de eliminar esta cartera?')">Eliminar</a>
                                     <?php endif; ?>
                                 </td>
                             </tr>

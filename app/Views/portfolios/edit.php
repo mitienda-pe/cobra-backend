@@ -13,7 +13,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <form action="<?= site_url('portfolios/edit/' . $portfolio['id']) ?>" method="post">
+                <form action="<?= site_url('portfolios/' . $portfolio['uuid'] . '/edit') ?>" method="post">
                     <?= csrf_field() ?>
                     <div class="mb-3">
                         <label for="name" class="form-label">Nombre *</label>
@@ -52,10 +52,10 @@
                                             <?php if ($user['role'] == 'admin' || $user['role'] == 'user'): ?>
                                                 <div class="form-check">
                                                     <input class="form-check-input user-checkbox" type="checkbox" 
-                                                        name="user_ids[]" id="user_<?= $user['id'] ?>" 
-                                                        value="<?= $user['id'] ?>" 
-                                                        <?= (in_array($user['id'], $assigned_user_ids)) ? 'checked' : '' ?>>
-                                                    <label class="form-check-label" for="user_<?= $user['id'] ?>">
+                                                        name="user_ids[]" id="user_<?= $user['uuid'] ?>" 
+                                                        value="<?= $user['uuid'] ?>" 
+                                                        <?= (in_array($user['uuid'], $assigned_user_ids)) ? 'checked' : '' ?>>
+                                                    <label class="form-check-label" for="user_<?= $user['uuid'] ?>">
                                                         <?= $user['name'] ?> (<?= ucfirst($user['role']) ?>)
                                                     </label>
                                                 </div>
@@ -83,11 +83,11 @@
                                         <?php foreach ($clients as $client): ?>
                                             <div class="form-check">
                                                 <input class="form-check-input client-checkbox" type="checkbox" 
-                                                    name="client_ids[]" id="client_<?= $client['id'] ?>" 
-                                                    value="<?= $client['id'] ?>" 
-                                                    <?= (in_array($client['id'], $assigned_client_ids)) ? 'checked' : '' ?>>
-                                                <label class="form-check-label" for="client_<?= $client['id'] ?>">
-                                                    <?= $client['business_name'] ?> (<?= $client['document_number'] ?>)
+                                                    name="client_ids[]" id="client_<?= $client['uuid'] ?>" 
+                                                    value="<?= $client['uuid'] ?>" 
+                                                    <?= (in_array($client['uuid'], $assigned_client_ids)) ? 'checked' : '' ?>>
+                                                <label class="form-check-label" for="client_<?= $client['uuid'] ?>">
+                                                    <?= $client['name'] ?>
                                                 </label>
                                             </div>
                                         <?php endforeach; ?>
@@ -97,8 +97,9 @@
                         </div>
                     </div>
                     
-                    <div class="d-grid gap-2 mt-4">
-                        <button type="submit" class="btn btn-primary">Actualizar Cartera</button>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        <a href="<?= site_url('portfolios') ?>" class="btn btn-secondary">Cancelar</a>
                     </div>
                 </form>
             </div>
@@ -106,49 +107,30 @@
     </div>
 </div>
 
+<?= $this->section('scripts') ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Seleccionar todos los usuarios
-    document.getElementById('select_all_users').addEventListener('change', function() {
-        var checkboxes = document.querySelectorAll('.user-checkbox');
-        checkboxes.forEach(function(checkbox) {
+    const selectAllUsers = document.getElementById('select_all_users');
+    const userCheckboxes = document.querySelectorAll('.user-checkbox');
+    
+    selectAllUsers.addEventListener('change', function() {
+        userCheckboxes.forEach(checkbox => {
             checkbox.checked = this.checked;
-        }, this);
+        });
     });
     
     // Seleccionar todos los clientes
-    document.getElementById('select_all_clients').addEventListener('change', function() {
-        var checkboxes = document.querySelectorAll('.client-checkbox');
-        checkboxes.forEach(function(checkbox) {
+    const selectAllClients = document.getElementById('select_all_clients');
+    const clientCheckboxes = document.querySelectorAll('.client-checkbox');
+    
+    selectAllClients.addEventListener('change', function() {
+        clientCheckboxes.forEach(checkbox => {
             checkbox.checked = this.checked;
-        }, this);
+        });
     });
-    
-    // Verificar si todos los checkboxes están seleccionados al cargar
-    function updateSelectAllCheckboxes() {
-        var userCheckboxes = document.querySelectorAll('.user-checkbox');
-        var clientCheckboxes = document.querySelectorAll('.client-checkbox');
-        
-        if (userCheckboxes.length > 0) {
-            var allUsersChecked = Array.from(userCheckboxes).every(function(checkbox) {
-                return checkbox.checked;
-            });
-            document.getElementById('select_all_users').checked = allUsersChecked;
-        } else {
-            document.getElementById('select_all_users').disabled = true;
-        }
-        
-        if (clientCheckboxes.length > 0) {
-            var allClientsChecked = Array.from(clientCheckboxes).every(function(checkbox) {
-                return checkbox.checked;
-            });
-            document.getElementById('select_all_clients').checked = allClientsChecked;
-        } else {
-            document.getElementById('select_all_clients').disabled = true;
-        }
-    }
-    
-    updateSelectAllCheckboxes();
 });
 </script>
+<?= $this->endSection() ?>
+
 <?= $this->endSection() ?>
