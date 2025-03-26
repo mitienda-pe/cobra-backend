@@ -132,8 +132,8 @@ class ClientController extends BaseController
         }
         
         $rules = [
-            'business_name' => 'required|min_length[3]',
-            'legal_name' => 'required|min_length[3]',
+            'business_name' => 'required|min_length[3]|max_length[100]',
+            'legal_name' => 'required|min_length[3]|max_length[100]',
             'document_number' => 'required|min_length[8]|is_unique[clients.document_number]',
             'status' => 'required|in_list[active,inactive]'
         ];
@@ -149,23 +149,48 @@ class ClientController extends BaseController
             'document_number' => $this->request->getPost('document_number'),
             'external_id' => $this->request->getPost('external_id'),
             'contact_name' => $this->request->getPost('contact_name'),
-            'contact_email' => $this->request->getPost('contact_email'),
             'contact_phone' => $this->request->getPost('contact_phone'),
+            'address' => $this->request->getPost('address'),
+            'ubigeo' => $this->request->getPost('ubigeo'),
+            'zip_code' => $this->request->getPost('zip_code'),
             'latitude' => $this->request->getPost('latitude'),
             'longitude' => $this->request->getPost('longitude'),
-            'status' => $this->request->getPost('status')
+            'status' => $this->request->getPost('status', 'active')
         ];
         
         try {
-            $result = $this->clientModel->insert($data);
+            $db = \Config\Database::connect();
+            $db->transStart();
             
-            if ($result === false) {
+            // Insert client
+            $clientId = $this->clientModel->insert($data);
+            
+            if ($clientId === false) {
+                $db->transRollback();
                 return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . implode(', ', $this->clientModel->errors()));
+            }
+            
+            // Handle portfolio assignments
+            $portfolioIds = $this->request->getPost('portfolio_ids');
+            if ($portfolioIds) {
+                foreach ($portfolioIds as $portfolioId) {
+                    $db->table('client_portfolio')->insert([
+                        'portfolio_id' => $portfolioId,
+                        'client_id' => $clientId
+                    ]);
+                }
+            }
+            
+            $db->transComplete();
+            
+            if ($db->transStatus() === false) {
+                return redirect()->back()->withInput()->with('error', 'Error al asignar las carteras al cliente.');
             }
             
             return redirect()->to('/clients')->with('message', 'Cliente creado exitosamente');
             
         } catch (\Exception $e) {
+            $db->transRollback();
             return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . $e->getMessage());
         }
     }
@@ -332,10 +357,19 @@ class ClientController extends BaseController
         // Get portfolios for dropdown
         $portfolios = $this->portfolioModel->where('organization_id', $client['organization_id'])->findAll();
         
+        // Get assigned portfolios
+        $db = \Config\Database::connect();
+        $assignedPortfolios = $db->table('client_portfolio')
+                                ->where('client_id', $client['id'])
+                                ->get()
+                                ->getResultArray();
+        $assignedPortfolioIds = array_column($assignedPortfolios, 'portfolio_id');
+        
         $data = [
             'client' => $client,
             'organizations' => $organizations,
             'portfolios' => $portfolios,
+            'assignedPortfolioIds' => $assignedPortfolioIds,
             'auth' => $this->auth
         ];
         
@@ -372,8 +406,10 @@ class ClientController extends BaseController
             'document_number' => $this->request->getPost('document_number'),
             'external_id' => $this->request->getPost('external_id'),
             'contact_name' => $this->request->getPost('contact_name'),
-            'contact_email' => $this->request->getPost('contact_email'),
             'contact_phone' => $this->request->getPost('contact_phone'),
+            'address' => $this->request->getPost('address'),
+            'ubigeo' => $this->request->getPost('ubigeo'),
+            'zip_code' => $this->request->getPost('zip_code'),
             'latitude' => $this->request->getPost('latitude'),
             'longitude' => $this->request->getPost('longitude'),
             'status' => $this->request->getPost('status')
@@ -385,15 +421,42 @@ class ClientController extends BaseController
         }
         
         try {
+            $db = \Config\Database::connect();
+            $db->transStart();
+            
+            // Update client data
             $result = $this->clientModel->update($client['id'], $data);
             
             if ($result === false) {
+                $db->transRollback();
                 return redirect()->back()->withInput()->with('error', 'Error al actualizar el cliente: ' . implode(', ', $this->clientModel->errors()));
+            }
+            
+            // Update portfolio assignments
+            $portfolioIds = $this->request->getPost('portfolio_ids');
+            if ($portfolioIds !== null) {
+                // Delete existing assignments
+                $db->table('client_portfolio')->where('client_id', $client['id'])->delete();
+                
+                // Insert new assignments
+                foreach ($portfolioIds as $portfolioId) {
+                    $db->table('client_portfolio')->insert([
+                        'portfolio_id' => $portfolioId,
+                        'client_id' => $client['id']
+                    ]);
+                }
+            }
+            
+            $db->transComplete();
+            
+            if ($db->transStatus() === false) {
+                return redirect()->back()->withInput()->with('error', 'Error al actualizar las carteras del cliente.');
             }
             
             return redirect()->to('/clients/' . $uuid)->with('message', 'Cliente actualizado exitosamente');
             
         } catch (\Exception $e) {
+            $db->transRollback();
             return redirect()->back()->withInput()->with('error', 'Error al actualizar el cliente: ' . $e->getMessage());
         }
     }
