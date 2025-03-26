@@ -27,29 +27,18 @@ class Database extends Config
      * @var array<string, mixed>
      */
     public array $default = [
-        'DSN'          => 'sqlite:' . WRITEPATH . 'db/cobranzas.db', // Define DSN correctamente
+        'DSN'          => '',
         'hostname'     => '',
         'username'     => '',
         'password'     => '',
-        'database'     => '',
+        'database'     => WRITEPATH . 'db/cobranzas.db',  // Debe ser la ruta correcta
         'DBDriver'     => 'SQLite3',
-        'DBPrefix'     => '',
-        'pConnect'     => false, // No usar conexión persistente
-        'DBDebug'      => (ENVIRONMENT !== 'production'),
+        'pConnect'     => false,  // Importante que sea FALSE en SQLite
+        'DBDebug'      => true,
         'charset'      => 'utf8',
         'DBCollat'     => 'utf8_general_ci',
-        'swapPre'      => '',
-        'encrypt'      => false,
-        'compress'     => false,
-        'strictOn'     => false,
-        'failover'     => [],
-        'port'         => 0, // No es relevante para SQLite
         'foreignKeys'  => true,
-        'busyTimeout'  => 5000, // Aumenta el tiempo de espera en milisegundos
-        'options'      => [ // Esta parte debe estar dentro de 'options'
-            \PDO::ATTR_PERSISTENT => false,
-            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
-        ],
+        'busyTimeout'  => 1000,
     ];
 
     /**
