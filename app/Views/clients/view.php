@@ -17,101 +17,121 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-12 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Información del Cliente</h5>
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Información del Cliente</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">UUID</dt>
+                    <dd class="col-sm-8"><?= $client['uuid'] ?></dd>
+
+                    <dt class="col-sm-4">Razón Social</dt>
+                    <dd class="col-sm-8"><?= $client['business_name'] ?></dd>
+
+                    <dt class="col-sm-4">Nombre Legal</dt>
+                    <dd class="col-sm-8"><?= $client['legal_name'] ?></dd>
+
+                    <dt class="col-sm-4">RUC/DNI</dt>
+                    <dd class="col-sm-8"><?= $client['document_number'] ?></dd>
+
+                    <dt class="col-sm-4">Estado</dt>
+                    <dd class="col-sm-8">
+                        <?php if ($client['status'] == 'active'): ?>
+                            <span class="badge bg-success">Activo</span>
+                        <?php else: ?>
+                            <span class="badge bg-danger">Inactivo</span>
+                        <?php endif; ?>
+                    </dd>
+                </dl>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>RUC:</strong> <?= esc($client['document_number']) ?></p>
-                        <p><strong>Razón Social:</strong> <?= esc($client['legal_name']) ?></p>
-                        <p><strong>Nombre Comercial:</strong> <?= esc($client['business_name']) ?></p>
-                        <?php if (isset($client['external_id']) && !empty($client['external_id'])): ?>
-                            <p><strong>ID Externo:</strong> <?= esc($client['external_id']) ?></p>
-                        <?php endif; ?>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Estado:</strong> 
-                            <span class="badge bg-<?= $client['status'] == 'active' ? 'success' : 'danger' ?>">
-                                <?= $client['status'] == 'active' ? 'Activo' : 'Inactivo' ?>
-                            </span>
-                        </p>
-                        <p><strong>Organización:</strong> <?= esc($organization['name']) ?></p>
-                        <p><strong>Fecha de Creación:</strong> <?= date('d/m/Y', strtotime($client['created_at'])) ?></p>
-                        <?php if (isset($client['contact_name']) && !empty($client['contact_name'])): ?>
-                            <p><strong>Contacto:</strong> <?= esc($client['contact_name']) ?></p>
-                        <?php endif; ?>
-                    </div>
-                </div>
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">Contacto</dt>
+                    <dd class="col-sm-8"><?= $client['contact_name'] ?: 'No especificado' ?></dd>
+
+                    <dt class="col-sm-4">Teléfono</dt>
+                    <dd class="col-sm-8"><?= $client['contact_phone'] ?: 'No especificado' ?></dd>
+
+                    <dt class="col-sm-4">Dirección</dt>
+                    <dd class="col-sm-8"><?= $client['address'] ?: 'No especificada' ?></dd>
+
+                    <dt class="col-sm-4">Ubigeo</dt>
+                    <dd class="col-sm-8"><?= $client['ubigeo'] ?: 'No especificado' ?></dd>
+
+                    <dt class="col-sm-4">Código Postal</dt>
+                    <dd class="col-sm-8"><?= $client['zip_code'] ?: 'No especificado' ?></dd>
+                </dl>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Carteras Asignadas</h5>
-                    <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $client['organization_id'])): ?>
-                        <a href="<?= site_url('portfolios/create') ?>" class="btn btn-primary btn-sm">
-                            <i class="bi bi-plus-circle"></i> Nueva Cartera
-                        </a>
-                    <?php endif; ?>
-                </div>
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Carteras Asignadas</h5>
+    </div>
+    <div class="card-body">
+        <?php if (empty($portfolios)): ?>
+            <p class="text-muted">Este cliente no está asignado a ninguna cartera.</p>
+        <?php else: ?>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>UUID</th>
+                            <th>Nombre</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($portfolios as $portfolio): ?>
+                            <tr>
+                                <td><?= $portfolio['uuid'] ?></td>
+                                <td><?= $portfolio['name'] ?></td>
+                                <td>
+                                    <?php if ($portfolio['status'] == 'active'): ?>
+                                        <span class="badge bg-success">Activo</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-danger">Inactivo</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <a href="<?= site_url('portfolios/' . $portfolio['uuid']) ?>" class="btn btn-sm btn-info">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
-            <div class="card-body">
-                <?php if (!empty($portfolios)): ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Nombre</th>
-                                    <th>Descripción</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($portfolios as $portfolio): ?>
-                                    <tr>
-                                        <td><?= esc($portfolio['name']) ?></td>
-                                        <td><?= esc($portfolio['description']) ?></td>
-                                        <td>
-                                            <span class="badge bg-<?= $portfolio['status'] == 'active' ? 'success' : 'danger' ?>">
-                                                <?= $portfolio['status'] == 'active' ? 'Activo' : 'Inactivo' ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <a href="<?= site_url('portfolios/' . ($portfolio['uuid'] ?? $portfolio['id'])) ?>" class="btn btn-info btn-sm" title="Ver">
-                                                    <i class="bi bi-eye"></i>
-                                                </a>
-                                                <?php if ($auth->hasRole('superadmin') || ($auth->hasRole('admin') && $auth->organizationId() == $client['organization_id'])): ?>
-                                                    <a href="<?= site_url('portfolios/' . ($portfolio['uuid'] ?? $portfolio['id']) . '/edit') ?>" class="btn btn-primary btn-sm" title="Editar">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </a>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php else: ?>
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> Este cliente no tiene carteras asignadas.
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
+        <?php endif; ?>
     </div>
 </div>
+
+<?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Información de la Organización</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Organización</dt>
+            <dd class="col-sm-9"><?= $organization['name'] ?></dd>
+
+            <dt class="col-sm-3">RUC</dt>
+            <dd class="col-sm-9"><?= $organization['ruc'] ?></dd>
+
+            <dt class="col-sm-3">Dirección</dt>
+            <dd class="col-sm-9"><?= $organization['address'] ?: 'No especificada' ?></dd>
+        </dl>
+    </div>
+</div>
+<?php endif; ?>
 
 <script>
 function copyToClipboard(elementId) {

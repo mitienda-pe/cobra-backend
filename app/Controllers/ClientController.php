@@ -536,30 +536,37 @@ class ClientController extends BaseController
         }
     }
     
-    public function view($uuid)
+    public function view($uuid = null)
     {
+        if (!$uuid) {
+            return redirect()->to('/clients')->with('error', 'UUID de cliente no proporcionado.');
+        }
+
+        // Get client
         $client = $this->clientModel->where('uuid', $uuid)->first();
-        
         if (!$client) {
             return redirect()->to('/clients')->with('error', 'Cliente no encontrado.');
         }
-        
-        // Get organization info
-        $organization = $this->organizationModel->find($client['organization_id']);
-        if (!$organization) {
-            return redirect()->to('/clients')->with('error', 'Organización del cliente no encontrada.');
+
+        // Check organization permissions
+        if (!$this->auth->hasRole('superadmin') && $client['organization_id'] !== $this->auth->organizationId()) {
+            return redirect()->to('/clients')->with('error', 'No tiene permisos para ver este cliente.');
         }
-        
-        // Get portfolios for this client
-        $portfolios = $this->portfolioModel->getByClient($client['id']);
-        
+
+        // Get assigned portfolios
+        $assignedPortfolios = $this->clientModel->getPortfolios($client['uuid']);
+
+        // Get organization info
+        $organizationModel = new \App\Models\OrganizationModel();
+        $organization = $organizationModel->find($client['organization_id']);
+
         $data = [
             'client' => $client,
             'organization' => $organization,
-            'portfolios' => $portfolios,
+            'assignedPortfolios' => $assignedPortfolios,
             'auth' => $this->auth
         ];
-        
+
         return view('clients/view', $data);
     }
     
