@@ -134,6 +134,9 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    var usersContainer = document.getElementById('users-container');
+    var clientsContainer = document.getElementById('clients-container');
+    
     // Seleccionar todos los usuarios
     document.getElementById('select_all_users').addEventListener('change', function() {
         var checkboxes = document.querySelectorAll('.user-checkbox');
@@ -150,41 +153,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }, this);
     });
 
-    // Manejar el cambio de organización para superadmin
+    // Función para cargar datos de la organización
+    function loadOrganizationData(organizationId) {
+        if (!organizationId) return;
+
+        // Cargar usuarios
+        fetch(`/portfolios/organization/${organizationId}/users`)
+            .then(response => response.json())
+            .then(data => {
+                updateUsersContainer(data.users);
+            })
+            .catch(error => {
+                console.error('Error loading users:', error);
+                usersContainer.innerHTML = '<p class="text-danger">Error al cargar usuarios</p>';
+            });
+
+        // Cargar clientes
+        fetch(`/portfolios/organization/${organizationId}/clients`)
+            .then(response => response.json())
+            .then(data => {
+                updateClientsContainer(data.clients);
+            })
+            .catch(error => {
+                console.error('Error loading clients:', error);
+                clientsContainer.innerHTML = '<p class="text-danger">Error al cargar clientes</p>';
+            });
+    }
+
+    // Manejar organización predefinida (hidden input)
+    var hiddenOrgInput = document.querySelector('input[type="hidden"][name="organization_id"]');
+    if (hiddenOrgInput) {
+        loadOrganizationData(hiddenOrgInput.value);
+    }
+
+    // Manejar cambio de organización (select)
     var organizationSelect = document.getElementById('organization_id');
-    var usersContainer = document.getElementById('users-container');
-    var clientsContainer = document.getElementById('clients-container');
-
     if (organizationSelect) {
-        // Limpiar los contenedores al inicio
-        usersContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver usuarios disponibles</p>';
-        clientsContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver clientes disponibles</p>';
-
         organizationSelect.addEventListener('change', function() {
             var organizationId = this.value;
-            
             if (organizationId) {
-                // Cargar usuarios
-                fetch(`/portfolios/organization/${organizationId}/users`)
-                    .then(response => response.json())
-                    .then(data => {
-                        updateUsersContainer(data.users);
-                    })
-                    .catch(error => {
-                        console.error('Error loading users:', error);
-                        usersContainer.innerHTML = '<p class="text-danger">Error al cargar usuarios</p>';
-                    });
-
-                // Cargar clientes
-                fetch(`/portfolios/organization/${organizationId}/clients`)
-                    .then(response => response.json())
-                    .then(data => {
-                        updateClientsContainer(data.clients);
-                    })
-                    .catch(error => {
-                        console.error('Error loading clients:', error);
-                        clientsContainer.innerHTML = '<p class="text-danger">Error al cargar clientes</p>';
-                    });
+                loadOrganizationData(organizationId);
             } else {
                 usersContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver usuarios disponibles</p>';
                 clientsContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver clientes disponibles</p>';
