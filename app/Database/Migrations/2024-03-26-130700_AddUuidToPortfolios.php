@@ -3,7 +3,6 @@
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
-use Ramsey\Uuid\Uuid;
 
 class AddUuidToPortfolios extends Migration
 {
@@ -26,7 +25,7 @@ class AddUuidToPortfolios extends Migration
         foreach ($portfolios as $portfolio) {
             $db->table('portfolios')
                ->where('id', $portfolio['id'])
-               ->update(['uuid' => Uuid::uuid4()->toString()]);
+               ->update(['uuid' => bin2hex(random_bytes(16))]);
         }
 
         // Make UUID column required and unique

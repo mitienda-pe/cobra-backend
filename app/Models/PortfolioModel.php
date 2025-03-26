@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
-use Ramsey\Uuid\Uuid;
 
 class PortfolioModel extends Model
 {
@@ -40,7 +39,7 @@ class PortfolioModel extends Model
     protected function generateUuid($data)
     {
         if (!isset($data['data']['uuid'])) {
-            $data['data']['uuid'] = Uuid::uuid4()->toString();
+            $data['data']['uuid'] = bin2hex(random_bytes(16));
         }
         return $data;
     }
