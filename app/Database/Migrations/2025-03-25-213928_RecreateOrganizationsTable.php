@@ -17,9 +17,7 @@ class RecreateOrganizationsTable extends Migration
         // Creamos la tabla con la nueva estructura
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
+                'type' => 'INTEGER',
                 'auto_increment' => true,
             ],
             'uuid' => [
@@ -61,14 +59,16 @@ class RecreateOrganizationsTable extends Migration
             ],
         ]);
 
-        $this->forge->addKey('id', true);
-        $this->forge->addUniqueKey('uuid');
+        $this->forge->addPrimaryKey('id');
         $this->forge->createTable('organizations');
 
-        // Creamos el índice único para code
-        $this->db->query('CREATE UNIQUE INDEX organizations_code_unique ON organizations(code) WHERE code IS NOT NULL');
+        // Creamos el índice único para uuid
+        $this->db->query('CREATE INDEX idx_organizations_uuid ON organizations(uuid)');
         
-        // Restauramos los datos del backup
+        // Creamos el índice único para code
+        $this->db->query('CREATE UNIQUE INDEX idx_organizations_code ON organizations(code) WHERE code IS NOT NULL');
+        
+        // Restauramos los datos del backup, incluyendo uuid
         $this->db->query('INSERT INTO organizations (id, uuid, name, description, status, created_at, updated_at, deleted_at) SELECT id, uuid, name, description, status, created_at, updated_at, deleted_at FROM organizations_backup');
         
         // Eliminamos la tabla de backup
