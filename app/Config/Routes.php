@@ -98,9 +98,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors a
     // Organization Routes
     $routes->match(['get', 'options'], 'organizations', 'OrganizationController::index');
     $routes->match(['post', 'options'], 'organizations', 'OrganizationController::create');
-    $routes->match(['get', 'options'], 'organizations/(:num)', 'OrganizationController::show/$1');
-    $routes->match(['put', 'options'], 'organizations/(:num)', 'OrganizationController::update/$1');
-    $routes->match(['delete', 'options'], 'organizations/(:num)', 'OrganizationController::delete/$1');
+    $routes->match(['get', 'options'], 'organizations/(:segment)', 'OrganizationController::show/$1');
+    $routes->match(['put', 'options'], 'organizations/(:segment)', 'OrganizationController::update/$1');
+    $routes->match(['delete', 'options'], 'organizations/(:segment)', 'OrganizationController::delete/$1');
 });
 
 // Web Routes - Protected
@@ -112,11 +112,11 @@ $routes->group('', ['filter' => 'auth csrf'], function ($routes) {
     $routes->group('organizations', function($routes) {
         $routes->get('/', 'OrganizationController::index');
         $routes->get('create', 'OrganizationController::create');
-        $routes->post('/', 'OrganizationController::store');
+        $routes->post('create', 'OrganizationController::store');
         $routes->get('(:segment)', 'OrganizationController::view/$1');
         $routes->get('(:segment)/edit', 'OrganizationController::edit/$1');
         $routes->post('(:segment)', 'OrganizationController::update/$1');
-        $routes->get('(:segment)/delete', 'OrganizationController::delete/$1');
+        $routes->post('(:segment)/delete', 'OrganizationController::delete/$1');
     });
 
     // User Routes

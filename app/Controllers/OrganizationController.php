@@ -3,17 +3,26 @@
 namespace App\Controllers;
 
 use App\Models\OrganizationModel;
+use App\Models\UserModel;
+use App\Models\ClientModel;
+use App\Models\PortfolioModel;
 use App\Libraries\Auth;
 
 class OrganizationController extends BaseController
 {
     protected $organizationModel;
+    protected $userModel;
+    protected $clientModel;
+    protected $portfolioModel;
     protected $auth;
     protected $session;
     
     public function __construct()
     {
         $this->organizationModel = new OrganizationModel();
+        $this->userModel = new UserModel();
+        $this->clientModel = new ClientModel();
+        $this->portfolioModel = new PortfolioModel();
         $this->auth = new Auth();
         $this->session = \Config\Services::session();
         helper(['form', 'url']);
@@ -83,135 +92,127 @@ class OrganizationController extends BaseController
         return redirect()->to('/organizations')->with('message', 'Organization created successfully');
     }
     
-    public function edit($id)
+    public function edit($uuid)
     {
-        // Only superadmins can edit organizations
-        if (!$this->auth->hasRole('superadmin')) {
-            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para editar organizaciones.');
-        }
-        
-        $organization = $this->organizationModel->select($this->organizationModel->selectedFields)->find($id);
-        if (!$organization) {
-            return redirect()->to('/organizations')->with('error', 'Organization not found');
-        }
-
-        log_message('debug', 'Organization data for edit: ' . json_encode($organization));
-
-        return view('organizations/edit', [
-            'title' => 'Edit Organization',
-            'organization' => $organization,
-            'auth' => $this->auth,
-        ]);
-    }
-    
-    public function update($id)
-    {
-        // Only superadmins can edit organizations
-        if (!$this->auth->hasRole('superadmin')) {
-            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para editar organizaciones.');
-        }
-        
-        $postData = $this->request->getPost();
-        log_message('debug', 'Method: ' . $this->request->getMethod());
-        log_message('debug', 'POST/PUT data received in update: ' . json_encode($postData));
-        
-        $organization = $this->organizationModel->find($id);
-        if (!$organization) {
-            return redirect()->to('/organizations')->with('error', 'Organization not found');
-        }
-
-        if (!$this->validate([
-            'name' => 'required|min_length[3]',
-            'status' => 'required|in_list[active,inactive]'
-        ])) {
-            log_message('debug', 'Validation errors in update: ' . json_encode($this->validator->getErrors()));
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-
-        $result = $this->organizationModel->update($id, [
-            'name' => $this->request->getPost('name'),
-            'status' => $this->request->getPost('status'),
-            'description' => $this->request->getPost('description')
-        ]);
-        
-        log_message('debug', 'Update result: ' . json_encode($result));
-
-        if (!$result) {
-            log_message('error', 'Database error in update: ' . json_encode($this->organizationModel->errors()));
-            return redirect()->back()->withInput()->with('error', 'Error al actualizar la organización');
-        }
-
-        return redirect()->to('/organizations')->with('message', 'Organization updated successfully');
-    }
-    
-    public function delete($id)
-    {
-        // Only superadmins can delete organizations
-        if (!$this->auth->hasRole('superadmin')) {
-            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para eliminar organizaciones.');
-        }
-        
-        $organization = $this->organizationModel->find($id);
-        if (!$organization) {
-            return redirect()->to('/organizations')->with('error', 'Organization not found');
-        }
-
-        // Check if organization has any related data
-        // This is a simplified check, you might want to add more tables as needed
-        $db = \Config\Database::connect();
-        $clientCount = $db->table('clients')->where('organization_id', $id)->countAllResults();
-        $userCount = $db->table('users')->where('organization_id', $id)->countAllResults();
-        $portfolioCount = $db->table('portfolios')->where('organization_id', $id)->countAllResults();
-        
-        if ($clientCount > 0 || $userCount > 0 || $portfolioCount > 0) {
-            return redirect()->to('/organizations')->with('error', 'No se puede eliminar esta organización porque tiene datos asociados.');
-        }
-        
-        $this->organizationModel->delete($id);
-
-        return redirect()->to('/organizations')->with('message', 'Organization deleted successfully');
-    }
-    
-    public function view($id)
-    {
-        // Only superadmins can view organizations
-        if (!$this->auth->hasRole('superadmin')) {
-            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para ver organizaciones.');
-        }
-        
-        $organization = $this->organizationModel->find($id);
+        $organization = $this->organizationModel->where('uuid', $uuid)->first();
         
         if (!$organization) {
             return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');
         }
         
-        // Get users of this organization
-        $db = \Config\Database::connect();
-        $users = $db->table('users')
-                   ->where('organization_id', $id)
-                   ->where('deleted_at IS NULL')
-                   ->get()
-                   ->getResultArray();
+        // Only superadmin can edit organizations
+        if (!$this->auth->hasRole('superadmin')) {
+            return redirect()->to('/organizations')->with('error', 'No tiene permisos para editar organizaciones.');
+        }
         
-        // Get stats about the organization
-        $clientCount = $db->table('clients')->where('organization_id', $id)->countAllResults();
-        $portfolioCount = $db->table('portfolios')->where('organization_id', $id)->countAllResults();
-        $invoiceCount = $db->table('invoices')
-                          ->join('clients', 'clients.id = invoices.client_id')
-                          ->where('clients.organization_id', $id)
-                          ->countAllResults();
+        $data = [
+            'organization' => $organization,
+            'auth' => $this->auth
+        ];
         
-        return view('organizations/view', [
-            'title' => 'Ver Organización',
+        return view('organizations/edit', $data);
+    }
+    
+    public function update($uuid)
+    {
+        // Only superadmin can update organizations
+        if (!$this->auth->hasRole('superadmin')) {
+            return redirect()->to('/organizations')->with('error', 'No tiene permisos para actualizar organizaciones.');
+        }
+        
+        $organization = $this->organizationModel->where('uuid', $uuid)->first();
+        
+        if (!$organization) {
+            return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');
+        }
+        
+        $rules = [
+            'name' => 'required|min_length[3]',
+            'status' => 'required|in_list[active,inactive]'
+        ];
+        
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+        
+        $data = [
+            'name' => $this->request->getPost('name'),
+            'description' => $this->request->getPost('description'),
+            'status' => $this->request->getPost('status')
+        ];
+        
+        try {
+            $result = $this->organizationModel->update($organization['id'], $data);
+            
+            if ($result === false) {
+                return redirect()->back()->withInput()->with('error', 'Error al actualizar la organización: ' . implode(', ', $this->organizationModel->errors()));
+            }
+            
+            return redirect()->to('/organizations/' . $uuid)->with('message', 'Organización actualizada exitosamente');
+            
+        } catch (\Exception $e) {
+            return redirect()->back()->withInput()->with('error', 'Error al actualizar la organización: ' . $e->getMessage());
+        }
+    }
+    
+    public function delete($uuid)
+    {
+        // Only superadmin can delete organizations
+        if (!$this->auth->hasRole('superadmin')) {
+            return redirect()->to('/organizations')->with('error', 'No tiene permisos para eliminar organizaciones.');
+        }
+        
+        $organization = $this->organizationModel->where('uuid', $uuid)->first();
+        
+        if (!$organization) {
+            return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');
+        }
+        
+        try {
+            $result = $this->organizationModel->delete($organization['id']);
+            
+            if ($result === false) {
+                return redirect()->back()->with('error', 'Error al eliminar la organización: ' . implode(', ', $this->organizationModel->errors()));
+            }
+            
+            return redirect()->to('/organizations')->with('message', 'Organización eliminada exitosamente');
+            
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error al eliminar la organización: ' . $e->getMessage());
+        }
+    }
+    
+    public function view($uuid)
+    {
+        $organization = $this->organizationModel->where('uuid', $uuid)->first();
+        
+        if (!$organization) {
+            return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');
+        }
+        
+        // Only superadmin can view any organization
+        // Admins can only view their own organization
+        if (!$this->auth->hasRole('superadmin') && $organization['id'] != $this->auth->organizationId()) {
+            return redirect()->to('/organizations')->with('error', 'No tiene permisos para ver esta organización.');
+        }
+        
+        // Get users from this organization
+        $users = $this->userModel->where('organization_id', $organization['id'])->findAll();
+        
+        // Get clients from this organization
+        $clients = $this->clientModel->where('organization_id', $organization['id'])->findAll();
+        
+        // Get portfolios from this organization
+        $portfolios = $this->portfolioModel->where('organization_id', $organization['id'])->findAll();
+        
+        $data = [
             'organization' => $organization,
             'users' => $users,
-            'stats' => [
-                'clients' => $clientCount,
-                'users' => count($users),
-                'portfolios' => $portfolioCount,
-                'invoices' => $invoiceCount,
-            ],
-            'auth' => $this->auth,
-        ]);
+            'clients' => $clients,
+            'portfolios' => $portfolios,
+            'auth' => $this->auth
+        ];
+        
+        return view('organizations/view', $data);
     }
 }

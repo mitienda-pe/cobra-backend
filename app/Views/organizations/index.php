@@ -16,7 +16,7 @@
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>UUID</th>
                         <th>Nombre</th>
                         <th>Descripción</th>
                         <th>Estado</th>
@@ -32,7 +32,7 @@
                     <?php else: ?>
                         <?php foreach ($organizations as $org): ?>
                             <tr>
-                                <td><?= $org['id'] ?></td>
+                                <td><?= $org['uuid'] ?></td>
                                 <td><?= $org['name'] ?></td>
                                 <td><?= $org['description'] ?? 'N/A' ?></td>
                                 <td>
@@ -44,9 +44,15 @@
                                 </td>
                                 <td><?= date('d/m/Y', strtotime($org['created_at'])) ?></td>
                                 <td>
-                                    <a href="<?= site_url('organizations/' . $org['id']) ?>" class="btn btn-sm btn-info">Ver</a>
-                                    <a href="<?= site_url('organizations/' . $org['id'] . '/edit') ?>" class="btn btn-sm btn-primary">Editar</a>
-                                    <a href="<?= site_url('organizations/' . $org['id'] . '/delete') ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de eliminar esta organización?')">Eliminar</a>
+                                    <a href="<?= site_url('organizations/' . $org['uuid']) ?>" class="btn btn-sm btn-info">
+                                        <i class="bi bi-eye"></i> Ver
+                                    </a>
+                                    <a href="<?= site_url('organizations/' . $org['uuid'] . '/edit') ?>" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-uuid="<?= $org['uuid'] ?>" data-name="<?= esc($org['name']) ?>">
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -56,4 +62,42 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Está seguro que desea eliminar la organización <strong id="orgName"></strong>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" action="" method="post" class="d-inline">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteModal = document.getElementById('deleteModal');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const uuid = button.getAttribute('data-uuid');
+            const name = button.getAttribute('data-name');
+            
+            deleteModal.querySelector('#orgName').textContent = name;
+            deleteModal.querySelector('#deleteForm').action = '<?= site_url('organizations/') ?>' + uuid + '/delete';
+        });
+    }
+});
+</script>
 <?= $this->endSection() ?>

@@ -38,14 +38,13 @@ class OrganizationModel extends Model
     protected $beforeInsert   = ['generateUuid'];
     
     /**
-     * Generate a UUID for new organizations
+     * Generate UUID before insert
      */
     protected function generateUuid(array $data)
     {
-        if (! isset($data['data']['uuid']) || empty($data['data']['uuid'])) {
-            $data['data']['uuid'] = generate_unique_uuid('organizations', 'uuid');
+        if (!isset($data['data']['uuid'])) {
+            $data['data']['uuid'] = bin2hex(random_bytes(16));
         }
-        
         return $data;
     }
 
