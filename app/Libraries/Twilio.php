@@ -8,6 +8,7 @@ class Twilio
     private $token;
     private $fromNumber;
     private $enabled;
+    private $testPhoneNumber = '+51999309748';
 
     public function __construct()
     {
@@ -64,6 +65,11 @@ class Twilio
                 'Body' => $message,
             ];
 
+            // Si es el número de prueba, deshabilitar verificaciones de riesgo
+            if ($to === $this->testPhoneNumber) {
+                $data['RiskCheck'] = 'disable';
+            }
+
             // Configurar cURL
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
@@ -100,7 +106,7 @@ class Twilio
             log_message('error', 'TWILIO ERROR: ' . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'Error al conectar con Twilio: ' . $e->getMessage(),
+                'message' => 'Error interno al enviar SMS: ' . $e->getMessage(),
             ];
         }
     }
