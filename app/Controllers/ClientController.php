@@ -110,8 +110,6 @@ class ClientController extends BaseController
     
     public function store()
     {
-        log_message('debug', '====== CLIENT STORE ======');
-        
         // Get the current organization context
         $currentOrgId = $this->refreshOrganizationContext();
         
@@ -119,7 +117,6 @@ class ClientController extends BaseController
         if (!$this->auth->hasRole('superadmin')) {
             $currentOrgId = $this->auth->organizationId();
             if (!$currentOrgId) {
-                log_message('error', 'User has no organization assigned');
                 return redirect()->back()->withInput()->with('error', 'No tiene una organización asignada.');
             }
         }
@@ -131,49 +128,44 @@ class ClientController extends BaseController
         }
         
         if (!$currentOrgId) {
-            log_message('error', 'No organization context found');
             return redirect()->back()->withInput()->with('error', 'Debe seleccionar una organización.');
         }
         
-        log_message('debug', 'Organization context: ' . $currentOrgId);
-        
         $rules = [
-            'name' => 'required|min_length[3]',
-            'code' => 'required|min_length[2]|is_unique[clients.code]',
+            'business_name' => 'required|min_length[3]',
+            'legal_name' => 'required|min_length[3]',
+            'document_number' => 'required|min_length[8]|is_unique[clients.document_number]',
             'status' => 'required|in_list[active,inactive]'
         ];
         
         if (!$this->validate($rules)) {
-            log_message('debug', 'Validation errors: ' . json_encode($this->validator->getErrors()));
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
         
         $data = [
             'organization_id' => $currentOrgId,
-            'name' => $this->request->getPost('name'),
-            'code' => $this->request->getPost('code'),
+            'business_name' => $this->request->getPost('business_name'),
+            'legal_name' => $this->request->getPost('legal_name'),
+            'document_number' => $this->request->getPost('document_number'),
+            'external_id' => $this->request->getPost('external_id'),
             'contact_name' => $this->request->getPost('contact_name'),
             'contact_email' => $this->request->getPost('contact_email'),
             'contact_phone' => $this->request->getPost('contact_phone'),
-            'status' => $this->request->getPost('status'),
-            'description' => $this->request->getPost('description')
+            'latitude' => $this->request->getPost('latitude'),
+            'longitude' => $this->request->getPost('longitude'),
+            'status' => $this->request->getPost('status')
         ];
-        
-        log_message('debug', 'Attempting to insert client with data: ' . json_encode($data));
         
         try {
             $result = $this->clientModel->insert($data);
             
             if ($result === false) {
-                log_message('error', 'Error inserting client: ' . json_encode($this->clientModel->errors()));
                 return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . implode(', ', $this->clientModel->errors()));
             }
             
-            log_message('debug', 'Client created successfully with ID: ' . $result);
             return redirect()->to('/clients')->with('message', 'Cliente creado exitosamente');
             
         } catch (\Exception $e) {
-            log_message('error', 'Exception creating client: ' . $e->getMessage());
             return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . $e->getMessage());
         }
     }
@@ -364,9 +356,9 @@ class ClientController extends BaseController
         }
         
         $rules = [
-            'name' => 'required|min_length[3]',
-            'email' => 'permit_empty|valid_email',
-            'phone' => 'permit_empty|min_length[6]|max_length[20]',
+            'business_name' => 'required|min_length[3]',
+            'legal_name' => 'required|min_length[3]',
+            'document_number' => 'required|min_length[8]',
             'status' => 'required|in_list[active,inactive]'
         ];
         
@@ -375,12 +367,16 @@ class ClientController extends BaseController
         }
         
         $data = [
-            'name' => $this->request->getPost('name'),
-            'email' => $this->request->getPost('email'),
-            'phone' => $this->request->getPost('phone'),
-            'address' => $this->request->getPost('address'),
-            'status' => $this->request->getPost('status'),
-            'portfolio_id' => $this->request->getPost('portfolio_id')
+            'business_name' => $this->request->getPost('business_name'),
+            'legal_name' => $this->request->getPost('legal_name'),
+            'document_number' => $this->request->getPost('document_number'),
+            'external_id' => $this->request->getPost('external_id'),
+            'contact_name' => $this->request->getPost('contact_name'),
+            'contact_email' => $this->request->getPost('contact_email'),
+            'contact_phone' => $this->request->getPost('contact_phone'),
+            'latitude' => $this->request->getPost('latitude'),
+            'longitude' => $this->request->getPost('longitude'),
+            'status' => $this->request->getPost('status')
         ];
         
         // Only superadmin can change organization
