@@ -85,17 +85,19 @@
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <a href="<?= site_url('users/' . $user['uuid']) ?>" class="btn btn-sm btn-info">
-                                        <i class="bi bi-eye"></i> Ver
-                                    </a>
-                                    <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                        <a href="<?= site_url('users/' . $user['uuid'] . '/edit') ?>" class="btn btn-sm btn-primary">
-                                            <i class="bi bi-pencil"></i> Editar
+                                    <div class="btn-group" role="group">
+                                        <a href="<?= site_url('users/' . $user['uuid']) ?>" class="btn btn-sm btn-info">
+                                            <i class="bi bi-eye"></i> Ver
                                         </a>
-                                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-uuid="<?= $user['uuid'] ?>" data-name="<?= esc($user['name']) ?>">
-                                            <i class="bi bi-trash"></i> Eliminar
-                                        </button>
-                                    <?php endif; ?>
+                                        <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                                            <a href="<?= site_url('users/' . $user['uuid'] . '/edit') ?>" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-pencil"></i> Editar
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-uuid="<?= $user['uuid'] ?>" data-name="<?= esc($user['name']) ?>">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

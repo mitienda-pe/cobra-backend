@@ -8,9 +8,9 @@
         <h1>Pagos</h1>
     </div>
     <div class="col-md-6 text-end">
-        <a href="<?= site_url('payments/create') ?>" class="btn btn-success">
+        <!-- <a href="<?= site_url('payments/create') ?>" class="btn btn-success">
             <i class="bi bi-plus"></i> Registrar Pago
-        </a>
+        </a> -->
     </div>
 </div>
 
@@ -79,13 +79,12 @@
                         </td>
                         <td class="text-nowrap">
                             <a href="<?= site_url('payments/view/' . $payment['uuid']) ?>" class="btn btn-sm btn-info">
-                                Ver
+                                <i class="bi bi-eye"></i> Ver
                             </a>
-                            
+
                             <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                <button type="button" class="btn btn-sm btn-danger" 
-                                        onclick="confirmDelete(<?= $payment['id'] ?>)">
-                                    Eliminar
+                                <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete(<?= $payment['id'] ?>)">
+                                    <i class="bi bi-trash"></i> Eliminar
                                 </button>
                             <?php endif; ?>
                         </td>
@@ -94,7 +93,7 @@
             </tbody>
         </table>
     </div>
-    
+
     <!-- Paginación -->
     <?= $pager->links() ?>
 <?php endif; ?>
@@ -122,11 +121,11 @@
 
 <?= $this->section('scripts') ?>
 <script>
-function confirmDelete(id) {
-    document.getElementById('deleteLink').href = '<?= site_url('payments/delete/') ?>' + id;
-    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    deleteModal.show();
-}
+    function confirmDelete(id) {
+        document.getElementById('deleteLink').href = '<?= site_url('payments/delete/') ?>' + id;
+        var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    }
 </script>
 <?= $this->endSection() ?>
 

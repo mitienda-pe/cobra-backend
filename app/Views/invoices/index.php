@@ -91,21 +91,23 @@
                                 </span>
                             </td>
                             <td>
-                                <div class="btn-group btn-group-sm">
+                                <div class="btn-group">
                                     <a href="<?= site_url('invoices/view/' . $invoice['uuid']) ?>" 
-                                       class="btn btn-outline-primary" title="Ver">
-                                        <i class="bi bi-eye"></i>
+                                       class="btn btn-sm btn-info">
+                                        <i class="bi bi-eye"></i> Ver
                                     </a>
                                     <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
                                         <a href="<?= site_url('invoices/edit/' . $invoice['uuid']) ?>" 
-                                           class="btn btn-outline-secondary" title="Editar">
-                                            <i class="bi bi-pencil"></i>
+                                           class="btn btn-sm btn-primary">
+                                            <i class="bi bi-pencil"></i> Editar
                                         </a>
-                                        <button type="button" class="btn btn-outline-danger" title="Eliminar"
-                                                data-bs-toggle="modal" data-bs-target="#deleteModal"
-                                                data-invoice-id="<?= $invoice['uuid'] ?>"
-                                                data-invoice-number="<?= esc($invoice['invoice_number']) ?>">
-                                            <i class="bi bi-trash"></i>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-danger"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal"
+                                                data-uuid="<?= $invoice['uuid'] ?>"
+                                                data-number="<?= esc($invoice['invoice_number']) ?>">
+                                            <i class="bi bi-trash"></i> Eliminar
                                         </button>
                                     <?php endif; ?>
                                 </div>
@@ -161,8 +163,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (deleteModal) {
         deleteModal.addEventListener('show.bs.modal', function(event) {
             const button = event.relatedTarget;
-            const invoiceId = button.getAttribute('data-invoice-id');
-            const invoiceNumber = button.getAttribute('data-invoice-number');
+            const invoiceId = button.getAttribute('data-uuid');
+            const invoiceNumber = button.getAttribute('data-number');
             
             document.getElementById('invoiceNumber').textContent = invoiceNumber;
             document.getElementById('deleteForm').action = `<?= site_url('invoices/delete/') ?>${invoiceId}`;
