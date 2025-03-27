@@ -57,13 +57,6 @@ class CorsFilter implements FilterInterface
         // Log for debugging
         log_message('debug', 'CORS Filter (after): ' . $request->getMethod(true) . ' ' . $request->uri->getPath());
         
-        // Ensure CORS headers are set
-        $response->setHeader('Access-Control-Allow-Origin', '*')
-                ->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-Key')
-                ->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
-                ->setHeader('Access-Control-Allow-Credentials', 'true')
-                ->setHeader('Access-Control-Max-Age', '86400'); // 24 hours
-
         return $response;
     }
 }

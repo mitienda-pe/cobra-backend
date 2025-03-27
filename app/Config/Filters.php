@@ -49,12 +49,12 @@ class Filters extends BaseConfig
                 'login*',
                 'logout'
             ]],
-            'invalidchars',
+            'cors',
         ],
         'after' => [
-            'toolbar',
-            'honeypot',
-            'secureheaders',
+            'toolbar' => ['except' => ['cli']],
+            'honeypot' => ['except' => ['cli']],
+            'secureheaders' => ['except' => ['cli']],
         ],
     ];
 
