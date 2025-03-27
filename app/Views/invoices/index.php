@@ -1,16 +1,16 @@
 <?= $this->extend('layouts/main') ?>
 
-<?= $this->section('title') ?>Cuentas por Cobrar<?= $this->endSection() ?>
+<?= $this->section('title') ?>Facturas<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <div class="row mb-4">
     <div class="col-md-6">
-        <h1>Cuentas por Cobrar</h1>
+        <h1>Facturas</h1>
     </div>
     <div class="col-md-6 text-end">
         <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
             <a href="<?= site_url('invoices/create') ?>" class="btn btn-primary">
-                <i class="bi bi-plus"></i> Nueva Cuenta
+                <i class="bi bi-plus"></i> Nueva Factura
             </a>
             <a href="<?= site_url('invoices/import') ?>" class="btn btn-outline-primary">
                 <i class="bi bi-upload"></i> Importar
@@ -29,11 +29,10 @@
                     <option value="">Todos</option>
                     <option value="pending" <?= $status === 'pending' ? 'selected' : '' ?>>Pendiente</option>
                     <option value="paid" <?= $status === 'paid' ? 'selected' : '' ?>>Pagada</option>
-                    <option value="cancelled" <?= $status === 'cancelled' ? 'selected' : '' ?>>Cancelada</option>
+                    <option value="cancelled" <?= $status === 'cancelled' ? 'selected' : '' ?>>Anulada</option>
                     <option value="rejected" <?= $status === 'rejected' ? 'selected' : '' ?>>Rechazada</option>
                 </select>
             </div>
-            
             
             <div class="col-md-4 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary">Filtrar</button>
@@ -45,23 +44,24 @@
 
 <?php if (empty($invoices)): ?>
     <div class="alert alert-info">
-        No se encontraron cuentas por cobrar con los filtros aplicados.
+        No se encontraron facturas con los filtros aplicados.
     </div>
 <?php else: ?>
     <div class="table-responsive">
         <table class="table table-striped table-hover">
             <thead>
                 <tr>
-                    <th>Nro. Factura</th>
+                    <th>Serie-Número</th>
                     <th>Cliente</th>
-                    <th>RUC/CI</th>
+                    <th>Documento</th>
                     <?php if (isset($organizations) && $auth->hasRole('superadmin') && !isset($selected_organization_id)): ?>
                     <th>Organización</th>
                     <?php endif; ?>
-                    <th>Concepto</th>
-                    <th>Monto</th>
-                    <th>Pago</th>
-                    <th>Fecha Vencimiento</th>
+                    <th>F. Emisión</th>
+                    <th>Moneda</th>
+                    <th>Total</th>
+                    <th>Pagado</th>
+                    <th>F. Vencimiento</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
@@ -69,9 +69,9 @@
             <tbody>
                 <?php foreach ($invoices as $invoice): ?>
                     <tr>
-                        <td><?= esc($invoice['invoice_number']) ?></td>
+                        <td><?= esc($invoice['series'] . '-' . $invoice['number']) ?></td>
                         <td><?= esc($invoice['client_name']) ?></td>
-                        <td><?= esc($invoice['document_number']) ?></td>
+                        <td><?= esc($invoice['client_document_type'] . ': ' . $invoice['client_document_number']) ?></td>
                         <?php if (isset($organizations) && $auth->hasRole('superadmin') && !isset($selected_organization_id)): ?>
                         <td>
                             <?php 
@@ -87,26 +87,23 @@
                             ?>
                         </td>
                         <?php endif; ?>
-                        <td><?= esc($invoice['concept']) ?></td>
-                        <td>$<?= number_format($invoice['amount'], 2) ?></td>
+                        <td><?= esc($invoice['issue_date']) ?></td>
+                        <td><?= esc($invoice['currency']) ?></td>
+                        <td><?= $invoice['currency'] ?> <?= number_format($invoice['total_amount'], 2) ?></td>
                         <td>
-                            <?php if ($invoice['status'] === 'pending' && isset($invoice['has_partial_payment']) && $invoice['has_partial_payment']): ?>
+                            <?php if ($invoice['status'] === 'pending' && $invoice['paid_amount'] > 0): ?>
                                 <div class="d-flex flex-column">
-                                    <small>Pagado: $<?= number_format($invoice['total_paid'], 2) ?></small>
-                                    <small>Pendiente: $<?= number_format($invoice['remaining_amount'], 2) ?></small>
+                                    <small>Pagado: <?= $invoice['currency'] ?> <?= number_format($invoice['paid_amount'], 2) ?></small>
+                                    <small>Pendiente: <?= $invoice['currency'] ?> <?= number_format($invoice['total_amount'] - $invoice['paid_amount'], 2) ?></small>
                                     <div class="progress" style="height: 5px;">
                                         <div class="progress-bar bg-success" role="progressbar" 
-                                             style="width: <?= round($invoice['payment_percentage']) ?>%;" 
-                                             aria-valuenow="<?= round($invoice['payment_percentage']) ?>" 
+                                             style="width: <?= round(($invoice['paid_amount'] / $invoice['total_amount']) * 100) ?>%;" 
+                                             aria-valuenow="<?= round(($invoice['paid_amount'] / $invoice['total_amount']) * 100) ?>" 
                                              aria-valuemin="0" aria-valuemax="100"></div>
                                     </div>
                                 </div>
-                            <?php elseif ($invoice['status'] === 'paid'): ?>
-                                <span class="badge bg-success">Pagado</span>
-                            <?php elseif ($invoice['status'] === 'pending'): ?>
-                                <span class="badge bg-warning text-dark">Sin pagos</span>
                             <?php else: ?>
-                                <span class="badge bg-secondary">N/A</span>
+                                <?= $invoice['currency'] ?> <?= number_format($invoice['paid_amount'], 2) ?>
                             <?php endif; ?>
                         </td>
                         <td><?= date('d/m/Y', strtotime($invoice['due_date'])) ?></td>
@@ -126,7 +123,7 @@
                                     break;
                                 case 'cancelled':
                                     $statusClass = 'bg-danger';
-                                    $statusText = 'Cancelada';
+                                    $statusText = 'Anulada';
                                     break;
                                 case 'rejected':
                                     $statusClass = 'bg-secondary';
@@ -155,7 +152,7 @@
                             
                             <?php if ($auth->hasAnyRole(['superadmin', 'admin']) && $invoice['status'] !== 'paid'): ?>
                                 <button type="button" class="btn btn-sm btn-danger" 
-                                        onclick="confirmDelete(<?= $invoice['id'] ?>, '<?= esc($invoice['invoice_number']) ?>')">
+                                        onclick="confirmDelete(<?= $invoice['id'] ?>, '<?= esc($invoice['series'] . '-' . $invoice['number']) ?>')">
                                     Eliminar
                                 </button>
                             <?php endif; ?>
@@ -176,7 +173,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                ¿Está seguro que desea eliminar la cuenta por cobrar <span id="invoiceNumber"></span>?
+                ¿Está seguro que desea eliminar la factura <span id="invoiceNumber"></span>?
                 <br><br>
                 <strong>Esta acción no se puede deshacer.</strong>
             </div>

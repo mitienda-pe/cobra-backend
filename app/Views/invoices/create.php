@@ -1,15 +1,15 @@
 <?= $this->extend('layouts/main') ?>
 
-<?= $this->section('title') ?>Nueva Cuenta por Cobrar<?= $this->endSection() ?>
+<?= $this->section('title') ?>Nueva Factura<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <div class="row mb-4">
     <div class="col">
-        <h1>Nueva Cuenta por Cobrar</h1>
+        <h1>Nueva Factura</h1>
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="<?= site_url('invoices') ?>">Cuentas por Cobrar</a></li>
-                <li class="breadcrumb-item active">Nueva Cuenta</li>
+                <li class="breadcrumb-item"><a href="<?= site_url('invoices') ?>">Facturas</a></li>
+                <li class="breadcrumb-item active">Nueva Factura</li>
             </ol>
         </nav>
     </div>
@@ -30,7 +30,7 @@
                                 $orgName = $org ? $org['name'] : 'Desconocida';
                             ?>
                             <div class="alert alert-info mb-3">
-                                <i class="bi bi-building"></i> Creando cuenta por cobrar para: <strong><?= esc($orgName) ?></strong>
+                                <i class="bi bi-building"></i> Creando factura para: <strong><?= esc($orgName) ?></strong>
                             </div>
                             <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
                         <?php else: ?>
@@ -47,7 +47,6 @@
                             </div>
                         <?php endif; ?>
                     <?php elseif (!$auth->hasRole('superadmin')): ?>
-                        <!-- For non-superadmins, just add the hidden organization ID -->
                         <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
                     <?php endif; ?>
                     
@@ -75,49 +74,73 @@
                         <?php endif; ?>
                         <div id="client-error" class="form-text text-danger d-none"></div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="invoice_number" class="form-label">Número de Factura *</label>
-                        <input type="text" class="form-control" id="invoice_number" name="invoice_number" 
-                               value="<?= old('invoice_number') ?>" required maxlength="50">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="concept" class="form-label">Concepto *</label>
-                        <input type="text" class="form-control" id="concept" name="concept" 
-                               value="<?= old('concept') ?>" required maxlength="255">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="amount" class="form-label">Monto *</label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" id="amount" name="amount" 
-                                   value="<?= old('amount') ?>" required step="0.01" min="0.01">
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="series" class="form-label">Serie *</label>
+                                <input type="text" class="form-control" id="series" name="series" 
+                                       value="<?= old('series', 'F001') ?>" required maxlength="4"
+                                       pattern="[A-Z0-9]{4}" title="4 caracteres alfanuméricos en mayúsculas">
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="number" class="form-label">Número *</label>
+                                <input type="text" class="form-control" id="number" name="number" 
+                                       value="<?= old('number') ?>" required maxlength="8"
+                                       pattern="[0-9]{1,8}" title="Hasta 8 dígitos">
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="due_date" class="form-label">Fecha de Vencimiento *</label>
-                        <input type="date" class="form-control" id="due_date" name="due_date" 
-                               value="<?= old('due_date') ?>" required>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="issue_date" class="form-label">Fecha de Emisión *</label>
+                                <input type="date" class="form-control" id="issue_date" name="issue_date" 
+                                       value="<?= old('issue_date', date('Y-m-d')) ?>" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="currency" class="form-label">Moneda *</label>
+                                <select name="currency" id="currency" class="form-select" required>
+                                    <option value="PEN" <?= old('currency') === 'PEN' ? 'selected' : '' ?>>Soles (PEN)</option>
+                                    <option value="USD" <?= old('currency') === 'USD' ? 'selected' : '' ?>>Dólares (USD)</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="external_id" class="form-label">ID Externo (Opcional)</label>
-                        <input type="text" class="form-control" id="external_id" name="external_id" 
-                               value="<?= old('external_id') ?>" maxlength="36">
-                        <div class="form-text">ID de referencia en sistema externo.</div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="total_amount" class="form-label">Importe Total *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text currency-symbol">S/</span>
+                                    <input type="number" class="form-control" id="total_amount" name="total_amount" 
+                                           value="<?= old('total_amount') ?>" required step="0.01" min="0">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="due_date" class="form-label">Fecha de Vencimiento *</label>
+                                <input type="date" class="form-control" id="due_date" name="due_date" 
+                                       value="<?= old('due_date') ?>" required>
+                            </div>
+                        </div>
                     </div>
-                    
+
                     <div class="mb-3">
-                        <label for="notes" class="form-label">Notas (Opcional)</label>
+                        <label for="notes" class="form-label">Notas</label>
                         <textarea class="form-control" id="notes" name="notes" rows="3"><?= old('notes') ?></textarea>
                     </div>
-                    
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="<?= site_url('invoices') ?>" class="btn btn-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-primary">Guardar</button>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Guardar Factura</button>
+                        <a href="<?= site_url('invoices') ?>" class="btn btn-outline-secondary">Cancelar</a>
                     </div>
                 </form>
             </div>
@@ -127,12 +150,17 @@
     <div class="col-md-4">
         <div class="card">
             <div class="card-header">
-                Información
+                <h5 class="card-title mb-0">Ayuda</h5>
             </div>
             <div class="card-body">
-                <p>Complete todos los campos requeridos marcados con *.</p>
-                <p>El estado inicial será <strong>Pendiente</strong>.</p>
-                <p>Una vez creada la cuenta por cobrar, podrá registrar pagos sobre ella.</p>
+                <p>Complete los campos para crear una nueva factura:</p>
+                <ul class="mb-0">
+                    <li>Serie: 4 caracteres (ejemplo: F001)</li>
+                    <li>Número: hasta 8 dígitos</li>
+                    <li>Seleccione la moneda adecuada</li>
+                    <li>Ingrese el importe total</li>
+                    <li>Establezca la fecha de vencimiento</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -140,77 +168,52 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle client loading for organization selection
-    const organizationSelect = document.getElementById('organization_id');
-    const clientSelect = document.getElementById('client_id');
-    const clientLoading = document.getElementById('client-loading');
-    const clientError = document.getElementById('client-error');
+    const currencySelect = document.getElementById('currency');
+    const currencySymbol = document.querySelector('.currency-symbol');
     
-    // Only set up event handlers if organization select exists and we're not using the global organization selector
-    if (organizationSelect && !document.querySelector('input[type="hidden"][name="organization_id"]')) {
+    function updateCurrencySymbol() {
+        currencySymbol.textContent = currencySelect.value === 'PEN' ? 'S/' : '$';
+    }
+    
+    currencySelect.addEventListener('change', updateCurrencySymbol);
+    updateCurrencySymbol();
+
+    const organizationSelect = document.getElementById('organization_id');
+    if (organizationSelect) {
         organizationSelect.addEventListener('change', function() {
-            const organizationId = this.value;
+            const clientSelect = document.getElementById('client_id');
+            const clientLoading = document.getElementById('client-loading');
+            const clientError = document.getElementById('client-error');
             
-            if (organizationId) {
-                // Mostrar indicador de carga
+            if (!this.value) {
+                clientSelect.innerHTML = '<option value="">Seleccione un cliente</option>';
                 clientSelect.disabled = true;
-                clientLoading.classList.remove('d-none');
-                clientError.classList.add('d-none');
-                clientSelect.innerHTML = '<option value="">Cargando clientes...</option>';
-                
-                // Realizar petición AJAX para obtener clientes
-                fetch('<?= site_url('debug/get-clients-by-organization') ?>/' + organizationId)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Error en la respuesta: ' + response.status);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        // Ocultar indicador de carga
-                        clientLoading.classList.add('d-none');
-                        
-                        // Verificar si hay error en la respuesta
-                        if (data.error) {
-                            clientError.textContent = data.error;
-                            clientError.classList.remove('d-none');
-                            clientSelect.innerHTML = '<option value="">Error al cargar clientes</option>';
-                            clientSelect.disabled = true;
-                            return;
-                        }
-                        
-                        // Actualizar el select de clientes
-                        clientSelect.innerHTML = '<option value="">Seleccione un cliente</option>';
-                        
-                        if (data.length > 0) {
-                            data.forEach(client => {
-                                const option = document.createElement('option');
-                                option.value = client.id;
-                                option.textContent = `${client.business_name} (${client.document_number})`;
-                                clientSelect.appendChild(option);
-                            });
-                            clientSelect.disabled = false;
-                        } else {
-                            clientSelect.innerHTML = '<option value="">No hay clientes disponibles</option>';
-                            clientSelect.disabled = true;
-                        }
-                    })
-                    .catch(error => {
-                        // Ocultar indicador de carga y mostrar error
-                        clientLoading.classList.add('d-none');
-                        clientError.textContent = 'Error al cargar clientes: ' + error.message;
-                        clientError.classList.remove('d-none');
-                        console.error('Error al cargar clientes:', error);
-                        clientSelect.innerHTML = '<option value="">Error al cargar clientes</option>';
-                        clientSelect.disabled = true;
-                    });
-            } else {
-                // Si no se selecciona organización, vaciar y deshabilitar el select de clientes
-                clientLoading.classList.add('d-none');
-                clientError.classList.add('d-none');
-                clientSelect.innerHTML = '<option value="">Seleccione una organización primero</option>';
-                clientSelect.disabled = true;
+                return;
             }
+            
+            clientSelect.disabled = true;
+            clientLoading.classList.remove('d-none');
+            clientError.classList.add('d-none');
+            
+            fetch(`/api/organizations/${this.value}/clients`)
+                .then(response => response.json())
+                .then(data => {
+                    clientSelect.innerHTML = '<option value="">Seleccione un cliente</option>';
+                    data.forEach(client => {
+                        const option = document.createElement('option');
+                        option.value = client.id;
+                        option.textContent = `${client.business_name} (${client.document_number})`;
+                        clientSelect.appendChild(option);
+                    });
+                    clientSelect.disabled = false;
+                })
+                .catch(error => {
+                    clientError.textContent = 'Error al cargar los clientes. Por favor, intente nuevamente.';
+                    clientError.classList.remove('d-none');
+                })
+                .finally(() => {
+                    clientLoading.classList.add('d-none');
+                });
         });
     }
 });
