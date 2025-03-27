@@ -295,13 +295,13 @@ class PaymentController extends BaseController
         return $this->response->setJSON(['results' => $results]);
     }
     
-    public function view($id = null)
+    public function view($uuid = null)
     {
-        if (!$id) {
+        if (!$uuid) {
             return redirect()->to('/payments')->with('error', 'ID de pago no especificado');
         }
         
-        $payment = $this->paymentModel->find($id);
+        $payment = $this->paymentModel->where('uuid', $uuid)->first();
         
         if (!$payment) {
             return redirect()->to('/payments')->with('error', 'Pago no encontrado');
