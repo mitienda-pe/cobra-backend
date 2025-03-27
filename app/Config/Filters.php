@@ -49,7 +49,7 @@ class Filters extends BaseConfig
                 'login*',
                 'logout'
             ]],
-            CorsFilter::class,
+            'cors',
         ],
         'after' => [
             'toolbar' => ['except' => ['cli']],
