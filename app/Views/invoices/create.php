@@ -73,6 +73,7 @@
                             <div class="form-text text-warning">No hay clientes disponibles para la organización seleccionada.</div>
                         <?php endif; ?>
                         <div id="client-error" class="form-text text-danger d-none"></div>
+                        <div id="client-empty" class="form-text text-warning d-none"></div>
                     </div>
 
                     <div class="row">
@@ -185,20 +186,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const clientSelect = document.getElementById('client_id');
             const clientLoading = document.getElementById('client-loading');
             const clientError = document.getElementById('client-error');
+            const clientEmpty = document.getElementById('client-empty');
             
             if (!this.value) {
                 clientSelect.innerHTML = '<option value="">Seleccione un cliente</option>';
                 clientSelect.disabled = true;
+                clientError.classList.add('d-none');
+                clientEmpty.classList.add('d-none');
                 return;
             }
             
             clientSelect.disabled = true;
             clientLoading.classList.remove('d-none');
             clientError.classList.add('d-none');
+            clientEmpty.classList.add('d-none');
             
             fetch(`<?= site_url('api/organizations') ?>/${this.value}/clients`, {
                 headers: {
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': '<?= csrf_hash() ?>'
                 }
             })
                 .then(response => {
@@ -209,6 +216,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .then(data => {
                     clientSelect.innerHTML = '<option value="">Seleccione un cliente</option>';
+                    
+                    if (data.status === 'error') {
+                        clientEmpty.textContent = data.message;
+                        clientEmpty.classList.remove('d-none');
+                        clientSelect.disabled = true;
+                        return;
+                    }
+                    
+                    if (!data.clients || data.clients.length === 0) {
+                        clientEmpty.textContent = 'No hay clientes disponibles para la organización seleccionada.';
+                        clientEmpty.classList.remove('d-none');
+                        clientSelect.disabled = true;
+                        return;
+                    }
+                    
                     data.clients.forEach(client => {
                         const option = document.createElement('option');
                         option.value = client.id;

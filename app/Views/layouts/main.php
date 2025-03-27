@@ -96,7 +96,7 @@
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="<?= site_url('clients') ?>">Clientes</a></li>
-                                <li><a class="dropdown-item" href="<?= site_url('portfolios') ?>">Carteras de Cobro</a></li>
+                                <li><a class="dropdown-item" href="<?= site_url('portfolios') ?>">Carteras</a></li>
                                 <li><a class="dropdown-item" href="<?= site_url('invoices') ?>">Facturas</a></li>
                                 <li><a class="dropdown-item" href="<?= site_url('payments') ?>">Pagos</a></li>
                                 <li><a class="dropdown-item" href="<?= site_url('payments/report') ?>">Reportes</a></li>

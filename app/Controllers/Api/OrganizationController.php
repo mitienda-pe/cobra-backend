@@ -35,9 +35,22 @@ class OrganizationController extends ResourceController
 
         $clientModel = new ClientModel();
         $clients = $clientModel->where('organization_id', $organizationId)
+                             ->where('status', 'active')
                              ->orderBy('business_name', 'ASC')
                              ->findAll();
 
-        return $this->respond($clients);
+        if (empty($clients)) {
+            return $this->respond([
+                'status' => 'error',
+                'message' => 'No hay clientes disponibles para la organización seleccionada.',
+                'clients' => []
+            ]);
+        }
+
+        return $this->respond([
+            'status' => 'success',
+            'message' => 'Clientes encontrados',
+            'clients' => $clients
+        ]);
     }
 }
