@@ -200,19 +200,30 @@ class InvoiceController extends Controller
         $clientModel = new ClientModel();
         $client = $clientModel->find($invoice['client_id']);
 
-        // Debug
-        log_message('debug', 'Client ID: ' . $invoice['client_id']);
-        log_message('debug', 'Client data: ' . print_r($client, true));
+        // Cargar pagos asociados
+        $paymentModel = new \App\Models\PaymentModel();
+        $payments = $paymentModel->select('payments.*, users.name as collector_name')
+            ->join('users', 'users.id = payments.user_id')
+            ->where('invoice_id', $invoice['id'])
+            ->where('payments.deleted_at IS NULL')
+            ->orderBy('payment_date', 'DESC')
+            ->findAll();
 
-        if (!$client) {
-            return redirect()->to('/invoices')->with('error', 'Cliente no encontrado. ID: ' . $invoice['client_id']);
-        }
+        // Calcular totales
+        $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
+        $total_paid = floatval($paymentInfo['total_paid']);
+        $remaining_amount = floatval($paymentInfo['remaining']);
 
-        return view('invoices/view', [
+        $data = [
+            'auth' => $this->auth,
             'invoice' => $invoice,
             'client' => $client,
-            'auth' => $this->auth
-        ]);
+            'payments' => $payments,
+            'total_paid' => $total_paid,
+            'remaining_amount' => $remaining_amount
+        ];
+
+        return view('invoices/view', $data);
     }
 
     public function edit($uuid = null)

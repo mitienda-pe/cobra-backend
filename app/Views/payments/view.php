@@ -102,7 +102,7 @@
                 <?php endif; ?>
             </div>
             <div class="card-footer d-flex gap-2">
-                <a href="<?= site_url('invoices/view/' . $payment['invoice_id']) ?>" class="btn btn-info">
+                <a href="<?= site_url('invoices/view/' . $invoice['uuid']) ?>" class="btn btn-info">
                     Ver Factura
                 </a>
                 

@@ -37,7 +37,7 @@
 
 <div class="row">
     <div class="col-md-8">
-        <div class="card">
+        <div class="card mb-4">
             <div class="card-body">
                 <h5 class="card-title">Detalles de la Factura</h5>
                 <hr>
@@ -124,6 +124,65 @@
                         <?= nl2br(esc($invoice['notes'])) ?>
                     </div>
                 </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Lista de Pagos -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Pagos Registrados</h5>
+                <hr>
+
+                <?php if (empty($payments)): ?>
+                    <p class="text-muted">No hay pagos registrados para esta factura.</p>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Monto</th>
+                                    <th>Método</th>
+                                    <th>Referencia</th>
+                                    <th>Estado</th>
+                                    <th>Cobrador</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($payments as $payment): ?>
+                                    <tr>
+                                        <td><?= date('d/m/Y H:i', strtotime($payment['payment_date'])) ?></td>
+                                        <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($payment['amount'], 2) ?></td>
+                                        <td><?= esc($payment['payment_method']) ?></td>
+                                        <td><?= esc($payment['reference_code']) ?: '-' ?></td>
+                                        <td>
+                                            <span class="badge bg-<?= $payment['status'] === 'completed' ? 'success' : 'warning' ?>">
+                                                <?= ucfirst($payment['status']) ?>
+                                            </span>
+                                        </td>
+                                        <td><?= esc($payment['collector_name']) ?></td>
+                                        <td>
+                                            <a href="<?= site_url('payments/view/' . $payment['uuid']) ?>" class="btn btn-sm btn-info">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-light">
+                                    <td colspan="1"><strong>Total Pagado:</strong></td>
+                                    <td colspan="6"><strong><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($total_paid, 2) ?></strong></td>
+                                </tr>
+                                <tr class="table-light">
+                                    <td colspan="1"><strong>Saldo Pendiente:</strong></td>
+                                    <td colspan="6"><strong><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($remaining_amount, 2) ?></strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
