@@ -177,166 +177,143 @@ class InvoiceController extends Controller
         return view('invoices/create', $data);
     }
     
-    public function edit($uuid = null)
-    {
-        if (!$uuid) {
-            return redirect()->to('/invoices')->with('error', 'UUID de factura no especificado');
-        }
-        
-        $invoiceModel = new InvoiceModel();
-        $invoice = $invoiceModel->where('uuid', $uuid)->first();
-        
-        if (!$invoice) {
-            return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
-        }
-        
-        // Get organizations for superadmin dropdown
-        if ($this->auth->hasRole('superadmin')) {
-            $organizationModel = new \App\Models\OrganizationModel();
-            $data['organizations'] = $organizationModel->findAll();
-        }
-        
-        // Get clients for the dropdown
-        $clientModel = new ClientModel();
-        $organizationId = $invoice['organization_id'];
-        
-        if ($organizationId) {
-            $clients = $clientModel->where('organization_id', $organizationId)
-                ->where('status', 'active')
-                ->findAll();
-        } else {
-            $clients = [];
-        }
-        
-        $data = [
-            'invoice' => $invoice,
-            'clients' => $clients,
-            'auth' => $this->auth,
-        ];
-        
-        // Handle form submission
-        if ($this->request->getMethod() === 'post') {
-            $rules = [
-                'client_id'      => 'required|is_natural_no_zero',
-                'invoice_number' => 'required|max_length[50]',
-                'concept'        => 'required|max_length[255]',
-                'amount'         => 'required|numeric',
-                'due_date'       => 'required|valid_date',
-                'external_id'    => 'permit_empty|max_length[36]',
-                'notes'          => 'permit_empty',
-            ];
-            
-            // Add organization_id rule for superadmins
-            if ($this->auth->hasRole('superadmin')) {
-                $rules['organization_id'] = 'required|is_natural_no_zero';
-            }
-            
-            if ($this->validate($rules)) {
-                // Get organization_id based on role
-                $invoiceOrgId = $this->auth->hasRole('superadmin')
-                    ? $this->request->getPost('organization_id')
-                    : $invoice['organization_id'];
-                
-                $invoiceNumber = $this->request->getPost('invoice_number');
-                
-                // Check if invoice number already exists in this organization (excluding current invoice)
-                $existingInvoice = $invoiceModel->where('organization_id', $invoiceOrgId)
-                    ->where('invoice_number', $invoiceNumber)
-                    ->where('uuid !=', $uuid)
-                    ->first();
-                
-                if ($existingInvoice) {
-                    return redirect()->back()
-                        ->withInput()
-                        ->with('error', 'Ya existe una factura con este número en la organización.');
-                }
-                
-                // Prepare invoice data
-                $invoiceData = [
-                    'organization_id' => $invoiceOrgId,
-                    'client_id'      => $this->request->getPost('client_id'),
-                    'invoice_number' => $invoiceNumber,
-                    'concept'        => $this->request->getPost('concept'),
-                    'amount'         => $this->request->getPost('amount'),
-                    'due_date'       => $this->request->getPost('due_date'),
-                    'external_id'    => $this->request->getPost('external_id') ?: null,
-                    'notes'          => $this->request->getPost('notes') ?: null,
-                ];
-                
-                try {
-                    if ($invoiceModel->update($uuid, $invoiceData)) {
-                        return redirect()->to('/invoices')
-                            ->with('success', 'Factura actualizada exitosamente.');
-                    } else {
-                        return redirect()->back()
-                            ->withInput()
-                            ->with('error', 'Error al actualizar la factura.');
-                    }
-                } catch (\Exception $e) {
-                    log_message('error', 'Error updating invoice: ' . $e->getMessage());
-                    return redirect()->back()
-                        ->withInput()
-                        ->with('error', 'Error al actualizar la factura: ' . $e->getMessage());
-                }
-            } else {
-                return view('invoices/edit', array_merge($data, ['validation' => $this->validator]));
-            }
-        }
-        
-        return view('invoices/edit', $data);
-    }
-    
-    public function delete($uuid = null)
-    {
-        if (!$uuid) {
-            return redirect()->to('/invoices')->with('error', 'UUID de factura no especificado');
-        }
-        
-        $invoiceModel = new InvoiceModel();
-        $invoice = $invoiceModel->where('uuid', $uuid)->first();
-        
-        if (!$invoice) {
-            return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
-        }
-        
-        try {
-            if ($invoiceModel->delete($uuid)) {
-                return redirect()->to('/invoices')->with('success', 'Factura eliminada exitosamente');
-            } else {
-                return redirect()->to('/invoices')->with('error', 'Error al eliminar la factura');
-            }
-        } catch (\Exception $e) {
-            return redirect()->to('/invoices')->with('error', 'Error al eliminar la factura: ' . $e->getMessage());
-        }
-    }
-    
     public function view($uuid = null)
     {
         if (!$uuid) {
-            return redirect()->to('/invoices')->with('error', 'UUID de factura no especificado');
+            return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
         }
-        
-        $invoiceModel = new InvoiceModel();
-        $invoice = $invoiceModel->where('uuid', $uuid)->first();
-        
+
+        $invoice = $this->invoiceModel->where('uuid', $uuid)->first();
         if (!$invoice) {
-            return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
+            return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
         }
-        
-        // Get client information
-        $clientModel = new ClientModel();
-        $client = $clientModel->find($invoice['client_id']);
-        
-        // Get payment information
-        $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
+
+        // Get client data
+        $client = $this->clientModel->find($invoice['client_id']);
         
         $data = [
+            'auth' => $this->auth,
             'invoice' => $invoice,
-            'client' => $client,
-            'payment_info' => $paymentInfo
+            'client' => $client
         ];
-        
+
         return view('invoices/view', $data);
+    }
+
+    public function edit($uuid = null)
+    {
+        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
+            return redirect()->to('/invoices')->with('error', 'No tiene permisos para editar facturas.');
+        }
+
+        if (!$uuid) {
+            return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
+        }
+
+        $invoice = $this->invoiceModel->where('uuid', $uuid)->first();
+        if (!$invoice) {
+            return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
+        }
+
+        // Get organization ID from Auth library
+        $organizationId = $this->auth->organizationId();
+        
+        // Get clients for dropdown
+        $clientModel = new ClientModel();
+        $clients = $clientModel->where('organization_id', $organizationId)
+                             ->where('status', 'active')
+                             ->findAll();
+
+        $data = [
+            'auth' => $this->auth,
+            'invoice' => $invoice,
+            'clients' => $clients,
+            'validation' => \Config\Services::validation()
+        ];
+
+        return view('invoices/edit', $data);
+    }
+
+    public function update($uuid = null)
+    {
+        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
+            return redirect()->to('/invoices')->with('error', 'No tiene permisos para editar facturas.');
+        }
+
+        if (!$uuid) {
+            return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
+        }
+
+        $invoice = $this->invoiceModel->where('uuid', $uuid)->first();
+        if (!$invoice) {
+            return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
+        }
+
+        // Validate form
+        $rules = [
+            'client_id' => 'required|is_natural_no_zero',
+            'invoice_number' => 'required|max_length[50]',
+            'concept' => 'required|max_length[255]',
+            'amount' => 'required|numeric',
+            'due_date' => 'required|valid_date',
+            'currency' => 'required|in_list[PEN,USD]',
+            'status' => 'required|in_list[pending,paid,cancelled,rejected,expired]',
+            'external_id' => 'permit_empty|max_length[36]',
+            'notes' => 'permit_empty'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                           ->withInput()
+                           ->with('validation', $this->validator);
+        }
+
+        // Update invoice
+        $data = [
+            'client_id' => $this->request->getPost('client_id'),
+            'invoice_number' => $this->request->getPost('invoice_number'),
+            'concept' => $this->request->getPost('concept'),
+            'amount' => $this->request->getPost('amount'),
+            'due_date' => $this->request->getPost('due_date'),
+            'currency' => $this->request->getPost('currency'),
+            'status' => $this->request->getPost('status'),
+            'external_id' => $this->request->getPost('external_id') ?: null,
+            'notes' => $this->request->getPost('notes') ?: null,
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        if ($this->invoiceModel->update($invoice['id'], $data)) {
+            return redirect()->to('/invoices/view/' . $uuid)
+                           ->with('success', 'Factura actualizada correctamente.');
+        }
+
+        return redirect()->back()
+                       ->withInput()
+                       ->with('error', 'Error al actualizar la factura. Por favor intente nuevamente.');
+    }
+
+    public function delete($uuid = null)
+    {
+        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
+            return redirect()->to('/invoices')->with('error', 'No tiene permisos para eliminar facturas.');
+        }
+
+        if (!$uuid) {
+            return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
+        }
+
+        $invoice = $this->invoiceModel->where('uuid', $uuid)->first();
+        if (!$invoice) {
+            return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
+        }
+
+        if ($this->invoiceModel->delete($invoice['id'])) {
+            return redirect()->to('/invoices')
+                           ->with('success', 'Factura eliminada correctamente.');
+        }
+
+        return redirect()->to('/invoices')
+                       ->with('error', 'Error al eliminar la factura. Por favor intente nuevamente.');
     }
     
     public function import()
