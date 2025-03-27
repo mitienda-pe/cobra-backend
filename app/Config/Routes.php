@@ -70,13 +70,15 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors']
     $routes->match(['get', 'options'], 'portfolios/my', 'PortfolioController::myPortfolios');
 
     // Invoice Routes
-    $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index');
-    $routes->match(['post', 'options'], 'invoices', 'InvoiceController::create');
-    $routes->match(['get', 'options'], 'invoices/(:segment)', 'InvoiceController::show/$1');
-    $routes->match(['put', 'options'], 'invoices/(:segment)', 'InvoiceController::update/$1');
-    $routes->match(['delete', 'options'], 'invoices/(:segment)', 'InvoiceController::delete/$1');
-    $routes->match(['get', 'options'], 'invoices/external/(:segment)', 'InvoiceController::findByExternalId/$1');
-    $routes->match(['get', 'options'], 'invoices/overdue', 'InvoiceController::overdue');
+    $routes->group('invoices', function($routes) {
+        $routes->match(['get', 'options'], '', 'InvoiceController::index');
+        $routes->match(['post', 'options'], 'create', 'InvoiceController::create');
+        $routes->match(['get', 'options'], '(:segment)', 'InvoiceController::show/$1');
+        $routes->match(['put', 'options'], '(:segment)', 'InvoiceController::update/$1');
+        $routes->match(['delete', 'options'], '(:segment)', 'InvoiceController::delete/$1');
+        $routes->match(['get', 'options'], 'external/(:segment)', 'InvoiceController::findByExternalId/$1');
+        $routes->match(['get', 'options'], 'overdue', 'InvoiceController::overdue');
+    });
 
     // User Routes
     $routes->match(['get', 'options'], 'users', 'UserController::index');
@@ -151,13 +153,13 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     });
 
     // Invoice Routes
-    $routes->group('invoices', function ($routes) {
+    $routes->group('invoices', function($routes) {
         $routes->get('/', 'InvoiceController::index');
         $routes->get('create', 'InvoiceController::create');
-        $routes->post('/', 'InvoiceController::store');
+        $routes->post('create', 'InvoiceController::create');
         $routes->get('(:segment)', 'InvoiceController::view/$1');
         $routes->get('(:segment)/edit', 'InvoiceController::edit/$1');
-        $routes->post('(:segment)', 'InvoiceController::update/$1');
+        $routes->post('(:segment)/edit', 'InvoiceController::edit/$1');
         $routes->get('(:segment)/delete', 'InvoiceController::delete/$1');
         // Invoice import routes (with CSRF bypass)
         $routes->get('import', 'InvoiceController::import', ['csrf' => false]);

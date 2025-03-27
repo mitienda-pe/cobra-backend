@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Obtener el UUID de la organización del atributo data-uuid
             const organizationUuid = organizationSelect.options[organizationSelect.selectedIndex].getAttribute('data-uuid');
             
-            fetch(`<?= site_url('invoices/organization') ?>/${organizationUuid}/clients`, {
+            fetch(`<?= site_url('invoices') ?>/organization/${organizationUuid}/clients`, {
                 headers: {
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
