@@ -39,65 +39,69 @@
         No se encontraron pagos con los filtros aplicados.
     </div>
 <?php else: ?>
-    <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Cliente</th>
-                    <th>Factura</th>
-                    <th>Monto</th>
-                    <th>Método</th>
-                    <th>Referencia</th>
-                    <th>Estado</th>
-                    <th>Notificación</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($payments as $payment): ?>
-                    <tr>
-                        <td><?= date('d/m/Y H:i', strtotime($payment['payment_date'])) ?></td>
-                        <td><?= esc($payment['business_name'] ?? 'N/A') ?></td>
-                        <td><?= esc($payment['invoice_number'] ?? 'N/A') ?></td>
-                        <td><?= $payment['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($payment['amount'], 2) ?></td>
-                        <td><?= esc($payment['payment_method']) ?></td>
-                        <td><?= esc($payment['reference_code']) ?></td>
-                        <td>
-                            <?php if ($payment['status'] === 'completed'): ?>
-                                <span class="badge bg-success">Completado</span>
-                            <?php else: ?>
-                                <span class="badge bg-warning text-dark">Pendiente</span>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($payment['is_notified']): ?>
-                                <span class="badge bg-success">Enviada</span>
-                            <?php else: ?>
-                                <span class="badge bg-secondary">Pendiente</span>
-                            <?php endif; ?>
-                        </td>
-                        <td class="text-nowrap">
-                            <div class="btn-group" role="group">
-                                <a href="<?= site_url('payments/view/' . $payment['uuid']) ?>" class="btn btn-sm btn-info">
-                                    <i class="bi bi-eye"></i> Ver
-                                </a>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Factura</th>
+                            <th>Monto</th>
+                            <th>Método</th>
+                            <th>Referencia</th>
+                            <th>Estado</th>
+                            <th>Notificación</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($payments as $payment): ?>
+                            <tr>
+                                <td><?= date('d/m/Y H:i', strtotime($payment['payment_date'])) ?></td>
+                                <td><?= esc($payment['business_name'] ?? 'N/A') ?></td>
+                                <td><?= esc($payment['invoice_number'] ?? 'N/A') ?></td>
+                                <td><?= $payment['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($payment['amount'], 2) ?></td>
+                                <td><?= esc($payment['payment_method']) ?></td>
+                                <td><?= esc($payment['reference_code']) ?></td>
+                                <td>
+                                    <?php if ($payment['status'] === 'completed'): ?>
+                                        <span class="badge bg-success">Completado</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning text-dark">Pendiente</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if ($payment['is_notified']): ?>
+                                        <span class="badge bg-success">Enviada</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary">Pendiente</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-nowrap">
+                                    <div class="btn-group" role="group">
+                                        <a href="<?= site_url('payments/view/' . $payment['uuid']) ?>" class="btn btn-sm btn-info">
+                                            <i class="bi bi-eye"></i> Ver
+                                        </a>
 
-                                <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                    <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete(<?= $payment['id'] ?>)">
-                                        <i class="bi bi-trash"></i> Eliminar
-                                    </button>
-                                <?php endif; ?>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                                        <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                                            <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete(<?= $payment['id'] ?>)">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            <?= $pager->links() ?>
+        </div>
     </div>
-
-    <!-- Paginación -->
-    <?= $pager->links() ?>
 <?php endif; ?>
 
 <!-- Modal de Confirmación de Eliminación -->

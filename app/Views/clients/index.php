@@ -33,71 +33,75 @@
         </div>
     </div>
 <?php else: ?>
-    <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Nombre Comercial</th>
-                    <th>Razón Social</th>
-                    <th>RUC/Doc</th>
-                    <th>Contacto</th>
-                    <th>Teléfono</th>
-                    <?php if (isset($organizations) && $auth->hasRole('superadmin') && !isset($selected_organization_id)): ?>
-                    <th>Organización</th>
-                    <?php endif; ?>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($clients as $client): ?>
-                    <tr>
-                        <td><?= esc($client['business_name']) ?></td>
-                        <td><?= esc($client['legal_name']) ?></td>
-                        <td><?= esc($client['document_number']) ?></td>
-                        <td><?= esc($client['contact_name']) ?></td>
-                        <td><?= esc($client['contact_phone']) ?></td>
-                        <?php if (isset($organizations) && $auth->hasRole('superadmin') && !isset($selected_organization_id)): ?>
-                        <td>
-                            <?php 
-                                // Find organization name
-                                $orgName = 'Desconocida';
-                                foreach ($organizations as $org) {
-                                    if ($org['id'] == $client['organization_id']) {
-                                        $orgName = $org['name'];
-                                        break;
-                                    }
-                                }
-                                echo esc($orgName);
-                            ?>
-                        </td>
-                        <?php endif; ?>
-                        <td>
-                            <?php if ($client['status'] == 'active'): ?>
-                                <span class="badge bg-success">Activo</span>
-                            <?php else: ?>
-                                <span class="badge bg-danger">Inactivo</span>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nombre Comercial</th>
+                            <th>Razón Social</th>
+                            <th>RUC/Doc</th>
+                            <th>Contacto</th>
+                            <th>Teléfono</th>
+                            <?php if (isset($organizations) && $auth->hasRole('superadmin') && !isset($selected_organization_id)): ?>
+                            <th>Organización</th>
                             <?php endif; ?>
-                        </td>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <a href="<?= site_url('clients/' . $client['uuid']) ?>" class="btn btn-sm btn-info">
-                                    <i class="bi bi-eye"></i> Ver
-                                </a>
-                                <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                    <a href="<?= site_url('clients/' . $client['uuid'] . '/edit') ?>" class="btn btn-sm btn-primary">
-                                        <i class="bi bi-pencil"></i> Editar
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-uuid="<?= $client['uuid'] ?>" data-name="<?= esc($client['business_name']) ?>">
-                                        <i class="bi bi-trash"></i> Eliminar
-                                    </button>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($clients as $client): ?>
+                            <tr>
+                                <td><?= esc($client['business_name']) ?></td>
+                                <td><?= esc($client['legal_name']) ?></td>
+                                <td><?= esc($client['document_number']) ?></td>
+                                <td><?= esc($client['contact_name']) ?></td>
+                                <td><?= esc($client['contact_phone']) ?></td>
+                                <?php if (isset($organizations) && $auth->hasRole('superadmin') && !isset($selected_organization_id)): ?>
+                                <td>
+                                    <?php 
+                                        // Find organization name
+                                        $orgName = 'Desconocida';
+                                        foreach ($organizations as $org) {
+                                            if ($org['id'] == $client['organization_id']) {
+                                                $orgName = $org['name'];
+                                                break;
+                                            }
+                                        }
+                                        echo esc($orgName);
+                                    ?>
+                                </td>
                                 <?php endif; ?>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                                <td>
+                                    <?php if ($client['status'] == 'active'): ?>
+                                        <span class="badge bg-success">Activo</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-danger">Inactivo</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="<?= site_url('clients/' . $client['uuid']) ?>" class="btn btn-sm btn-info">
+                                            <i class="bi bi-eye"></i> Ver
+                                        </a>
+                                        <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                                            <a href="<?= site_url('clients/' . $client['uuid'] . '/edit') ?>" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-pencil"></i> Editar
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-uuid="<?= $client['uuid'] ?>" data-name="<?= esc($client['business_name']) ?>">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 <?php endif; ?>
 

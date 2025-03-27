@@ -69,7 +69,7 @@ class ClientModel extends Model
         $db = \Config\Database::connect();
         return $db->table('clients c')
                  ->select('c.*')
-                 ->join('client_portfolio cp', 'cp.client_id = c.id')
+                 ->join('client_portfolio cp', 'cp.client_uuid = c.uuid')
                  ->where('cp.portfolio_uuid', $portfolioUuid)
                  ->where('c.deleted_at IS NULL')
                  ->get()
@@ -107,13 +107,13 @@ class ClientModel extends Model
     /**
      * Get portfolios by client
      */
-    public function getPortfolios($clientId)
+    public function getPortfolios($clientUuid)
     {
         $db = \Config\Database::connect();
         return $db->table('portfolios p')
                  ->select('p.*')
                  ->join('client_portfolio cp', 'cp.portfolio_uuid = p.uuid')
-                 ->where('cp.client_id', $clientId)
+                 ->where('cp.client_uuid', $clientUuid)
                  ->where('p.deleted_at IS NULL')
                  ->get()
                  ->getResultArray();

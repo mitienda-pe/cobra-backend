@@ -270,10 +270,15 @@ class ClientController extends BaseController
                     if ($portfolioIds) {
                         $db = \Config\Database::connect();
                         foreach ($portfolioIds as $portfolioId) {
-                            $db->table('client_portfolio')->insert([
-                                'portfolio_id' => $portfolioId,
-                                'client_id' => $clientId
-                            ]);
+                            $portfolio = $this->portfolioModel->find($portfolioId);
+                            if ($portfolio) {
+                                $db->table('client_portfolio')->insert([
+                                    'portfolio_uuid' => $portfolio['uuid'],
+                                    'client_uuid' => $clientId,
+                                    'created_at' => date('Y-m-d H:i:s'),
+                                    'updated_at' => date('Y-m-d H:i:s')
+                                ]);
+                            }
                         }
                         log_message('info', 'Assigned client to portfolios: ' . json_encode($portfolioIds));
                     }
@@ -445,14 +450,19 @@ class ClientController extends BaseController
             $portfolioIds = $this->request->getPost('portfolio_ids');
             if ($portfolioIds !== null) {
                 // Delete existing assignments
-                $db->table('client_portfolio')->where('client_id', $client['id'])->delete();
+                $db->table('client_portfolio')->where('client_uuid', $client['uuid'])->delete();
                 
                 // Insert new assignments
                 foreach ($portfolioIds as $portfolioId) {
-                    $db->table('client_portfolio')->insert([
-                        'portfolio_id' => $portfolioId,
-                        'client_id' => $client['id']
-                    ]);
+                    $portfolio = $this->portfolioModel->find($portfolioId);
+                    if ($portfolio) {
+                        $db->table('client_portfolio')->insert([
+                            'portfolio_uuid' => $portfolio['uuid'],
+                            'client_uuid' => $client['uuid'],
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]);
+                    }
                 }
             }
             
