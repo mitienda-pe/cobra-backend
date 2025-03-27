@@ -133,52 +133,27 @@ class InvoiceController extends Controller
         
         $data = [
             'auth' => $this->auth,
+            'validation' => \Config\Services::validation()
         ];
         
         // Get organizations for superadmin dropdown
         if ($this->auth->hasRole('superadmin')) {
-            $organizationModel = new \App\Models\OrganizationModel();
-            $data['organizations'] = $organizationModel->findAll();
+            $data['organizations'] = $this->organizationModel->findAll();
         }
         
         // Get organization ID from Auth library
         $organizationId = $this->auth->organizationId();
         
         // Get clients for the selected organization
-        $clientModel = new ClientModel();
         if (!empty($organizationId)) {
-            // Hard-code the organization_id to the SQL query to make sure it's filtering correctly
-            $db = \Config\Database::connect();
-            $builder = $db->table('clients');
-            $builder->where('organization_id', $organizationId);
-            $builder->where('status', 'active');
-            $builder->where('deleted_at IS NULL');
-            $clients = $builder->get()->getResultArray();
+            $clients = $this->clientModel->where('organization_id', $organizationId)
+                                      ->where('status', 'active')
+                                      ->where('deleted_at IS NULL')
+                                      ->findAll();
             
-            // Log the SQL query and results
-            log_message('info', 'SQL Query: ' . $db->getLastQuery());
-            log_message('info', 'Found ' . count($clients) . ' clients for organization ' . $organizationId);
-            
-            // Verify each client has the correct organization_id
-            foreach ($clients as $index => $client) {
-                // Double-check the client belongs to the selected organization
-                if ($client['organization_id'] != $organizationId) {
-                    log_message('error', 'Mismatched client found: Client ID ' . $client['id'] . 
-                                ' has organization_id ' . $client['organization_id'] . 
-                                ' but should have ' . $organizationId);
-                    // Remove it from the results
-                    unset($clients[$index]);
-                } else {
-                    log_message('info', 'Valid client: ID ' . $client['id'] . ', Name: ' . 
-                               $client['business_name'] . ', Org ID: ' . $client['organization_id']);
-                }
-            }
-            
-            // Reset array keys and assign to data
-            $data['clients'] = array_values($clients);
+            $data['clients'] = $clients;
         } else {
             $data['clients'] = [];
-            log_message('info', 'No organization ID provided, clients list is empty');
         }
         
         // Handle form submission
@@ -191,6 +166,7 @@ class InvoiceController extends Controller
                 'due_date'       => 'required|valid_date',
                 'external_id'    => 'permit_empty|max_length[36]',
                 'notes'          => 'permit_empty',
+                'currency'       => 'required|in_list[PEN,USD]'
             ];
             
             // Add organization_id rule for superadmins
@@ -199,8 +175,6 @@ class InvoiceController extends Controller
             }
             
             if ($this->validate($rules)) {
-                $invoiceModel = new InvoiceModel();
-                
                 // Get organization_id based on role
                 $invoiceOrgId = $this->auth->hasRole('superadmin')
                     ? $this->request->getPost('organization_id')
@@ -209,7 +183,7 @@ class InvoiceController extends Controller
                 $invoiceNumber = $this->request->getPost('invoice_number');
                 
                 // Check if invoice number already exists in this organization
-                $existingInvoice = $invoiceModel->where('organization_id', $invoiceOrgId)
+                $existingInvoice = $this->invoiceModel->where('organization_id', $invoiceOrgId)
                     ->where('invoice_number', $invoiceNumber)
                     ->first();
                 
@@ -230,16 +204,18 @@ class InvoiceController extends Controller
                     'external_id'    => $this->request->getPost('external_id') ?: null,
                     'notes'          => $this->request->getPost('notes') ?: null,
                     'status'         => 'pending',
+                    'currency'       => $this->request->getPost('currency'),
                 ];
                 
                 try {
-                    if ($invoiceModel->insert($invoiceData)) {
+                    if ($this->invoiceModel->insert($invoiceData)) {
                         return redirect()->to('/invoices')
                             ->with('success', 'Factura creada exitosamente.');
                     } else {
+                        log_message('error', 'Error al crear factura: ' . json_encode($this->invoiceModel->errors()));
                         return redirect()->back()
                             ->withInput()
-                            ->with('error', 'Error al crear la factura.');
+                            ->with('error', 'Error al crear la factura: ' . implode(', ', $this->invoiceModel->errors()));
                     }
                 } catch (\Exception $e) {
                     log_message('error', 'Error creating invoice: ' . $e->getMessage());
@@ -247,9 +223,12 @@ class InvoiceController extends Controller
                         ->withInput()
                         ->with('error', 'Error al crear la factura: ' . $e->getMessage());
                 }
-            } else {
-                return view('invoices/create', array_merge($data, ['validation' => $this->validator]));
             }
+            
+            // Si la validación falla, regresamos a la vista con los errores
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
         }
         
         return view('invoices/create', $data);

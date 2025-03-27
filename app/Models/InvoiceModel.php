@@ -14,10 +14,8 @@ class InvoiceModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'organization_id', 'client_id', 'uuid', 'external_id',
-        'document_type', 'series', 'number', 'issue_date',
-        'currency', 'total_amount', 'paid_amount', 'due_date',
-        'client_document_type', 'client_document_number',
-        'client_name', 'client_address', 'status', 'notes'
+        'invoice_number', 'concept', 'amount', 'due_date',
+        'currency', 'status', 'notes'
     ];
 
     // Dates
@@ -30,20 +28,15 @@ class InvoiceModel extends Model
     // Validation
     protected $validationRules      = [
         'organization_id' => 'required|is_natural_no_zero',
-        'client_id'       => 'required|is_natural_no_zero',
-        'document_type'   => 'required|in_list[01]',  // 01 = Factura
-        'series'          => 'required|max_length[4]',
-        'number'          => 'required|max_length[8]',
-        'issue_date'      => 'required|valid_date',
-        'currency'        => 'required|in_list[PEN,USD]',
-        'total_amount'    => 'required|numeric',
-        'paid_amount'     => 'required|numeric',
-        'due_date'        => 'required|valid_date',
-        'client_document_type' => 'required|in_list[RUC,DNI,CE,PAS]',
-        'client_document_number' => 'required|max_length[15]',
-        'client_name'     => 'required|max_length[200]',
-        'client_address'  => 'permit_empty|max_length[200]',
-        'status'          => 'required|in_list[pending,paid,cancelled,rejected,expired]',
+        'client_id'      => 'required|is_natural_no_zero',
+        'invoice_number' => 'required|max_length[50]',
+        'concept'        => 'required|max_length[255]',
+        'amount'         => 'required|numeric',
+        'due_date'       => 'required|valid_date',
+        'currency'       => 'required|in_list[PEN,USD]',
+        'status'         => 'required|in_list[pending,paid,cancelled,rejected,expired]',
+        'external_id'    => 'permit_empty|max_length[36]',
+        'notes'          => 'permit_empty'
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;
@@ -104,7 +97,6 @@ class InvoiceModel extends Model
                     $data['status'] = 'expired';
                 }
                 
-                // Update in database
                 $updates[] = [
                     'id' => $invoice['id'],
                     'status' => 'expired'
@@ -112,7 +104,7 @@ class InvoiceModel extends Model
             }
         }
         
-        // Batch update if necessary
+        // Update expired invoices in the database
         if (!empty($updates)) {
             $this->updateBatch($updates, 'id');
         }
