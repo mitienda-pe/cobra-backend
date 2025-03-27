@@ -177,27 +177,35 @@ class InvoiceController extends Controller
         return view('invoices/create', $data);
     }
     
-    public function view($uuid = null)
+    public function view($uuid)
     {
-        if (!$uuid) {
-            return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
-        }
+        $invoiceModel = new InvoiceModel();
+        $invoice = $invoiceModel->where('uuid', $uuid)->first();
 
-        $invoice = $this->invoiceModel->where('uuid', $uuid)->first();
         if (!$invoice) {
             return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
         }
 
-        // Get client data
-        $client = $this->clientModel->find($invoice['client_id']);
-        
-        $data = [
-            'auth' => $this->auth,
-            'invoice' => $invoice,
-            'client' => $client
-        ];
+        // Verificar que el usuario tenga acceso a esta factura
+        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
+            if ($invoice['organization_id'] !== $this->auth->user()->organization_id) {
+                return redirect()->to('/invoices')->with('error', 'No tienes permiso para ver esta factura.');
+            }
+        }
 
-        return view('invoices/view', $data);
+        // Cargar el cliente
+        $clientModel = new ClientModel();
+        $client = $clientModel->find($invoice['client_id']);
+
+        if (!$client) {
+            return redirect()->to('/invoices')->with('error', 'Cliente no encontrado.');
+        }
+
+        return view('invoices/view', [
+            'invoice' => $invoice,
+            'client' => $client,
+            'auth' => $this->auth
+        ]);
     }
 
     public function edit($uuid = null)
