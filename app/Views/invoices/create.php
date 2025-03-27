@@ -19,6 +19,22 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-body">
+                <?php if (session()->has('error')): ?>
+                    <div class="alert alert-danger">
+                        <?= session('error') ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (session()->has('errors')): ?>
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            <?php foreach (session('errors') as $error): ?>
+                                <li><?= $error ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+
                 <form action="<?= site_url('invoices/create') ?>" method="post">
                     <?= csrf_field() ?>
                     
@@ -76,33 +92,19 @@
                         <div id="client-empty" class="form-text text-warning d-none"></div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="series" class="form-label">Serie *</label>
-                                <input type="text" class="form-control" id="series" name="series" 
-                                       value="<?= old('series', 'F001') ?>" required maxlength="4"
-                                       pattern="[A-Z0-9]{4}" title="4 caracteres alfanuméricos en mayúsculas">
-                            </div>
-                        </div>
-                        <div class="col-md-8">
-                            <div class="mb-3">
-                                <label for="number" class="form-label">Número *</label>
-                                <input type="text" class="form-control" id="number" name="number" 
-                                       value="<?= old('number') ?>" required maxlength="8"
-                                       pattern="[0-9]{1,8}" title="Hasta 8 dígitos">
-                            </div>
-                        </div>
+                    <div class="mb-3">
+                        <label for="invoice_number" class="form-label">Número de Factura *</label>
+                        <input type="text" class="form-control" id="invoice_number" name="invoice_number" 
+                               value="<?= old('invoice_number') ?>" required maxlength="50">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="concept" class="form-label">Concepto *</label>
+                        <input type="text" class="form-control" id="concept" name="concept" 
+                               value="<?= old('concept') ?>" required maxlength="255">
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="issue_date" class="form-label">Fecha de Emisión *</label>
-                                <input type="date" class="form-control" id="issue_date" name="issue_date" 
-                                       value="<?= old('issue_date', date('Y-m-d')) ?>" required>
-                            </div>
-                        </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="currency" class="form-label">Moneda *</label>
@@ -112,24 +114,32 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">Importe Total *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text currency-symbol">S/</span>
+                                    <input type="number" class="form-control" id="amount" name="amount" 
+                                           value="<?= old('amount') ?>" required step="0.01" min="0">
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="total_amount" class="form-label">Importe Total *</label>
-                                <div class="input-group">
-                                    <span class="input-group-text currency-symbol">S/</span>
-                                    <input type="number" class="form-control" id="total_amount" name="total_amount" 
-                                           value="<?= old('total_amount') ?>" required step="0.01" min="0">
-                                </div>
+                                <label for="due_date" class="form-label">Fecha de Vencimiento *</label>
+                                <input type="date" class="form-control" id="due_date" name="due_date" 
+                                       value="<?= old('due_date', date('Y-m-d', strtotime('+30 days'))) ?>" required>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="due_date" class="form-label">Fecha de Vencimiento *</label>
-                                <input type="date" class="form-control" id="due_date" name="due_date" 
-                                       value="<?= old('due_date') ?>" required>
+                                <label for="external_id" class="form-label">ID Externo</label>
+                                <input type="text" class="form-control" id="external_id" name="external_id" 
+                                       value="<?= old('external_id') ?>" maxlength="36">
+                                <div class="form-text">ID opcional para integración con otros sistemas</div>
                             </div>
                         </div>
                     </div>
@@ -139,9 +149,9 @@
                         <textarea class="form-control" id="notes" name="notes" rows="3"><?= old('notes') ?></textarea>
                     </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">Guardar Factura</button>
-                        <a href="<?= site_url('invoices') ?>" class="btn btn-outline-secondary">Cancelar</a>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="<?= site_url('invoices') ?>" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Crear Factura</button>
                     </div>
                 </form>
             </div>
@@ -154,19 +164,17 @@
                 <h5 class="card-title mb-0">Ayuda</h5>
             </div>
             <div class="card-body">
-                <p>Complete los campos para crear una nueva factura:</p>
-                <ul class="mb-0">
-                    <li>Serie: 4 caracteres (ejemplo: F001)</li>
-                    <li>Número: hasta 8 dígitos</li>
-                    <li>Seleccione la moneda adecuada</li>
-                    <li>Ingrese el importe total</li>
-                    <li>Establezca la fecha de vencimiento</li>
-                </ul>
+                <p>Los campos marcados con <strong>*</strong> son obligatorios.</p>
+                <p>El número de factura debe ser único dentro de cada organización.</p>
+                <p>La moneda seleccionada determinará el símbolo mostrado en el importe.</p>
             </div>
         </div>
     </div>
 </div>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const currencySelect = document.getElementById('currency');
