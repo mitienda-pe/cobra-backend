@@ -77,11 +77,19 @@
                                     ?>
                                 </td>
                                 <td>
-                                    <a href="<?= site_url('portfolios/' . $portfolio['uuid']) ?>" class="btn btn-sm btn-info">Ver</a>
-                                    <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                        <a href="<?= site_url('portfolios/' . $portfolio['uuid'] . '/edit') ?>" class="btn btn-sm btn-primary">Editar</a>
-                                        <a href="<?= site_url('portfolios/' . $portfolio['uuid'] . '/delete') ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de eliminar esta cartera?')">Eliminar</a>
-                                    <?php endif; ?>
+                                    <div class="btn-group" role="group">
+                                        <a href="<?= site_url('portfolios/' . $portfolio['uuid']) ?>" class="btn btn-sm btn-info">
+                                            <i class="bi bi-eye"></i> Ver
+                                        </a>
+                                        <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                                            <a href="<?= site_url('portfolios/' . $portfolio['uuid'] . '/edit') ?>" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-pencil"></i> Editar
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-uuid="<?= $portfolio['uuid'] ?>" data-name="<?= esc($portfolio['name']) ?>">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -91,4 +99,38 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de confirmación para eliminar -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Eliminar Cartera</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de eliminar la cartera <span id="delete-name"></span>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a href="<?= site_url('portfolios/') ?>" class="btn btn-danger" id="delete-btn">Eliminar</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#deleteModal').on('show.bs.modal', function(event) {
+            var button = $(event.relatedTarget);
+            var uuid = button.data('uuid');
+            var name = button.data('name');
+            var modal = $(this);
+            modal.find('.modal-title').text('Eliminar Cartera ' + name);
+            modal.find('#delete-name').text(name);
+            modal.find('#delete-btn').attr('href', '<?= site_url('portfolios/') ?>' + uuid + '/delete');
+        });
+    });
+</script>
+
 <?= $this->endSection() ?>

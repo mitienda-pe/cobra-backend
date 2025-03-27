@@ -78,15 +78,17 @@
                             <?php endif; ?>
                         </td>
                         <td class="text-nowrap">
-                            <a href="<?= site_url('payments/view/' . $payment['uuid']) ?>" class="btn btn-sm btn-info">
-                                <i class="bi bi-eye"></i> Ver
-                            </a>
+                            <div class="btn-group" role="group">
+                                <a href="<?= site_url('payments/view/' . $payment['uuid']) ?>" class="btn btn-sm btn-info">
+                                    <i class="bi bi-eye"></i> Ver
+                                </a>
 
-                            <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete(<?= $payment['id'] ?>)">
-                                    <i class="bi bi-trash"></i> Eliminar
-                                </button>
-                            <?php endif; ?>
+                                <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete(<?= $payment['id'] ?>)">
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </button>
+                                <?php endif; ?>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
