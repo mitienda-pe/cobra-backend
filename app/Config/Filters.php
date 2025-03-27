@@ -25,7 +25,7 @@ class Filters extends BaseConfig
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
-        'cors'          => \App\Filters\CorsFilter::class,
+        'cors'          => '\App\Filters\CorsFilter',
         'auth'          => AuthFilter::class,
         'apiAuth'       => ApiAuthFilter::class,
         'apiLog'        => ApiLogFilter::class,
@@ -49,7 +49,7 @@ class Filters extends BaseConfig
                 'login*',
                 'logout'
             ]],
-            'cors' => ['except' => ['cli']],
+            'cors',
         ],
         'after' => [
             'toolbar' => ['except' => ['cli']],
