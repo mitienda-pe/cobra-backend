@@ -36,12 +36,29 @@ $routes->get('debug/csrf', 'Debug::csrf');
 $routes->get('debug/db-test', 'Debug::dbTest');
 $routes->get('debug/test-api', 'Debug::testApi');
 
+// Invoice Routes
+$routes->group('invoices', function ($routes) {
+    $routes->get('/', 'InvoiceController::index');
+    $routes->get('create', 'InvoiceController::create');
+    $routes->post('create', 'InvoiceController::create');
+    $routes->get('(:segment)', 'InvoiceController::show/$1');
+    $routes->get('(:segment)/edit', 'InvoiceController::edit/$1');
+    $routes->post('(:segment)/edit', 'InvoiceController::edit/$1');
+    $routes->get('(:segment)/delete', 'InvoiceController::delete/$1');
+    $routes->get('organization/(:segment)/clients', 'InvoiceController::getClientsByOrganization/$1');
+});
+
+// Client Routes
+$routes->get('clients', 'ClientController::index');
+$routes->get('clients/create', 'ClientController::create');
+$routes->post('clients/create', 'ClientController::create');
+$routes->get('clients/(:segment)', 'ClientController::show/$1');
+$routes->get('clients/(:segment)/edit', 'ClientController::edit/$1');
+$routes->post('clients/(:segment)/edit', 'ClientController::edit/$1');
+$routes->get('clients/(:segment)/delete', 'ClientController::delete/$1');
+
 // API Routes
-$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors'], function ($routes) {
-    // Debug endpoints - useful for troubleshooting
-    $routes->match(['get', 'post', 'options'], 'debug', 'AuthController::debug');
-    $routes->match(['get', 'post', 'options'], 'test-otp', 'AuthController::testOtp');
-    
+$routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth Public Routes
     $routes->post('auth/request-otp', 'AuthController::requestOtp');
     $routes->post('auth/verify-otp', 'AuthController::verifyOtp');
@@ -50,10 +67,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors']
     $routes->match(['options'], 'auth/request-otp', 'AuthController::requestOtp');
     $routes->match(['options'], 'auth/verify-otp', 'AuthController::verifyOtp');
     $routes->match(['options'], 'auth/refresh-token', 'AuthController::refreshToken');
-    
+
     // Organization Routes
     $routes->match(['get', 'options'], 'organizations/(:segment)/clients', 'OrganizationController::clients/$1');
-    
+
     // Client Routes
     $routes->match(['get', 'options'], 'clients', 'ClientController::index');
     $routes->match(['post', 'options'], 'clients/create', 'ClientController::create');
@@ -63,46 +80,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors']
     $routes->match(['get', 'options'], 'clients/uuid/(:segment)', 'ClientController::findByUuid/$1');
     $routes->match(['get', 'options'], 'clients/external/(:segment)', 'ClientController::findByExternalId/$1');
     $routes->match(['get', 'options'], 'clients/document/(:segment)', 'ClientController::findByDocument/$1');
-    
+
     // Portfolio Routes
     $routes->match(['get', 'options'], 'portfolios', 'PortfolioController::index');
     $routes->match(['get', 'options'], 'portfolios/(:segment)', 'PortfolioController::show/$1');
-    $routes->match(['get', 'options'], 'portfolios/my', 'PortfolioController::myPortfolios');
-
-    // Invoice Routes
-    $routes->group('invoices', function($routes) {
-        $routes->match(['get', 'options'], '', 'InvoiceController::index');
-        $routes->match(['post', 'options'], 'create', 'InvoiceController::create');
-        $routes->match(['get', 'options'], '(:segment)', 'InvoiceController::show/$1');
-        $routes->match(['put', 'options'], '(:segment)', 'InvoiceController::update/$1');
-        $routes->match(['delete', 'options'], '(:segment)', 'InvoiceController::delete/$1');
-        $routes->match(['get', 'options'], 'external/(:segment)', 'InvoiceController::findByExternalId/$1');
-        $routes->match(['get', 'options'], 'overdue', 'InvoiceController::overdue');
-    });
-
-    // User Routes
-    $routes->match(['get', 'options'], 'users', 'UserController::index');
-    // $routes->match(['post', 'options'], 'users', 'UserController::create');
-    $routes->match(['get', 'options'], 'users/(:num)', 'UserController::show/$1');
-    $routes->match(['put', 'options'], 'users/(:num)', 'UserController::update/$1');
-    $routes->match(['delete', 'options'], 'users/(:num)', 'UserController::delete/$1');
-    $routes->match(['get', 'options'], 'users/portfolio/(:num)', 'UserController::byPortfolio/$1');
-    $routes->match(['get', 'options'], 'user/profile', 'UserController::profile');
-
-    // Payment Routes
-    $routes->match(['get', 'options'], 'payments', 'PaymentController::index');
-    $routes->match(['post', 'options'], 'payments', 'PaymentController::create');
-    $routes->match(['get', 'options'], 'payments/(:num)', 'PaymentController::show/$1');
-    $routes->match(['put', 'options'], 'payments/(:num)', 'PaymentController::update/$1');
-    $routes->match(['delete', 'options'], 'payments/(:num)', 'PaymentController::delete/$1');
-    $routes->match(['get', 'options'], 'payments/external/(:segment)', 'PaymentController::findByExternalId/$1');
-
-    // Organization Routes
-    $routes->match(['get', 'options'], 'organizations', 'OrganizationController::index');
-    $routes->match(['post', 'options'], 'organizations', 'OrganizationController::create');
-    $routes->match(['get', 'options'], 'organizations/(:segment)', 'OrganizationController::show/$1');
-    $routes->match(['put', 'options'], 'organizations/(:segment)', 'OrganizationController::update/$1');
-    $routes->match(['delete', 'options'], 'organizations/(:segment)', 'OrganizationController::delete/$1');
 });
 
 // API Routes - Protected 
@@ -153,7 +134,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     });
 
     // Invoice Routes
-    $routes->group('invoices', function($routes) {
+    $routes->group('invoices', function ($routes) {
         $routes->get('/', 'InvoiceController::index');
         $routes->get('create', 'InvoiceController::create');
         $routes->post('create', 'InvoiceController::create');
@@ -198,7 +179,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('(:num)/test', 'WebhookController::test/$1');
         $routes->get('(:num)/retry', 'WebhookController::retry/$1');
     });
-    
+
     // Ruta para obtener clientes por organización
     $routes->get('organizations/(:segment)/clients', 'OrganizationController::getClientsByOrganization/$1');
 });
