@@ -37,15 +37,14 @@ $routes->get('debug/db-test', 'Debug::dbTest');
 $routes->get('debug/test-api', 'Debug::testApi');
 
 // Invoice Routes
-$routes->group('invoices', function ($routes) {
+$routes->group('invoices', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->get('/', 'InvoiceController::index');
     $routes->get('create', 'InvoiceController::create');
-    $routes->post('create', 'InvoiceController::create');
-    $routes->get('(:segment)', 'InvoiceController::show/$1');
-    $routes->get('(:segment)/edit', 'InvoiceController::edit/$1');
-    $routes->post('(:segment)/edit', 'InvoiceController::edit/$1');
-    $routes->get('(:segment)/delete', 'InvoiceController::delete/$1');
-    $routes->get('organization/(:segment)/clients', 'InvoiceController::getClientsByOrganization/$1');
+    $routes->post('create', 'InvoiceController::store');
+    $routes->get('view/(:segment)', 'InvoiceController::view/$1');
+    $routes->get('edit/(:segment)', 'InvoiceController::edit/$1');
+    $routes->post('update/(:segment)', 'InvoiceController::update/$1');
+    $routes->delete('delete/(:segment)', 'InvoiceController::delete/$1');
 });
 
 // Client Routes
