@@ -7,13 +7,13 @@ use CodeIgniter\Model;
 class ClientModel extends Model
 {
     protected $table            = 'clients';
-    protected $primaryKey       = 'uuid';
-    protected $useAutoIncrement = false;
+    protected $primaryKey       = 'id';
+    protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'organization_id', 'external_id', 'uuid', 'business_name', 'legal_name', 
+        'organization_id', 'external_id', 'id', 'business_name', 'legal_name', 
         'document_number', 'contact_name', 'contact_phone', 'address', 
         'ubigeo', 'zip_code', 'latitude', 'longitude', 'status'
     ];
@@ -38,7 +38,7 @@ class ClientModel extends Model
     protected $cleanValidationRules = true;
 
     // Callbacks
-    protected $beforeInsert   = ['generateExternalId', 'generateUuid'];
+    protected $beforeInsert   = ['generateExternalId'];
     protected $beforeUpdate   = [];
 
     /**
@@ -50,18 +50,6 @@ class ClientModel extends Model
             $data['data']['external_id'] = bin2hex(random_bytes(16));
         }
         
-        return $data;
-    }
-    
-    /**
-     * Generate UUID before insert
-     */
-    protected function generateUuid(array $data)
-    {
-        if (!isset($data['data']['uuid'])) {
-            helper('uuid');
-            $data['data']['uuid'] = generate_unique_uuid('clients', 'uuid');
-        }
         return $data;
     }
     
@@ -81,7 +69,7 @@ class ClientModel extends Model
         $db = \Config\Database::connect();
         return $db->table('clients c')
                  ->select('c.*')
-                 ->join('client_portfolio cp', 'cp.client_uuid = c.uuid')
+                 ->join('client_portfolio cp', 'cp.client_id = c.id')
                  ->where('cp.portfolio_uuid', $portfolioUuid)
                  ->where('c.deleted_at IS NULL')
                  ->get()
@@ -103,11 +91,11 @@ class ClientModel extends Model
     }
     
     /**
-     * Find client by UUID
+     * Find client by ID
      */
-    public function findByUuid($uuid, $organizationId = null)
+    public function findById($id, $organizationId = null)
     {
-        $query = $this->where('uuid', $uuid);
+        $query = $this->where('id', $id);
         
         if ($organizationId) {
             $query = $query->where('organization_id', $organizationId);
@@ -119,13 +107,13 @@ class ClientModel extends Model
     /**
      * Get portfolios by client
      */
-    public function getPortfolios($clientUuid)
+    public function getPortfolios($clientId)
     {
         $db = \Config\Database::connect();
         return $db->table('portfolios p')
                  ->select('p.*')
                  ->join('client_portfolio cp', 'cp.portfolio_uuid = p.uuid')
-                 ->where('cp.client_uuid', $clientUuid)
+                 ->where('cp.client_id', $clientId)
                  ->where('p.deleted_at IS NULL')
                  ->get()
                  ->getResultArray();

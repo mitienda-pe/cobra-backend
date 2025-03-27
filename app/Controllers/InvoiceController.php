@@ -193,12 +193,19 @@ class InvoiceController extends Controller
             }
         }
 
+        // Debug
+        log_message('debug', 'Invoice data: ' . print_r($invoice, true));
+
         // Cargar el cliente
         $clientModel = new ClientModel();
         $client = $clientModel->find($invoice['client_id']);
 
+        // Debug
+        log_message('debug', 'Client ID: ' . $invoice['client_id']);
+        log_message('debug', 'Client data: ' . print_r($client, true));
+
         if (!$client) {
-            return redirect()->to('/invoices')->with('error', 'Cliente no encontrado.');
+            return redirect()->to('/invoices')->with('error', 'Cliente no encontrado. ID: ' . $invoice['client_id']);
         }
 
         return view('invoices/view', [
