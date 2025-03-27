@@ -18,6 +18,9 @@ class AuthController extends ResourceController
     protected $userApiTokenModel;
     protected $db;
     protected $twilioService;
+    protected $developmentMode = false;
+    protected $developmentOtp = '123456';
+    protected $developmentPhone = '+51999309748';
 
     public function __construct()
     {
@@ -26,6 +29,9 @@ class AuthController extends ResourceController
         $this->userApiTokenModel = new UserApiTokenModel();
         $this->db = \Config\Database::connect();
         $this->twilioService = new Twilio();
+        
+        // Habilitar modo desarrollo si TWILIO_ENABLED está deshabilitado
+        $this->developmentMode = getenv('TWILIO_ENABLED') !== 'true';
     }
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
@@ -127,8 +133,13 @@ class AuthController extends ResourceController
                 }
             }
 
-            // Generate OTP
-            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            // Generate OTP - Use hardcoded OTP in development mode for specific phone
+            if ($this->developmentMode && $phone === $this->developmentPhone) {
+                $otp = $this->developmentOtp;
+                log_message('info', "Development mode: Using hardcoded OTP {$otp} for phone {$phone}");
+            } else {
+                $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            }
             
             // Store OTP in database
             $otpData = [
@@ -202,7 +213,7 @@ class AuthController extends ResourceController
             return $this->response->setStatusCode(500)->setJSON([
                 'status' => 'error',
                 'message' => 'Internal server error',
-                'error' => $e->getMessage()
+                'details' => $e->getMessage()
             ]);
         }
     }
