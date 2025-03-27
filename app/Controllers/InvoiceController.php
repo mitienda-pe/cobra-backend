@@ -36,7 +36,7 @@ class InvoiceController extends Controller
     {
         // Only authenticated users can view invoices
         if (!$this->auth->hasRole('user')) {
-            return redirect()->to('/login')->with('error', 'Por favor inicie sesión para ver las facturas.');
+            return redirect()->to('/auth/signin')->with('error', 'Por favor inicie sesión para ver las facturas.');
         }
         
         $data = [
