@@ -164,7 +164,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('/', 'PaymentController::index');
         $routes->get('create', 'PaymentController::create');
         $routes->get('create/(:segment)', 'PaymentController::create/$1');
-        $routes->post('create', 'PaymentController::store');
+        $routes->post('create', 'PaymentController::create');
         $routes->get('view/(:segment)', 'PaymentController::view/$1');
         $routes->get('search-invoices', 'PaymentController::searchInvoices');
     });
