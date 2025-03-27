@@ -26,7 +26,7 @@ class Filters extends BaseConfig
         'apiAuth'       => ApiAuthFilter::class,
         'apiLog'        => ApiLogFilter::class,
         // Filtros combinados para API
-        'api-auth'      => ['apiAuth', 'apiLog', 'cors'],
+        'api-auth'      => [ApiAuthFilter::class, ApiLogFilter::class, CorsFilter::class],
     ];
 
     public array $globals = [
