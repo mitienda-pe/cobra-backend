@@ -15,119 +15,63 @@ class PaymentController extends BaseController
     
     protected $auth;
     protected $session;
+    protected $organizationModel;
+    protected $paymentModel;
     
     public function __construct()
     {
         $this->auth = new Auth();
         $this->session = \Config\Services::session();
+        $this->organizationModel = new \App\Models\OrganizationModel();
+        $this->paymentModel = new PaymentModel();
         helper(['form', 'url']);
     }
     
     public function index()
     {
-        log_message('debug', '====== PAYMENTS INDEX ======');
-        
-        // Refresh organization context from session
-        $currentOrgId = $this->refreshOrganizationContext();
-        
-        $paymentModel = new PaymentModel();
-        $auth = $this->auth;
-        
-        // Date filters
-        $dateStart = $this->request->getGet('date_start');
-        $dateEnd = $this->request->getGet('date_end');
-        
-        // Initialize payments array
-        $payments = [];
-        
-        try {
-            // Filter payments based on role
-            if ($auth->hasRole('superadmin') || $auth->hasRole('admin')) {
-                // Admin/Superadmin can see all payments from their organization
-                if ($currentOrgId) {
-                    // Try to get payments by organization - this uses a JOIN with invoices
-                    $payments = $paymentModel->getByOrganization(
-                        $currentOrgId, // Use the refreshed organization context
-                        $dateStart,
-                        $dateEnd
-                    );
-                    
-                    log_message('debug', 'Admin/Superadmin fetched ' . count($payments) . ' payments for organization ' . $currentOrgId);
-                } else {
-                    // If no organization selected, show all payments for superadmin only
-                    if ($auth->hasRole('superadmin')) {
-                        // Get all payments and manually join with invoice and client info
-                        $allPayments = $paymentModel->findAll();
-                        $invoiceModel = new InvoiceModel();
-                        $clientModel = new ClientModel();
-                        $userModel = new \App\Models\UserModel();
-                        
-                        foreach ($allPayments as &$payment) {
-                            $invoice = $invoiceModel->find($payment['invoice_id']);
-                            if ($invoice) {
-                                $payment['invoice_number'] = $invoice['invoice_number'];
-                                $payment['concept'] = $invoice['concept'];
-                                
-                                $client = $clientModel->find($invoice['client_id']);
-                                if ($client) {
-                                    $payment['business_name'] = $client['business_name'];
-                                    $payment['document_number'] = $client['document_number'];
-                                }
-                                
-                                $user = $userModel->find($payment['user_id']);
-                                if ($user) {
-                                    $payment['collector_name'] = $user['name'];
-                                }
-                            }
-                        }
-                        
-                        $payments = $allPayments;
-                        log_message('debug', 'Superadmin fetched ' . count($payments) . ' payments (all organizations)');
-                    }
-                }
-            } else {
-                // Regular users can only see their own payments
-                $payments = $paymentModel->getByUser(
-                    $auth->user()['id'],
-                    $dateStart,
-                    $dateEnd
-                );
-                
-                log_message('debug', 'User fetched ' . count($payments) . ' payments');
-                
-                // Add invoice and client information
-                $invoiceModel = new InvoiceModel();
-                $clientModel = new ClientModel();
-                
-                foreach ($payments as &$payment) {
-                    $invoice = $invoiceModel->find($payment['invoice_id']);
-                    if ($invoice) {
-                        $payment['invoice_number'] = $invoice['invoice_number'];
-                        $payment['concept'] = $invoice['concept'];
-                        
-                        $client = $clientModel->find($invoice['client_id']);
-                        if ($client) {
-                            $payment['business_name'] = $client['business_name'];
-                            $payment['document_number'] = $client['document_number'];
-                        }
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            log_message('error', 'Error fetching payments: ' . $e->getMessage());
-            // Return empty payments array if there's an error
-            $payments = [];
+        // Only users with proper roles can view payments
+        if (!$this->auth->hasAnyRole(['superadmin', 'admin', 'user'])) {
+            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para ver pagos.');
         }
         
-        // Initialize view data
         $data = [
-            'payments' => $payments,
-            'date_start' => $dateStart,
-            'date_end' => $dateEnd,
+            'auth' => $this->auth,
+            'date_start' => $this->request->getGet('date_start'),
+            'date_end' => $this->request->getGet('date_end')
         ];
         
-        // Use the trait to prepare organization-related data for the view
-        $data = $this->prepareOrganizationData($data);
+        // Get organization ID from Auth library or from query params for superadmin
+        $organizationId = $this->auth->organizationId();
+        if ($this->auth->hasRole('superadmin')) {
+            $data['organizations'] = $this->organizationModel->findAll();
+            $organizationId = $this->request->getGet('organization_id') ?: null;
+            $data['selected_organization_id'] = $organizationId;
+        }
+        
+        // Build base query
+        $builder = $this->paymentModel->select('payments.*, invoices.invoice_number, invoices.currency, clients.business_name')
+            ->join('invoices', 'invoices.id = payments.invoice_id')
+            ->join('clients', 'clients.id = invoices.client_id')
+            ->where('payments.deleted_at IS NULL');
+            
+        // Add organization filter if not superadmin
+        if ($organizationId) {
+            $builder->where('invoices.organization_id', $organizationId);
+        }
+        
+        // Add date filters if provided
+        if (!empty($data['date_start'])) {
+            $builder->where('DATE(payments.payment_date) >=', $data['date_start']);
+        }
+        if (!empty($data['date_end'])) {
+            $builder->where('DATE(payments.payment_date) <=', $data['date_end']);
+        }
+        
+        // Get paginated results
+        $data['payments'] = $builder->orderBy('payments.payment_date', 'DESC')
+                                  ->paginate(10);
+                                  
+        $data['pager'] = $this->paymentModel->pager;
         
         return view('payments/index', $data);
     }
@@ -212,10 +156,10 @@ class PaymentController extends BaseController
                     $db->transStart();
                     
                     // Insert payment
-                    $paymentId = $paymentModel->insert($paymentData);
+                    $paymentId = $this->paymentModel->insert($paymentData);
                     
                     if (!$paymentId) {
-                        $error = $paymentModel->errors();
+                        $error = $this->paymentModel->errors();
                         throw new \Exception(implode(', ', $error));
                     }
                     
@@ -245,8 +189,7 @@ class PaymentController extends BaseController
         
         // Get organizations for the dropdown (for superadmin)
         if ($this->auth->hasRole('superadmin')) {
-            $organizationModel = new \App\Models\OrganizationModel();
-            $data['organizations'] = $organizationModel->findAll();
+            $data['organizations'] = $this->organizationModel->findAll();
         }
         
         // Get organization ID from Auth library
@@ -358,8 +301,7 @@ class PaymentController extends BaseController
             return redirect()->to('/payments')->with('error', 'ID de pago no especificado');
         }
         
-        $paymentModel = new PaymentModel();
-        $payment = $paymentModel->find($id);
+        $payment = $this->paymentModel->find($id);
         
         if (!$payment) {
             return redirect()->to('/payments')->with('error', 'Pago no encontrado');
@@ -403,8 +345,7 @@ class PaymentController extends BaseController
             return redirect()->to('/payments')->with('error', 'ID de pago no especificado');
         }
         
-        $paymentModel = new PaymentModel();
-        $payment = $paymentModel->find($id);
+        $payment = $this->paymentModel->find($id);
         
         if (!$payment) {
             return redirect()->to('/payments')->with('error', 'Pago no encontrado');
@@ -416,7 +357,7 @@ class PaymentController extends BaseController
             $db->transStart();
             
             // Delete payment
-            $paymentModel->delete($id);
+            $this->paymentModel->delete($id);
             
             // Update invoice status
             $invoiceModel = new InvoiceModel();
@@ -461,25 +402,23 @@ class PaymentController extends BaseController
             ? $this->request->getGet('organization_id')
             : $this->auth->organizationId();
         
-        $paymentModel = new PaymentModel();
-        
         try {
             // Get payment totals by method
-            $paymentsByMethod = $paymentModel->getPaymentTotalsByMethod(
+            $paymentsByMethod = $this->paymentModel->getPaymentTotalsByMethod(
                 $organizationId,
                 $dateStart,
                 $dateEnd
             );
             
             // Get payment totals by collector
-            $paymentsByCollector = $paymentModel->getPaymentTotalsByCollector(
+            $paymentsByCollector = $this->paymentModel->getPaymentTotalsByCollector(
                 $organizationId,
                 $dateStart,
                 $dateEnd
             );
             
             // Get payment totals by day
-            $paymentsByDay = $paymentModel->getPaymentTotalsByDay(
+            $paymentsByDay = $this->paymentModel->getPaymentTotalsByDay(
                 $organizationId,
                 $dateStart,
                 $dateEnd
@@ -496,8 +435,7 @@ class PaymentController extends BaseController
             
             // Add organizations for superadmin dropdown
             if ($this->auth->hasRole('superadmin')) {
-                $organizationModel = new \App\Models\OrganizationModel();
-                $data['organizations'] = $organizationModel->findAll();
+                $data['organizations'] = $this->organizationModel->findAll();
                 $data['selected_organization'] = $organizationId;
             }
             

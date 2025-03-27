@@ -38,7 +38,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Monto Pagado:</label>
-                            <div class="fs-4">$<?= number_format($payment['amount'], 2) ?></div>
+                            <div class="fs-4"><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($payment['amount'], 2) ?></div>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -135,7 +135,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Monto Total:</label>
-                    <div>$<?= number_format($invoice['amount'], 2) ?></div>
+                    <div><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['amount'], 2) ?></div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Fecha de Vencimiento:</label>

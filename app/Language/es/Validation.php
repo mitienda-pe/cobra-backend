@@ -1,0 +1,33 @@
+<?php
+
+return [
+    'required'      => 'El campo {field} es obligatorio.',
+    'valid_email'   => 'El campo {field} debe contener una dirección de correo válida.',
+    'matches'       => 'El campo {field} no coincide con el campo {param}.',
+    'is_unique'     => 'El campo {field} ya existe en la base de datos.',
+    'min_length'    => 'El campo {field} debe tener al menos {param} caracteres.',
+    'max_length'    => 'El campo {field} no puede exceder los {param} caracteres.',
+    'exact_length'  => 'El campo {field} debe tener exactamente {param} caracteres.',
+    'alpha'         => 'El campo {field} solo puede contener caracteres alfabéticos.',
+    'alpha_numeric' => 'El campo {field} solo puede contener caracteres alfanuméricos.',
+    'alpha_dash'    => 'El campo {field} solo puede contener caracteres alfanuméricos, guiones bajos y guiones.',
+    'numeric'       => 'El campo {field} debe contener solo números.',
+    'is_numeric'    => 'El campo {field} debe contener solo caracteres numéricos.',
+    'integer'       => 'El campo {field} debe contener un número entero.',
+    'decimal'       => 'El campo {field} debe contener un número decimal.',
+    'greater_than'  => 'El campo {field} debe contener un número mayor que {param}.',
+    'less_than'     => 'El campo {field} debe contener un número menor que {param}.',
+    'alpha_space'   => 'El campo {field} solo puede contener caracteres alfabéticos y espacios.',
+    'is_natural'    => 'El campo {field} debe contener solo dígitos positivos.',
+    'is_natural_no_zero' => 'El campo {field} debe contener un número mayor que cero.',
+    'valid_url'     => 'El campo {field} debe contener una URL válida.',
+    'valid_date'    => 'El campo {field} debe contener una fecha válida.',
+    'valid_ip'      => 'El campo {field} debe contener una dirección IP válida.',
+    'valid_base64'  => 'El campo {field} debe contener una cadena Base64 válida.',
+    'in_list'       => 'El campo {field} debe ser uno de: {param}.',
+    'string'        => 'El campo {field} debe ser una cadena de texto.',
+    'uploaded'      => 'El archivo {field} no se pudo cargar.',
+    'max_size'      => 'El archivo {field} excede el tamaño máximo permitido.',
+    'is_image'      => 'El archivo {field} debe ser una imagen.',
+    'mime_in'       => 'El archivo {field} debe ser de uno de los siguientes tipos: {param}.'
+];

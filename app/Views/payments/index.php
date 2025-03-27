@@ -60,7 +60,7 @@
                         <td><?= date('d/m/Y H:i', strtotime($payment['payment_date'])) ?></td>
                         <td><?= esc($payment['business_name'] ?? 'N/A') ?></td>
                         <td><?= esc($payment['invoice_number'] ?? 'N/A') ?></td>
-                        <td>$<?= number_format($payment['amount'], 2) ?></td>
+                        <td><?= $payment['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($payment['amount'], 2) ?></td>
                         <td><?= esc($payment['payment_method']) ?></td>
                         <td><?= esc($payment['reference_code']) ?></td>
                         <td>
@@ -78,7 +78,7 @@
                             <?php endif; ?>
                         </td>
                         <td class="text-nowrap">
-                            <a href="<?= site_url('payments/view/' . $payment['id']) ?>" class="btn btn-sm btn-info">
+                            <a href="<?= site_url('payments/view/' . $payment['uuid']) ?>" class="btn btn-sm btn-info">
                                 Ver
                             </a>
                             
@@ -94,6 +94,9 @@
             </tbody>
         </table>
     </div>
+    
+    <!-- Paginación -->
+    <?= $pager->links() ?>
 <?php endif; ?>
 
 <!-- Modal de Confirmación de Eliminación -->
@@ -107,7 +110,7 @@
             <div class="modal-body">
                 ¿Está seguro que desea eliminar este pago?
                 <br><br>
-                <strong>Esta acción no se puede deshacer.</strong>
+                <strong>Esta acción no se puede deshacer y podría cambiar el estado de la factura.</strong>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -117,12 +120,14 @@
     </div>
 </div>
 
+<?= $this->section('scripts') ?>
 <script>
-    function confirmDelete(id) {
-        document.getElementById('deleteLink').href = '<?= site_url('payments/delete/') ?>' + id;
-        
-        var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        modal.show();
-    }
+function confirmDelete(id) {
+    document.getElementById('deleteLink').href = '<?= site_url('payments/delete/') ?>' + id;
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
 </script>
+<?= $this->endSection() ?>
+
 <?= $this->endSection() ?>
