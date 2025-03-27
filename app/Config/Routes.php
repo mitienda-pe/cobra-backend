@@ -115,11 +115,12 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     // Invoice Routes
     $routes->group('invoices', function ($routes) {
         $routes->get('/', 'InvoiceController::index');
-        $routes->match(['get', 'post'], 'create', 'InvoiceController::create');
-        $routes->get('(:segment)', 'InvoiceController::view/$1');
-        $routes->get('(:segment)/edit', 'InvoiceController::edit/$1');
-        $routes->post('(:segment)/edit', 'InvoiceController::edit/$1');
-        $routes->get('(:segment)/delete', 'InvoiceController::delete/$1');
+        $routes->get('create', 'InvoiceController::create');
+        $routes->post('create', 'InvoiceController::create');
+        $routes->get('view/(:segment)', 'InvoiceController::view/$1');
+        $routes->get('edit/(:segment)', 'InvoiceController::edit/$1');
+        $routes->post('edit/(:segment)', 'InvoiceController::edit/$1');
+        $routes->get('delete/(:segment)', 'InvoiceController::delete/$1');
         // Invoice import routes (with CSRF bypass)
         $routes->get('import', 'InvoiceController::import', ['csrf' => false]);
         $routes->post('import', 'InvoiceController::import', ['csrf' => false]);
