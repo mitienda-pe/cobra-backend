@@ -58,7 +58,7 @@
                     <div class="col-md-8">
                         <?= esc($client['business_name']) ?><br>
                         <small class="text-muted">
-                            <?= esc($client['document_type']) ?>: <?= esc($client['document_number']) ?>
+                            RUC/DNI: <?= esc($client['document_number']) ?>
                         </small>
                     </div>
                 </div>
@@ -141,25 +141,25 @@
                 </div>
 
                 <div class="mb-2">
-                    <strong>Documento:</strong><br>
-                    <?= esc($client['document_type']) ?>: <?= esc($client['document_number']) ?>
+                    <strong>RUC/DNI:</strong><br>
+                    <?= esc($client['document_number']) ?>
                 </div>
 
-                <?php if ($client['email']): ?>
+                <?php if (isset($client['contact_name']) && $client['contact_name']): ?>
                 <div class="mb-2">
-                    <strong>Email:</strong><br>
-                    <?= esc($client['email']) ?>
+                    <strong>Contacto:</strong><br>
+                    <?= esc($client['contact_name']) ?>
                 </div>
                 <?php endif; ?>
 
-                <?php if ($client['phone']): ?>
+                <?php if (isset($client['contact_phone']) && $client['contact_phone']): ?>
                 <div class="mb-2">
                     <strong>Teléfono:</strong><br>
-                    <?= esc($client['phone']) ?>
+                    <?= esc($client['contact_phone']) ?>
                 </div>
                 <?php endif; ?>
 
-                <?php if ($client['address']): ?>
+                <?php if (isset($client['address']) && $client['address']): ?>
                 <div class="mb-2">
                     <strong>Dirección:</strong><br>
                     <?= esc($client['address']) ?>
