@@ -34,92 +34,37 @@ class InvoiceController extends Controller
     
     public function index()
     {
-        log_message('debug', '====== INVOICES INDEX ======');
-        
-        // Refresh organization context from session
-        $currentOrgId = $this->refreshOrganizationContext();
-        
-        $invoiceModel = new InvoiceModel();
-        $auth = $this->auth;
-        
-        // Filter invoices based on role
-        if ($auth->hasRole('superadmin')) {
-            // Superadmin can see all invoices or filter by organization
-            if ($currentOrgId) {
-                // Use the trait method to apply organization filter
-                $this->applyOrganizationFilter($invoiceModel, $currentOrgId);
-                $invoices = $invoiceModel->findAll();
-                log_message('debug', 'SQL Query: ' . $invoiceModel->getLastQuery()->getQuery());
-                log_message('debug', 'Superadmin fetched ' . count($invoices) . ' invoices for organization ' . $currentOrgId);
-            } else {
-                $invoices = $invoiceModel->findAll();
-                log_message('debug', 'Superadmin fetched all ' . count($invoices) . ' invoices');
-            }
-        } else if ($auth->hasRole('admin')) {
-            // Admin can see all invoices from their organization
-            $adminOrgId = $auth->user()['organization_id']; // Always use admin's fixed organization
-            $invoices = $invoiceModel->getByOrganization($adminOrgId);
-            log_message('debug', 'Admin fetched ' . count($invoices) . ' invoices for organization ' . $adminOrgId);
-        } else {
-            // Regular users can only see invoices from their portfolios
-            $invoices = $invoiceModel->getByUser($auth->user()['id']);
-            log_message('debug', 'User fetched ' . count($invoices) . ' invoices from portfolios');
+        // Only authenticated users can view invoices
+        if (!$this->auth->isLoggedIn()) {
+            return redirect()->to('/login')->with('error', 'Por favor inicie sesión para ver las facturas.');
         }
         
-        // Get statuses for filtering
-        $status = $this->request->getGet('status');
-        if ($status) {
-            $filteredInvoices = array_filter($invoices, function($invoice) use ($status) {
-                return $invoice['status'] === $status;
-            });
-            $invoices = array_values($filteredInvoices);
-            log_message('debug', 'Filtered to ' . count($invoices) . ' invoices with status: ' . $status);
-        }
-        
-        // Get client information and payment information for display
-        $clientModel = new ClientModel();
-        foreach ($invoices as &$invoice) {
-            // Add client info
-            $client = $clientModel->find($invoice['client_id']);
-            if ($client) {
-                $invoice['client_name'] = $client['business_name'];
-                $invoice['document_number'] = $client['document_number'];
-                $invoice['client_organization_id'] = $client['organization_id'];
-            } else {
-                $invoice['client_name'] = 'Cliente no encontrado';
-                $invoice['document_number'] = '';
-                $invoice['client_organization_id'] = null;
-            }
-            
-            // Add payment info for each invoice
-            if ($invoice['status'] === 'pending') {
-                $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
-                $invoice['total_paid'] = $paymentInfo['total_paid'];
-                $invoice['remaining_amount'] = $paymentInfo['remaining'];
-                $invoice['payment_percentage'] = ($paymentInfo['total_paid'] / $invoice['amount']) * 100;
-                $invoice['has_partial_payment'] = ($paymentInfo['total_paid'] > 0);
-            }
-        }
-        
-        // If no invoices found with role-based filtering, log this info
-        if (empty($invoices)) {
-            $allInvoices = $invoiceModel->findAll();
-            log_message('debug', 'No invoices found with filtering. Total invoices in database: ' . count($allInvoices));
-            
-            // For debugging, log all available organizations
-            $db = \Config\Database::connect();
-            $orgs = $db->table('organizations')->get()->getResultArray();
-            log_message('debug', 'Available organizations: ' . json_encode(array_column($orgs, 'id')));
-        }
-        
-        // Initialize view data
         $data = [
-            'invoices' => $invoices,
-            'status' => $status,
+            'auth' => $this->auth
         ];
         
-        // Use the trait to prepare organization-related data for the view
-        $data = $this->prepareOrganizationData($data);
+        // Get organization ID from Auth library or from query params for superadmin
+        $organizationId = $this->auth->organizationId();
+        if ($this->auth->hasRole('superadmin')) {
+            $data['organizations'] = $this->organizationModel->findAll();
+            $organizationId = $this->request->getGet('organization_id') ?: null;
+            $data['selected_organization_id'] = $organizationId;
+        }
+        
+        // Build the query
+        $builder = $this->invoiceModel
+            ->select('invoices.*, clients.business_name')
+            ->join('clients', 'clients.id = invoices.client_id', 'left');
+            
+        if ($organizationId) {
+            $builder->where('invoices.organization_id', $organizationId);
+        }
+        
+        // Get invoices with pagination
+        $data['invoices'] = $builder->orderBy('invoices.created_at', 'DESC')
+                                  ->paginate(10);
+        
+        $data['pager'] = $this->invoiceModel->pager;
         
         return view('invoices/index', $data);
     }

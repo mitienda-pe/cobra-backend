@@ -4,194 +4,178 @@
 
 <?= $this->section('content') ?>
 <div class="row mb-4">
-    <div class="col-md-6">
+    <div class="col">
         <h1>Facturas</h1>
     </div>
-    <div class="col-md-6 text-end">
-        <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-            <a href="<?= site_url('invoices/create') ?>" class="btn btn-primary">
-                <i class="bi bi-plus"></i> Nueva Factura
-            </a>
-            <a href="<?= site_url('invoices/import') ?>" class="btn btn-outline-primary">
-                <i class="bi bi-upload"></i> Importar
-            </a>
-        <?php endif; ?>
+    <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
+    <div class="col text-end">
+        <a href="<?= site_url('invoices/create') ?>" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Nueva Factura
+        </a>
     </div>
+    <?php endif; ?>
 </div>
 
-<!-- Filtros -->
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="get" action="<?= site_url('invoices') ?>" class="row g-3">
-            <div class="col-md-4">
-                <label for="status" class="form-label">Estado</label>
-                <select name="status" id="status" class="form-select">
-                    <option value="">Todos</option>
-                    <option value="pending" <?= $status === 'pending' ? 'selected' : '' ?>>Pendiente</option>
-                    <option value="paid" <?= $status === 'paid' ? 'selected' : '' ?>>Pagada</option>
-                    <option value="cancelled" <?= $status === 'cancelled' ? 'selected' : '' ?>>Anulada</option>
-                    <option value="rejected" <?= $status === 'rejected' ? 'selected' : '' ?>>Rechazada</option>
-                </select>
-            </div>
-            
-            <div class="col-md-4 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary">Filtrar</button>
-                <a href="<?= site_url('invoices') ?>" class="btn btn-outline-secondary ms-2">Limpiar</a>
-            </div>
-        </form>
-    </div>
-</div>
-
-<?php if (empty($invoices)): ?>
-    <div class="alert alert-info">
-        No se encontraron facturas con los filtros aplicados.
-    </div>
-<?php else: ?>
-    <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Serie-Número</th>
-                    <th>Cliente</th>
-                    <th>Documento</th>
-                    <?php if (isset($organizations) && $auth->hasRole('superadmin') && !isset($selected_organization_id)): ?>
-                    <th>Organización</th>
-                    <?php endif; ?>
-                    <th>F. Emisión</th>
-                    <th>Moneda</th>
-                    <th>Total</th>
-                    <th>Pagado</th>
-                    <th>F. Vencimiento</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($invoices as $invoice): ?>
-                    <tr>
-                        <td><?= esc($invoice['series'] . '-' . $invoice['number']) ?></td>
-                        <td><?= esc($invoice['client_name']) ?></td>
-                        <td><?= esc($invoice['client_document_type'] . ': ' . $invoice['client_document_number']) ?></td>
-                        <?php if (isset($organizations) && $auth->hasRole('superadmin') && !isset($selected_organization_id)): ?>
-                        <td>
-                            <?php 
-                                // Find organization name
-                                $orgName = 'Desconocida';
-                                foreach ($organizations as $org) {
-                                    if ($org['id'] == $invoice['organization_id']) {
-                                        $orgName = $org['name'];
-                                        break;
-                                    }
-                                }
-                                echo esc($orgName);
-                            ?>
-                        </td>
-                        <?php endif; ?>
-                        <td><?= esc($invoice['issue_date']) ?></td>
-                        <td><?= esc($invoice['currency']) ?></td>
-                        <td><?= $invoice['currency'] ?> <?= number_format($invoice['total_amount'], 2) ?></td>
-                        <td>
-                            <?php if ($invoice['status'] === 'pending' && $invoice['paid_amount'] > 0): ?>
-                                <div class="d-flex flex-column">
-                                    <small>Pagado: <?= $invoice['currency'] ?> <?= number_format($invoice['paid_amount'], 2) ?></small>
-                                    <small>Pendiente: <?= $invoice['currency'] ?> <?= number_format($invoice['total_amount'] - $invoice['paid_amount'], 2) ?></small>
-                                    <div class="progress" style="height: 5px;">
-                                        <div class="progress-bar bg-success" role="progressbar" 
-                                             style="width: <?= round(($invoice['paid_amount'] / $invoice['total_amount']) * 100) ?>%;" 
-                                             aria-valuenow="<?= round(($invoice['paid_amount'] / $invoice['total_amount']) * 100) ?>" 
-                                             aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                </div>
-                            <?php else: ?>
-                                <?= $invoice['currency'] ?> <?= number_format($invoice['paid_amount'], 2) ?>
-                            <?php endif; ?>
-                        </td>
-                        <td><?= date('d/m/Y', strtotime($invoice['due_date'])) ?></td>
-                        <td>
-                            <?php
-                            $statusClass = '';
-                            $statusText = '';
-                            
-                            switch ($invoice['status']) {
-                                case 'pending':
-                                    $statusClass = 'bg-warning text-dark';
-                                    $statusText = 'Pendiente';
-                                    break;
-                                case 'paid':
-                                    $statusClass = 'bg-success';
-                                    $statusText = 'Pagada';
-                                    break;
-                                case 'cancelled':
-                                    $statusClass = 'bg-danger';
-                                    $statusText = 'Anulada';
-                                    break;
-                                case 'rejected':
-                                    $statusClass = 'bg-secondary';
-                                    $statusText = 'Rechazada';
-                                    break;
-                            }
-                            ?>
-                            <span class="badge <?= $statusClass ?>"><?= $statusText ?></span>
-                        </td>
-                        <td class="text-nowrap">
-                            <a href="<?= site_url('invoices/view/' . $invoice['id']) ?>" class="btn btn-sm btn-info">
-                                Ver
-                            </a>
-                            
-                            <?php if ($auth->hasAnyRole(['superadmin', 'admin']) && $invoice['status'] !== 'paid'): ?>
-                                <a href="<?= site_url('invoices/edit/' . $invoice['id']) ?>" class="btn btn-sm btn-primary">
-                                    Editar
-                                </a>
-                            <?php endif; ?>
-                            
-                            <?php if ($invoice['status'] === 'pending'): ?>
-                                <a href="<?= site_url('payments/create/' . $invoice['id']) ?>" class="btn btn-sm btn-success">
-                                    Registrar Pago
-                                </a>
-                            <?php endif; ?>
-                            
-                            <?php if ($auth->hasAnyRole(['superadmin', 'admin']) && $invoice['status'] !== 'paid'): ?>
-                                <button type="button" class="btn btn-sm btn-danger" 
-                                        onclick="confirmDelete(<?= $invoice['id'] ?>, '<?= esc($invoice['series'] . '-' . $invoice['number']) ?>')">
-                                    Eliminar
-                                </button>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-<?php endif; ?>
-
-<!-- Modal de Confirmación de Eliminación -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Confirmar Eliminación</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                ¿Está seguro que desea eliminar la factura <span id="invoiceNumber"></span>?
-                <br><br>
-                <strong>Esta acción no se puede deshacer.</strong>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <a href="#" id="deleteLink" class="btn btn-danger">Eliminar</a>
+<?php if ($auth->hasRole('superadmin') && !isset($selected_organization_id)): ?>
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-center">
+                    <div class="col-auto">
+                        <label for="organization_id" class="col-form-label">Filtrar por Organización:</label>
+                    </div>
+                    <div class="col-auto">
+                        <select name="organization_id" id="organization_id" class="form-select">
+                            <option value="">Todas las organizaciones</option>
+                            <?php foreach ($organizations as $org): ?>
+                                <option value="<?= $org['id'] ?>" <?= $selected_organization_id == $org['id'] ? 'selected' : '' ?>>
+                                    <?= esc($org['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">Filtrar</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
+<?php endif; ?>
 
-<script>
-    function confirmDelete(id, invoiceNumber) {
-        document.getElementById('invoiceNumber').textContent = invoiceNumber;
-        document.getElementById('deleteLink').href = '<?= site_url('invoices/delete/') ?>' + id;
+<?php if (session()->has('success')): ?>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <?= session('success') ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
+
+<?php if (session()->has('error')): ?>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <?= session('error') ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Cliente</th>
+                        <th>Concepto</th>
+                        <th>Importe</th>
+                        <th>Vencimiento</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($invoices as $invoice): ?>
+                        <tr>
+                            <td><?= esc($invoice['invoice_number']) ?></td>
+                            <td><?= esc($invoice['business_name'] ?? 'N/A') ?></td>
+                            <td><?= esc($invoice['concept']) ?></td>
+                            <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['amount'], 2) ?></td>
+                            <td><?= date('d/m/Y', strtotime($invoice['due_date'])) ?></td>
+                            <td>
+                                <span class="badge bg-<?= $invoice['status'] === 'paid' ? 'success' : 
+                                    ($invoice['status'] === 'pending' ? 'warning' : 
+                                    ($invoice['status'] === 'cancelled' ? 'danger' : 
+                                    ($invoice['status'] === 'expired' ? 'secondary' : 'info'))) ?>">
+                                    <?= ucfirst($invoice['status']) ?>
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="<?= site_url('invoices/view/' . $invoice['id']) ?>" 
+                                       class="btn btn-outline-primary" title="Ver">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                                        <a href="<?= site_url('invoices/edit/' . $invoice['id']) ?>" 
+                                           class="btn btn-outline-secondary" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" title="Eliminar"
+                                                data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                                data-invoice-id="<?= $invoice['id'] ?>"
+                                                data-invoice-number="<?= esc($invoice['invoice_number']) ?>">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (empty($invoices)): ?>
+                        <tr>
+                            <td colspan="7" class="text-center">No hay facturas para mostrar</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
         
-        var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        modal.show();
+        <?php if (isset($pager)): ?>
+            <div class="mt-4">
+                <?= $pager->links() ?>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Está seguro que desea eliminar la factura <span id="invoiceNumber"></span>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" action="" method="post" class="d-inline">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle delete modal
+    const deleteModal = document.getElementById('deleteModal');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const invoiceId = button.getAttribute('data-invoice-id');
+            const invoiceNumber = button.getAttribute('data-invoice-number');
+            
+            document.getElementById('invoiceNumber').textContent = invoiceNumber;
+            document.getElementById('deleteForm').action = `<?= site_url('invoices/delete/') ?>${invoiceId}`;
+        });
     }
+    
+    // Handle organization filter
+    const organizationSelect = document.getElementById('organization_id');
+    if (organizationSelect) {
+        organizationSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+});
 </script>
 <?= $this->endSection() ?>
