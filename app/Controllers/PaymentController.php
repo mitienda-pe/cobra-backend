@@ -200,9 +200,10 @@ class PaymentController extends BaseController
                     'payment_method' => $this->request->getPost('payment_method'),
                     'reference_code' => $this->request->getPost('reference_code'),
                     'notes'          => $this->request->getPost('notes'),
-                    'latitude'       => $this->request->getPost('latitude'),
-                    'longitude'      => $this->request->getPost('longitude'),
-                    'status'         => 'confirmed',
+                    'latitude'       => $this->request->getPost('latitude') ?: null,
+                    'longitude'      => $this->request->getPost('longitude') ?: null,
+                    'payment_date'   => date('Y-m-d H:i:s'),
+                    'status'         => 'completed'
                 ];
                 
                 try {
@@ -214,13 +215,8 @@ class PaymentController extends BaseController
                     $paymentId = $paymentModel->insert($paymentData);
                     
                     if (!$paymentId) {
-                        throw new \Exception('Error al registrar el pago.');
-                    }
-                    
-                    // Update invoice status if fully paid
-                    $newPaymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
-                    if ($newPaymentInfo['remaining'] <= 0) {
-                        $invoiceModel->update($invoice['id'], ['status' => 'paid']);
+                        $error = $paymentModel->errors();
+                        throw new \Exception(implode(', ', $error));
                     }
                     
                     $db->transComplete();
