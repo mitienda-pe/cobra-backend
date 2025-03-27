@@ -570,4 +570,59 @@ class InvoiceController extends BaseController
         
         return $invoiceId;
     }
+    
+    /**
+     * Get clients by organization
+     */
+    public function getClientsByOrganization($organizationId = null)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid request']);
+        }
+
+        if (!$organizationId) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Se requiere el ID de la organización'
+            ]);
+        }
+
+        // Verificar acceso a la organización
+        $user = session()->get('user');
+        if (!$user) {
+            return $this->response->setStatusCode(401)->setJSON([
+                'status' => 'error',
+                'message' => 'Usuario no autenticado'
+            ]);
+        }
+
+        // Solo superadmin puede ver clientes de cualquier organización
+        // Los demás usuarios solo pueden ver clientes de su organización
+        if ($user['role'] !== 'superadmin' && $user['organization_id'] != $organizationId) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'status' => 'error',
+                'message' => 'No tiene acceso a los clientes de esta organización'
+            ]);
+        }
+
+        $clientModel = new ClientModel();
+        $clients = $clientModel->where('organization_id', $organizationId)
+                               ->where('status', 'active')
+                               ->orderBy('business_name', 'ASC')
+                               ->findAll();
+
+        if (empty($clients)) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'No hay clientes disponibles para la organización seleccionada.',
+                'clients' => []
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => 'Clientes encontrados',
+            'clients' => $clients
+        ]);
+    }
 }

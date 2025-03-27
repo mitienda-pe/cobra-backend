@@ -201,11 +201,10 @@ document.addEventListener('DOMContentLoaded', function() {
             clientError.classList.add('d-none');
             clientEmpty.classList.add('d-none');
             
-            fetch(`<?= site_url('api/organizations') ?>/${this.value}/clients`, {
+            fetch(`<?= site_url('invoices/organization') ?>/${this.value}/clients`, {
                 headers: {
                     'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': '<?= csrf_hash() ?>'
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             })
                 .then(response => {

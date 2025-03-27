@@ -196,4 +196,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('(:num)/test', 'WebhookController::test/$1');
         $routes->get('(:num)/retry', 'WebhookController::retry/$1');
     });
+    
+    // Ruta para obtener clientes por organización
+    $routes->get('organizations/(:num)/clients', 'OrganizationController::getClientsByOrganization/$1');
 });
