@@ -34,11 +34,7 @@ class InvoiceController extends Controller
     
     public function index()
     {
-        // Only authenticated users can view invoices
-        if (!$this->auth->hasRole('user')) {
-            return redirect()->to('/auth/signin')->with('error', 'Por favor inicie sesión para ver las facturas.');
-        }
-        
+        // Get user data from auth
         $data = [
             'auth' => $this->auth
         ];
