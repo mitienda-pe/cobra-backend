@@ -39,7 +39,7 @@
                                 <select name="organization_id" id="organization_id" class="form-select" required>
                                     <option value="">Seleccione una organización</option>
                                     <?php foreach ($organizations as $org): ?>
-                                        <option value="<?= $org['id'] ?>">
+                                        <option value="<?= $org['id'] ?>" data-uuid="<?= $org['uuid'] ?>">
                                             <?= esc($org['name']) ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -201,7 +201,10 @@ document.addEventListener('DOMContentLoaded', function() {
             clientError.classList.add('d-none');
             clientEmpty.classList.add('d-none');
             
-            fetch(`<?= site_url('invoices/organization') ?>/${this.value}/clients`, {
+            // Obtener el UUID de la organización del atributo data-uuid
+            const organizationUuid = organizationSelect.options[organizationSelect.selectedIndex].getAttribute('data-uuid');
+            
+            fetch(`<?= site_url('invoices/organization') ?>/${organizationUuid}/clients`, {
                 headers: {
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'

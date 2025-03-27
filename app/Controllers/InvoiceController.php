@@ -4,21 +4,31 @@ namespace App\Controllers;
 
 use App\Models\InvoiceModel;
 use App\Models\ClientModel;
+use App\Models\OrganizationModel;
 use App\Models\PortfolioModel;
 use App\Libraries\Auth;
 use App\Traits\OrganizationTrait;
+use CodeIgniter\Controller;
 
-class InvoiceController extends BaseController
+class InvoiceController extends Controller
 {
     use OrganizationTrait;
     
     protected $auth;
     protected $session;
+    protected $invoiceModel;
+    protected $clientModel;
+    protected $organizationModel;
+    protected $portfolioModel;
     
     public function __construct()
     {
         $this->auth = new Auth();
         $this->session = \Config\Services::session();
+        $this->invoiceModel = new InvoiceModel();
+        $this->clientModel = new ClientModel();
+        $this->organizationModel = new OrganizationModel();
+        $this->portfolioModel = new PortfolioModel();
         helper(['form', 'url']);
     }
     
@@ -245,14 +255,14 @@ class InvoiceController extends BaseController
         return view('invoices/create', $data);
     }
     
-    public function edit($id = null)
+    public function edit($uuid = null)
     {
-        if (!$id) {
-            return redirect()->to('/invoices')->with('error', 'ID de factura no especificado');
+        if (!$uuid) {
+            return redirect()->to('/invoices')->with('error', 'UUID de factura no especificado');
         }
         
         $invoiceModel = new InvoiceModel();
-        $invoice = $invoiceModel->find($id);
+        $invoice = $invoiceModel->where('uuid', $uuid)->first();
         
         if (!$invoice) {
             return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
@@ -310,7 +320,7 @@ class InvoiceController extends BaseController
                 // Check if invoice number already exists in this organization (excluding current invoice)
                 $existingInvoice = $invoiceModel->where('organization_id', $invoiceOrgId)
                     ->where('invoice_number', $invoiceNumber)
-                    ->where('id !=', $id)
+                    ->where('uuid !=', $uuid)
                     ->first();
                 
                 if ($existingInvoice) {
@@ -332,7 +342,7 @@ class InvoiceController extends BaseController
                 ];
                 
                 try {
-                    if ($invoiceModel->update($id, $invoiceData)) {
+                    if ($invoiceModel->update($uuid, $invoiceData)) {
                         return redirect()->to('/invoices')
                             ->with('success', 'Factura actualizada exitosamente.');
                     } else {
@@ -354,21 +364,21 @@ class InvoiceController extends BaseController
         return view('invoices/edit', $data);
     }
     
-    public function delete($id = null)
+    public function delete($uuid = null)
     {
-        if (!$id) {
-            return redirect()->to('/invoices')->with('error', 'ID de factura no especificado');
+        if (!$uuid) {
+            return redirect()->to('/invoices')->with('error', 'UUID de factura no especificado');
         }
         
         $invoiceModel = new InvoiceModel();
-        $invoice = $invoiceModel->find($id);
+        $invoice = $invoiceModel->where('uuid', $uuid)->first();
         
         if (!$invoice) {
             return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
         }
         
         try {
-            if ($invoiceModel->delete($id)) {
+            if ($invoiceModel->delete($uuid)) {
                 return redirect()->to('/invoices')->with('success', 'Factura eliminada exitosamente');
             } else {
                 return redirect()->to('/invoices')->with('error', 'Error al eliminar la factura');
@@ -378,14 +388,14 @@ class InvoiceController extends BaseController
         }
     }
     
-    public function view($id = null)
+    public function view($uuid = null)
     {
-        if (!$id) {
-            return redirect()->to('/invoices')->with('error', 'ID de factura no especificado');
+        if (!$uuid) {
+            return redirect()->to('/invoices')->with('error', 'UUID de factura no especificado');
         }
         
         $invoiceModel = new InvoiceModel();
-        $invoice = $invoiceModel->find($id);
+        $invoice = $invoiceModel->where('uuid', $uuid)->first();
         
         if (!$invoice) {
             return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
@@ -396,7 +406,7 @@ class InvoiceController extends BaseController
         $client = $clientModel->find($invoice['client_id']);
         
         // Get payment information
-        $paymentInfo = $invoiceModel->calculateRemainingAmount($id);
+        $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
         
         $data = [
             'invoice' => $invoice,
@@ -574,16 +584,25 @@ class InvoiceController extends BaseController
     /**
      * Get clients by organization
      */
-    public function getClientsByOrganization($organizationId = null)
+    public function getClientsByOrganization($uuid = null)
     {
         if (!$this->request->isAJAX()) {
             return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid request']);
         }
 
-        if (!$organizationId) {
+        if (!$uuid) {
             return $this->response->setStatusCode(404)->setJSON([
                 'status' => 'error',
-                'message' => 'Se requiere el ID de la organización'
+                'message' => 'Se requiere el UUID de la organización'
+            ]);
+        }
+
+        // Obtener la organización por UUID
+        $organization = $this->organizationModel->where('uuid', $uuid)->first();
+        if (!$organization) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Organización no encontrada'
             ]);
         }
 
@@ -598,18 +617,17 @@ class InvoiceController extends BaseController
 
         // Solo superadmin puede ver clientes de cualquier organización
         // Los demás usuarios solo pueden ver clientes de su organización
-        if ($user['role'] !== 'superadmin' && $user['organization_id'] != $organizationId) {
+        if ($user['role'] !== 'superadmin' && $user['organization_id'] != $organization['id']) {
             return $this->response->setStatusCode(403)->setJSON([
                 'status' => 'error',
                 'message' => 'No tiene acceso a los clientes de esta organización'
             ]);
         }
 
-        $clientModel = new ClientModel();
-        $clients = $clientModel->where('organization_id', $organizationId)
-                               ->where('status', 'active')
-                               ->orderBy('business_name', 'ASC')
-                               ->findAll();
+        $clients = $this->clientModel->where('organization_id', $organization['id'])
+                                   ->where('status', 'active')
+                                   ->orderBy('business_name', 'ASC')
+                                   ->findAll();
 
         if (empty($clients)) {
             return $this->response->setJSON([

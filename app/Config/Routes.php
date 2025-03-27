@@ -52,7 +52,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors']
     $routes->match(['options'], 'auth/refresh-token', 'AuthController::refreshToken');
     
     // Organization Routes
-    $routes->match(['get', 'options'], 'organizations/(:num)/clients', 'OrganizationController::clients/$1');
+    $routes->match(['get', 'options'], 'organizations/(:segment)/clients', 'OrganizationController::clients/$1');
     
     // Client Routes
     $routes->match(['get', 'options'], 'clients', 'ClientController::index');
@@ -72,9 +72,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors']
     // Invoice Routes
     $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index');
     $routes->match(['post', 'options'], 'invoices', 'InvoiceController::create');
-    $routes->match(['get', 'options'], 'invoices/(:num)', 'InvoiceController::show/$1');
-    $routes->match(['put', 'options'], 'invoices/(:num)', 'InvoiceController::update/$1');
-    $routes->match(['delete', 'options'], 'invoices/(:num)', 'InvoiceController::delete/$1');
+    $routes->match(['get', 'options'], 'invoices/(:segment)', 'InvoiceController::show/$1');
+    $routes->match(['put', 'options'], 'invoices/(:segment)', 'InvoiceController::update/$1');
+    $routes->match(['delete', 'options'], 'invoices/(:segment)', 'InvoiceController::delete/$1');
     $routes->match(['get', 'options'], 'invoices/external/(:segment)', 'InvoiceController::findByExternalId/$1');
     $routes->match(['get', 'options'], 'invoices/overdue', 'InvoiceController::overdue');
 
@@ -155,10 +155,10 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('/', 'InvoiceController::index');
         $routes->get('create', 'InvoiceController::create');
         $routes->post('/', 'InvoiceController::store');
-        $routes->get('(:num)', 'InvoiceController::view/$1');
-        $routes->get('(:num)/edit', 'InvoiceController::edit/$1');
-        $routes->post('(:num)', 'InvoiceController::update/$1');
-        $routes->get('(:num)/delete', 'InvoiceController::delete/$1');
+        $routes->get('(:segment)', 'InvoiceController::view/$1');
+        $routes->get('(:segment)/edit', 'InvoiceController::edit/$1');
+        $routes->post('(:segment)', 'InvoiceController::update/$1');
+        $routes->get('(:segment)/delete', 'InvoiceController::delete/$1');
         // Invoice import routes (with CSRF bypass)
         $routes->get('import', 'InvoiceController::import', ['csrf' => false]);
         $routes->post('import', 'InvoiceController::import', ['csrf' => false]);
@@ -198,5 +198,5 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     });
     
     // Ruta para obtener clientes por organización
-    $routes->get('organizations/(:num)/clients', 'OrganizationController::getClientsByOrganization/$1');
+    $routes->get('organizations/(:segment)/clients', 'OrganizationController::getClientsByOrganization/$1');
 });
