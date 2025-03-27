@@ -178,6 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
     currencySelect.addEventListener('change', updateCurrencySymbol);
     updateCurrencySymbol();
 
+    // Handle client loading for organization selection
     const organizationSelect = document.getElementById('organization_id');
     if (organizationSelect) {
         organizationSelect.addEventListener('change', function() {
@@ -195,11 +196,20 @@ document.addEventListener('DOMContentLoaded', function() {
             clientLoading.classList.remove('d-none');
             clientError.classList.add('d-none');
             
-            fetch(`/api/organizations/${this.value}/clients`)
-                .then(response => response.json())
+            fetch(`<?= site_url('api/organizations') ?>/${this.value}/clients`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error en la respuesta del servidor');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     clientSelect.innerHTML = '<option value="">Seleccione un cliente</option>';
-                    data.forEach(client => {
+                    data.clients.forEach(client => {
                         const option = document.createElement('option');
                         option.value = client.id;
                         option.textContent = `${client.business_name} (${client.document_number})`;
@@ -208,8 +218,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     clientSelect.disabled = false;
                 })
                 .catch(error => {
+                    console.error('Error:', error);
                     clientError.textContent = 'Error al cargar los clientes. Por favor, intente nuevamente.';
                     clientError.classList.remove('d-none');
+                    clientSelect.innerHTML = '<option value="">Error al cargar clientes</option>';
+                    clientSelect.disabled = true;
                 })
                 .finally(() => {
                     clientLoading.classList.add('d-none');

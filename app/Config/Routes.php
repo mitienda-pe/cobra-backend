@@ -51,6 +51,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'cors']
     $routes->match(['options'], 'auth/verify-otp', 'AuthController::verifyOtp');
     $routes->match(['options'], 'auth/refresh-token', 'AuthController::refreshToken');
     
+    // Organization Routes
+    $routes->match(['get', 'options'], 'organizations/(:num)/clients', 'OrganizationController::clients/$1');
+    
     // Client Routes
     $routes->match(['get', 'options'], 'clients', 'ClientController::index');
     $routes->match(['post', 'options'], 'clients/create', 'ClientController::create');
@@ -112,7 +115,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     $routes->get('dashboard', 'Dashboard::index');
 
     // Organization Routes
-    $routes->group('organizations', function($routes) {
+    $routes->group('organizations', function ($routes) {
         $routes->get('/', 'OrganizationController::index');
         $routes->get('create', 'OrganizationController::create');
         $routes->post('/', 'OrganizationController::store');
@@ -123,7 +126,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     });
 
     // User Routes
-    $routes->group('users', function($routes) {
+    $routes->group('users', function ($routes) {
         $routes->get('/', 'UserController::index');
         $routes->get('create', 'UserController::create');
         $routes->post('/', 'UserController::store');
@@ -134,7 +137,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     });
 
     // Client Routes
-    $routes->group('clients', function($routes) {
+    $routes->group('clients', function ($routes) {
         $routes->get('/', 'ClientController::index');
         $routes->get('create', 'ClientController::create');
         $routes->post('create', 'ClientController::store');
@@ -148,7 +151,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     });
 
     // Invoice Routes
-    $routes->group('invoices', function($routes) {
+    $routes->group('invoices', function ($routes) {
         $routes->get('/', 'InvoiceController::index');
         $routes->get('create', 'InvoiceController::create');
         $routes->post('/', 'InvoiceController::store');
@@ -162,7 +165,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     });
 
     // Portfolio Routes
-    $routes->group('portfolios', function($routes) {
+    $routes->group('portfolios', function ($routes) {
         $routes->get('/', 'PortfolioController::index');
         $routes->get('create', 'PortfolioController::create');
         $routes->post('create', 'PortfolioController::create');
@@ -175,7 +178,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     });
 
     // Payment Routes
-    $routes->group('payments', function($routes) {
+    $routes->group('payments', function ($routes) {
         $routes->get('/', 'PaymentController::index');
         $routes->get('create', 'PaymentController::create');
         $routes->post('/', 'PaymentController::store');
@@ -187,7 +190,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     });
 
     // Webhook Routes
-    $routes->group('webhooks', function($routes) {
+    $routes->group('webhooks', function ($routes) {
         $routes->get('/', 'WebhookController::index');
         $routes->get('(:num)', 'WebhookController::view/$1');
         $routes->get('(:num)/test', 'WebhookController::test/$1');
