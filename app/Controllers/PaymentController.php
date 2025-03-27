@@ -132,7 +132,7 @@ class PaymentController extends BaseController
         return view('payments/index', $data);
     }
     
-    public function create($invoiceId = null)
+    public function create($invoiceUuid = null)
     {
         // Only collector users can create payments
         if (!$this->auth->hasAnyRole(['superadmin', 'admin', 'user'])) {
@@ -152,32 +152,32 @@ class PaymentController extends BaseController
         // Get organization ID from Auth library
         $organizationId = $this->auth->organizationId();
         
-        // If invoice ID is provided, pre-fill the form
-        if ($invoiceId) {
+        // If invoice UUID is provided, pre-fill the form
+        if ($invoiceUuid) {
             $invoiceModel = new InvoiceModel();
-            $invoice = $invoiceModel->find($invoiceId);
+            $invoice = $invoiceModel->where('uuid', $invoiceUuid)->first();
             
             if (!$invoice) {
-                return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
+                return redirect()->to('/payments')->with('error', 'Factura no encontrada.');
             }
             
             // Check if user has access to this invoice
             if (!$this->hasAccessToInvoice($invoice)) {
-                return redirect()->to('/invoices')->with('error', 'No tiene permisos para registrar pagos para esta factura.');
+                return redirect()->to('/payments')->with('error', 'No tiene permisos para registrar pagos para esta factura.');
             }
             
             // Check if invoice is already paid
             if ($invoice['status'] === 'paid') {
-                return redirect()->to('/invoices/view/' . $invoiceId)->with('error', 'Esta factura ya está pagada.');
+                return redirect()->to('/invoices/view/' . $invoice['uuid'])->with('error', 'Esta factura ya está pagada.');
             }
             
             // Check if invoice is cancelled or rejected
             if (in_array($invoice['status'], ['cancelled', 'rejected'])) {
-                return redirect()->to('/invoices/view/' . $invoiceId)->with('error', 'No se puede registrar pagos para una factura cancelada o rechazada.');
+                return redirect()->to('/invoices/view/' . $invoice['uuid'])->with('error', 'No se puede registrar pagos para una factura cancelada o rechazada.');
             }
             
             // Calculate remaining amount
-            $paymentInfo = $invoiceModel->calculateRemainingAmount($invoiceId);
+            $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
             $invoice['total_paid'] = $paymentInfo['total_paid'];
             $invoice['remaining_amount'] = $paymentInfo['remaining'];
             
@@ -190,111 +190,63 @@ class PaymentController extends BaseController
             $data['client'] = $client;
         }
         
-        // Handle form submission
-        if ($this->request->getMethod() === 'post') {
-            $rules = [
-                'invoice_id'     => 'required|is_natural_no_zero',
-                'amount'         => 'required|numeric|greater_than[0]',
-                'payment_method' => 'required|max_length[50]',
-                'reference_code' => 'permit_empty|max_length[100]',
-                'notes'          => 'permit_empty',
-                'latitude'       => 'permit_empty|decimal',
-                'longitude'      => 'permit_empty|decimal',
-            ];
-            
-            if ($this->validate($rules)) {
-                $paymentModel = new PaymentModel();
-                
-                // Get invoice information
-                $invoiceModel = new InvoiceModel();
-                $invoice = $invoiceModel->find($this->request->getPost('invoice_id'));
-                
-                if (!$invoice) {
-                    return redirect()->back()->withInput()
-                        ->with('error', 'Factura no encontrada.');
-                }
-                
-                // Check if user has access to this invoice
-                if (!$this->hasAccessToInvoice($invoice)) {
-                    return redirect()->back()->withInput()
-                        ->with('error', 'No tiene permisos para registrar pagos para esta factura.');
-                }
-                
-                // Check if invoice is already paid
-                if ($invoice['status'] === 'paid') {
-                    return redirect()->back()->withInput()
-                        ->with('error', 'Esta factura ya está pagada.');
-                }
-                
-                // Check if invoice is cancelled or rejected
-                if (in_array($invoice['status'], ['cancelled', 'rejected'])) {
-                    return redirect()->back()->withInput()
-                        ->with('error', 'No se puede registrar pagos para una factura cancelada o rechazada.');
-                }
-                
-                // Calculate remaining amount
-                $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
-                $remainingAmount = $paymentInfo['remaining'];
-                
-                // Check if payment amount is valid
-                $paymentAmount = $this->request->getPost('amount');
-                if ($paymentAmount > $remainingAmount) {
-                    return redirect()->back()->withInput()
-                        ->with('error', 'El monto del pago no puede ser mayor al saldo pendiente.');
-                }
-                
-                // Prepare payment data
-                $paymentData = [
-                    'invoice_id'     => $invoice['id'],
-                    'user_id'        => $this->auth->user()['id'],
-                    'amount'         => $paymentAmount,
-                    'payment_method' => $this->request->getPost('payment_method'),
-                    'reference_code' => $this->request->getPost('reference_code'),
-                    'notes'          => $this->request->getPost('notes'),
-                    'latitude'       => $this->request->getPost('latitude'),
-                    'longitude'      => $this->request->getPost('longitude'),
-                    'status'         => 'confirmed',
-                ];
-                
-                try {
-                    // Start transaction
-                    $db = \Config\Database::connect();
-                    $db->transStart();
-                    
-                    // Insert payment
-                    $paymentId = $paymentModel->insert($paymentData);
-                    
-                    if (!$paymentId) {
-                        throw new \Exception('Error al registrar el pago.');
-                    }
-                    
-                    // Update invoice status if fully paid
-                    $newPaymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
-                    if ($newPaymentInfo['remaining'] <= 0) {
-                        $invoiceModel->update($invoice['id'], ['status' => 'paid']);
-                    }
-                    
-                    $db->transComplete();
-                    
-                    if ($db->transStatus() === false) {
-                        throw new \Exception('Error en la transacción.');
-                    }
-                    
-                    return redirect()->to('/payments')
-                        ->with('success', 'Pago registrado exitosamente.');
-                        
-                } catch (\Exception $e) {
-                    log_message('error', 'Error registering payment: ' . $e->getMessage());
-                    return redirect()->back()->withInput()
-                        ->with('error', 'Error al registrar el pago: ' . $e->getMessage());
-                }
-            } else {
-                return redirect()->back()->withInput()
-                    ->with('errors', $this->validator->getErrors());
-            }
-        }
-        
         return view('payments/create', $data);
+    }
+
+    public function searchInvoices()
+    {
+        // Validate request
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['error' => 'Invalid request'])->setStatusCode(400);
+        }
+
+        $term = $this->request->getGet('term');
+        if (empty($term)) {
+            return $this->response->setJSON(['error' => 'Search term is required'])->setStatusCode(400);
+        }
+
+        $invoiceModel = new InvoiceModel();
+        $organizationId = $this->auth->organizationId();
+
+        // Build base query
+        $builder = $invoiceModel->select('invoices.*, clients.business_name, clients.document_number')
+            ->join('clients', 'clients.id = invoices.client_id')
+            ->where('invoices.status !=', 'paid')
+            ->where('invoices.status !=', 'cancelled')
+            ->where('invoices.status !=', 'rejected');
+
+        // Add organization filter if not superadmin
+        if (!$this->auth->hasRole('superadmin')) {
+            $builder->where('invoices.organization_id', $organizationId);
+        }
+
+        // Search by invoice number or client info
+        $builder->groupStart()
+            ->like('invoices.invoice_number', $term)
+            ->orLike('clients.business_name', $term)
+            ->orLike('clients.document_number', $term)
+            ->groupEnd();
+
+        $invoices = $builder->findAll(10); // Limit to 10 results
+
+        $results = [];
+        foreach ($invoices as $invoice) {
+            // Calculate remaining amount
+            $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
+            
+            $results[] = [
+                'id' => $invoice['id'],
+                'uuid' => $invoice['uuid'],
+                'text' => "#{$invoice['invoice_number']} - {$invoice['business_name']} ({$invoice['document_number']}) - Pendiente: S/ " . number_format($paymentInfo['remaining'], 2),
+                'invoice_number' => $invoice['invoice_number'],
+                'business_name' => $invoice['business_name'],
+                'document_number' => $invoice['document_number'],
+                'remaining' => $paymentInfo['remaining'],
+                'total_amount' => $invoice['total_amount']
+            ];
+        }
+
+        return $this->response->setJSON(['results' => $results]);
     }
     
     public function view($id = null)

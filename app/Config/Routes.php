@@ -160,15 +160,13 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     });
 
     // Payment Routes
-    $routes->group('payments', function ($routes) {
+    $routes->group('payments', ['namespace' => 'App\Controllers'], function ($routes) {
         $routes->get('/', 'PaymentController::index');
         $routes->get('create', 'PaymentController::create');
-        $routes->post('/', 'PaymentController::store');
-        $routes->get('(:num)', 'PaymentController::view/$1');
-        $routes->get('(:num)/edit', 'PaymentController::edit/$1');
-        $routes->post('(:num)', 'PaymentController::update/$1');
-        $routes->get('(:num)/delete', 'PaymentController::delete/$1');
-        $routes->get('report', 'PaymentController::report');
+        $routes->get('create/(:segment)', 'PaymentController::create/$1');
+        $routes->post('create', 'PaymentController::store');
+        $routes->get('view/(:segment)', 'PaymentController::view/$1');
+        $routes->get('search-invoices', 'PaymentController::searchInvoices');
     });
 
     // Webhook Routes
