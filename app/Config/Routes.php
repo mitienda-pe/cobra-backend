@@ -107,7 +107,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'api-au
 });
 
 // Web Routes - Protected
-$routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'api-auth'], function ($routes) {
+$routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], function ($routes) {
     // Dashboard Routes
     $routes->get('dashboard', 'Dashboard::index');
 
@@ -189,12 +189,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'api-auth'], f
     // Webhook Routes
     $routes->group('webhooks', function($routes) {
         $routes->get('/', 'WebhookController::index');
-        $routes->get('create', 'WebhookController::create');
-        $routes->post('/', 'WebhookController::store');
-        $routes->get('(:num)/edit', 'WebhookController::edit/$1');
-        $routes->post('(:num)', 'WebhookController::update/$1');
-        $routes->get('(:num)/delete', 'WebhookController::delete/$1');
-        $routes->get('(:num)/logs', 'WebhookController::logs/$1');
+        $routes->get('(:num)', 'WebhookController::view/$1');
         $routes->get('(:num)/test', 'WebhookController::test/$1');
         $routes->get('(:num)/retry', 'WebhookController::retry/$1');
     });

@@ -25,8 +25,6 @@ class Filters extends BaseConfig
         'auth'          => AuthFilter::class,
         'apiAuth'       => ApiAuthFilter::class,
         'apiLog'        => ApiLogFilter::class,
-        // Filtros combinados para API
-        'api-auth'      => [ApiAuthFilter::class, ApiLogFilter::class, CorsFilter::class],
     ];
 
     public array $globals = [
@@ -53,6 +51,14 @@ class Filters extends BaseConfig
     public array $filters = [
         'cors' => [
             'before' => ['api/*', 'api'],
+        ],
+        'apiAuth' => [
+            'before' => ['api/*', 'api'],
+            'except' => [
+                'api/auth/request-otp',
+                'api/auth/verify-otp',
+                'api/auth/refresh-token'
+            ]
         ],
         'auth' => [
             'before' => [
