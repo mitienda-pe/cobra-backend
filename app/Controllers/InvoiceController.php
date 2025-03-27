@@ -34,6 +34,8 @@ class InvoiceController extends Controller
     
     public function index()
     {
+        log_message('debug', '====== INVOICES INDEX ======');
+        
         // Get user data from auth
         $data = [
             'auth' => $this->auth
