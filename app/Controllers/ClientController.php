@@ -153,13 +153,16 @@ class ClientController extends BaseController
                 return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . implode(', ', $this->clientModel->errors()));
             }
             
+            // Get the newly created client with UUID
+            $newClient = $this->clientModel->find($client);
+            
             // Handle portfolio assignments
             $portfolioUuids = $this->request->getPost('portfolio_ids');
             if ($portfolioUuids) {
                 foreach ($portfolioUuids as $portfolioUuid) {
                     $db->table('client_portfolio')->insert([
                         'portfolio_uuid' => $portfolioUuid,
-                        'client_uuid' => $client['uuid'],
+                        'client_uuid' => $newClient['uuid'],
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
@@ -262,9 +265,12 @@ class ClientController extends BaseController
                 log_message('info', 'Inserting client data: ' . json_encode($insertData));
                 
                 // Insert the client
-                $clientId = $this->clientModel->insert($insertData);
+                $client = $this->clientModel->insert($insertData);
                 
-                if ($clientId) {
+                if ($client) {
+                    // Get the newly created client with UUID
+                    $newClient = $this->clientModel->find($client);
+                    
                     // Handle portfolio assignments
                     $portfolioIds = $this->request->getPost('portfolios');
                     if ($portfolioIds) {
@@ -274,7 +280,7 @@ class ClientController extends BaseController
                             if ($portfolio) {
                                 $db->table('client_portfolio')->insert([
                                     'portfolio_uuid' => $portfolio['uuid'],
-                                    'client_uuid' => $clientId,
+                                    'client_uuid' => $newClient['uuid'],
                                     'created_at' => date('Y-m-d H:i:s'),
                                     'updated_at' => date('Y-m-d H:i:s')
                                 ]);
@@ -288,7 +294,7 @@ class ClientController extends BaseController
                             'success' => true,
                             'message' => 'Cliente creado exitosamente',
                             'redirect' => site_url('clients'),
-                            'client_id' => $clientId
+                            'client_id' => $client
                         ]);
                     }
                     
