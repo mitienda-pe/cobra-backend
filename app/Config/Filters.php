@@ -15,29 +15,18 @@ use App\Filters\ApiLogFilter;
 
 class Filters extends BaseConfig
 {
-    /**
-     * Configures aliases for Filter classes to
-     * make reading things nicer and simpler.
-     */
     public array $aliases = [
         'csrf'          => CSRF::class,
         'toolbar'       => DebugToolbar::class,
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
-        'cors'          => 'App\Filters\CorsFilter',
+        'cors'          => CorsFilter::class,
         'auth'          => AuthFilter::class,
         'apiAuth'       => ApiAuthFilter::class,
         'apiLog'        => ApiLogFilter::class,
-        // Combined filter aliases
-        'api-public'    => ['cors'],
-        'api-auth'      => ['cors', 'apiAuth', 'apiLog'],
     ];
 
-    /**
-     * List of filter aliases that are always
-     * applied before and after every request.
-     */
     public array $globals = [
         'before' => [
             'honeypot',
@@ -51,25 +40,31 @@ class Filters extends BaseConfig
             ]],
         ],
         'after' => [
-            'toolbar' => ['except' => ['cli']],
-            'honeypot' => ['except' => ['cli']],
-            'secureheaders' => ['except' => ['cli']],
+            'toolbar',
+            'honeypot',
+            'secureheaders',
         ],
     ];
 
-    /**
-     * List of filter aliases that works on a
-     * particular HTTP method (GET, POST, etc.).
-     */
     public array $methods = [];
 
-    /**
-     * List of filter aliases that should run on any
-     * before or after URI patterns.
-     */
     public array $filters = [
+        'cors' => [
+            'before' => ['api/*', 'api'],
+        ],
         'auth' => [
-            'before' => ['dashboard', 'dashboard/*', 'organizations/*', 'clients/*', 'invoices/*', 'users/*', 'profile/*', 'portfolios/*', 'payments/*', 'webhooks/*'],
+            'before' => [
+                'dashboard',
+                'dashboard/*',
+                'organizations/*',
+                'clients/*',
+                'invoices/*',
+                'users/*',
+                'profile/*',
+                'portfolios/*',
+                'payments/*',
+                'webhooks/*'
+            ],
             'except' => [
                 'clients/import*',
                 'invoices/import*'
