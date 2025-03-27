@@ -53,11 +53,14 @@ class Filters extends BaseConfig
             'before' => ['api/*', 'api'],
         ],
         'apiAuth' => [
-            'before' => ['api/*', 'api'],
-            'except' => [
-                'api/auth/request-otp',
-                'api/auth/verify-otp',
-                'api/auth/refresh-token'
+            'before' => [
+                'api/clients*',
+                'api/portfolios*',
+                'api/invoices*',
+                'api/users*',
+                'api/payments*',
+                'api/organizations*',
+                'api/auth/logout'
             ]
         ],
         'auth' => [
