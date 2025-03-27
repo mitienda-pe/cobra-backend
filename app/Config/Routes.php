@@ -36,26 +36,6 @@ $routes->get('debug/csrf', 'Debug::csrf');
 $routes->get('debug/db-test', 'Debug::dbTest');
 $routes->get('debug/test-api', 'Debug::testApi');
 
-// Invoice Routes
-$routes->group('invoices', ['namespace' => 'App\Controllers'], function ($routes) {
-    $routes->get('/', 'InvoiceController::index');
-    $routes->get('create', 'InvoiceController::create');
-    $routes->post('create', 'InvoiceController::store');
-    $routes->get('view/(:segment)', 'InvoiceController::view/$1');
-    $routes->get('edit/(:segment)', 'InvoiceController::edit/$1');
-    $routes->post('update/(:segment)', 'InvoiceController::update/$1');
-    $routes->delete('delete/(:segment)', 'InvoiceController::delete/$1');
-});
-
-// Client Routes
-$routes->get('clients', 'ClientController::index');
-$routes->get('clients/create', 'ClientController::create');
-$routes->post('clients/create', 'ClientController::create');
-$routes->get('clients/(:segment)', 'ClientController::show/$1');
-$routes->get('clients/(:segment)/edit', 'ClientController::edit/$1');
-$routes->post('clients/(:segment)/edit', 'ClientController::edit/$1');
-$routes->get('clients/(:segment)/delete', 'ClientController::delete/$1');
-
 // API Routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth Public Routes
@@ -135,8 +115,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     // Invoice Routes
     $routes->group('invoices', function ($routes) {
         $routes->get('/', 'InvoiceController::index');
-        $routes->get('create', 'InvoiceController::create');
-        $routes->post('create', 'InvoiceController::create');
+        $routes->match(['get', 'post'], 'create', 'InvoiceController::create');
         $routes->get('(:segment)', 'InvoiceController::view/$1');
         $routes->get('(:segment)/edit', 'InvoiceController::edit/$1');
         $routes->post('(:segment)/edit', 'InvoiceController::edit/$1');
