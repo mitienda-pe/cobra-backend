@@ -91,6 +91,24 @@
                             </div>
                             
                             <div class="mb-3">
+                                <label for="ligo_account_id" class="form-label">ID de Cuenta (Ligo)</label>
+                                <input type="text" class="form-control <?= session('errors.ligo_account_id') ? 'is-invalid' : '' ?>" id="ligo_account_id" name="ligo_account_id" value="<?= old('ligo_account_id', $organization['ligo_account_id'] ?? '') ?>">
+                                <?php if (session('errors.ligo_account_id')): ?>
+                                    <div class="invalid-feedback"><?= session('errors.ligo_account_id') ?></div>
+                                <?php endif; ?>
+                                <div class="form-text">ID de cuenta para generar el QR (proporcionado por Ligo)</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ligo_merchant_code" class="form-label">Código de Comerciante (Ligo)</label>
+                                <input type="text" class="form-control <?= session('errors.ligo_merchant_code') ? 'is-invalid' : '' ?>" id="ligo_merchant_code" name="ligo_merchant_code" value="<?= old('ligo_merchant_code', $organization['ligo_merchant_code'] ?? '') ?>">
+                                <?php if (session('errors.ligo_merchant_code')): ?>
+                                    <div class="invalid-feedback"><?= session('errors.ligo_merchant_code') ?></div>
+                                <?php endif; ?>
+                                <div class="form-text">Código de comerciante asignado por Ligo</div>
+                            </div>
+                            
+                            <div class="mb-3">
                                 <label for="ligo_private_key" class="form-label">Llave Privada (Ligo)</label>
                                 <textarea class="form-control <?= session('errors.ligo_private_key') ? 'is-invalid' : '' ?>" id="ligo_private_key" name="ligo_private_key" rows="5"><?= old('ligo_private_key', $organization['ligo_private_key'] ?? '') ?></textarea>
                                 <?php if (session('errors.ligo_private_key')): ?>

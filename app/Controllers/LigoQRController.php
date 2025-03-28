@@ -29,19 +29,39 @@ class LigoQRController extends Controller
         $invoice = $this->invoiceModel->find($invoiceId);
         
         if (!$invoice) {
-            return redirect()->to('/invoices')->with('error', 'Invoice not found');
+            return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
         }
         
         // Get organization details
         $organization = $this->organizationModel->find($invoice['organization_id']);
         
         if (!$organization) {
-            return redirect()->to('/invoices')->with('error', 'Organization not found');
+            return redirect()->to('/invoices')->with('error', 'Organización no encontrada');
         }
         
         // Check if Ligo is enabled for this organization
         if (!isset($organization['ligo_enabled']) || !$organization['ligo_enabled']) {
-            return redirect()->to('/invoices')->with('error', 'Ligo payments not enabled for this organization');
+            // Si Ligo no está habilitado, usar un QR de demostración temporal
+            log_message('info', 'Ligo no está habilitado para la organización ID: ' . $organization['id'] . '. Usando QR de demostración.');
+            
+            // Prepare data for view with demo QR
+            $data = [
+                'title' => 'Pago con QR - Ligo (Demo)',
+                'invoice' => $invoice,
+                'qr_data' => json_encode([
+                    'invoice_id' => $invoice['id'],
+                    'amount' => $invoice['amount'],
+                    'currency' => $invoice['currency'] ?? 'PEN',
+                    'description' => "Pago factura #{$invoice['invoice_number']}",
+                    'demo' => true
+                ]),
+                'qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode("DEMO QR - Factura #{$invoice['invoice_number']}"),
+                'order_id' => 'DEMO-' . time(),
+                'expiration' => date('Y-m-d H:i:s', strtotime('+30 minutes')),
+                'is_demo' => true
+            ];
+            
+            return view('payments/ligo_qr', $data);
         }
         
         // Prepare data for view
@@ -84,9 +104,13 @@ class LigoQRController extends Controller
                 log_message('info', 'QR generado exitosamente para factura #' . $invoice['invoice_number']);
             } else {
                 log_message('error', 'Error generando QR Ligo: ' . json_encode($response));
+                
+                // Si hay un error, mostrar un mensaje en la vista
+                $data['error_message'] = 'No se pudo generar el código QR. Error: ' . (is_string($response->error) ? $response->error : json_encode($response->error));
             }
         } else {
             log_message('error', 'Credenciales de Ligo no configuradas para la organización ID: ' . $organization['id']);
+            $data['error_message'] = 'Credenciales de Ligo no configuradas correctamente. Por favor, contacte al administrador.';
         }
         
         return view('payments/ligo_qr', $data);
