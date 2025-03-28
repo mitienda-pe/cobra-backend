@@ -33,7 +33,7 @@
                                 <select class="form-select" id="organization_id" name="organization_id" required>
                                     <option value="">Seleccione una organización</option>
                                     <?php foreach($organizations as $org): ?>
-                                        <option value="<?= $org['id'] ?>"><?= $org['name'] ?></option>
+                                        <option value="<?= $org['id'] ?>" data-uuid="<?= $org['uuid'] ?>"><?= $org['name'] ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -155,9 +155,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (orgSelect) {
         orgSelect.addEventListener('change', function() {
             var option = this.options[this.selectedIndex];
-            var organizationId = option.value;
-            if (organizationId) {
-                loadOrganizationData(organizationId);
+            var organizationUuid = option.getAttribute('data-uuid');
+            if (organizationUuid) {
+                loadOrganizationData(organizationUuid);
             } else {
                 usersContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver usuarios disponibles</p>';
                 clientsContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver clientes disponibles</p>';
@@ -168,12 +168,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Cargar datos de organización predefinida
     var hiddenOrgInput = document.querySelector('input[type="hidden"][name="organization_id"]');
     if (hiddenOrgInput && hiddenOrgInput.value) {
-        loadOrganizationData(hiddenOrgInput.value);
+        var orgId = hiddenOrgInput.value;
+        // Obtener el UUID de la organización
+        fetch(`/api/organizations/${orgId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.uuid) {
+                    loadOrganizationData(data.uuid);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading organization UUID:', error);
+            });
     }
 
-    function loadOrganizationData(organizationId) {
+    function loadOrganizationData(organizationUuid) {
         // Cargar usuarios disponibles
-        fetch(`/portfolios/organization/${organizationId}/users`)
+        fetch(`/portfolios/organization/${organizationUuid}/users`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -181,15 +192,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                updateUsersContainer(data.users);
+                usersContainer.innerHTML = renderUsers(data.users);
             })
             .catch(error => {
                 console.error('Error loading users:', error);
-                usersContainer.innerHTML = '<p class="text-danger">Error al cargar usuarios</p>';
+                usersContainer.innerHTML = '<div class="alert alert-danger">Error al cargar usuarios</div>';
             });
 
         // Cargar clientes disponibles
-        fetch(`/portfolios/organization/${organizationId}/clients`)
+        fetch(`/portfolios/organization/${organizationUuid}/clients`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -197,18 +208,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                updateClientsContainer(data.clients);
+                clientsContainer.innerHTML = renderClients(data.clients);
             })
             .catch(error => {
                 console.error('Error loading clients:', error);
-                clientsContainer.innerHTML = '<p class="text-danger">Error al cargar clientes</p>';
+                clientsContainer.innerHTML = '<div class="alert alert-danger">Error al cargar clientes</div>';
             });
     }
 
-    function updateUsersContainer(users) {
+    function renderUsers(users) {
         if (!users || users.length === 0) {
-            usersContainer.innerHTML = '<p class="text-muted">No hay usuarios disponibles</p>';
-            return;
+            return '<p class="text-muted">No hay usuarios disponibles</p>';
         }
 
         let html = '';
@@ -228,13 +238,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         });
-        usersContainer.innerHTML = html;
+        return html;
     }
 
-    function updateClientsContainer(clients) {
+    function renderClients(clients) {
         if (!clients || clients.length === 0) {
-            clientsContainer.innerHTML = '<p class="text-muted">No hay clientes disponibles</p>';
-            return;
+            return '<p class="text-muted">No hay clientes disponibles</p>';
         }
 
         let html = '';
@@ -253,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         });
-        clientsContainer.innerHTML = html;
+        return html;
     }
 });
 </script>

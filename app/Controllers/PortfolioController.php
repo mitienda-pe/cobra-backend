@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\PortfolioModel;
 use App\Models\ClientModel;
 use App\Models\UserModel;
+use App\Models\OrganizationModel;
 use App\Libraries\Auth;
 use App\Traits\OrganizationTrait;
 
@@ -71,7 +72,7 @@ class PortfolioController extends BaseController
         }
         
         // Get organization names for portfolios
-        $organizationModel = new \App\Models\OrganizationModel();
+        $organizationModel = new OrganizationModel();
         $organizationsById = [];
         foreach ($organizationModel->findAll() as $org) {
             $organizationsById[$org['id']] = $org;
@@ -98,7 +99,7 @@ class PortfolioController extends BaseController
 
         // If superadmin and no organization context, load organizations
         if ($this->auth->hasRole('superadmin') && !$this->auth->organizationId()) {
-            $organizationModel = new \App\Models\OrganizationModel();
+            $organizationModel = new OrganizationModel();
             $data['organizations'] = $organizationModel->findAll();
         }
 
@@ -321,26 +322,60 @@ class PortfolioController extends BaseController
         return redirect()->to('/portfolios')->with('error', 'Error al eliminar la cartera.');
     }
     
-    public function getUsersByOrganization($organizationId)
+    public function getOrganizationUsers($uuid = null)
     {
         if (!$this->request->isAJAX()) {
             return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid request']);
         }
 
+        if (!$uuid) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Se requiere el UUID de la organización'
+            ]);
+        }
+
+        // Obtener la organización por UUID
+        $organizationModel = new OrganizationModel();
+        $organization = $organizationModel->where('uuid', $uuid)->first();
+        if (!$organization) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Organización no encontrada'
+            ]);
+        }
+
         $portfolioModel = new PortfolioModel();
-        $users = $portfolioModel->getAvailableUsers($organizationId);
+        $users = $portfolioModel->getAvailableUsers($organization['id']);
 
         return $this->response->setJSON(['users' => $users]);
     }
 
-    public function getClientsByOrganization($organizationId)
+    public function getOrganizationClients($uuid = null)
     {
         if (!$this->request->isAJAX()) {
             return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid request']);
         }
 
+        if (!$uuid) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Se requiere el UUID de la organización'
+            ]);
+        }
+
+        // Obtener la organización por UUID
+        $organizationModel = new OrganizationModel();
+        $organization = $organizationModel->where('uuid', $uuid)->first();
+        if (!$organization) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Organización no encontrada'
+            ]);
+        }
+
         $portfolioModel = new PortfolioModel();
-        $clients = $portfolioModel->getAvailableClients($organizationId);
+        $clients = $portfolioModel->getAvailableClients($organization['id']);
 
         return $this->response->setJSON(['clients' => $clients]);
     }

@@ -135,8 +135,8 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('(:segment)/edit', 'PortfolioController::edit/$1');
         $routes->post('(:segment)/edit', 'PortfolioController::edit/$1');
         $routes->post('(:segment)/delete', 'PortfolioController::delete/$1');
-        $routes->get('organization/(:num)/users', 'PortfolioController::getUsersByOrganization/$1');
-        $routes->get('organization/(:num)/clients', 'PortfolioController::getClientsByOrganization/$1');
+        $routes->get('organization/(:segment)/users', 'PortfolioController::getOrganizationUsers/$1');
+        $routes->get('organization/(:segment)/clients', 'PortfolioController::getOrganizationClients/$1');
     });
 
     // Payment Routes
