@@ -13,7 +13,7 @@ class ClientModel extends Model
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'organization_id', 'external_id', 'id', 'business_name', 'legal_name', 
+        'uuid', 'organization_id', 'external_id', 'id', 'business_name', 'legal_name', 
         'document_number', 'contact_name', 'contact_phone', 'address', 
         'ubigeo', 'zip_code', 'latitude', 'longitude', 'status'
     ];
@@ -38,8 +38,19 @@ class ClientModel extends Model
     protected $cleanValidationRules = true;
 
     // Callbacks
-    protected $beforeInsert   = ['generateExternalId'];
+    protected $beforeInsert   = ['generateUuid', 'generateExternalId'];
     protected $beforeUpdate   = [];
+
+    /**
+     * Generate UUID before insert
+     */
+    protected function generateUuid(array $data)
+    {
+        if (!isset($data['data']['uuid'])) {
+            $data['data']['uuid'] = bin2hex(random_bytes(16));
+        }
+        return $data;
+    }
 
     /**
      * Generate external UUID if not provided
