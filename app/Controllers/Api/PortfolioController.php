@@ -17,18 +17,44 @@ class PortfolioController extends ResourceController
     }
     
     /**
+     * Get the authenticated user
+     * This method ensures we have a user object even if session data is missing
+     */
+    protected function getAuthUser()
+    {
+        if ($this->user) {
+            return $this->user;
+        }
+        
+        // Try to get user from request object (set by ApiAuthFilter)
+        if (isset($this->request) && isset($this->request->user)) {
+            $this->user = $this->request->user;
+            return $this->user;
+        }
+        
+        // If still no user, return a default user with role 'guest'
+        return [
+            'id' => 0,
+            'role' => 'guest',
+            'organization_id' => 0
+        ];
+    }
+    
+    /**
      * List portfolios based on user role
      */
     public function index()
     {
         $portfolioModel = new PortfolioModel();
         
-        if ($this->user['role'] === 'superadmin' || $this->user['role'] === 'admin') {
+        $user = $this->getAuthUser();
+        
+        if ($user['role'] === 'superadmin' || $user['role'] === 'admin') {
             // Admins and superadmins can see all portfolios in their organization
-            $portfolios = $portfolioModel->getByOrganization($this->user['organization_id']);
+            $portfolios = $portfolioModel->getByOrganization($user['organization_id']);
         } else {
             // Regular users can only see their assigned portfolios
-            $portfolios = $portfolioModel->getByUser($this->user['id']);
+            $portfolios = $portfolioModel->getByUser($user['id']);
         }
         
         return $this->respond(['portfolios' => $portfolios]);
@@ -51,7 +77,8 @@ class PortfolioController extends ResourceController
         }
         
         // Check if user has access to this portfolio
-        if (!$this->canAccessPortfolio($portfolio)) {
+        $user = $this->getAuthUser();
+        if (!$this->canAccessPortfolio($portfolio, $user)) {
             return $this->failForbidden('You do not have access to this portfolio');
         }
         
@@ -72,7 +99,8 @@ class PortfolioController extends ResourceController
     public function myPortfolios()
     {
         $portfolioModel = new PortfolioModel();
-        $portfolios = $portfolioModel->getByUser($this->user['id']);
+        $user = $this->getAuthUser();
+        $portfolios = $portfolioModel->getByUser($user['id']);
         
         return $this->respond(['portfolios' => $portfolios]);
     }
@@ -87,7 +115,8 @@ class PortfolioController extends ResourceController
         $clientModel = new \App\Models\ClientModel();
         
         // Get user's portfolio (one-to-one relationship)
-        $portfolio = $portfolioModel->where('collector_id', $this->user['id'])->first();
+        $user = $this->getAuthUser();
+        $portfolio = $portfolioModel->where('collector_id', $user['id'])->first();
         
         if (!$portfolio) {
             return $this->failForbidden('No portfolio assigned to this collector');
@@ -108,7 +137,7 @@ class PortfolioController extends ResourceController
         $dateStart = $this->request->getGet('date_start');
         $dateEnd = $this->request->getGet('date_end');
         
-        $invoices = $invoiceModel->where('organization_id', $this->user['organization_id'])
+        $invoices = $invoiceModel->where('organization_id', $user['organization_id'])
                                ->whereIn('client_id', $clientIds);
         
         if ($status) {
@@ -140,15 +169,15 @@ class PortfolioController extends ResourceController
     /**
      * Check if user can access a portfolio
      */
-    private function canAccessPortfolio($portfolio)
+    private function canAccessPortfolio($portfolio, $user)
     {
-        if ($this->user['role'] === 'superadmin' || $this->user['role'] === 'admin') {
+        if ($user['role'] === 'superadmin' || $user['role'] === 'admin') {
             // Admins and superadmins can access any portfolio in their organization
-            return $portfolio['organization_id'] == $this->user['organization_id'];
+            return $portfolio['organization_id'] == $user['organization_id'];
         } else {
             // For regular users, check if they are assigned to the portfolio
             $portfolioModel = new PortfolioModel();
-            $portfolios = $portfolioModel->getByUser($this->user['id']);
+            $portfolios = $portfolioModel->getByUser($user['id']);
             
             foreach ($portfolios as $userPortfolio) {
                 if ($userPortfolio['id'] == $portfolio['id']) {
