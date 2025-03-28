@@ -38,6 +38,7 @@ class InitialSetupSeeder extends Seeder
             // Create portfolios
             $commercialPortfolioId = $db->table('portfolios')->insert([
                 'organization_id' => $orgId,
+                'uuid' => bin2hex(random_bytes(16)),
                 'name' => 'Cartera Comercial',
                 'description' => 'Clientes comerciales y empresas',
                 'status' => 'active',
@@ -47,6 +48,7 @@ class InitialSetupSeeder extends Seeder
             
             $personalPortfolioId = $db->table('portfolios')->insert([
                 'organization_id' => $orgId,
+                'uuid' => bin2hex(random_bytes(16)),
                 'name' => 'Cartera Personal',
                 'description' => 'Clientes particulares',
                 'status' => 'active',
