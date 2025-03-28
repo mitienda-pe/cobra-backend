@@ -102,95 +102,66 @@ class LigoQRController extends Controller
     private function createLigoOrder($data, $organization)
     {
         // Log para depuración
-        log_message('debug', 'Iniciando llamada a Ligo API con organización ID: ' . $organization['id']);
+        log_message('debug', 'Iniciando generación de QR con Ligo para organización ID: ' . $organization['id']);
         
-        // Asegurarse de que las credenciales estén presentes
-        if (empty($organization['ligo_api_key'])) {
-            log_message('error', 'API Key de Ligo no configurada para organización ID: ' . $organization['id']);
-            return (object)['error' => 'Ligo API Key not configured'];
+        try {
+            // 1. Obtener token de autenticación
+            $authToken = $this->getLigoAuthToken($organization);
+            
+            if (isset($authToken->error)) {
+                log_message('error', 'Error al obtener token de autenticación de Ligo: ' . $authToken->error);
+                return $authToken; // Devolver el error de autenticación
+            }
+            
+            // 2. Generar QR con el token obtenido
+            $qrResponse = $this->generateLigoQR($data, $authToken->token, $organization);
+            
+            if (isset($qrResponse->error)) {
+                log_message('error', 'Error al generar QR en Ligo: ' . $qrResponse->error);
+                return $qrResponse;
+            }
+            
+            // 3. Obtener el QR generado por su ID
+            $qrId = $qrResponse->data->id ?? null;
+            
+            if (!$qrId) {
+                log_message('error', 'No se recibió ID de QR en la respuesta de Ligo');
+                return (object)['error' => 'No QR ID in response'];
+            }
+            
+            $qrDetails = $this->getQRDetailsById($qrId, $authToken->token, $organization);
+            
+            if (isset($qrDetails->error)) {
+                log_message('error', 'Error al obtener detalles del QR: ' . $qrDetails->error);
+                return $qrDetails;
+            }
+            
+            // 4. Preparar respuesta con los datos del QR
+            $qrHash = $qrDetails->data->hash ?? null;
+            
+            if (!$qrHash) {
+                log_message('error', 'No se recibió hash de QR en la respuesta de Ligo');
+                return (object)['error' => 'No QR hash in response'];
+            }
+            
+            // Generar URL de imagen QR usando una librería o servicio
+            $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($qrHash);
+            
+            // Construir respuesta
+            $response = (object)[
+                'qr_data' => $qrHash,
+                'qr_image_url' => $qrImageUrl,
+                'order_id' => $qrId,
+                'expiration' => date('Y-m-d H:i:s', strtotime('+1 hour')) // Ajustar según la configuración de Ligo
+            ];
+            
+            log_message('info', 'QR generado exitosamente con ID: ' . $qrId);
+            return $response;
+            
+        } catch (Exception $e) {
+            log_message('error', 'Error en el proceso de generación de QR: ' . $e->getMessage());
+            return (object)['error' => 'QR generation error: ' . $e->getMessage()];
         }
-        
-        // Intentar autenticarse primero para obtener un token
-        $authToken = $this->getLigoAuthToken($organization);
-        
-        if (isset($authToken->error)) {
-            log_message('error', 'Error al obtener token de autenticación de Ligo: ' . $authToken->error);
-            return $authToken; // Devolver el error de autenticación
-        }
-        
-        // Usar el token para la solicitud de creación de orden
-        $curl = curl_init();
-        
-        $headers = [
-            'Authorization: Bearer ' . $authToken->token,
-            'Content-Type: application/json'
-        ];
-        
-        log_message('debug', 'Headers para Ligo API: ' . json_encode($headers));
-        log_message('debug', 'Datos para Ligo API: ' . json_encode($data));
-        
-        curl_setopt_array($curl, [
-            CURLOPT_URL => 'https://api.ligo.pe/v1/orders',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_SSL_VERIFYHOST => 0, // Deshabilitar verificación de host SSL
-            CURLOPT_SSL_VERIFYPEER => false, // Deshabilitar verificación de certificado SSL
-            CURLOPT_VERBOSE => true
-        ]);
-        
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-        $info = curl_getinfo($curl);
-        
-        // Log de información de la solicitud
-        log_message('debug', 'Ligo API Info: ' . json_encode($info));
-        
-        curl_close($curl);
-        
-        if ($err) {
-            log_message('error', 'Ligo API Error: ' . $err);
-            return (object)['error' => 'Failed to connect to Ligo API: ' . $err];
-        }
-        
-        // Log de la respuesta completa
-        log_message('debug', 'Ligo API Response (raw): ' . $response);
-        
-        // Verificar si la respuesta es HTML en lugar de JSON
-        if (strpos($response, '<!DOCTYPE html>') !== false || strpos($response, '<html') !== false) {
-            log_message('error', 'Ligo API devolvió HTML en lugar de JSON. Posible error de autenticación o redirección.');
-            return (object)['error' => 'API returned HTML instead of JSON. Check credentials.'];
-        }
-        
-        // Verificar si la respuesta está vacía
-        if (empty(trim($response))) {
-            log_message('error', 'Ligo API devolvió una respuesta vacía.');
-            return (object)['error' => 'Empty response from API'];
-        }
-        
-        $decoded = json_decode($response);
-        
-        // Verificar si la respuesta se pudo decodificar
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            log_message('error', 'Error decodificando respuesta de Ligo: ' . json_last_error_msg());
-            log_message('error', 'Respuesta cruda: ' . $response);
-            return (object)['error' => 'Invalid JSON response: ' . json_last_error_msg()];
-        }
-        
-        // Verificar si hay errores en la respuesta de la API
-        if (isset($decoded->error) || isset($decoded->message) || $info['http_code'] >= 400) {
-            $errorMsg = isset($decoded->error) ? $decoded->error : 
-                       (isset($decoded->message) ? $decoded->message : 'HTTP Error: ' . $info['http_code']);
-            log_message('error', 'Ligo API Error Response: ' . $errorMsg);
-            return (object)['error' => $errorMsg];
-        }
-        
-        return $decoded;
     }
     
     /**
@@ -209,19 +180,7 @@ class LigoQRController extends Controller
             return (object)['error' => 'Incomplete Ligo credentials'];
         }
         
-        // Verificar si tenemos la llave privada para firmar el token
-        if (empty($organization['ligo_private_key'])) {
-            log_message('error', 'Llave privada de Ligo no configurada para organización ID: ' . $organization['id']);
-            return (object)['error' => 'Ligo private key not configured'];
-        }
-        
-        // Según la documentación, primero debemos crear un token firmado con la llave privada
-        // Este token se usará en el encabezado Authorization
         try {
-            // Crear un token firmado con la llave privada (esto es un ejemplo, ajustar según la documentación específica)
-            $privateKey = $organization['ligo_private_key'];
-            $signedToken = $this->createSignedToken($privateKey);
-            
             $curl = curl_init();
             
             // Datos de autenticación según la documentación
@@ -231,7 +190,8 @@ class LigoQRController extends Controller
             ];
             
             // URL de autenticación según la documentación
-            $url = 'https://cce-auth-prod.ligocloud.tech/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
+            $prefix = 'prod'; // Cambiar a 'dev' para entorno de desarrollo
+            $url = 'https://cce-auth-' . $prefix . '.ligocloud.tech/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
             
             log_message('debug', 'URL de autenticación Ligo: ' . $url);
             log_message('debug', 'Datos de autenticación: ' . json_encode($authData));
@@ -247,8 +207,7 @@ class LigoQRController extends Controller
                 CURLOPT_POSTFIELDS => json_encode($authData),
                 CURLOPT_HTTPHEADER => [
                     'Content-Type: application/json',
-                    'Accept: application/json',
-                    'Authorization: ' . $signedToken
+                    'Accept: application/json'
                 ],
                 CURLOPT_SSL_VERIFYHOST => 0,
                 CURLOPT_SSL_VERIFYPEER => false,
@@ -318,18 +277,167 @@ class LigoQRController extends Controller
     }
     
     /**
-     * Create a signed token using the private key
-     * 
-     * @param string $privateKey Private key in PEM format
-     * @return string Signed token
+     * Generate QR in Ligo API
+     *
+     * @param array $data Order data
+     * @param string $token Authentication token
+     * @param array $organization Organization data
+     * @return object Response from Ligo API
      */
-    private function createSignedToken($privateKey)
+    private function generateLigoQR($data, $token, $organization)
     {
-        // Implementación básica de ejemplo - esto debe ajustarse según la documentación específica de Ligo
-        // sobre cómo crear el token firmado
+        log_message('debug', 'Generando QR en Ligo para factura: ' . $data['orderId']);
         
-        // En un escenario real, aquí se usaría la llave privada para firmar un payload
-        // Por ahora, devolvemos un placeholder para pruebas
-        return 'SignedToken_Placeholder';
+        try {
+            $curl = curl_init();
+            
+            // Preparar datos para la generación de QR según la documentación
+            $qrData = [
+                'header' => [
+                    'sisOrigen' => '0921' // Este valor puede variar según la configuración de Ligo
+                ],
+                'data' => [
+                    'qrTipo' => '12', // QR dinámico con monto
+                    'idCuenta' => $organization['ligo_account_id'] ?? '92100144571260631044', // Debe configurarse en la organización
+                    'moneda' => $data['currency'] == 'PEN' ? '604' : '840', // 604 = Soles, 840 = Dólares
+                    'importe' => (int)($data['amount'] * 100), // Convertir a centavos
+                    'fechaVencimiento' => null,
+                    'cantidadPagos' => null,
+                    'glosa' => $data['description'],
+                    'codigoComerciante' => $organization['ligo_merchant_code'] ?? '4829', // Debe configurarse en la organización
+                    'nombreComerciante' => $organization['name'],
+                    'ciudadComerciante' => $organization['city'] ?? 'Lima',
+                    'info' => json_encode(['invoice_id' => $data['orderId']])
+                ],
+                'type' => 'TEXT'
+            ];
+            
+            // URL para generar QR según la documentación
+            $prefix = 'prod'; // Cambiar a 'dev' para entorno de desarrollo
+            $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/createQr';
+            
+            log_message('debug', 'URL para generar QR: ' . $url);
+            log_message('debug', 'Datos para generar QR: ' . json_encode($qrData));
+            
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => json_encode($qrData),
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Accept: application/json',
+                    'Authorization: Bearer ' . $token
+                ],
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => false
+            ]);
+            
+            $response = curl_exec($curl);
+            $err = curl_error($curl);
+            $info = curl_getinfo($curl);
+            
+            curl_close($curl);
+            
+            if ($err) {
+                log_message('error', 'Error al generar QR en Ligo: ' . $err);
+                return (object)['error' => 'Failed to connect to Ligo API: ' . $err];
+            }
+            
+            log_message('debug', 'Respuesta de generación de QR: ' . $response);
+            
+            $decoded = json_decode($response);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                log_message('error', 'Error decodificando respuesta de generación de QR: ' . json_last_error_msg());
+                return (object)['error' => 'Invalid JSON in QR generation response: ' . json_last_error_msg()];
+            }
+            
+            // Verificar si hay errores en la respuesta
+            if (!isset($decoded->data) || !isset($decoded->data->id)) {
+                log_message('error', 'Error en la respuesta de generación de QR: ' . json_encode($decoded));
+                return (object)['error' => 'Error in QR generation response: ' . json_encode($decoded)];
+            }
+            
+            return $decoded;
+            
+        } catch (Exception $e) {
+            log_message('error', 'Error en el proceso de generación de QR: ' . $e->getMessage());
+            return (object)['error' => 'QR generation error: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Get QR details by ID from Ligo API
+     *
+     * @param string $qrId QR ID
+     * @param string $token Authentication token
+     * @param array $organization Organization data
+     * @return object Response from Ligo API
+     */
+    private function getQRDetailsById($qrId, $token, $organization)
+    {
+        log_message('debug', 'Obteniendo detalles de QR con ID: ' . $qrId);
+        
+        try {
+            $curl = curl_init();
+            
+            // URL para obtener detalles del QR según la documentación
+            $prefix = 'prod'; // Cambiar a 'dev' para entorno de desarrollo
+            $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
+            
+            log_message('debug', 'URL para obtener detalles de QR: ' . $url);
+            
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_HTTPHEADER => [
+                    'Accept: application/json',
+                    'Authorization: Bearer ' . $token
+                ],
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => false
+            ]);
+            
+            $response = curl_exec($curl);
+            $err = curl_error($curl);
+            
+            curl_close($curl);
+            
+            if ($err) {
+                log_message('error', 'Error al obtener detalles de QR: ' . $err);
+                return (object)['error' => 'Failed to connect to Ligo API: ' . $err];
+            }
+            
+            log_message('debug', 'Respuesta de detalles de QR: ' . $response);
+            
+            $decoded = json_decode($response);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                log_message('error', 'Error decodificando respuesta de detalles de QR: ' . json_last_error_msg());
+                return (object)['error' => 'Invalid JSON in QR details response: ' . json_last_error_msg()];
+            }
+            
+            // Verificar si hay errores en la respuesta
+            if (!isset($decoded->data) || !isset($decoded->data->hash)) {
+                log_message('error', 'Error en la respuesta de detalles de QR: ' . json_encode($decoded));
+                return (object)['error' => 'Error in QR details response: ' . json_encode($decoded)];
+            }
+            
+            return $decoded;
+            
+        } catch (Exception $e) {
+            log_message('error', 'Error al obtener detalles de QR: ' . $e->getMessage());
+            return (object)['error' => 'QR details error: ' . $e->getMessage()];
+        }
     }
 }
