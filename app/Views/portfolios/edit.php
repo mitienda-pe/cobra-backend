@@ -35,15 +35,8 @@
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <h5 class="mb-3">Asignar Cobradores</h5>
+                            <h5 class="mb-3">Asignar Cobrador</h5>
                             <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="select_all_users">
-                                    <label class="form-check-label" for="select_all_users">
-                                        <strong>Seleccionar Todos</strong>
-                                    </label>
-                                </div>
-                                <hr>
                                 <div class="users-list" style="max-height: 300px; overflow-y: auto;">
                                     <?php if(empty($users)): ?>
                                         <p class="text-muted">No hay usuarios disponibles para esta organización</p>
@@ -51,12 +44,16 @@
                                         <?php foreach ($users as $user): ?>
                                             <?php if ($user['role'] == 'admin' || $user['role'] == 'user'): ?>
                                                 <div class="form-check">
-                                                    <input class="form-check-input user-checkbox" type="checkbox" 
-                                                        name="user_ids[]" id="user_<?= $user['uuid'] ?>" 
-                                                        value="<?= $user['uuid'] ?>" 
-                                                        <?= (in_array($user['uuid'], $assigned_user_ids)) ? 'checked' : '' ?>>
+                                                    <input class="form-check-input user-radio" 
+                                                           type="radio" 
+                                                           name="user_id" 
+                                                           id="user_<?= $user['uuid'] ?>" 
+                                                           value="<?= $user['uuid'] ?>" 
+                                                           <?= (in_array($user['uuid'], $assigned_user_ids)) ? 'checked' : '' ?>
+                                                           required>
                                                     <label class="form-check-label" for="user_<?= $user['uuid'] ?>">
-                                                        <?= $user['name'] ?> (<?= ucfirst($user['role']) ?>)
+                                                        <?= esc($user['name']) ?> 
+                                                        <small class="text-muted">(<?= esc($user['email']) ?>)</small>
                                                     </label>
                                                 </div>
                                             <?php endif; ?>
@@ -110,16 +107,6 @@
 <?= $this->section('scripts') ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Seleccionar todos los usuarios
-    const selectAllUsers = document.getElementById('select_all_users');
-    const userCheckboxes = document.querySelectorAll('.user-checkbox');
-    
-    selectAllUsers.addEventListener('change', function() {
-        userCheckboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
-        });
-    });
-    
     // Seleccionar todos los clientes
     const selectAllClients = document.getElementById('select_all_clients');
     const clientCheckboxes = document.querySelectorAll('.client-checkbox');

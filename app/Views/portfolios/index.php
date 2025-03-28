@@ -23,35 +23,22 @@
                     <tr>
                         <th>ID</th>
                         <th>Nombre</th>
-                        <?php if ($auth->hasRole('superadmin')): ?>
-                        <th>Organización</th>
-                        <?php endif; ?>
-                        <th>Descripción</th>
                         <th>Estado</th>
                         <th>Clientes</th>
-                        <th>Cobradores</th>
+                        <th>Cobrador</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($portfolios)): ?>
                         <tr>
-                            <td colspan="<?= $auth->hasRole('superadmin') ? '8' : '7' ?>" class="text-center">No hay carteras registradas.</td>
+                            <td colspan="6" class="text-center">No hay carteras registradas.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($portfolios as $portfolio): ?>
                             <tr>
                                 <td><?= $portfolio['uuid'] ?></td>
                                 <td><?= $portfolio['name'] ?></td>
-                                <?php if ($auth->hasRole('superadmin')): ?>
-                                <td>
-                                    <?php 
-                                        $orgId = $portfolio['organization_id'];
-                                        echo isset($organizations[$orgId]) ? $organizations[$orgId]['name'] : 'N/A'; 
-                                    ?>
-                                </td>
-                                <?php endif; ?>
-                                <td><?= $portfolio['description'] ?? 'N/A' ?></td>
                                 <td>
                                     <?php if ($portfolio['status'] == 'active'): ?>
                                         <span class="badge bg-success">Activa</span>
@@ -70,10 +57,13 @@
                                 </td>
                                 <td>
                                     <?php 
-                                    $userCount = $db->table('portfolio_user')
-                                                   ->where('portfolio_uuid', $portfolio['uuid'])
-                                                   ->countAllResults();
-                                    echo $userCount;
+                                    $user = $db->table('portfolio_user pu')
+                                             ->select('u.name')
+                                             ->join('users u', 'u.id = pu.user_id')
+                                             ->where('pu.portfolio_uuid', $portfolio['uuid'])
+                                             ->get()
+                                             ->getRowArray();
+                                    echo $user ? esc($user['name']) : 'Sin asignar';
                                     ?>
                                 </td>
                                 <td>
