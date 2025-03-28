@@ -91,7 +91,9 @@ class PortfolioController extends BaseController
     
     public function create()
     {
-        $data = [];
+        $data = [
+            'auth' => $this->auth
+        ];
         $portfolioModel = new PortfolioModel();
 
         // If superadmin and no organization context, load organizations
@@ -120,7 +122,7 @@ class PortfolioController extends BaseController
                 helper('uuid');
                 $uuid = generate_uuid();
                 
-                $data = [
+                $portfolioData = [
                     'uuid' => $uuid,
                     'name' => $this->request->getPost('name'),
                     'description' => $this->request->getPost('description'),
@@ -128,7 +130,7 @@ class PortfolioController extends BaseController
                     'organization_id' => $this->request->getPost('organization_id')
                 ];
 
-                if ($portfolioModel->insert($data)) {
+                if ($portfolioModel->insert($portfolioData)) {
                     // Insert user assignment
                     $user_id = $this->request->getPost('user_id');
                     if ($user_id) {
@@ -244,6 +246,7 @@ class PortfolioController extends BaseController
         $assigned_client_ids = array_column($assigned_clients, 'uuid');
 
         $data = [
+            'auth' => $this->auth,
             'portfolio' => $portfolio,
             'users' => $users,
             'clients' => $clients,
