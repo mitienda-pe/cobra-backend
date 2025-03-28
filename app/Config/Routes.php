@@ -43,11 +43,13 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->post('auth/verify-otp', 'AuthController::verifyOtp');
     $routes->post('auth/refresh-token', 'AuthController::refreshToken');
     $routes->get('auth/profile', 'AuthController::profile');
+    $routes->post('auth/logout', 'AuthController::logout');
     // OPTIONS routes for CORS preflight
     $routes->match(['options'], 'auth/request-otp', 'AuthController::requestOtp');
     $routes->match(['options'], 'auth/verify-otp', 'AuthController::verifyOtp');
     $routes->match(['options'], 'auth/refresh-token', 'AuthController::refreshToken');
     $routes->match(['options'], 'auth/profile', 'AuthController::profile');
+    $routes->match(['options'], 'auth/logout', 'AuthController::logout');
 
     // Ligo Webhook Route - Public
     $routes->post('webhooks/ligo', 'LigoWebhookController::handlePaymentNotification', ['csrf' => false]);
@@ -78,7 +80,6 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 // API Routes - Protected 
 $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAuth'], function ($routes) {
     // Auth Protected Routes
-    $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
     $routes->match(['get', 'options'], 'auth/me', 'AuthController::me');
     $routes->match(['get', 'options'], 'users/me', 'UserController::me');
 
