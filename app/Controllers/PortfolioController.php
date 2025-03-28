@@ -14,11 +14,13 @@ class PortfolioController extends BaseController
     
     protected $auth;
     protected $session;
+    protected $db;
     
     public function __construct()
     {
         $this->auth = new Auth();
         $this->session = \Config\Services::session();
+        $this->db = \Config\Database::connect();
         helper(['form', 'url', 'uuid']);
     }
     
@@ -64,8 +66,7 @@ class PortfolioController extends BaseController
             log_message('debug', 'No portfolios found with filtering. Total portfolios in database: ' . count($allPortfolios));
             
             // For debugging, log all available organizations
-            $db = \Config\Database::connect();
-            $orgs = $db->table('organizations')->get()->getResultArray();
+            $orgs = $this->db->table('organizations')->get()->getResultArray();
             log_message('debug', 'Available organizations: ' . json_encode(array_column($orgs, 'id')));
         }
         
@@ -98,9 +99,21 @@ class PortfolioController extends BaseController
             'auth' => $this->auth,
         ];
         
+        // Get organization ID
+        $organizationId = $this->auth->hasRole('superadmin') ? null : $this->auth->organizationId();
+        
         if ($this->auth->hasRole('superadmin')) {
             $organizationModel = new \App\Models\OrganizationModel();
             $data['organizations'] = $organizationModel->findAll();
+        }
+        
+        // Get available users and clients if organization is selected
+        if ($organizationId || $this->request->getPost('organization_id')) {
+            $portfolioModel = new PortfolioModel();
+            $targetOrgId = $organizationId ?: $this->request->getPost('organization_id');
+            
+            $data['users'] = $portfolioModel->getAvailableUsers($targetOrgId);
+            $data['clients'] = $portfolioModel->getAvailableClients($targetOrgId);
         }
         
         if ($this->request->getMethod() === 'post') {
@@ -108,6 +121,7 @@ class PortfolioController extends BaseController
                 'name' => 'required|min_length[3]|max_length[100]',
                 'description' => 'permit_empty',
                 'status' => 'required|in_list[active,inactive]',
+                'user_id' => 'required|is_not_unique[users.uuid]'
             ];
             
             if ($this->auth->hasRole('superadmin')) {
@@ -135,14 +149,16 @@ class PortfolioController extends BaseController
                 $portfolioId = $portfolioModel->insert($data);
                 
                 if ($portfolioId) {
-                    $userIds = $this->request->getPost('user_ids') ?: [];
-                    if (!empty($userIds)) {
-                        $portfolioModel->assignUsers($portfolioId, $userIds);
+                    // Assign single user
+                    $userId = $this->request->getPost('user_id');
+                    if ($userId) {
+                        $portfolioModel->assignUsers($uuid, [$userId]);
                     }
                     
+                    // Assign selected clients
                     $clientIds = $this->request->getPost('client_ids') ?: [];
                     if (!empty($clientIds)) {
-                        $portfolioModel->assignClients($portfolioId, $clientIds);
+                        $portfolioModel->assignClients($uuid, $clientIds);
                     }
                     
                     return redirect()->to('/portfolios')->with('message', 'Cartera creada exitosamente.');
@@ -216,7 +232,8 @@ class PortfolioController extends BaseController
             $rules = [
                 'name' => 'required|min_length[3]|max_length[100]',
                 'description' => 'permit_empty',
-                'status' => 'required|in_list[active,inactive]'
+                'status' => 'required|in_list[active,inactive]',
+                'user_id' => 'required|is_not_unique[users.uuid]'
             ];
 
             if ($this->validate($rules)) {
@@ -228,9 +245,9 @@ class PortfolioController extends BaseController
                 ];
 
                 if ($portfolioModel->update($portfolio['id'], $data)) {
-                    // Actualizar usuarios asignados
-                    $userUuids = $this->request->getPost('user_ids') ?: [];
-                    $portfolioModel->assignUsers($uuid, $userUuids);
+                    // Actualizar usuario asignado
+                    $userUuid = $this->request->getPost('user_id');
+                    $portfolioModel->assignUsers($uuid, [$userUuid]);
 
                     // Actualizar clientes asignados
                     $clientUuids = $this->request->getPost('client_ids') ?: [];
@@ -245,30 +262,39 @@ class PortfolioController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        // Obtener usuarios y clientes asignados
-        $assignedUsers = $portfolioModel->getAssignedUsers($uuid);
-        $assignedUserIds = array_column($assignedUsers, 'uuid');
+        // Obtener usuario y clientes asignados actualmente
+        $assignedUser = $portfolioModel->getAssignedUsers($uuid);
+        $assignedUserId = !empty($assignedUser) ? $assignedUser[0]['uuid'] : null;
 
         $assignedClients = $portfolioModel->getAssignedClients($uuid);
         $assignedClientIds = array_column($assignedClients, 'uuid');
 
-        // Obtener todos los usuarios y clientes disponibles
-        $userModel = new UserModel();
-        $clientModel = new ClientModel();
-
-        if ($this->auth->hasRole('superadmin')) {
-            $users = $userModel->findAll();
-            $clients = $clientModel->findAll();
-        } else {
-            $users = $userModel->where('organization_id', $this->auth->organizationId())->findAll();
-            $clients = $clientModel->where('organization_id', $this->auth->organizationId())->findAll();
+        // Obtener usuarios y clientes disponibles
+        $organizationId = $portfolio['organization_id'];
+        
+        // Para la edición, incluimos el usuario actualmente asignado en la lista de disponibles
+        $availableUsers = $portfolioModel->getAvailableUsers($organizationId);
+        if ($assignedUserId) {
+            $currentUser = $this->db->table('users')
+                                  ->where('uuid', $assignedUserId)
+                                  ->get()
+                                  ->getRowArray();
+            if ($currentUser) {
+                $availableUsers[] = $currentUser;
+            }
         }
+
+        // Para los clientes, incluimos tanto los disponibles como los ya asignados
+        $availableClients = array_merge(
+            $portfolioModel->getAvailableClients($organizationId),
+            $assignedClients
+        );
 
         $data = [
             'portfolio' => $portfolio,
-            'users' => $users,
-            'clients' => $clients,
-            'assigned_user_ids' => $assignedUserIds,
+            'users' => $availableUsers,
+            'clients' => $availableClients,
+            'assigned_user_id' => $assignedUserId,
             'assigned_client_ids' => $assignedClientIds,
             'auth' => $this->auth
         ];
@@ -306,50 +332,31 @@ class PortfolioController extends BaseController
     }
     
     /**
-     * Get users by organization
+     * Get available users by organization
      */
-    public function getUsersByOrganization($uuid)
+    public function getUsersByOrganization($organizationId)
     {
         if (!$this->request->isAJAX()) {
             return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid request']);
         }
 
-        $organizationModel = new \App\Models\OrganizationModel();
-        $organization = $organizationModel->where('uuid', $uuid)->first();
-        
-        if (!$organization) {
-            return $this->response->setStatusCode(404)->setJSON(['error' => 'Organization not found']);
-        }
-
-        $userModel = new UserModel();
-        $users = $userModel->where('organization_id', $organization['id'])
-                          ->where('role !=', 'superadmin')
-                          ->where('status', 'active')
-                          ->findAll();
+        $portfolioModel = new PortfolioModel();
+        $users = $portfolioModel->getAvailableUsers($organizationId);
 
         return $this->response->setJSON(['users' => $users]);
     }
 
     /**
-     * Get clients by organization
+     * Get available clients by organization
      */
-    public function getClientsByOrganization($uuid)
+    public function getClientsByOrganization($organizationId)
     {
         if (!$this->request->isAJAX()) {
             return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid request']);
         }
 
-        $organizationModel = new \App\Models\OrganizationModel();
-        $organization = $organizationModel->where('uuid', $uuid)->first();
-        
-        if (!$organization) {
-            return $this->response->setStatusCode(404)->setJSON(['error' => 'Organization not found']);
-        }
-
-        $clientModel = new ClientModel();
-        $clients = $clientModel->where('organization_id', $organization['id'])
-                             ->where('status', 'active')
-                             ->findAll();
+        $portfolioModel = new PortfolioModel();
+        $clients = $portfolioModel->getAvailableClients($organizationId);
 
         return $this->response->setJSON(['clients' => $clients]);
     }

@@ -132,7 +132,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var usersContainer = document.getElementById('users-container');
     var clientsContainer = document.getElementById('clients-container');
     
     // Seleccionar todos los clientes
@@ -159,6 +158,26 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    function updateClientsContainer(clients) {
+        if (!clients || clients.length === 0) {
+            clientsContainer.innerHTML = '<p class="text-muted">No hay clientes disponibles</p>';
+            return;
+        }
+
+        let html = '';
+        clients.forEach(client => {
+            html += `
+                <div class="form-check">
+                    <input class="form-check-input client-checkbox" type="checkbox" name="client_ids[]" id="client_${client.uuid}" value="${client.uuid}">
+                    <label class="form-check-label" for="client_${client.uuid}">
+                        ${client.name} (${client.email})
+                    </label>
+                </div>
+            `;
+        });
+        clientsContainer.innerHTML = html;
+    }
+
     // Manejar organización predefinida (hidden input)
     var hiddenOrgInput = document.querySelector('input[type="hidden"][name="organization_id"]');
     if (hiddenOrgInput) {
@@ -173,30 +192,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (organizationId) {
                 loadOrganizationData(organizationId);
             } else {
-                usersContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver usuarios disponibles</p>';
                 clientsContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver clientes disponibles</p>';
             }
         });
-    }
-
-    function updateClientsContainer(clients) {
-        if (!clients || clients.length === 0) {
-            clientsContainer.innerHTML = '<p class="text-muted">No hay clientes disponibles</p>';
-            return;
-        }
-
-        let html = '';
-        clients.forEach(client => {
-            html += `
-                <div class="form-check">
-                    <input class="form-check-input client-checkbox" type="checkbox" name="client_ids[]" id="client_${client.id}" value="${client.id}">
-                    <label class="form-check-label" for="client_${client.id}">
-                        ${client.business_name}
-                    </label>
-                </div>
-            `;
-        });
-        clientsContainer.innerHTML = html;
     }
 });
 </script>

@@ -66,7 +66,7 @@
         <!-- Navbar para usuarios autenticados -->
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
             <div class="container">
-                <a class="navbar-brand" href="<?= site_url('dashboard') ?>">Sistema</a>
+                <a class="navbar-brand" href="<?= site_url('dashboard') ?>">Cobrapp</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>

@@ -186,4 +186,45 @@ class PortfolioModel extends Model
         
         return $query->getResultArray();
     }
+
+    /**
+     * Get available users (without portfolio assignment) for an organization
+     */
+    public function getAvailableUsers($organizationId)
+    {
+        $db = \Config\Database::connect();
+        return $db->table('users u')
+                 ->select('u.*')
+                 ->where('u.organization_id', $organizationId)
+                 ->where('u.deleted_at IS NULL')
+                 ->where("NOT EXISTS (
+                     SELECT 1 FROM portfolio_user pu 
+                     JOIN portfolios p ON p.uuid = pu.portfolio_uuid 
+                     WHERE pu.user_uuid = u.uuid 
+                     AND p.deleted_at IS NULL
+                 )")
+                 ->where("u.role IN ('admin', 'user')")
+                 ->get()
+                 ->getResultArray();
+    }
+
+    /**
+     * Get available clients (without portfolio assignment) for an organization
+     */
+    public function getAvailableClients($organizationId)
+    {
+        $db = \Config\Database::connect();
+        return $db->table('clients c')
+                 ->select('c.*')
+                 ->where('c.organization_id', $organizationId)
+                 ->where('c.deleted_at IS NULL')
+                 ->where("NOT EXISTS (
+                     SELECT 1 FROM client_portfolio cp 
+                     JOIN portfolios p ON p.uuid = cp.portfolio_uuid 
+                     WHERE cp.client_uuid = c.uuid 
+                     AND p.deleted_at IS NULL
+                 )")
+                 ->get()
+                 ->getResultArray();
+    }
 }
