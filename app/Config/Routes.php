@@ -50,6 +50,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     // Ligo Webhook Route - Public
     $routes->post('webhooks/ligo', 'LigoWebhookController::handlePaymentNotification');
     $routes->match(['options'], 'webhooks/ligo', 'LigoWebhookController::handlePaymentNotification');
+    
+    // Ligo Auth Route - Public
+    $routes->get('auth/ligo/token', 'LigoAuthController::getToken');
+    $routes->match(['options'], 'auth/ligo/token', 'LigoAuthController::getToken');
 
     // Organization Routes
     $routes->match(['get', 'options'], 'organizations/(:segment)/clients', 'OrganizationController::clients/$1');
