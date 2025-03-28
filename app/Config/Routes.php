@@ -77,6 +77,8 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAuth'], function ($routes) {
     // Auth Protected Routes
     $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
+    $routes->match(['get', 'options'], 'auth/me', 'AuthController::me');
+    $routes->match(['get', 'options'], 'users/me', 'UserController::me');
 
     // Mobile App Routes
     $routes->match(['get', 'options'], 'portfolio/invoices', 'PortfolioController::myInvoices');

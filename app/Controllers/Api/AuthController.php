@@ -445,4 +445,43 @@ class AuthController extends ResourceController
             ]
         ]);
     }
+
+    /**
+     * Get authenticated user information
+     * Used by mobile app
+     */
+    public function me()
+    {
+        // Get user from request (set by the apiAuth filter)
+        $userData = $this->request->user ?? null;
+        
+        if (!$userData) {
+            return $this->failUnauthorized('Not authenticated');
+        }
+        
+        // Remove sensitive information
+        unset($userData['password']);
+        unset($userData['remember_token']);
+        unset($userData['reset_token']);
+        unset($userData['reset_token_expires_at']);
+        
+        // Get user's organization
+        $orgModel = new \App\Models\OrganizationModel();
+        $organization = null;
+        
+        if (!empty($userData['organization_id'])) {
+            $organization = $orgModel->find($userData['organization_id']);
+        }
+        
+        // Format the response
+        $response = [
+            'user' => $userData,
+            'organization' => $organization
+        ];
+        
+        return $this->respond([
+            'success' => true,
+            'data' => $response
+        ]);
+    }
 }

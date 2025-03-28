@@ -46,6 +46,15 @@ class UserController extends ResourceController
     }
     
     /**
+     * Get current user profile (alias for profile)
+     * Used by mobile app
+     */
+    public function me()
+    {
+        return $this->profile();
+    }
+    
+    /**
      * List users (admin and superadmin only)
      */
     public function index()
