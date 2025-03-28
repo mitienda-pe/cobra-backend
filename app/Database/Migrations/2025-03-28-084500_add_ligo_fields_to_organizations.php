@@ -8,58 +8,106 @@ class AddLigoFieldsToOrganizations extends Migration
 {
     public function up()
     {
-        // Añadir todos los campos necesarios para la integración con Ligo
-        $fields = [
-            'ligo_enabled' => [
-                'type' => 'BOOLEAN',
-                'null' => false,
-                'default' => false,
-            ],
-            'ligo_username' => [
-                'type' => 'VARCHAR',
-                'constraint' => 100,
-                'null' => true,
-            ],
-            'ligo_password' => [
-                'type' => 'VARCHAR',
-                'constraint' => 100,
-                'null' => true,
-            ],
-            'ligo_company_id' => [
-                'type' => 'VARCHAR',
-                'constraint' => 100,
-                'null' => true,
-            ],
-            'ligo_account_id' => [
-                'type' => 'VARCHAR',
-                'constraint' => 100,
-                'null' => true,
-            ],
-            'ligo_merchant_code' => [
-                'type' => 'VARCHAR',
-                'constraint' => 50,
-                'null' => true,
-            ],
-            'ligo_webhook_secret' => [
-                'type' => 'VARCHAR',
-                'constraint' => 100,
-                'null' => true,
-            ]
-        ];
-        
-        // Añadir los campos a la tabla
+        // Obtener la lista de columnas existentes en la tabla
+        $existingColumns = [];
         try {
-            $this->forge->addColumn('organizations', $fields);
+            $query = $this->db->query("PRAGMA table_info(organizations)");
+            $results = $query->getResultArray();
+            foreach ($results as $col) {
+                $existingColumns[] = $col['name'];
+            }
         } catch (\Exception $e) {
-            // Si hay un error, lo registramos pero continuamos
-            log_message('error', 'Error al añadir campos a la tabla organizations: ' . $e->getMessage());
+            log_message('error', 'Error al obtener columnas existentes: ' . $e->getMessage());
+        }
+        
+        // Añadir solo las columnas que no existen
+        if (!in_array('ligo_enabled', $existingColumns)) {
+            $this->forge->addColumn('organizations', [
+                'ligo_enabled' => [
+                    'type' => 'BOOLEAN',
+                    'null' => false,
+                    'default' => false,
+                ]
+            ]);
+        }
+        
+        if (!in_array('ligo_username', $existingColumns)) {
+            $this->forge->addColumn('organizations', [
+                'ligo_username' => [
+                    'type' => 'VARCHAR',
+                    'constraint' => 100,
+                    'null' => true,
+                ]
+            ]);
+        }
+        
+        if (!in_array('ligo_password', $existingColumns)) {
+            $this->forge->addColumn('organizations', [
+                'ligo_password' => [
+                    'type' => 'VARCHAR',
+                    'constraint' => 100,
+                    'null' => true,
+                ]
+            ]);
+        }
+        
+        if (!in_array('ligo_company_id', $existingColumns)) {
+            $this->forge->addColumn('organizations', [
+                'ligo_company_id' => [
+                    'type' => 'VARCHAR',
+                    'constraint' => 100,
+                    'null' => true,
+                ]
+            ]);
+        }
+        
+        if (!in_array('ligo_account_id', $existingColumns)) {
+            $this->forge->addColumn('organizations', [
+                'ligo_account_id' => [
+                    'type' => 'VARCHAR',
+                    'constraint' => 100,
+                    'null' => true,
+                ]
+            ]);
+        }
+        
+        if (!in_array('ligo_merchant_code', $existingColumns)) {
+            $this->forge->addColumn('organizations', [
+                'ligo_merchant_code' => [
+                    'type' => 'VARCHAR',
+                    'constraint' => 50,
+                    'null' => true,
+                ]
+            ]);
+        }
+        
+        if (!in_array('ligo_webhook_secret', $existingColumns) && !in_array('ligo_private_key', $existingColumns)) {
+            $this->forge->addColumn('organizations', [
+                'ligo_webhook_secret' => [
+                    'type' => 'VARCHAR',
+                    'constraint' => 100,
+                    'null' => true,
+                ]
+            ]);
         }
     }
 
     public function down()
     {
-        // Lista de campos a eliminar
-        $fields = [
+        // Obtener la lista de columnas existentes en la tabla
+        $existingColumns = [];
+        try {
+            $query = $this->db->query("PRAGMA table_info(organizations)");
+            $results = $query->getResultArray();
+            foreach ($results as $col) {
+                $existingColumns[] = $col['name'];
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error al obtener columnas existentes: ' . $e->getMessage());
+        }
+        
+        // Eliminar solo las columnas que existen
+        $columnsToRemove = [
             'ligo_enabled',
             'ligo_username',
             'ligo_password',
@@ -69,12 +117,14 @@ class AddLigoFieldsToOrganizations extends Migration
             'ligo_webhook_secret'
         ];
         
-        // Eliminar los campos de la tabla
-        try {
-            $this->forge->dropColumn('organizations', $fields);
-        } catch (\Exception $e) {
-            // Si hay un error, lo registramos pero continuamos
-            log_message('error', 'Error al eliminar campos de la tabla organizations: ' . $e->getMessage());
+        foreach ($columnsToRemove as $column) {
+            if (in_array($column, $existingColumns)) {
+                try {
+                    $this->forge->dropColumn('organizations', $column);
+                } catch (\Exception $e) {
+                    log_message('error', 'Error al eliminar columna ' . $column . ': ' . $e->getMessage());
+                }
+            }
         }
     }
 }
