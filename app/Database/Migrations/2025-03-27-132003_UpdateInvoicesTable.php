@@ -10,10 +10,22 @@ class UpdateInvoicesTable extends Migration
     {
         // Agregar nuevas columnas que faltan
         $fields = [
+            'uuid' => [
+                'type' => 'VARCHAR',
+                'constraint' => 36,
+                'null' => true,
+                'after' => 'id'
+            ],
+            'client_uuid' => [
+                'type' => 'VARCHAR',
+                'constraint' => 36,
+                'null' => true,
+                'after' => 'client_id'
+            ],
             'client_document_type' => [
                 'type' => 'VARCHAR',
                 'constraint' => 3,
-                'after' => 'client_id',
+                'after' => 'client_uuid',
                 'null' => true
             ],
             'client_document_number' => [
@@ -34,12 +46,47 @@ class UpdateInvoicesTable extends Migration
                 'null' => true,
                 'after' => 'client_name'
             ],
+            'document_type' => [
+                'type' => 'VARCHAR',
+                'constraint' => 3,
+                'null' => true,
+                'after' => 'client_address'
+            ],
+            'series' => [
+                'type' => 'VARCHAR',
+                'constraint' => 4,
+                'null' => true,
+                'after' => 'document_type'
+            ],
+            'number' => [
+                'type' => 'VARCHAR',
+                'constraint' => 8,
+                'null' => true,
+                'after' => 'series'
+            ],
+            'total_amount' => [
+                'type' => 'DECIMAL',
+                'constraint' => '10,2',
+                'null' => true,
+                'after' => 'amount'
+            ],
             'paid_amount' => [
                 'type' => 'DECIMAL',
                 'constraint' => '10,2',
                 'default' => 0.00,
                 'after' => 'total_amount'
             ],
+            'currency' => [
+                'type' => 'VARCHAR',
+                'constraint' => 3,
+                'default' => 'PEN',
+                'after' => 'paid_amount'
+            ],
+            'issue_date' => [
+                'type' => 'DATE',
+                'null' => true,
+                'after' => 'currency'
+            ]
         ];
 
         $this->forge->addColumn('invoices', $fields);
@@ -58,11 +105,19 @@ class UpdateInvoicesTable extends Migration
     {
         // Eliminar columnas agregadas
         $this->forge->dropColumn('invoices', [
+            'uuid',
+            'client_uuid',
             'client_document_type',
             'client_document_number',
             'client_name',
             'client_address',
-            'paid_amount'
+            'document_type',
+            'series',
+            'number',
+            'total_amount',
+            'paid_amount',
+            'currency',
+            'issue_date'
         ]);
 
         // Revertir concept a NOT NULL
