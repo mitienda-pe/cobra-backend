@@ -484,4 +484,89 @@ class AuthController extends ResourceController
             'data' => $response
         ]);
     }
+
+    /**
+     * Get user profile information
+     * This endpoint can be used by the mobile app to get user information
+     * after successful OTP verification
+     */
+    public function profile()
+    {
+        // Get token from Authorization header
+        $authHeader = $this->request->getHeaderLine('Authorization');
+        $token = null;
+        
+        if (!empty($authHeader) && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            $token = $matches[1];
+        }
+        
+        // If no token in header, try from query string
+        if (!$token) {
+            $token = $this->request->getGet('token');
+        }
+        
+        // If still no token, check if we have a session token
+        if (!$token && session()->has('token')) {
+            $token = session()->get('token');
+        }
+        
+        if (!$token) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'No authentication token provided',
+                'data' => null
+            ]);
+        }
+        
+        // Validate token
+        $tokenModel = new UserApiTokenModel();
+        $tokenData = $tokenModel->getByToken($token);
+        
+        if (!$tokenData) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Invalid token',
+                'data' => null
+            ]);
+        }
+        
+        // Get user data
+        $userModel = new UserModel();
+        $userData = $userModel->find($tokenData['user_id']);
+        
+        if (!$userData) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'User not found',
+                'data' => null
+            ]);
+        }
+        
+        // Remove sensitive information
+        unset($userData['password']);
+        unset($userData['remember_token']);
+        unset($userData['reset_token']);
+        unset($userData['reset_token_expires_at']);
+        
+        // Get user's organization
+        $orgModel = new \App\Models\OrganizationModel();
+        $organization = null;
+        
+        if (!empty($userData['organization_id'])) {
+            $organization = $orgModel->find($userData['organization_id']);
+        }
+        
+        // Format the response
+        $response = [
+            'user' => $userData,
+            'organization' => $organization,
+            'token' => $token
+        ];
+        
+        return $this->respond([
+            'success' => true,
+            'message' => 'User profile retrieved successfully',
+            'data' => $response
+        ]);
+    }
 }

@@ -42,10 +42,12 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->post('auth/request-otp', 'AuthController::requestOtp');
     $routes->post('auth/verify-otp', 'AuthController::verifyOtp');
     $routes->post('auth/refresh-token', 'AuthController::refreshToken');
+    $routes->get('auth/profile', 'AuthController::profile');
     // OPTIONS routes for CORS preflight
     $routes->match(['options'], 'auth/request-otp', 'AuthController::requestOtp');
     $routes->match(['options'], 'auth/verify-otp', 'AuthController::verifyOtp');
     $routes->match(['options'], 'auth/refresh-token', 'AuthController::refreshToken');
+    $routes->match(['options'], 'auth/profile', 'AuthController::profile');
 
     // Ligo Webhook Route - Public
     $routes->post('webhooks/ligo', 'LigoWebhookController::handlePaymentNotification', ['csrf' => false]);

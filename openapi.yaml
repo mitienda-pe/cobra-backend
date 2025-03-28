@@ -227,6 +227,158 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /auth/profile:
+    get:
+      summary: Obtener perfil del usuario
+      description: |
+        Obtiene la información del perfil del usuario autenticado.
+        Este endpoint puede ser utilizado por la aplicación móvil para obtener los datos del usuario
+        después de la verificación OTP. Acepta el token en el encabezado Authorization o como parámetro de consulta.
+      tags:
+        - Autenticación
+      parameters:
+        - name: token
+          in: query
+          required: false
+          description: Token de autenticación (alternativa al encabezado Authorization)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Perfil del usuario obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "User profile retrieved successfully"
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      organization:
+                        $ref: '#/components/schemas/Organization'
+                      token:
+                        type: string
+                        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '400':
+          description: No se proporcionó token de autenticación
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No authentication token provided"
+                  data:
+                    type: object
+                    nullable: true
+                    example: null
+        '401':
+          description: Token inválido o usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Invalid token"
+                  data:
+                    type: object
+                    nullable: true
+                    example: null
+  /auth/me:
+    get:
+      summary: Obtener información del usuario autenticado
+      description: |
+        Obtiene la información del usuario autenticado.
+        Requiere autenticación mediante token en el encabezado Authorization.
+      tags:
+        - Autenticación
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Información del usuario obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      organization:
+                        $ref: '#/components/schemas/Organization'
+        '401':
+          description: No autenticado o token inválido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Not authenticated"
+  /users/me:
+    get:
+      summary: Obtener perfil del usuario actual
+      description: |
+        Obtiene el perfil del usuario actual, incluyendo sus carteras asignadas.
+        Requiere autenticación mediante token en el encabezado Authorization.
+      tags:
+        - Usuarios
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Perfil del usuario obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    allOf:
+                      - $ref: '#/components/schemas/User'
+                      - type: object
+                        properties:
+                          portfolios:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Portfolio'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "User not found"
   /user/profile:
     get:
       summary: Obtener perfil del usuario
