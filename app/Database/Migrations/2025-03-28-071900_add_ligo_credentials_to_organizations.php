@@ -9,31 +9,45 @@ class AddLigoCredentialsToOrganizations extends Migration
     public function up()
     {
         $this->forge->addColumn('organizations', [
-            'ligo_api_key' => [
+            'ligo_enabled' => [
+                'type' => 'BOOLEAN',
+                'null' => false,
+                'default' => false,
+            ],
+            'ligo_username' => [
                 'type' => 'VARCHAR',
-                'constraint' => 255,
+                'constraint' => 100,
                 'null' => true,
             ],
-            'ligo_api_secret' => [
+            'ligo_password' => [
                 'type' => 'VARCHAR',
-                'constraint' => 255,
+                'constraint' => 100,
+                'null' => true,
+            ],
+            'ligo_company_id' => [
+                'type' => 'VARCHAR',
+                'constraint' => 100,
+                'null' => true,
+            ],
+            'ligo_private_key' => [
+                'type' => 'TEXT',
                 'null' => true,
             ],
             'ligo_webhook_secret' => [
                 'type' => 'VARCHAR',
-                'constraint' => 255,
+                'constraint' => 100,
                 'null' => true,
             ],
-            'ligo_enabled' => [
-                'type' => 'TINYINT',
-                'constraint' => 1,
-                'default' => 0,
-            ]
         ]);
     }
 
     public function down()
     {
-        $this->forge->dropColumn('organizations', ['ligo_api_key', 'ligo_api_secret', 'ligo_webhook_secret', 'ligo_enabled']);
+        $this->forge->dropColumn('organizations', 'ligo_enabled');
+        $this->forge->dropColumn('organizations', 'ligo_username');
+        $this->forge->dropColumn('organizations', 'ligo_password');
+        $this->forge->dropColumn('organizations', 'ligo_company_id');
+        $this->forge->dropColumn('organizations', 'ligo_private_key');
+        $this->forge->dropColumn('organizations', 'ligo_webhook_secret');
     }
 }

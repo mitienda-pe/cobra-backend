@@ -64,34 +64,48 @@
                             </div>
                             
                             <div class="mb-3">
-                                <label for="ligo_api_key" class="form-label">API Key de Ligo</label>
-                                <input type="text" class="form-control <?= session('errors.ligo_api_key') ? 'is-invalid' : '' ?>" id="ligo_api_key" name="ligo_api_key" value="<?= old('ligo_api_key', $organization['ligo_api_key'] ?? '') ?>">
-                                <?php if (session('errors.ligo_api_key')): ?>
-                                    <div class="invalid-feedback"><?= session('errors.ligo_api_key') ?></div>
+                                <label for="ligo_username" class="form-label">Nombre de Usuario (Ligo)</label>
+                                <input type="text" class="form-control <?= session('errors.ligo_username') ? 'is-invalid' : '' ?>" id="ligo_username" name="ligo_username" value="<?= old('ligo_username', $organization['ligo_username'] ?? '') ?>">
+                                <?php if (session('errors.ligo_username')): ?>
+                                    <div class="invalid-feedback"><?= session('errors.ligo_username') ?></div>
                                 <?php endif; ?>
+                                <div class="form-text">Nombre de usuario asignado por Ligo</div>
                             </div>
                             
                             <div class="mb-3">
-                                <label for="ligo_api_secret" class="form-label">API Secret de Ligo</label>
-                                <input type="password" class="form-control <?= session('errors.ligo_api_secret') ? 'is-invalid' : '' ?>" id="ligo_api_secret" name="ligo_api_secret" value="<?= old('ligo_api_secret', $organization['ligo_api_secret'] ?? '') ?>">
-                                <?php if (session('errors.ligo_api_secret')): ?>
-                                    <div class="invalid-feedback"><?= session('errors.ligo_api_secret') ?></div>
+                                <label for="ligo_password" class="form-label">Contraseña (Ligo)</label>
+                                <input type="password" class="form-control <?= session('errors.ligo_password') ? 'is-invalid' : '' ?>" id="ligo_password" name="ligo_password" value="<?= old('ligo_password', $organization['ligo_password'] ?? '') ?>">
+                                <?php if (session('errors.ligo_password')): ?>
+                                    <div class="invalid-feedback"><?= session('errors.ligo_password') ?></div>
                                 <?php endif; ?>
-                                <div class="form-text">Si no desea cambiar el API Secret, deje este campo en blanco.</div>
+                                <div class="form-text">Si no desea cambiar la contraseña, deje este campo en blanco.</div>
                             </div>
                             
                             <div class="mb-3">
-                                <label for="ligo_webhook_secret" class="form-label">Webhook Secret de Ligo</label>
+                                <label for="ligo_company_id" class="form-label">ID de Empresa (Ligo)</label>
+                                <input type="text" class="form-control <?= session('errors.ligo_company_id') ? 'is-invalid' : '' ?>" id="ligo_company_id" name="ligo_company_id" value="<?= old('ligo_company_id', $organization['ligo_company_id'] ?? '') ?>">
+                                <?php if (session('errors.ligo_company_id')): ?>
+                                    <div class="invalid-feedback"><?= session('errors.ligo_company_id') ?></div>
+                                <?php endif; ?>
+                                <div class="form-text">Código de identificación única de la empresa proporcionado por Ligo</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ligo_private_key" class="form-label">Llave Privada (Ligo)</label>
+                                <textarea class="form-control <?= session('errors.ligo_private_key') ? 'is-invalid' : '' ?>" id="ligo_private_key" name="ligo_private_key" rows="5"><?= old('ligo_private_key', $organization['ligo_private_key'] ?? '') ?></textarea>
+                                <?php if (session('errors.ligo_private_key')): ?>
+                                    <div class="invalid-feedback"><?= session('errors.ligo_private_key') ?></div>
+                                <?php endif; ?>
+                                <div class="form-text">Llave privada proporcionada por Ligo para firmar tokens de autenticación</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ligo_webhook_secret" class="form-label">Webhook Secret (Ligo)</label>
                                 <input type="password" class="form-control <?= session('errors.ligo_webhook_secret') ? 'is-invalid' : '' ?>" id="ligo_webhook_secret" name="ligo_webhook_secret" value="<?= old('ligo_webhook_secret', $organization['ligo_webhook_secret'] ?? '') ?>">
                                 <?php if (session('errors.ligo_webhook_secret')): ?>
                                     <div class="invalid-feedback"><?= session('errors.ligo_webhook_secret') ?></div>
                                 <?php endif; ?>
-                                <div class="form-text">Si no desea cambiar el Webhook Secret, deje este campo en blanco.</div>
-                            </div>
-                            
-                            <div class="alert alert-info">
-                                <strong>Nota:</strong> Configure su webhook en el panel de Ligo con la siguiente URL:<br>
-                                <code><?= site_url('api/webhooks/ligo') ?></code>
+                                <div class="form-text">Secret para validar las notificaciones de webhook de Ligo</div>
                             </div>
                         </div>
                     </div>
