@@ -87,6 +87,8 @@ class LigoAuthController extends ResourceController
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json'
             ],
+            CURLOPT_SSL_VERIFYHOST => 0, // Deshabilitar verificación de host SSL
+            CURLOPT_SSL_VERIFYPEER => false, // Deshabilitar verificación de certificado SSL
         ]);
         
         $response = curl_exec($curl);

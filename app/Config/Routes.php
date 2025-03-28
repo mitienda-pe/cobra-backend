@@ -48,12 +48,12 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->match(['options'], 'auth/refresh-token', 'AuthController::refreshToken');
 
     // Ligo Webhook Route - Public
-    $routes->post('webhooks/ligo', 'LigoWebhookController::handlePaymentNotification');
-    $routes->match(['options'], 'webhooks/ligo', 'LigoWebhookController::handlePaymentNotification');
+    $routes->post('webhooks/ligo', 'LigoWebhookController::handlePaymentNotification', ['csrf' => false]);
+    $routes->match(['options'], 'webhooks/ligo', 'LigoWebhookController::handlePaymentNotification', ['csrf' => false]);
     
     // Ligo Auth Route - Public
-    $routes->get('auth/ligo/token', 'LigoAuthController::getToken');
-    $routes->match(['options'], 'auth/ligo/token', 'LigoAuthController::getToken');
+    $routes->get('auth/ligo/token', 'LigoAuthController::getToken', ['csrf' => false]);
+    $routes->match(['options'], 'auth/ligo/token', 'LigoAuthController::getToken', ['csrf' => false]);
 
     // Organization Routes
     $routes->match(['get', 'options'], 'organizations/(:segment)/clients', 'OrganizationController::clients/$1');
@@ -176,8 +176,8 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
 
     // Ligo Payment Routes
     $routes->group('payment/ligo', function ($routes) {
-        $routes->get('qr/(:num)', 'LigoPaymentController::showQRPage/$1');
-        $routes->get('generate-qr/(:num)', 'LigoPaymentController::generateQR/$1');
+        $routes->get('qr/(:num)', 'LigoPaymentController::showQRPage/$1', ['csrf' => false]);
+        $routes->get('generate-qr/(:num)', 'LigoPaymentController::generateQR/$1', ['csrf' => false]);
     });
 
     // Webhook Routes
