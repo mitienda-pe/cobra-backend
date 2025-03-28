@@ -7,7 +7,7 @@
     <h1>Cartera: <?= $portfolio['name'] ?></h1>
     <div>
         <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-            <a href="<?= site_url('portfolios/edit/' . $portfolio['uuid']) ?>" class="btn btn-primary">
+            <a href="<?= site_url('portfolios/' . $portfolio['uuid'] . '/edit') ?>" class="btn btn-primary">
                 <i class="bi bi-pencil"></i> Editar
             </a>
         <?php endif; ?>

@@ -321,26 +321,26 @@ class PortfolioController extends BaseController
         return redirect()->to('/portfolios')->with('error', 'Error al eliminar la cartera.');
     }
     
-    public function getOrganizationUsers($organizationUuid)
+    public function getUsersByOrganization($organizationId)
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403);
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid request']);
         }
 
         $portfolioModel = new PortfolioModel();
-        $users = $portfolioModel->getAvailableUsers($organizationUuid);
+        $users = $portfolioModel->getAvailableUsers($organizationId);
 
         return $this->response->setJSON(['users' => $users]);
     }
 
-    public function getOrganizationClients($organizationUuid)
+    public function getClientsByOrganization($organizationId)
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403);
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid request']);
         }
 
         $portfolioModel = new PortfolioModel();
-        $clients = $portfolioModel->getAvailableClients($organizationUuid);
+        $clients = $portfolioModel->getAvailableClients($organizationId);
 
         return $this->response->setJSON(['clients' => $clients]);
     }

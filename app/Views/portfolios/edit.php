@@ -13,7 +13,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <form action="<?= site_url('portfolios/edit/' . $portfolio['uuid']) ?>" method="post">
+                <form action="<?= site_url('portfolios/' . $portfolio['uuid'] . '/edit') ?>" method="post">
                     <?= csrf_field() ?>
                     <div class="mb-3">
                         <label for="name" class="form-label">Nombre *</label>

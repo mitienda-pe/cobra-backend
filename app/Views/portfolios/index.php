@@ -72,8 +72,8 @@
                                             <i class="bi bi-eye"></i> Ver
                                         </a>
                                         <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                            <a href="<?= site_url('portfolios/edit/' . $portfolio['uuid']) ?>" class="btn btn-sm btn-primary">
-                                                <i class="bi bi-pencil"></i>
+                                            <a href="<?= site_url('portfolios/' . $portfolio['uuid'] . '/edit') ?>" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-pencil"></i> Editar
                                             </a>
                                             <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-uuid="<?= $portfolio['uuid'] ?>" data-name="<?= esc($portfolio['name']) ?>">
                                                 <i class="bi bi-trash"></i> Eliminar
@@ -118,7 +118,7 @@
             var modal = $(this);
             modal.find('.modal-title').text('Eliminar Cartera ' + name);
             modal.find('#delete-name').text(name);
-            modal.find('#delete-btn').attr('href', '<?= site_url('portfolios/delete/') ?>' + uuid);
+            modal.find('#delete-btn').attr('href', '<?= site_url('portfolios/') ?>' + uuid + '/delete');
         });
     });
 </script>
