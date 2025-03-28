@@ -19,12 +19,6 @@
                     </div>
                 <?php endif; ?>
 
-                <?php if (session('message')): ?>
-                    <div class="alert alert-success">
-                        <?= session('message') ?>
-                    </div>
-                <?php endif; ?>
-
                 <?php if (session('errors')): ?>
                     <div class="alert alert-danger">
                         <ul class="mb-0">
@@ -34,8 +28,14 @@
                         </ul>
                     </div>
                 <?php endif; ?>
+
+                <?php if (session('message')): ?>
+                    <div class="alert alert-success">
+                        <?= session('message') ?>
+                    </div>
+                <?php endif; ?>
                 
-                <form id="clientForm" action="<?= site_url('clients/create') ?>" method="post">
+                <form action="<?= site_url('clients/create') ?>" method="post">
                     <?= csrf_field() ?>
                     
                     <?php if (isset($organizations) && $auth->hasRole('superadmin')): ?>
@@ -191,88 +191,6 @@
                         <button type="submit" class="btn btn-primary">Guardar</button>
                     </div>
                 </form>
-                
-                <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const form = document.getElementById('clientForm');
-                    const submitButton = document.querySelector('button[type="submit"]');
-                    const errorMessage = document.getElementById('errorMessage');
-                    const successMessage = document.getElementById('successMessage');
-                    
-                    form.addEventListener('submit', function(e) {
-                        e.preventDefault();
-                        
-                        // Reset error states
-                        errorMessage.classList.add('d-none');
-                        successMessage.classList.add('d-none');
-                        document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-                        
-                        // Show loading state
-                        submitButton.disabled = true;
-                        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
-                        
-                        // Get form data
-                        const formData = new FormData(form);
-                        
-                        // No need to add CSRF token in headers - it's already in the formData
-                        // AJAX submission
-                        fetch(form.action, {
-                            method: 'POST',
-                            body: formData,
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            submitButton.disabled = false;
-                            submitButton.textContent = 'Guardar';
-                            
-                            if (data.success) {
-                                // Show success message
-                                successMessage.textContent = data.message;
-                                successMessage.classList.remove('d-none');
-                                
-                                // Redirect after a short delay
-                                setTimeout(() => {
-                                    window.location.href = data.redirect;
-                                }, 1000);
-                            } else {
-                                // Handle validation errors
-                                if (data.errors) {
-                                    // Display field-specific errors
-                                    Object.keys(data.errors).forEach(field => {
-                                        const input = document.querySelector(`[name="${field}"]`);
-                                        if (input) {
-                                            input.classList.add('is-invalid');
-                                            const errorElement = document.querySelector(`[id="error-${field}"]`);
-                                            if (errorElement) {
-                                                errorElement.textContent = data.errors[field];
-                                            }
-                                        }
-                                    });
-                                }
-                                
-                                // Show general error message
-                                errorMessage.textContent = data.error || 'Error al crear el cliente. Por favor intente nuevamente.';
-                                errorMessage.classList.remove('d-none');
-                                
-                                // Scroll to error
-                                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
-                        })
-                        .catch(error => {
-                            submitButton.disabled = false;
-                            submitButton.textContent = 'Guardar';
-                            
-                            // Show error message
-                            errorMessage.textContent = 'Error de conexión. Por favor intente nuevamente.';
-                            errorMessage.classList.remove('d-none');
-                            console.error('Error:', error);
-                        });
-                    });
-                });
-                </script>
             </div>
         </div>
     </div>
