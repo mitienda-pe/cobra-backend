@@ -74,7 +74,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 });
 
 // API Routes - Protected 
-$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'api-auth'], function ($routes) {
+$routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAuth'], function ($routes) {
     // Auth Protected Routes
     $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
 
