@@ -213,8 +213,8 @@ class LigoQRController extends Controller
                 'password' => $organization['ligo_password']
             ];
             
-            // URL de autenticación según la documentación
-            $prefix = 'prod'; // Cambiar a 'dev' para entorno de desarrollo
+            // URL de autenticación según la documentación de Postman
+            $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
             $url = 'https://cce-auth-' . $prefix . '.ligocloud.tech/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
             
             log_message('debug', 'URL de autenticación Ligo: ' . $url);
@@ -318,17 +318,17 @@ class LigoQRController extends Controller
             // Preparar datos para la generación de QR según la documentación
             $qrData = [
                 'header' => [
-                    'sisOrigen' => '0921' // Este valor puede variar según la configuración de Ligo
+                    'sisOrigen' => '0921' // Valor del archivo de Postman: debtorParticipantCode
                 ],
                 'data' => [
                     'qrTipo' => '12', // QR dinámico con monto
-                    'idCuenta' => $organization['ligo_account_id'] ?? '92100144571260631044', // Debe configurarse en la organización
+                    'idCuenta' => $organization['ligo_account_id'] ?? '92100178794744781044', // Valor del archivo de Postman: idCuentaQr
                     'moneda' => $data['currency'] == 'PEN' ? '604' : '840', // 604 = Soles, 840 = Dólares
                     'importe' => (int)($data['amount'] * 100), // Convertir a centavos
                     'fechaVencimiento' => null,
                     'cantidadPagos' => null,
                     'glosa' => $data['description'],
-                    'codigoComerciante' => $organization['ligo_merchant_code'] ?? '4829', // Debe configurarse en la organización
+                    'codigoComerciante' => $organization['ligo_merchant_code'] ?? '4829', // Valor del archivo de Postman: merchantCode
                     'nombreComerciante' => $organization['name'],
                     'ciudadComerciante' => $organization['city'] ?? 'Lima',
                     'info' => json_encode(['invoice_id' => $data['orderId']])
@@ -337,7 +337,7 @@ class LigoQRController extends Controller
             ];
             
             // URL para generar QR según la documentación
-            $prefix = 'prod'; // Cambiar a 'dev' para entorno de desarrollo
+            $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
             $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/createQr';
             
             log_message('debug', 'URL para generar QR: ' . $url);
@@ -411,7 +411,7 @@ class LigoQRController extends Controller
             $curl = curl_init();
             
             // URL para obtener detalles del QR según la documentación
-            $prefix = 'prod'; // Cambiar a 'dev' para entorno de desarrollo
+            $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
             $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
             
             log_message('debug', 'URL para obtener detalles de QR: ' . $url);
