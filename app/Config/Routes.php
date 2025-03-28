@@ -103,12 +103,12 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('/', 'ClientController::index');
         $routes->get('create', 'ClientController::create');
         $routes->post('/', 'ClientController::store');
+        $routes->get('import', 'ClientController::import');
+        $routes->post('import', 'ClientController::import');
         $routes->get('(:segment)/edit', 'ClientController::edit/$1');
         $routes->post('(:segment)', 'ClientController::update/$1');
         $routes->post('(:segment)/delete', 'ClientController::delete/$1');
         $routes->get('(:segment)', 'ClientController::view/$1');
-        $routes->get('import', 'ClientController::import');
-        $routes->post('import', 'ClientController::import');
     });
 
     // Invoice Routes

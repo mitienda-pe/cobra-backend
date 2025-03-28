@@ -534,6 +534,11 @@ class ClientController extends BaseController
     
     public function view($uuid = null)
     {
+        // Special case for import route
+        if ($uuid === 'import') {
+            return $this->import();
+        }
+
         if (!$uuid) {
             return redirect()->to('/clients')->with('error', 'UUID de cliente no proporcionado.');
         }
