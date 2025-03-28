@@ -214,7 +214,7 @@ class PortfolioModel extends Model
     public function getAvailableClients($organizationId)
     {
         return $this->db->table('clients c')
-            ->select('c.*')
+            ->select('c.uuid, c.business_name as name, c.business_name, c.email, c.document_number')
             ->where('c.organization_id', $organizationId)
             ->where('c.deleted_at IS NULL')
             ->where('c.status', 'active')

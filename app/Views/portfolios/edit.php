@@ -85,9 +85,12 @@
                                                            value="<?= $client['uuid'] ?>"
                                                            <?= (in_array($client['uuid'], $assigned_client_ids)) ? 'checked' : '' ?>>
                                                     <label class="form-check-label" for="client_<?= $client['uuid'] ?>">
-                                                        <?= esc($client['name']) ?>
-                                                        <?php if (!empty($client['business_name'])): ?>
-                                                            <small class="text-muted">(<?= esc($client['business_name']) ?>)</small>
+                                                        <?= esc($client['business_name']) ?? esc($client['name']) ?>
+                                                        <?php if (!empty($client['document_number'])): ?>
+                                                            <small class="text-muted">(<?= esc($client['document_number']) ?>)</small>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($client['email'])): ?>
+                                                            <small class="text-muted">- <?= esc($client['email']) ?></small>
                                                         <?php endif; ?>
                                                     </label>
                                                 </div>
