@@ -399,17 +399,12 @@ class InvoiceController extends Controller
                         return trim(strtolower($field));
                     }, $header);
                     
-                    // Required fields check
+                    // Required fields check in header
                     $requiredFields = ['document_number', 'invoice_number', 'concept', 'amount', 'currency', 'due_date'];
-                    $missingFields = [];
-                    foreach ($requiredFields as $field) {
-                        if (empty($rowData[$field])) {
-                            $missingFields[] = $field;
-                        }
-                    }
+                    $missingFields = array_diff($requiredFields, $header);
                     
                     if (!empty($missingFields)) {
-                        throw new \Exception('Faltan campos requeridos: ' . implode(', ', $missingFields));
+                        throw new \Exception('El archivo CSV no tiene todas las columnas requeridas. Faltan: ' . implode(', ', $missingFields));
                     }
                     
                     // Start database transaction
@@ -425,6 +420,18 @@ class InvoiceController extends Controller
                         // Create associative array from row data
                         $rowData = array_combine($header, $data);
                         
+                        // Check for empty required fields in this row
+                        $emptyFields = [];
+                        foreach ($requiredFields as $field) {
+                            if (!isset($rowData[$field]) || trim($rowData[$field]) === '') {
+                                $emptyFields[] = $field;
+                            }
+                        }
+                        
+                        if (!empty($emptyFields)) {
+                            throw new \Exception('Fila ' . ($importedCount + 1) . ': Campos requeridos vacíos: ' . implode(', ', $emptyFields));
+                        }
+
                         try {
                             // Find client by document number
                             $client = $this->clientModel->where('document_number', $rowData['document_number'])
