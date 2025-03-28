@@ -102,14 +102,13 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     $routes->group('clients', function ($routes) {
         $routes->get('/', 'ClientController::index');
         $routes->get('create', 'ClientController::create');
-        $routes->post('create', 'ClientController::create');
-        $routes->get('(:segment)', 'ClientController::view/$1');
+        $routes->post('/', 'ClientController::store');
         $routes->get('(:segment)/edit', 'ClientController::edit/$1');
         $routes->post('(:segment)', 'ClientController::update/$1');
         $routes->post('(:segment)/delete', 'ClientController::delete/$1');
-        // Client import routes (with CSRF bypass)
-        $routes->get('import', 'ClientController::import', ['csrf' => false]);
-        $routes->post('import', 'ClientController::import', ['csrf' => false]);
+        $routes->get('(:segment)', 'ClientController::view/$1');
+        $routes->get('import', 'ClientController::import');
+        $routes->post('import', 'ClientController::import');
     });
 
     // Invoice Routes

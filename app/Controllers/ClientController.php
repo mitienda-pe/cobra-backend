@@ -17,6 +17,7 @@ class ClientController extends BaseController
     protected $portfolioModel;
     protected $auth;
     protected $session;
+    protected $db;
     
     public function __construct()
     {
@@ -25,6 +26,7 @@ class ClientController extends BaseController
         $this->portfolioModel = new PortfolioModel();
         $this->auth = new Auth();
         $this->session = \Config\Services::session();
+        $this->db = \Config\Database::connect();
         helper(['form', 'url']);
     }
     
@@ -305,12 +307,9 @@ class ClientController extends BaseController
                     
                     $db = \Config\Database::connect();
                     foreach ($portfolioIds as $portfolioId) {
-                        $portfolio = $this->portfolioModel->find($portfolioId);
-                        error_log('Portfolio data for ID ' . $portfolioId . ': ' . print_r($portfolio, true));
-                        
-                        if ($portfolio) {
+                        try {
                             $result = $db->table('client_portfolio')->insert([
-                                'portfolio_uuid' => $portfolio['uuid'],
+                                'portfolio_uuid' => $portfolioId,
                                 'client_uuid' => $newClient['uuid'],
                                 'created_at' => date('Y-m-d H:i:s'),
                                 'updated_at' => date('Y-m-d H:i:s')
@@ -320,6 +319,10 @@ class ClientController extends BaseController
                             if (!$result) {
                                 throw new \Exception('Error al insertar en client_portfolio');
                             }
+                        } catch (\Exception $e) {
+                            log_message('error', 'Error al asignar cartera: ' . $e->getMessage());
+                            $db->transRollback();
+                            return redirect()->back()->withInput()->with('error', 'Error al asignar cartera: ' . $e->getMessage());
                         }
                     }
                 }
@@ -566,10 +569,33 @@ class ClientController extends BaseController
     
     public function import()
     {
-        // Only allow POST for actual import
+        // GET request shows the import form
+        if ($this->request->getMethod() === 'get') {
+            $data = [
+                'auth' => $this->auth
+            ];
+
+            // If superadmin and no organization context, load organizations
+            if ($this->auth->hasRole('superadmin') && !$this->auth->organizationId()) {
+                $data['organizations'] = $this->organizationModel->findAll();
+            }
+
+            // Load available users (collectors) based on role and organization
+            if ($this->auth->hasRole('superadmin')) {
+                if ($this->auth->organizationId()) {
+                    $data['users'] = $this->getUsersByOrganization($this->auth->organizationId());
+                }
+            } else {
+                $data['users'] = $this->getUsersByOrganization($this->auth->user()['organization_id']);
+            }
+
+            return view('clients/import', $data);
+        }
+
+        // POST request processes the import
         if ($this->request->getMethod() === 'post') {
             // Get the uploaded file
-            $file = $this->request->getFile('file');
+            $file = $this->request->getFile('csv_file');
             
             // Check if a file was uploaded
             if (!$file || !$file->isValid()) {
@@ -577,82 +603,106 @@ class ClientController extends BaseController
             }
             
             // Check file extension
-            $ext = $file->getClientExtension();
-            if ($ext !== 'csv' && $ext !== 'xlsx') {
-                return redirect()->back()->with('error', 'El archivo debe ser CSV o Excel (XLSX).');
+            if ($file->getClientExtension() !== 'csv') {
+                return redirect()->back()->with('error', 'El archivo debe ser CSV.');
             }
-            
+
             try {
                 // Move file to writable directory
                 $file->move(WRITEPATH . 'uploads');
-                
-                // Get the new file name (might be different from original)
                 $fileName = $file->getName();
                 
-                // Process the file based on its type
+                // Get organization ID based on role
+                $organizationId = $this->auth->hasRole('superadmin') 
+                    ? ($this->request->getPost('organization_id') ?? $this->auth->organizationId())
+                    : $this->auth->user()['organization_id'];
+
+                if (!$organizationId) {
+                    throw new \Exception('No se ha seleccionado una organización.');
+                }
+
+                // Get selected collector (user_id) if any
+                $userId = $this->request->getPost('user_id');
+                
+                // Process CSV file
                 $importedCount = 0;
                 $errors = [];
                 
-                if ($ext === 'csv') {
-                    // Process CSV file
-                    if (($handle = fopen(WRITEPATH . 'uploads/' . $fileName, "r")) !== FALSE) {
-                        $header = fgetcsv($handle); // Get header row
-                        
-                        while (($data = fgetcsv($handle)) !== FALSE) {
-                            // Map CSV data to client fields
-                            $clientData = array_combine($header, $data);
-                            
-                            // Insert client
-                            try {
-                                $this->insertImportedClient($clientData);
-                                $importedCount++;
-                            } catch (\Exception $e) {
-                                $errors[] = "Error en fila {$importedCount}: " . $e->getMessage();
-                            }
-                        }
-                        fclose($handle);
-                    }
-                } else {
-                    // Process Excel file using PhpSpreadsheet
-                    $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
-                    $spreadsheet = $reader->load(WRITEPATH . 'uploads/' . $fileName);
-                    $worksheet = $spreadsheet->getActiveSheet();
+                if (($handle = fopen(WRITEPATH . 'uploads/' . $fileName, "r")) !== FALSE) {
+                    $header = fgetcsv($handle); // Get header row
                     
-                    $header = [];
-                    foreach ($worksheet->getRowIterator() as $row) {
-                        $cellIterator = $row->getCellIterator();
-                        $cellIterator->setIterateOnlyExistingCells(FALSE);
-                        
-                        // Get header row
-                        if ($row->getRowIndex() === 1) {
-                            foreach ($cellIterator as $cell) {
-                                $header[] = $cell->getValue();
-                            }
-                            continue;
-                        }
-                        
-                        // Process data rows
-                        $rowData = [];
-                        foreach ($cellIterator as $cell) {
-                            $rowData[] = $cell->getValue();
-                        }
-                        
+                    // Normalize header names
+                    $header = array_map(function($field) {
+                        return trim(strtolower($field));
+                    }, $header);
+                    
+                    // Required fields check
+                    $requiredFields = ['nombre_comercial', 'razon_social', 'documento'];
+                    $missingFields = array_diff($requiredFields, $header);
+                    
+                    if (!empty($missingFields)) {
+                        throw new \Exception('Faltan campos requeridos: ' . implode(', ', $missingFields));
+                    }
+                    
+                    while (($data = fgetcsv($handle)) !== FALSE) {
                         // Skip empty rows
-                        if (empty(array_filter($rowData))) {
+                        if (empty(array_filter($data))) {
                             continue;
                         }
+
+                        // Map CSV data to client fields
+                        $rowData = array_combine($header, $data);
                         
-                        // Map Excel data to client fields
-                        $clientData = array_combine($header, $rowData);
-                        
-                        // Insert client
                         try {
-                            $this->insertImportedClient($clientData);
+                            // Prepare client data
+                            $clientData = [
+                                'organization_id' => $organizationId,
+                                'business_name'   => $rowData['nombre_comercial'] ?? '',
+                                'legal_name'      => $rowData['razon_social'] ?? '',
+                                'document_number' => $rowData['documento'] ?? '',
+                                'contact_name'    => $rowData['contacto'] ?? '',
+                                'contact_phone'   => $rowData['telefono'] ?? '',
+                                'address'         => $rowData['direccion'] ?? '',
+                                'ubigeo'          => $rowData['ubigeo'] ?? '',
+                                'zip_code'        => $rowData['codigo_postal'] ?? '',
+                                'latitude'        => $rowData['latitud'] ?? null,
+                                'longitude'       => $rowData['longitud'] ?? null,
+                                'external_id'     => $rowData['id_externo'] ?? '',
+                                'status'          => 'active'
+                            ];
+
+                            // Check if client already exists
+                            $existingClient = $this->clientModel
+                                ->where('organization_id', $organizationId)
+                                ->where('document_number', $clientData['document_number'])
+                                ->first();
+
+                            if ($existingClient) {
+                                $errors[] = "Cliente con documento {$clientData['document_number']} ya existe.";
+                                continue;
+                            }
+
+                            // Insert new client
+                            $this->clientModel->insert($clientData);
+                            $clientUuid = $this->clientModel->getInsertUUID();
+
+                            // If a collector was selected, assign client to their portfolio
+                            if ($userId) {
+                                $portfolio = $this->portfolioModel->where('user_id', $userId)->first();
+                                if ($portfolio) {
+                                    $this->db->table('client_portfolio')->insert([
+                                        'client_uuid' => $clientUuid,
+                                        'portfolio_uuid' => $portfolio['uuid']
+                                    ]);
+                                }
+                            }
+
                             $importedCount++;
                         } catch (\Exception $e) {
                             $errors[] = "Error en fila {$importedCount}: " . $e->getMessage();
                         }
                     }
+                    fclose($handle);
                 }
                 
                 // Delete the uploaded file
@@ -662,21 +712,17 @@ class ClientController extends BaseController
                 $message = "Se importaron {$importedCount} clientes exitosamente.";
                 if (!empty($errors)) {
                     $message .= " Hubo " . count($errors) . " errores.";
+                    return redirect()->back()
+                        ->with('warning', $message)
+                        ->with('import_errors', $errors);
                 }
                 
-                if (!empty($errors)) {
-                    return redirect()->back()->with('warning', $message)->with('import_errors', $errors);
-                } else {
-                    return redirect()->back()->with('success', $message);
-                }
+                return redirect()->to('clients')->with('success', $message);
                 
             } catch (\Exception $e) {
                 return redirect()->back()->with('error', 'Error al procesar el archivo: ' . $e->getMessage());
             }
         }
-        
-        // Show import form for GET requests
-        return view('clients/import');
     }
     
     private function insertImportedClient($data)
@@ -727,5 +773,15 @@ class ClientController extends BaseController
         log_message('debug', 'CSRF Validation - Token: ' . $csrfName . ', Expected: ' . $csrfHash . ', Got: ' . $postedHash);
         
         return $postedHash === $csrfHash;
+    }
+    
+    private function getUsersByOrganization($organizationId)
+    {
+        return $this->db->table('users')
+            ->where('organization_id', $organizationId)
+            ->where('role', 'collector')
+            ->where('status', 'active')
+            ->get()
+            ->getResultArray();
     }
 }

@@ -13,7 +13,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <form action="<?= site_url('clients/create') ?>" method="post">
+                <form action="<?= site_url('clients') ?>" method="post">
                     <?= csrf_field() ?>
                     
                     <?php if (isset($organizations) && $auth->hasRole('superadmin')): ?>
