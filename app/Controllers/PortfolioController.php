@@ -91,85 +91,71 @@ class PortfolioController extends BaseController
     
     public function create()
     {
-        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
-            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para crear carteras.');
-        }
-        
-        $data = [
-            'auth' => $this->auth,
-        ];
-        
-        // Get organization ID
-        $organizationId = $this->auth->hasRole('superadmin') ? null : $this->auth->organizationId();
-        
-        if ($this->auth->hasRole('superadmin')) {
+        $data = [];
+        $portfolioModel = new PortfolioModel();
+
+        // If superadmin and no organization context, load organizations
+        if ($this->auth->hasRole('superadmin') && !$this->auth->organizationId()) {
             $organizationModel = new \App\Models\OrganizationModel();
             $data['organizations'] = $organizationModel->findAll();
         }
-        
-        // Get available users and clients if organization is selected
-        if ($organizationId || $this->request->getPost('organization_id')) {
-            $portfolioModel = new PortfolioModel();
-            $targetOrgId = $organizationId ?: $this->request->getPost('organization_id');
-            
-            $data['users'] = $portfolioModel->getAvailableUsers($targetOrgId);
-            $data['clients'] = $portfolioModel->getAvailableClients($targetOrgId);
+
+        // If organization is already selected (either by context or POST)
+        $organizationId = $this->auth->organizationId() ?? $this->request->getPost('organization_id');
+        if ($organizationId) {
+            // Get available users for this organization
+            $data['users'] = $portfolioModel->getAvailableUsers($organizationId);
+            $data['clients'] = $portfolioModel->getAvailableClients($organizationId);
         }
-        
+
         if ($this->request->getMethod() === 'post') {
             $rules = [
                 'name' => 'required|min_length[3]|max_length[100]',
-                'description' => 'permit_empty',
                 'status' => 'required|in_list[active,inactive]',
-                'user_id' => 'required|is_not_unique[users.uuid]'
+                'user_id' => 'required|is_not_unique[users.uuid]',
+                'organization_id' => 'required|is_not_unique[organizations.id]'
             ];
-            
-            if ($this->auth->hasRole('superadmin')) {
-                $rules['organization_id'] = 'required|is_natural_no_zero';
-            }
-            
+
             if ($this->validate($rules)) {
-                $portfolioModel = new PortfolioModel();
-                
-                $organizationId = $this->auth->hasRole('superadmin')
-                    ? $this->request->getPost('organization_id')
-                    : $this->auth->organizationId();
-                
                 helper('uuid');
-                $uuid = substr(generate_uuid(), 0, 8);
+                $uuid = generate_uuid();
                 
                 $data = [
                     'uuid' => $uuid,
-                    'organization_id' => $organizationId,
                     'name' => $this->request->getPost('name'),
                     'description' => $this->request->getPost('description'),
                     'status' => $this->request->getPost('status'),
+                    'organization_id' => $this->request->getPost('organization_id')
                 ];
-                
-                $portfolioId = $portfolioModel->insert($data);
-                
-                if ($portfolioId) {
-                    // Assign single user
-                    $userId = $this->request->getPost('user_id');
-                    if ($userId) {
-                        $portfolioModel->assignUsers($uuid, [$userId]);
+
+                if ($portfolioModel->insert($data)) {
+                    // Insert user assignment
+                    $user_id = $this->request->getPost('user_id');
+                    if ($user_id) {
+                        $this->db->table('portfolio_user')->insert([
+                            'portfolio_uuid' => $uuid,
+                            'user_uuid' => $user_id
+                        ]);
                     }
-                    
-                    // Assign selected clients
-                    $clientIds = $this->request->getPost('client_ids') ?: [];
-                    if (!empty($clientIds)) {
-                        $portfolioModel->assignClients($uuid, $clientIds);
+
+                    // Insert client assignments
+                    $client_ids = $this->request->getPost('client_ids') ?? [];
+                    foreach ($client_ids as $client_id) {
+                        $this->db->table('client_portfolio')->insert([
+                            'portfolio_uuid' => $uuid,
+                            'client_uuid' => $client_id
+                        ]);
                     }
-                    
-                    return redirect()->to('/portfolios')->with('message', 'Cartera creada exitosamente.');
+
+                    return redirect()->to('/portfolios')->with('success', 'Cartera creada exitosamente');
                 }
-                
-                return redirect()->back()->withInput()->with('error', 'Error al crear la cartera.');
+
+                return redirect()->back()->with('error', 'Error al crear la cartera');
             }
-            
+
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
-        
+
         return view('portfolios/create', $data);
     }
 

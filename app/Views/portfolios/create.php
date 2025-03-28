@@ -166,14 +166,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Cargar datos de organización predefinida
     var hiddenOrgInput = document.querySelector('input[type="hidden"][name="organization_id"]');
-    if (hiddenOrgInput) {
+    if (hiddenOrgInput && hiddenOrgInput.value) {
         loadOrganizationData(hiddenOrgInput.value);
     }
 
     function loadOrganizationData(organizationId) {
         // Cargar usuarios disponibles
         fetch(`/portfolios/organization/${organizationId}/users`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 updateUsersContainer(data.users);
             })
@@ -184,7 +189,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Cargar clientes disponibles
         fetch(`/portfolios/organization/${organizationId}/clients`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 updateClientsContainer(data.clients);
             })
@@ -236,8 +246,8 @@ document.addEventListener('DOMContentLoaded', function() {
                            id="client_${client.uuid}" 
                            value="${client.uuid}">
                     <label class="form-check-label" for="client_${client.uuid}">
-                        ${client.name}
-                        ${client.business_name ? `<small class="text-muted">(${client.business_name})</small>` : ''}
+                        ${client.business_name}
+                        ${client.document_number ? `<small class="text-muted">(${client.document_number})</small>` : ''}
                     </label>
                 </div>
             `;
