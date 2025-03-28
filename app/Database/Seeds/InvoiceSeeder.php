@@ -77,9 +77,8 @@ class InvoiceSeeder extends Seeder
                     'client_id'      => $client->id,
                     'uuid'           => generate_uuid(),
                     'document_type'  => '01',
-                    'series'         => 'F' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT),
+                    'series'         => 'F001',
                     'number'         => str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT),
-                    'invoice_number' => 'F001-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT),
                     'concept'        => $concept,
                     'total_amount'   => $amount,
                     'amount'         => $amount,
@@ -101,7 +100,7 @@ class InvoiceSeeder extends Seeder
                 try {
                     $this->db->table('invoices')->insert($invoice);
                     $invoicesCreated++;
-                    echo "Created invoice {$invoice['invoice_number']} for client {$client->id}\n";
+                    echo "Created invoice {$invoice['series']}-{$invoice['number']} for client {$client->id}\n";
                 } catch (\Exception $e) {
                     echo "Error creating invoice for client {$client->id}: " . $e->getMessage() . "\n";
                 }
