@@ -128,7 +128,7 @@ class ClientController extends BaseController
         }
         
         $data = [
-            'organization_id' => $currentOrgId,
+            'organization_id' => (int)$currentOrgId,
             'business_name' => $this->request->getPost('business_name'),
             'legal_name' => $this->request->getPost('legal_name'),
             'document_number' => $this->request->getPost('document_number'),
@@ -138,8 +138,8 @@ class ClientController extends BaseController
             'address' => $this->request->getPost('address'),
             'ubigeo' => $this->request->getPost('ubigeo'),
             'zip_code' => $this->request->getPost('zip_code'),
-            'latitude' => $this->request->getPost('latitude'),
-            'longitude' => $this->request->getPost('longitude'),
+            'latitude' => $this->request->getPost('latitude') ? (float)$this->request->getPost('latitude') : null,
+            'longitude' => $this->request->getPost('longitude') ? (float)$this->request->getPost('longitude') : null,
             'status' => $this->request->getPost('status', 'active')
         ];
         
@@ -265,7 +265,7 @@ class ClientController extends BaseController
                 
                 // Prepare data
                 $insertData = [
-                    'organization_id' => $organizationId,
+                    'organization_id' => (int)$organizationId,
                     'business_name'   => $this->request->getPost('business_name'),
                     'legal_name'      => $this->request->getPost('legal_name'),
                     'document_number' => $this->request->getPost('document_number'),
@@ -274,8 +274,8 @@ class ClientController extends BaseController
                     'address'         => $this->request->getPost('address'),
                     'ubigeo'          => $this->request->getPost('ubigeo'),
                     'zip_code'        => $this->request->getPost('zip_code'),
-                    'latitude'        => $this->request->getPost('latitude') ?: null,
-                    'longitude'       => $this->request->getPost('longitude') ?: null,
+                    'latitude'        => $this->request->getPost('latitude') ? (float)$this->request->getPost('latitude') : null,
+                    'longitude'       => $this->request->getPost('longitude') ? (float)$this->request->getPost('longitude') : null,
                     'external_id'     => $this->request->getPost('external_id') ?: null,
                     'status'          => 'active',
                 ];
@@ -284,7 +284,6 @@ class ClientController extends BaseController
                 
                 // Insert the client
                 $client = $this->clientModel->insert($insertData);
-                error_log('Insert result: ' . print_r($client, true));
                 
                 if ($client === false) {
                     $errors = $this->clientModel->errors();
@@ -381,8 +380,8 @@ class ClientController extends BaseController
                 'address' => $this->request->getPost('address'),
                 'ubigeo' => $this->request->getPost('ubigeo'),
                 'zip_code' => $this->request->getPost('zip_code'),
-                'latitude' => $this->request->getPost('latitude'),
-                'longitude' => $this->request->getPost('longitude'),
+                'latitude' => $this->request->getPost('latitude') ? (float)$this->request->getPost('latitude') : null,
+                'longitude' => $this->request->getPost('longitude') ? (float)$this->request->getPost('longitude') : null,
                 'status' => $this->request->getPost('status')
             ];
 
@@ -444,14 +443,14 @@ class ClientController extends BaseController
             'address' => $this->request->getPost('address'),
             'ubigeo' => $this->request->getPost('ubigeo'),
             'zip_code' => $this->request->getPost('zip_code'),
-            'latitude' => $this->request->getPost('latitude'),
-            'longitude' => $this->request->getPost('longitude'),
+            'latitude' => $this->request->getPost('latitude') ? (float)$this->request->getPost('latitude') : null,
+            'longitude' => $this->request->getPost('longitude') ? (float)$this->request->getPost('longitude') : null,
             'status' => $this->request->getPost('status')
         ];
         
         // Only superadmin can change organization
         if ($this->auth->hasRole('superadmin')) {
-            $data['organization_id'] = $this->request->getPost('organization_id');
+            $data['organization_id'] = (int)$this->request->getPost('organization_id');
         }
         
         try {
@@ -656,7 +655,7 @@ class ClientController extends BaseController
                         try {
                             // Prepare client data
                             $clientData = [
-                                'organization_id' => $organizationId,
+                                'organization_id' => (int)$organizationId,
                                 'business_name'   => $rowData['nombre_comercial'] ?? '',
                                 'legal_name'      => $rowData['razon_social'] ?? '',
                                 'document_number' => $rowData['documento'] ?? '',
@@ -665,8 +664,8 @@ class ClientController extends BaseController
                                 'address'         => $rowData['direccion'] ?? '',
                                 'ubigeo'          => $rowData['ubigeo'] ?? '',
                                 'zip_code'        => $rowData['codigo_postal'] ?? '',
-                                'latitude'        => $rowData['latitud'] ?? null,
-                                'longitude'       => $rowData['longitud'] ?? null,
+                                'latitude'        => $rowData['latitud'] ? (float)$rowData['latitud'] : null,
+                                'longitude'       => $rowData['longitud'] ? (float)$rowData['longitud'] : null,
                                 'external_id'     => $rowData['id_externo'] ?? '',
                                 'status'          => 'active'
                             ];
@@ -741,7 +740,7 @@ class ClientController extends BaseController
         
         // Prepare client data
         $clientData = [
-            'organization_id' => $this->auth->organizationId() ?: 1, // Default to org 1 if none set
+            'organization_id' => (int)($this->auth->organizationId() ?: 1), // Default to org 1 if none set
             'business_name' => $data['business_name'],
             'legal_name' => $data['legal_name'] ?? $data['business_name'],
             'document_number' => $data['document_number'],
@@ -750,6 +749,8 @@ class ClientController extends BaseController
             'address' => $data['address'] ?? null,
             'ubigeo' => $data['ubigeo'] ?? null,
             'zip_code' => $data['zip_code'] ?? null,
+            'latitude' => $data['latitude'] ? (float)$data['latitude'] : null,
+            'longitude' => $data['longitude'] ? (float)$data['longitude'] : null,
             'external_id' => $data['external_id'] ?? null,
             'status' => 'active'
         ];
