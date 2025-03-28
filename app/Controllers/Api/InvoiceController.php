@@ -19,6 +19,30 @@ class InvoiceController extends ResourceController
     }
     
     /**
+     * Get the authenticated user
+     * This method ensures we have a user object even if session data is missing
+     */
+    protected function getAuthUser()
+    {
+        if ($this->user) {
+            return $this->user;
+        }
+        
+        // Try to get user from request object (set by ApiAuthFilter)
+        if (isset($this->request) && isset($this->request->user)) {
+            $this->user = $this->request->user;
+            return $this->user;
+        }
+        
+        // If still no user, return a default user with role 'guest'
+        return [
+            'id' => 0,
+            'role' => 'guest',
+            'organization_id' => 0
+        ];
+    }
+    
+    /**
      * List invoices based on user role and filters
      */
     public function index()
@@ -31,10 +55,10 @@ class InvoiceController extends ResourceController
         $invoiceModel = new InvoiceModel();
         
         // Different queries based on user role
-        if ($this->user['role'] === 'superadmin' || $this->user['role'] === 'admin') {
+        if ($this->getAuthUser()['role'] === 'superadmin' || $this->getAuthUser()['role'] === 'admin') {
             // Admins and superadmins can see all invoices for their organization
             $invoices = $invoiceModel->getByOrganization(
-                $this->user['organization_id'],
+                $this->getAuthUser()['organization_id'],
                 $status,
                 $dateStart,
                 $dateEnd
@@ -47,7 +71,7 @@ class InvoiceController extends ResourceController
             }
         } else {
             // Regular users can only see invoices from their assigned portfolios
-            $invoices = $invoiceModel->getByUser($this->user['id'], $status);
+            $invoices = $invoiceModel->getByUser($this->getAuthUser()['id'], $status);
             
             if ($clientId) {
                 $invoices = array_filter($invoices, function($invoice) use ($clientId) {
@@ -108,7 +132,7 @@ class InvoiceController extends ResourceController
     public function create()
     {
         // Only admins and superadmins can create invoices via API
-        if (!in_array($this->user['role'], ['superadmin', 'admin'])) {
+        if (!in_array($this->getAuthUser()['role'], ['superadmin', 'admin'])) {
             return $this->failForbidden('You do not have permission to create invoices');
         }
         
@@ -130,14 +154,14 @@ class InvoiceController extends ResourceController
         $clientModel = new ClientModel();
         $client = $clientModel->find($this->request->getVar('client_id'));
         
-        if (!$client || $client['organization_id'] != $this->user['organization_id']) {
+        if (!$client || $client['organization_id'] != $this->getAuthUser()['organization_id']) {
             return $this->failNotFound('Client not found or not in your organization');
         }
         
         $invoiceModel = new InvoiceModel();
         
         $data = [
-            'organization_id' => $this->user['organization_id'],
+            'organization_id' => $this->getAuthUser()['organization_id'],
             'client_id'       => $this->request->getVar('client_id'),
             'invoice_number'  => $this->request->getVar('invoice_number'),
             'concept'         => $this->request->getVar('concept'),
@@ -165,7 +189,7 @@ class InvoiceController extends ResourceController
     public function update($id = null)
     {
         // Only admins and superadmins can update invoices via API
-        if (!in_array($this->user['role'], ['superadmin', 'admin'])) {
+        if (!in_array($this->getAuthUser()['role'], ['superadmin', 'admin'])) {
             return $this->failForbidden('You do not have permission to update invoices');
         }
         
@@ -181,7 +205,7 @@ class InvoiceController extends ResourceController
         }
         
         // Check if user has access to this invoice
-        if ($invoice['organization_id'] != $this->user['organization_id']) {
+        if ($invoice['organization_id'] != $this->getAuthUser()['organization_id']) {
             return $this->failForbidden('You do not have access to this invoice');
         }
         
@@ -251,7 +275,7 @@ class InvoiceController extends ResourceController
     public function delete($id = null)
     {
         // Only admins and superadmins can delete invoices
-        if (!in_array($this->user['role'], ['superadmin', 'admin'])) {
+        if (!in_array($this->getAuthUser()['role'], ['superadmin', 'admin'])) {
             return $this->failForbidden('You do not have permission to delete invoices');
         }
         
@@ -267,7 +291,7 @@ class InvoiceController extends ResourceController
         }
         
         // Check if user has access to this invoice
-        if ($invoice['organization_id'] != $this->user['organization_id']) {
+        if ($invoice['organization_id'] != $this->getAuthUser()['organization_id']) {
             return $this->failForbidden('You do not have access to this invoice');
         }
         
@@ -292,7 +316,7 @@ class InvoiceController extends ResourceController
         }
         
         $invoiceModel = new InvoiceModel();
-        $invoice = $invoiceModel->getByExternalId($externalId, $this->user['organization_id']);
+        $invoice = $invoiceModel->getByExternalId($externalId, $this->getAuthUser()['organization_id']);
         
         if (!$invoice) {
             return $this->failNotFound('Invoice not found');
@@ -321,15 +345,15 @@ class InvoiceController extends ResourceController
         $invoiceModel = new InvoiceModel();
         
         // Different queries based on user role
-        if ($this->user['role'] === 'superadmin' || $this->user['role'] === 'admin') {
+        if ($this->getAuthUser()['role'] === 'superadmin' || $this->getAuthUser()['role'] === 'admin') {
             // Admins and superadmins can see all invoices for their organization
             $invoices = $invoiceModel->getByOrganization(
-                $this->user['organization_id'],
+                $this->getAuthUser()['organization_id'],
                 'pending'
             );
         } else {
             // Regular users can only see invoices from their assigned portfolios
-            $invoices = $invoiceModel->getByUser($this->user['id'], 'pending');
+            $invoices = $invoiceModel->getByUser($this->getAuthUser()['id'], 'pending');
         }
         
         // Filter overdue invoices
@@ -346,13 +370,13 @@ class InvoiceController extends ResourceController
      */
     private function canAccessInvoice($invoice)
     {
-        if ($this->user['role'] === 'superadmin' || $this->user['role'] === 'admin') {
+        if ($this->getAuthUser()['role'] === 'superadmin' || $this->getAuthUser()['role'] === 'admin') {
             // Admins and superadmins can access any invoice in their organization
-            return $invoice['organization_id'] == $this->user['organization_id'];
+            return $invoice['organization_id'] == $this->getAuthUser()['organization_id'];
         } else {
             // For regular users, check if they have access to the client through portfolios
             $portfolioModel = new PortfolioModel();
-            $portfolios = $portfolioModel->getByUser($this->user['id']);
+            $portfolios = $portfolioModel->getByUser($this->getAuthUser()['id']);
             
             // Get all client IDs from user's portfolios
             $clientIds = [];
