@@ -14,10 +14,16 @@ class UserApiTokenModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'user_id',
+        'name',
         'token',
-        'device_info',
+        'refresh_token',
+        'scopes',
+        'last_used_at',
         'expires_at',
-        'created_at'
+        'created_at',
+        'updated_at',
+        'revoked',
+        'device_info'
     ];
 
     // Dates
