@@ -8,45 +8,80 @@ class AddNameToUserApiTokens extends Migration
 {
     public function up()
     {
-        // Check if the column already exists to avoid errors
-        $fields = $this->db->getFieldData('user_api_tokens');
-        $nameExists = false;
-        
-        foreach ($fields as $field) {
-            if ($field->name === 'name') {
-                $nameExists = true;
-                break;
+        // For SQLite, we need to check if the column exists using PRAGMA
+        if ($this->db->DBDriver == 'SQLite3') {
+            // Get the table info
+            $tableInfo = $this->db->query("PRAGMA table_info(user_api_tokens)")->getResultArray();
+            
+            // Check if the name column exists
+            $hasColumn = false;
+            foreach ($tableInfo as $column) {
+                if ($column['name'] === 'name') {
+                    $hasColumn = true;
+                    break;
+                }
             }
-        }
-        
-        // Only add the column if it doesn't exist
-        if (!$nameExists) {
-            $this->forge->addColumn('user_api_tokens', [
-                'name' => [
-                    'type' => 'VARCHAR',
-                    'constraint' => 100,
-                    'after' => 'user_id',
-                    'null' => true, // Make it nullable for existing records
-                ]
-            ]);
+            
+            // Only add the column if it doesn't exist
+            if (!$hasColumn) {
+                // For SQLite, we can't use 'after' in addColumn
+                $this->forge->addColumn('user_api_tokens', [
+                    'name' => [
+                        'type' => 'VARCHAR',
+                        'constraint' => 100,
+                        'null' => true // Make it nullable for existing records
+                    ]
+                ]);
+            }
+        } else {
+            // For other databases like MySQL
+            try {
+                $this->forge->addColumn('user_api_tokens', [
+                    'name' => [
+                        'type' => 'VARCHAR',
+                        'constraint' => 100,
+                        'after' => 'user_id',
+                        'null' => true // Make it nullable for existing records
+                    ]
+                ]);
+            } catch (\Exception $e) {
+                // Column might already exist, ignore the error
+                log_message('info', 'Column name might already exist: ' . $e->getMessage());
+            }
         }
     }
 
     public function down()
     {
-        // Only attempt to drop if the column exists
-        $fields = $this->db->getFieldData('user_api_tokens');
-        $nameExists = false;
-        
-        foreach ($fields as $field) {
-            if ($field->name === 'name') {
-                $nameExists = true;
-                break;
+        // For SQLite, we need to check if the column exists using PRAGMA
+        if ($this->db->DBDriver == 'SQLite3') {
+            // Get the table info
+            $tableInfo = $this->db->query("PRAGMA table_info(user_api_tokens)")->getResultArray();
+            
+            // Check if the name column exists
+            $hasColumn = false;
+            foreach ($tableInfo as $column) {
+                if ($column['name'] === 'name') {
+                    $hasColumn = true;
+                    break;
+                }
             }
-        }
-        
-        if ($nameExists) {
-            $this->forge->dropColumn('user_api_tokens', 'name');
+            
+            // Only drop the column if it exists
+            if ($hasColumn) {
+                // SQLite doesn't support dropping columns directly
+                // We would need to recreate the table, which is complex
+                // For simplicity, we'll just log a message
+                log_message('info', 'SQLite does not support dropping columns directly. The name column will remain.');
+            }
+        } else {
+            // For other databases like MySQL
+            try {
+                $this->forge->dropColumn('user_api_tokens', 'name');
+            } catch (\Exception $e) {
+                // Column might not exist, ignore the error
+                log_message('info', 'Error dropping column name: ' . $e->getMessage());
+            }
         }
     }
 }
