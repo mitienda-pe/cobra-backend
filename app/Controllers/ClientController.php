@@ -107,7 +107,7 @@ class ClientController extends BaseController
         }
         
         // Validate organization_id if provided
-        $organizationId = $this->request->getPost('organization_id');
+        $organizationId = $this->request->getVar('organization_id');
         if ($organizationId && $this->auth->hasRole('superadmin')) {
             $currentOrgId = $organizationId;
         }
@@ -129,18 +129,18 @@ class ClientController extends BaseController
         
         $data = [
             'organization_id' => (int)$currentOrgId,
-            'business_name' => $this->request->getPost('business_name'),
-            'legal_name' => $this->request->getPost('legal_name'),
-            'document_number' => $this->request->getPost('document_number'),
-            'external_id' => $this->request->getPost('external_id'),
-            'contact_name' => $this->request->getPost('contact_name'),
-            'contact_phone' => $this->request->getPost('contact_phone'),
-            'address' => $this->request->getPost('address'),
-            'ubigeo' => $this->request->getPost('ubigeo'),
-            'zip_code' => $this->request->getPost('zip_code'),
-            'latitude' => $this->request->getPost('latitude') ? (float)$this->request->getPost('latitude') : null,
-            'longitude' => $this->request->getPost('longitude') ? (float)$this->request->getPost('longitude') : null,
-            'status' => $this->request->getPost('status', 'active')
+            'business_name' => trim($this->request->getVar('business_name')),
+            'legal_name' => trim($this->request->getVar('legal_name')),
+            'document_number' => trim($this->request->getVar('document_number')),
+            'external_id' => trim($this->request->getVar('external_id') ?? ''),
+            'contact_name' => trim($this->request->getVar('contact_name') ?? ''),
+            'contact_phone' => trim($this->request->getVar('contact_phone') ?? ''),
+            'address' => trim($this->request->getVar('address') ?? ''),
+            'ubigeo' => trim($this->request->getVar('ubigeo') ?? ''),
+            'zip_code' => trim($this->request->getVar('zip_code') ?? ''),
+            'latitude' => $this->request->getVar('latitude') ? (float)$this->request->getVar('latitude') : null,
+            'longitude' => $this->request->getVar('longitude') ? (float)$this->request->getVar('longitude') : null,
+            'status' => $this->request->getVar('status') ?? 'active'
         ];
         
         try {
@@ -165,7 +165,7 @@ class ClientController extends BaseController
             }
             
             // Handle portfolio assignments
-            $portfolioUuids = $this->request->getPost('portfolio_ids');
+            $portfolioUuids = $this->request->getVar('portfolio_ids');
             if ($portfolioUuids) {
                 foreach ($portfolioUuids as $portfolioUuid) {
                     try {
@@ -258,25 +258,25 @@ class ClientController extends BaseController
                 error_log('Organization ID from auth: ' . $organizationId);
                 
                 // If superadmin, allow selecting organization
-                if ($this->auth->hasRole('superadmin') && $this->request->getPost('organization_id')) {
-                    $organizationId = $this->request->getPost('organization_id');
+                if ($this->auth->hasRole('superadmin') && $this->request->getVar('organization_id')) {
+                    $organizationId = $this->request->getVar('organization_id');
                     error_log('Superadmin selected organization: ' . $organizationId);
                 }
                 
                 // Prepare data
                 $insertData = [
                     'organization_id' => (int)$organizationId,
-                    'business_name'   => $this->request->getPost('business_name'),
-                    'legal_name'      => $this->request->getPost('legal_name'),
-                    'document_number' => $this->request->getPost('document_number'),
-                    'contact_name'    => $this->request->getPost('contact_name'),
-                    'contact_phone'   => $this->request->getPost('contact_phone'),
-                    'address'         => $this->request->getPost('address'),
-                    'ubigeo'          => $this->request->getPost('ubigeo'),
-                    'zip_code'        => $this->request->getPost('zip_code'),
-                    'latitude'        => $this->request->getPost('latitude') ? (float)$this->request->getPost('latitude') : null,
-                    'longitude'       => $this->request->getPost('longitude') ? (float)$this->request->getPost('longitude') : null,
-                    'external_id'     => $this->request->getPost('external_id') ?: null,
+                    'business_name'   => $this->request->getVar('business_name'),
+                    'legal_name'      => $this->request->getVar('legal_name'),
+                    'document_number' => $this->request->getVar('document_number'),
+                    'contact_name'    => $this->request->getVar('contact_name'),
+                    'contact_phone'   => $this->request->getVar('contact_phone'),
+                    'address'         => $this->request->getVar('address'),
+                    'ubigeo'          => $this->request->getVar('ubigeo'),
+                    'zip_code'        => $this->request->getVar('zip_code'),
+                    'latitude'        => $this->request->getVar('latitude') ? (float)$this->request->getVar('latitude') : null,
+                    'longitude'       => $this->request->getVar('longitude') ? (float)$this->request->getVar('longitude') : null,
+                    'external_id'     => $this->request->getVar('external_id') ?: null,
                     'status'          => 'active',
                 ];
                 
@@ -300,7 +300,7 @@ class ClientController extends BaseController
                 }
                 
                 // Handle portfolio assignments
-                $portfolioIds = $this->request->getPost('portfolios');
+                $portfolioIds = $this->request->getVar('portfolios');
                 if ($portfolioIds) {
                     error_log('Portfolio IDs to assign: ' . print_r($portfolioIds, true));
                     
@@ -371,18 +371,18 @@ class ClientController extends BaseController
             }
 
             $data = [
-                'business_name' => $this->request->getPost('business_name'),
-                'legal_name' => $this->request->getPost('legal_name'),
-                'document_number' => $this->request->getPost('document_number'),
-                'external_id' => $this->request->getPost('external_id'),
-                'contact_name' => $this->request->getPost('contact_name'),
-                'contact_phone' => $this->request->getPost('contact_phone'),
-                'address' => $this->request->getPost('address'),
-                'ubigeo' => $this->request->getPost('ubigeo'),
-                'zip_code' => $this->request->getPost('zip_code'),
-                'latitude' => $this->request->getPost('latitude') ? (float)$this->request->getPost('latitude') : null,
-                'longitude' => $this->request->getPost('longitude') ? (float)$this->request->getPost('longitude') : null,
-                'status' => $this->request->getPost('status')
+                'business_name' => $this->request->getVar('business_name'),
+                'legal_name' => $this->request->getVar('legal_name'),
+                'document_number' => $this->request->getVar('document_number'),
+                'external_id' => $this->request->getVar('external_id'),
+                'contact_name' => $this->request->getVar('contact_name'),
+                'contact_phone' => $this->request->getVar('contact_phone'),
+                'address' => $this->request->getVar('address'),
+                'ubigeo' => $this->request->getVar('ubigeo'),
+                'zip_code' => $this->request->getVar('zip_code'),
+                'latitude' => $this->request->getVar('latitude') ? (float)$this->request->getVar('latitude') : null,
+                'longitude' => $this->request->getVar('longitude') ? (float)$this->request->getVar('longitude') : null,
+                'status' => $this->request->getVar('status')
             ];
 
             try {
@@ -434,23 +434,23 @@ class ClientController extends BaseController
         }
         
         $data = [
-            'business_name' => $this->request->getPost('business_name'),
-            'legal_name' => $this->request->getPost('legal_name'),
-            'document_number' => $this->request->getPost('document_number'),
-            'external_id' => $this->request->getPost('external_id'),
-            'contact_name' => $this->request->getPost('contact_name'),
-            'contact_phone' => $this->request->getPost('contact_phone'),
-            'address' => $this->request->getPost('address'),
-            'ubigeo' => $this->request->getPost('ubigeo'),
-            'zip_code' => $this->request->getPost('zip_code'),
-            'latitude' => $this->request->getPost('latitude') ? (float)$this->request->getPost('latitude') : null,
-            'longitude' => $this->request->getPost('longitude') ? (float)$this->request->getPost('longitude') : null,
-            'status' => $this->request->getPost('status')
+            'business_name' => $this->request->getVar('business_name'),
+            'legal_name' => $this->request->getVar('legal_name'),
+            'document_number' => $this->request->getVar('document_number'),
+            'external_id' => $this->request->getVar('external_id'),
+            'contact_name' => $this->request->getVar('contact_name'),
+            'contact_phone' => $this->request->getVar('contact_phone'),
+            'address' => $this->request->getVar('address'),
+            'ubigeo' => $this->request->getVar('ubigeo'),
+            'zip_code' => $this->request->getVar('zip_code'),
+            'latitude' => $this->request->getVar('latitude') ? (float)$this->request->getVar('latitude') : null,
+            'longitude' => $this->request->getVar('longitude') ? (float)$this->request->getVar('longitude') : null,
+            'status' => $this->request->getVar('status')
         ];
         
         // Only superadmin can change organization
         if ($this->auth->hasRole('superadmin')) {
-            $data['organization_id'] = (int)$this->request->getPost('organization_id');
+            $data['organization_id'] = (int)$this->request->getVar('organization_id');
         }
         
         try {
@@ -466,7 +466,7 @@ class ClientController extends BaseController
             }
             
             // Update portfolio assignments
-            $portfolioIds = $this->request->getPost('portfolio_ids');
+            $portfolioIds = $this->request->getVar('portfolio_ids');
             if ($portfolioIds !== null) {
                 // Delete existing assignments
                 $db->table('client_portfolio')->where('client_uuid', $client['uuid'])->delete();
@@ -613,7 +613,7 @@ class ClientController extends BaseController
                 
                 // Get organization ID based on role
                 $organizationId = $this->auth->hasRole('superadmin') 
-                    ? ($this->request->getPost('organization_id') ?? $this->auth->organizationId())
+                    ? ($this->request->getVar('organization_id') ?? $this->auth->organizationId())
                     : $this->auth->user()['organization_id'];
 
                 if (!$organizationId) {
@@ -621,7 +621,7 @@ class ClientController extends BaseController
                 }
 
                 // Get selected collector (user_id) if any
-                $userId = $this->request->getPost('user_id');
+                $userId = $this->request->getVar('user_id');
                 
                 // Process CSV file
                 $importedCount = 0;
@@ -769,7 +769,7 @@ class ClientController extends BaseController
     {
         $csrfName = csrf_token();
         $csrfHash = csrf_hash();
-        $postedHash = $this->request->getPost($csrfName);
+        $postedHash = $this->request->getVar($csrfName);
         
         log_message('debug', 'CSRF Validation - Token: ' . $csrfName . ', Expected: ' . $csrfHash . ', Got: ' . $postedHash);
         
