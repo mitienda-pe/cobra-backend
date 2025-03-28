@@ -59,7 +59,7 @@
                                     <?php 
                                     $user = $db->table('portfolio_user pu')
                                              ->select('u.name')
-                                             ->join('users u', 'u.id = pu.user_id')
+                                             ->join('users u', 'u.uuid = pu.user_uuid')
                                              ->where('pu.portfolio_uuid', $portfolio['uuid'])
                                              ->get()
                                              ->getRowArray();
