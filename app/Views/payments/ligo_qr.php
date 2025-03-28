@@ -1,5 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 
+<?= $this->section('title') ?><?= $title ?? 'Pago con QR - Ligo' ?><?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
 <div class="container">
     <div class="row">
@@ -17,37 +19,6 @@
                             <img src="<?= $qr_image_url ?>" alt="QR Code" class="img-fluid" style="max-width: 250px;">
                         </div>
                         <p class="text-muted">Escanea el código QR con tu aplicación de Ligo para realizar el pago</p>
-                        
-                        <?php if (isset($expiration)): ?>
-                            <p class="text-danger">Este código QR expirará en <span id="countdown"></span></p>
-                            <script>
-                                // Set the expiration time
-                                const expirationTime = new Date("<?= $expiration ?>").getTime();
-                                
-                                // Update the countdown every second
-                                const countdownTimer = setInterval(function() {
-                                    const now = new Date().getTime();
-                                    const distance = expirationTime - now;
-                                    
-                                    // Calculate time components
-                                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-                                    
-                                    // Display the countdown
-                                    document.getElementById("countdown").innerHTML = 
-                                        minutes + "m " + seconds + "s";
-                                    
-                                    // If expired, redirect to invoice page
-                                    if (distance < 0) {
-                                        clearInterval(countdownTimer);
-                                        document.getElementById("countdown").innerHTML = "EXPIRADO";
-                                        setTimeout(() => {
-                                            window.location.href = "<?= site_url('invoices/view/' . $invoice['id']) ?>";
-                                        }, 3000);
-                                    }
-                                }, 1000);
-                            </script>
-                        <?php endif; ?>
                     <?php else: ?>
                         <div class="alert alert-danger">
                             No se pudo generar el código QR. Por favor, intente nuevamente.

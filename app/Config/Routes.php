@@ -176,7 +176,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
 
     // Ligo Payment Routes
     $routes->group('payment/ligo', function ($routes) {
-        $routes->get('qr/(:num)', 'LigoPaymentController::showQRPage/$1', ['csrf' => false]);
+        $routes->get('qr/(:num)', 'LigoQRController::index/$1', ['csrf' => false]);
         $routes->get('generate-qr/(:num)', 'LigoPaymentController::generateQR/$1', ['csrf' => false]);
     });
 
