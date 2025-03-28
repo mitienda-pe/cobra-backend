@@ -38,11 +38,9 @@
                             <h5 class="mb-3">Asignar Cobrador</h5>
                             <div class="mb-3">
                                 <div class="users-list" style="max-height: 300px; overflow-y: auto;">
-                                    <?php if(empty($users)): ?>
-                                        <p class="text-muted">No hay usuarios disponibles para esta organización</p>
-                                    <?php else: ?>
-                                        <?php foreach ($users as $user): ?>
-                                            <?php if ($user['role'] == 'admin' || $user['role'] == 'user'): ?>
+                                    <div id="users-container">
+                                        <?php if(isset($users)): ?>
+                                            <?php foreach ($users as $user): ?>
                                                 <div class="form-check">
                                                     <input class="form-check-input user-radio" 
                                                            type="radio" 
@@ -56,9 +54,11 @@
                                                         <small class="text-muted">(<?= esc($user['email']) ?>)</small>
                                                     </label>
                                                 </div>
-                                            <?php endif; ?>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <p class="text-muted">No hay usuarios disponibles</p>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -74,21 +74,28 @@
                                 </div>
                                 <hr>
                                 <div class="clients-list" style="max-height: 300px; overflow-y: auto;">
-                                    <?php if(empty($clients)): ?>
-                                        <p class="text-muted">No hay clientes disponibles para esta organización</p>
-                                    <?php else: ?>
-                                        <?php foreach ($clients as $client): ?>
-                                            <div class="form-check">
-                                                <input class="form-check-input client-checkbox" type="checkbox" 
-                                                    name="client_ids[]" id="client_<?= $client['uuid'] ?>" 
-                                                    value="<?= $client['uuid'] ?>" 
-                                                    <?= (in_array($client['uuid'], $assigned_client_ids)) ? 'checked' : '' ?>>
-                                                <label class="form-check-label" for="client_<?= $client['uuid'] ?>">
-                                                    <?= $client['business_name'] ?> (<?= $client['document_number'] ?>)
-                                                </label>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
+                                    <div id="clients-container">
+                                        <?php if(isset($clients)): ?>
+                                            <?php foreach ($clients as $client): ?>
+                                                <div class="form-check">
+                                                    <input class="form-check-input client-checkbox" 
+                                                           type="checkbox" 
+                                                           name="client_ids[]" 
+                                                           id="client_<?= $client['uuid'] ?>" 
+                                                           value="<?= $client['uuid'] ?>"
+                                                           <?= (in_array($client['uuid'], $assigned_client_ids)) ? 'checked' : '' ?>>
+                                                    <label class="form-check-label" for="client_<?= $client['uuid'] ?>">
+                                                        <?= esc($client['name']) ?>
+                                                        <?php if (!empty($client['business_name'])): ?>
+                                                            <small class="text-muted">(<?= esc($client['business_name']) ?>)</small>
+                                                        <?php endif; ?>
+                                                    </label>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <p class="text-muted">No hay clientes disponibles</p>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>

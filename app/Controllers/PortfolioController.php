@@ -209,95 +209,96 @@ class PortfolioController extends BaseController
     public function edit($uuid = null)
     {
         if (!$uuid) {
-            return redirect()->to('/portfolios')->with('error', 'UUID de cartera no proporcionado.');
-        }
-
-        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
-            return redirect()->to('/portfolios')->with('error', 'No tiene permisos para editar carteras.');
+            return redirect()->to('/portfolios');
         }
 
         $portfolioModel = new PortfolioModel();
         $portfolio = $portfolioModel->where('uuid', $uuid)->first();
 
         if (!$portfolio) {
-            return redirect()->to('/portfolios')->with('error', 'Cartera no encontrada.');
+            return redirect()->to('/portfolios')->with('error', 'Cartera no encontrada');
         }
 
-        // Verificar permisos de organización
-        if (!$this->auth->hasRole('superadmin') && $portfolio['organization_id'] !== $this->auth->organizationId()) {
-            return redirect()->to('/portfolios')->with('error', 'No tiene permisos para editar esta cartera.');
-        }
+        // Get assigned users
+        $assigned_users = $this->db->table('portfolio_user pu')
+            ->select('u.*')
+            ->join('users u', 'u.uuid = pu.user_uuid')
+            ->where('pu.portfolio_uuid', $uuid)
+            ->where('u.deleted_at IS NULL')
+            ->get()
+            ->getResultArray();
 
-        if ($this->request->getMethod() === 'post') {
-            $rules = [
-                'name' => 'required|min_length[3]|max_length[100]',
-                'description' => 'permit_empty',
-                'status' => 'required|in_list[active,inactive]',
-                'user_id' => 'required|is_not_unique[users.uuid]'
-            ];
+        // Get assigned clients
+        $assigned_clients = $this->db->table('client_portfolio cp')
+            ->select('c.*')
+            ->join('clients c', 'c.uuid = cp.client_uuid')
+            ->where('cp.portfolio_uuid', $uuid)
+            ->where('c.deleted_at IS NULL')
+            ->get()
+            ->getResultArray();
 
-            if ($this->validate($rules)) {
-                $data = [
-                    'name' => $this->request->getPost('name'),
-                    'description' => $this->request->getPost('description'),
-                    'status' => $this->request->getPost('status'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ];
-
-                if ($portfolioModel->update($portfolio['id'], $data)) {
-                    // Actualizar usuario asignado
-                    $userUuid = $this->request->getPost('user_id');
-                    $portfolioModel->assignUsers($uuid, [$userUuid]);
-
-                    // Actualizar clientes asignados
-                    $clientUuids = $this->request->getPost('client_ids') ?: [];
-                    $portfolioModel->assignClients($uuid, $clientUuids);
-
-                    return redirect()->to('/portfolios')->with('message', 'Cartera actualizada exitosamente.');
-                }
-
-                return redirect()->back()->withInput()->with('error', 'Error al actualizar la cartera.');
-            }
-
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-
-        // Obtener usuario y clientes asignados actualmente
-        $assignedUser = $portfolioModel->getAssignedUsers($uuid);
-        $assignedUserId = !empty($assignedUser) ? $assignedUser[0]['uuid'] : null;
-
-        $assignedClients = $portfolioModel->getAssignedClients($uuid);
-        $assignedClientIds = array_column($assignedClients, 'uuid');
-
-        // Obtener usuarios y clientes disponibles
-        $organizationId = $portfolio['organization_id'];
-        
-        // Para la edición, incluimos el usuario actualmente asignado en la lista de disponibles
-        $availableUsers = $portfolioModel->getAvailableUsers($organizationId);
-        if ($assignedUserId) {
-            $currentUser = $this->db->table('users')
-                                  ->where('uuid', $assignedUserId)
-                                  ->get()
-                                  ->getRowArray();
-            if ($currentUser) {
-                $availableUsers[] = $currentUser;
+        // Get all available users for this organization plus currently assigned users
+        $users = $portfolioModel->getAvailableUsers($portfolio['organization_id']);
+        foreach ($assigned_users as $user) {
+            if (!in_array($user, $users)) {
+                $users[] = $user;
             }
         }
 
-        // Para los clientes, incluimos tanto los disponibles como los ya asignados
-        $availableClients = array_merge(
-            $portfolioModel->getAvailableClients($organizationId),
-            $assignedClients
-        );
+        // Get all available clients for this organization plus currently assigned clients
+        $clients = $portfolioModel->getAvailableClients($portfolio['organization_id']);
+        foreach ($assigned_clients as $client) {
+            if (!in_array($client, $clients)) {
+                $clients[] = $client;
+            }
+        }
+
+        // Get assigned IDs for easy checking in the view
+        $assigned_user_ids = array_column($assigned_users, 'uuid');
+        $assigned_client_ids = array_column($assigned_clients, 'uuid');
 
         $data = [
             'portfolio' => $portfolio,
-            'users' => $availableUsers,
-            'clients' => $availableClients,
-            'assigned_user_id' => $assignedUserId,
-            'assigned_client_ids' => $assignedClientIds,
-            'auth' => $this->auth
+            'users' => $users,
+            'clients' => $clients,
+            'assigned_user_ids' => $assigned_user_ids,
+            'assigned_client_ids' => $assigned_client_ids
         ];
+
+        if ($this->request->getMethod() === 'post') {
+            // Handle form submission...
+            $updateData = [
+                'name' => $this->request->getPost('name'),
+                'description' => $this->request->getPost('description'),
+                'status' => $this->request->getPost('status')
+            ];
+
+            if ($portfolioModel->update($portfolio['id'], $updateData)) {
+                // Update user assignment (single user)
+                $user_id = $this->request->getPost('user_id');
+                $this->db->table('portfolio_user')->where('portfolio_uuid', $uuid)->delete();
+                if ($user_id) {
+                    $this->db->table('portfolio_user')->insert([
+                        'portfolio_uuid' => $uuid,
+                        'user_uuid' => $user_id
+                    ]);
+                }
+
+                // Update client assignments (multiple clients)
+                $client_ids = $this->request->getPost('client_ids') ?? [];
+                $this->db->table('client_portfolio')->where('portfolio_uuid', $uuid)->delete();
+                foreach ($client_ids as $client_id) {
+                    $this->db->table('client_portfolio')->insert([
+                        'portfolio_uuid' => $uuid,
+                        'client_uuid' => $client_id
+                    ]);
+                }
+
+                return redirect()->to('/portfolios')->with('success', 'Cartera actualizada exitosamente');
+            }
+
+            return redirect()->back()->with('error', 'Error al actualizar la cartera');
+        }
 
         return view('portfolios/edit', $data);
     }
