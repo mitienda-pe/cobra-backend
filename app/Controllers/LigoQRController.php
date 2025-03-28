@@ -43,7 +43,7 @@ class LigoQRController extends Controller
             return redirect()->to('/invoices')->with('error', 'Ligo payments not enabled for this organization');
         }
         
-        // Prepare data for view - sin generar QR por ahora
+        // Prepare data for view
         $data = [
             'title' => 'Pago con QR - Ligo',
             'invoice' => $invoice,
@@ -52,6 +52,35 @@ class LigoQRController extends Controller
             'order_id' => null,
             'expiration' => null
         ];
+        
+        // Verificar si estamos en modo de prueba
+        $testMode = true; // Cambiar a false para producción
+        
+        if ($testMode) {
+            // Generar QR de demostración
+            log_message('info', 'Usando modo de prueba para generar QR de demostración');
+            
+            // Generar un QR de demostración usando una API pública
+            $qrData = [
+                'invoice_id' => $invoice['id'],
+                'amount' => $invoice['amount'],
+                'currency' => $invoice['currency'] ?? 'PEN',
+                'description' => "Pago factura #{$invoice['invoice_number']}",
+                'test_mode' => true
+            ];
+            
+            // Crear URL para QR de demostración usando QR Code API
+            $qrText = json_encode($qrData);
+            $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($qrText);
+            
+            $data['qr_image_url'] = $qrImageUrl;
+            $data['qr_data'] = $qrText;
+            $data['order_id'] = 'TEST-' . time();
+            $data['expiration'] = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+            $data['test_mode'] = true;
+            
+            return view('payments/ligo_qr', $data);
+        }
         
         // Intentar generar QR solo si las credenciales están configuradas
         if (!empty($organization['ligo_api_key']) && !empty($organization['ligo_api_secret'])) {
