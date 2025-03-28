@@ -48,14 +48,15 @@
                     <li><strong>invoice_number</strong>: Número de factura</li>
                     <li><strong>concept</strong>: Concepto de la factura</li>
                     <li><strong>amount</strong>: Monto (usar punto como separador decimal)</li>
+                    <li><strong>currency</strong>: Moneda (PEN o USD)</li>
                     <li><strong>due_date</strong>: Fecha de vencimiento (formato YYYY-MM-DD)</li>
                     <li><strong>external_id</strong>: ID externo (opcional)</li>
                     <li><strong>notes</strong>: Notas adicionales (opcional)</li>
                 </ul>
                 <p>Ejemplo:</p>
-                <pre>document_number,invoice_number,concept,amount,due_date,external_id,notes
-1234567890,A-001,Servicio de consultoría,1500.00,2025-04-15,EXT-001,Notas adicionales
-9876543210,B-002,Venta de productos,2000.00,2025-04-30,,</pre>
+                <pre>document_number,invoice_number,concept,amount,currency,due_date,external_id,notes
+1234567890,A-001,Servicio de consultoría,1500.00,PEN,2025-04-15,EXT-001,Notas adicionales
+9876543210,B-002,Venta de productos,2000.00,USD,2025-04-30,,</pre>
                 <p>Notas:</p>
                 <ul>
                     <li>La primera fila debe contener los nombres de las columnas.</li>

@@ -400,8 +400,13 @@ class InvoiceController extends Controller
                     }, $header);
                     
                     // Required fields check
-                    $requiredFields = ['document_number', 'invoice_number', 'concept', 'amount', 'due_date'];
-                    $missingFields = array_diff($requiredFields, $header);
+                    $requiredFields = ['document_number', 'invoice_number', 'concept', 'amount', 'currency', 'due_date'];
+                    $missingFields = [];
+                    foreach ($requiredFields as $field) {
+                        if (empty($rowData[$field])) {
+                            $missingFields[] = $field;
+                        }
+                    }
                     
                     if (!empty($missingFields)) {
                         throw new \Exception('Faltan campos requeridos: ' . implode(', ', $missingFields));
@@ -435,6 +440,11 @@ class InvoiceController extends Controller
                                 throw new \Exception('El monto debe ser un número válido');
                             }
                             
+                            // Validate currency
+                            if (!in_array(strtoupper($rowData['currency']), ['PEN', 'USD'])) {
+                                throw new \Exception('La moneda debe ser PEN o USD');
+                            }
+                            
                             // Validate date format
                             $dueDate = date('Y-m-d', strtotime($rowData['due_date']));
                             if ($dueDate === false) {
@@ -444,14 +454,16 @@ class InvoiceController extends Controller
                             // Prepare invoice data
                             $invoiceData = [
                                 'organization_id' => (int)$organizationId,
-                                'client_uuid' => $client['uuid'],
+                                'client_id'      => (int)$client['id'],
+                                'client_uuid'    => $client['uuid'],
                                 'invoice_number' => $rowData['invoice_number'],
-                                'concept' => $rowData['concept'],
-                                'amount' => (float)str_replace(',', '.', $rowData['amount']),
-                                'due_date' => $dueDate,
-                                'external_id' => $rowData['external_id'] ?? null,
-                                'notes' => $rowData['notes'] ?? null,
-                                'status' => 'pending'
+                                'concept'        => $rowData['concept'],
+                                'amount'         => (float)str_replace(',', '.', $rowData['amount']),
+                                'currency'       => strtoupper($rowData['currency']),
+                                'due_date'       => $dueDate,
+                                'external_id'    => $rowData['external_id'] ?? null,
+                                'notes'          => $rowData['notes'] ?? null,
+                                'status'         => 'pending'
                             ];
                             
                             // Check if invoice already exists
