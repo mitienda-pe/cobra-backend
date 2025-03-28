@@ -28,12 +28,13 @@
                         <li>Latitud (opcional)</li>
                         <li>Longitud (opcional)</li>
                         <li>ID Externo (opcional)</li>
+                        <li>ID Cobrador (opcional, debe ser un ID válido de cobrador)</li>
                     </ol>
                     <p><strong>Notas importantes:</strong></p>
                     <ul>
                         <li>La primera fila debe contener los nombres de las columnas.</li>
                         <li>Los clientes que ya existan en el sistema (con el mismo número de documento) serán omitidos.</li>
-                        <li>Si selecciona un cobrador, los clientes importados serán asignados automáticamente a su cartera.</li>
+                        <li>Si se incluye un ID de cobrador, el cliente será asignado automáticamente a su cartera.</li>
                         <li>Todos los clientes se crearán con estado "Activo".</li>
                     </ul>
                 </div>
@@ -41,29 +42,6 @@
                 <form id="import-form" action="<?= site_url('clients/import') ?>" method="post" enctype="multipart/form-data">
                     <?= csrf_field() ?>
                     
-                    <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        // Add a debug button to check CSRF token
-                        const debugBtn = document.createElement('button');
-                        debugBtn.type = 'button';
-                        debugBtn.className = 'btn btn-sm btn-outline-info mb-2';
-                        debugBtn.textContent = 'Debug CSRF';
-                        debugBtn.onclick = function() {
-                            const csrfName = document.querySelector('input[name="<?= csrf_token() ?>"]').name;
-                            const csrfValue = document.querySelector('input[name="<?= csrf_token() ?>"]').value;
-                            alert('CSRF Token Name: ' + csrfName + '\nCSRF Token Value: ' + csrfValue);
-                        };
-                        document.getElementById('import-form').prepend(debugBtn);
-                        
-                        // Monitor form submission
-                        document.getElementById('import-form').addEventListener('submit', function(e) {
-                            // Just for logging purposes
-                            console.log('Form being submitted...');
-                            console.log('CSRF Token Name: ' + document.querySelector('input[name="<?= csrf_token() ?>"]').name);
-                            console.log('CSRF Token Value: ' + document.querySelector('input[name="<?= csrf_token() ?>"]').value);
-                        });
-                    });
-                    </script>
                     <div class="mb-3">
                         <label for="csv_file" class="form-label">Archivo CSV *</label>
                         <input type="file" class="form-control" id="csv_file" name="csv_file" required accept=".csv">
@@ -114,30 +92,17 @@
                     <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
                     <?php endif; ?>
                     
-                    <div class="mb-3">
-                        <label for="user_id" class="form-label">Asignar a Cobrador (opcional)</label>
-                        <select class="form-select" id="user_id" name="user_id">
-                            <option value="">Seleccione un cobrador</option>
-                            <?php if(isset($users) && !empty($users)): ?>
-                                <?php foreach ($users as $user): ?>
-                                    <option value="<?= $user['id'] ?>"><?= esc($user['name']) ?></option>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </select>
-                        <div class="form-text">Si selecciona un cobrador, todos los clientes importados serán asignados a su cartera.</div>
-                    </div>
-                    
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary" <?= ($auth->hasRole('superadmin') && (!isset($selected_organization_id) || empty($selected_organization_id))) ? 'disabled' : '' ?>>Importar Clientes</button>
-                    </div>
+                    <button type="submit" class="btn btn-primary" <?= ($auth->hasRole('superadmin') && (!isset($selected_organization_id) || empty($selected_organization_id))) ? 'disabled' : '' ?>>
+                        <i class="bi bi-upload"></i> Importar Clientes
+                    </button>
                     <?php endif; ?>
                 </form>
                 
                 <div class="mt-4">
                     <h5>Ejemplo de CSV</h5>
-                    <pre>nombre_comercial,razon_social,documento,contacto,telefono,direccion,ubigeo,codigo_postal,latitud,longitud,id_externo
-Empresa ABC,Empresa ABC S.A.,20345678901,Juan Pérez,987654321,"Av. Principal 123, Lima",150101,15001,-12.046374,-77.042793,EXT123
-Empresa XYZ,Corporación XYZ S.A.C.,20456789012,María Gómez,987654322,"Jr. Secundario 456, Lima",150102,15002,-12.046375,-77.042794,EXT124</pre>
+                    <pre>nombre_comercial,razon_social,documento,contacto,telefono,direccion,ubigeo,codigo_postal,latitud,longitud,id_externo,id_cobrador
+Empresa ABC,Empresa ABC S.A.,20345678901,Juan Pérez,987654321,"Av. Principal 123, Lima",150101,15001,-12.046374,-77.042793,EXT123,1
+Empresa XYZ,Corporación XYZ S.A.C.,20456789012,María Gómez,987654322,"Jr. Secundario 456, Lima",150102,15002,-12.046375,-77.042794,EXT124,2</pre>
                 </div>
             </div>
         </div>
