@@ -654,8 +654,22 @@ class ClientController extends BaseController
                             continue;
                         }
 
-                        // Map CSV data to client fields
+                        // Create associative array from row data
                         $rowData = array_combine($header, $data);
+                        
+                        // Validate required fields
+                        $requiredFields = ['nombre_comercial', 'razon_social', 'documento'];
+                        $missingFields = [];
+                        foreach ($requiredFields as $field) {
+                            if (empty($rowData[$field])) {
+                                $missingFields[] = $field;
+                            }
+                        }
+                        
+                        if (!empty($missingFields)) {
+                            $errors[] = "Fila " . ($importedCount + 1) . ": Faltan campos requeridos: " . implode(', ', $missingFields);
+                            continue;
+                        }
                         
                         try {
                             // Prepare client data
@@ -674,36 +688,58 @@ class ClientController extends BaseController
                                 'external_id'     => $rowData['id_externo'] ?? '',
                                 'status'          => 'active'
                             ];
-
-                            // Check if client already exists
-                            $existingClient = $this->clientModel
-                                ->where('organization_id', $organizationId)
-                                ->where('document_number', $clientData['document_number'])
-                                ->first();
-
-                            if ($existingClient) {
-                                $errors[] = "Cliente con documento {$clientData['document_number']} ya existe.";
-                                continue;
+                            
+                            // Start transaction for this client
+                            $db = \Config\Database::connect();
+                            $db->transStart();
+                            
+                            // Insert client
+                            $clientId = $this->clientModel->insert($clientData);
+                            if ($clientId === false) {
+                                throw new \Exception('Error al insertar cliente: ' . implode(', ', $this->clientModel->errors()));
                             }
-
-                            // Insert new client
-                            $this->clientModel->insert($clientData);
-                            $clientUuid = $this->clientModel->getInsertUUID();
-
-                            // If a collector was selected, assign client to their portfolio
-                            if ($userId) {
-                                $portfolio = $this->portfolioModel->where('user_id', $userId)->first();
-                                if ($portfolio) {
-                                    $this->db->table('client_portfolio')->insert([
-                                        'client_uuid' => $clientUuid,
-                                        'portfolio_uuid' => $portfolio['uuid']
-                                    ]);
+                            
+                            // Get the newly created client with UUID
+                            $newClient = $this->clientModel->find($clientId);
+                            if (!$newClient) {
+                                throw new \Exception('No se pudo encontrar el cliente recién creado');
+                            }
+                            
+                            // If portfolio_uuid is provided, assign client to that portfolio
+                            if (!empty($rowData['portfolio_uuid'])) {
+                                // Verify portfolio exists and belongs to the organization
+                                $portfolio = $this->portfolioModel->where('uuid', $rowData['portfolio_uuid'])
+                                                               ->where('organization_id', $organizationId)
+                                                               ->first();
+                                
+                                if (!$portfolio) {
+                                    throw new \Exception('Cartera no encontrada o no pertenece a la organización');
+                                }
+                                
+                                // Assign client to portfolio
+                                $result = $db->table('client_portfolio')->insert([
+                                    'portfolio_uuid' => $rowData['portfolio_uuid'],
+                                    'client_uuid' => $newClient['uuid'],
+                                    'created_at' => date('Y-m-d H:i:s'),
+                                    'updated_at' => date('Y-m-d H:i:s')
+                                ]);
+                                
+                                if (!$result) {
+                                    throw new \Exception('Error al asignar cliente a la cartera');
                                 }
                             }
-
+                            
+                            $db->transComplete();
+                            
+                            if ($db->transStatus() === false) {
+                                throw new \Exception('Error en la transacción');
+                            }
+                            
                             $importedCount++;
+                            
                         } catch (\Exception $e) {
-                            $errors[] = "Error en fila {$importedCount}: " . $e->getMessage();
+                            $db->transRollback();
+                            $errors[] = "Fila " . ($importedCount + 1) . ": " . $e->getMessage();
                         }
                     }
                     fclose($handle);
