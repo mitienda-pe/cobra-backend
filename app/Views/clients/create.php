@@ -13,28 +13,6 @@
                 </div>
             </div>
             <div class="card-body">
-                <?php if (session('error')): ?>
-                    <div class="alert alert-danger">
-                        <?= session('error') ?>
-                    </div>
-                <?php endif; ?>
-
-                <?php if (session('errors')): ?>
-                    <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            <?php foreach (session('errors') as $error): ?>
-                                <li><?= $error ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
-                <?php endif; ?>
-
-                <?php if (session('message')): ?>
-                    <div class="alert alert-success">
-                        <?= session('message') ?>
-                    </div>
-                <?php endif; ?>
-                
                 <form action="<?= site_url('clients/create') ?>" method="post">
                     <?= csrf_field() ?>
                     

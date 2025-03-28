@@ -111,9 +111,9 @@
                                                            id="client_<?= $client['uuid'] ?>" 
                                                            value="<?= $client['uuid'] ?>">
                                                     <label class="form-check-label" for="client_<?= $client['uuid'] ?>">
-                                                        <?= esc($client['name']) ?>
-                                                        <?php if (!empty($client['business_name'])): ?>
-                                                            <small class="text-muted">(<?= esc($client['business_name']) ?>)</small>
+                                                        <?= esc($client['business_name']) ?>
+                                                        <?php if (!empty($client['legal_name']) && $client['legal_name'] !== $client['business_name']): ?>
+                                                            <small class="text-muted">(<?= esc($client['legal_name']) ?>)</small>
                                                         <?php endif; ?>
                                                     </label>
                                                 </div>
@@ -257,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
                            value="${client.uuid}">
                     <label class="form-check-label" for="client_${client.uuid}">
                         ${client.business_name}
-                        ${client.document_number ? `<small class="text-muted">(${client.document_number})</small>` : ''}
+                        ${client.legal_name && client.legal_name !== client.business_name ? `<small class="text-muted">(${client.legal_name})</small>` : ''}
                     </label>
                 </div>
             `;
