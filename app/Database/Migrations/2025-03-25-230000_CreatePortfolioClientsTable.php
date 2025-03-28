@@ -44,11 +44,26 @@ class CreatePortfolioClientsTable extends Migration
         $this->forge->addForeignKey('client_id', 'clients', 'id', 'CASCADE', 'CASCADE');
         $this->forge->addUniqueKey(['portfolio_id', 'client_id'], 'unique_portfolio_client');
         
-        $this->forge->createTable('portfolio_clients');
+        try {
+            // El segundo parámetro true significa "IF NOT EXISTS"
+            $this->forge->createTable('portfolio_clients', true);
+        } catch (\Exception $e) {
+            // Si hay un error diferente al de la tabla existente, lo relanzamos
+            if (strpos($e->getMessage(), 'already exists') === false) {
+                throw $e;
+            }
+        }
     }
 
     public function down()
     {
-        $this->forge->dropTable('portfolio_clients');
+        try {
+            $this->forge->dropTable('portfolio_clients');
+        } catch (\Exception $e) {
+            // Si hay un error diferente al de la tabla no existente, lo relanzamos
+            if (strpos($e->getMessage(), 'no such table') === false) {
+                throw $e;
+            }
+        }
     }
 }
