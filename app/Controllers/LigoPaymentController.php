@@ -2,10 +2,10 @@
 
 namespace App\Controllers;
 
-use CodeIgniter\RESTful\ResourceController;
+use CodeIgniter\Controller;
 use CodeIgniter\API\ResponseTrait;
 
-class LigoPaymentController extends BaseController
+class LigoPaymentController extends Controller
 {
     use ResponseTrait;
     
@@ -61,10 +61,17 @@ class LigoPaymentController extends BaseController
             'description' => "Pago factura #{$invoice['invoice_number']}"
         ];
         
+        // Log the request data for debugging
+        log_message('debug', 'Ligo QR request data: ' . json_encode($orderData));
+        
         // Create order in Ligo
         $response = $this->createLigoOrder($orderData, $organization);
         
+        // Log the response for debugging
+        log_message('debug', 'Ligo QR response: ' . json_encode($response));
+        
         if (isset($response->error)) {
+            log_message('error', 'Ligo QR generation error: ' . $response->error);
             return $this->fail($response->error, 400);
         }
         
@@ -116,12 +123,13 @@ class LigoPaymentController extends BaseController
         $data = [
             'title' => 'Pago con QR - Ligo',
             'invoice' => $invoice,
-            'qr_data' => $qrResponse->qr_data,
-            'qr_image_url' => $qrResponse->qr_image_url,
-            'order_id' => $qrResponse->order_id,
-            'expiration' => $qrResponse->expiration
+            'qr_data' => $qrResponse->qr_data ?? null,
+            'qr_image_url' => $qrResponse->qr_image_url ?? null,
+            'order_id' => $qrResponse->order_id ?? null,
+            'expiration' => $qrResponse->expiration ?? null
         ];
         
+        // Usar return view() directamente como en otros controladores
         return view('payments/ligo_qr', $data);
     }
     
