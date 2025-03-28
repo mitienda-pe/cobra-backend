@@ -336,6 +336,158 @@ class PaymentController extends ResourceController
     }
     
     /**
+     * Register a payment as a collector from the mobile app
+     */
+    public function registerMobilePayment()
+    {
+        $rules = [
+            'invoice_id'     => 'required|is_natural_no_zero',
+            'amount'         => 'required|numeric',
+            'payment_method' => 'required|max_length[50]',
+            'payment_date'   => 'required|valid_date',
+            'reference_code' => 'permit_empty|max_length[100]',
+            'notes'          => 'permit_empty',
+            'latitude'       => 'permit_empty|decimal',
+            'longitude'      => 'permit_empty|decimal'
+        ];
+        
+        if (!$this->validate($rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }
+        
+        // Check if invoice exists and user has access to it
+        $invoiceModel = new InvoiceModel();
+        $invoice = $invoiceModel->find($this->request->getVar('invoice_id'));
+        
+        if (!$invoice) {
+            return $this->failNotFound('Invoice not found');
+        }
+        
+        if (!$this->canAccessInvoice($invoice)) {
+            return $this->failForbidden('You do not have access to this invoice');
+        }
+        
+        // Check if invoice is already paid
+        if ($invoice['status'] === 'paid') {
+            return $this->fail('Invoice is already paid', 400);
+        }
+        
+        // Check if invoice is cancelled or rejected
+        if (in_array($invoice['status'], ['cancelled', 'rejected'])) {
+            return $this->fail('Cannot pay a cancelled or rejected invoice', 400);
+        }
+        
+        $paymentModel = new PaymentModel();
+        
+        $data = [
+            'invoice_id'     => $this->request->getVar('invoice_id'),
+            'user_id'        => $this->user['id'],
+            'amount'         => $this->request->getVar('amount'),
+            'payment_method' => $this->request->getVar('payment_method'),
+            'reference_code' => $this->request->getVar('reference_code'),
+            'payment_date'   => $this->request->getVar('payment_date'),
+            'status'         => 'completed',
+            'notes'          => $this->request->getVar('notes'),
+            'latitude'       => $this->request->getVar('latitude'),
+            'longitude'      => $this->request->getVar('longitude'),
+            'is_notified'    => false,
+            'collected_by_app' => true
+        ];
+        
+        $paymentId = $paymentModel->insert($data);
+        
+        if (!$paymentId) {
+            return $this->failServerError('Failed to create payment');
+        }
+        
+        $payment = $paymentModel->find($paymentId);
+        
+        // Update invoice status if payment amount covers the full invoice
+        $totalPaid = $paymentModel->where('invoice_id', $invoice['id'])
+                                ->where('status', 'completed')
+                                ->selectSum('amount')
+                                ->get()
+                                ->getRow()
+                                ->amount;
+        
+        if ($totalPaid >= $invoice['amount']) {
+            $invoiceModel->update($invoice['id'], ['status' => 'paid']);
+        }
+        
+        return $this->respondCreated([
+            'payment' => $payment,
+            'message' => 'Payment registered successfully'
+        ]);
+    }
+    
+    /**
+     * Search for invoices to register payments
+     */
+    public function searchInvoices()
+    {
+        $search = $this->request->getGet('search');
+        $portfolioModel = new PortfolioModel();
+        $invoiceModel = new InvoiceModel();
+        $clientModel = new \App\Models\ClientModel();
+        
+        if (!$search) {
+            return $this->respond(['invoices' => []]);
+        }
+        
+        // Get user's portfolio
+        $portfolio = $portfolioModel->where('collector_id', $this->user['id'])->first();
+        
+        if (!$portfolio) {
+            return $this->failForbidden('No portfolio assigned to this collector');
+        }
+        
+        // Get clients assigned to this portfolio
+        $clients = $portfolioModel->getAssignedClients($portfolio['id']);
+        
+        if (empty($clients)) {
+            return $this->respond(['invoices' => []]);
+        }
+        
+        // Get client IDs
+        $clientIds = array_column($clients, 'id');
+        
+        // Search for invoices by invoice number, client name, or client ID
+        $invoices = $invoiceModel->where('organization_id', $this->user['organization_id'])
+                               ->whereIn('client_id', $clientIds)
+                               ->groupStart()
+                                   ->like('invoice_number', $search)
+                                   ->orWhere('external_id', $search)
+                               ->groupEnd()
+                               ->where('status', 'pending')
+                               ->findAll();
+        
+        // If no results by invoice number, try to find by client name
+        if (empty($invoices)) {
+            $matchingClients = $clientModel->whereIn('id', $clientIds)
+                                        ->like('name', $search)
+                                        ->findAll();
+            
+            if (!empty($matchingClients)) {
+                $matchingClientIds = array_column($matchingClients, 'id');
+                $invoices = $invoiceModel->where('organization_id', $this->user['organization_id'])
+                                       ->whereIn('client_id', $matchingClientIds)
+                                       ->where('status', 'pending')
+                                       ->findAll();
+            }
+        }
+        
+        // Add client information to each invoice
+        foreach ($invoices as &$invoice) {
+            $client = $clientModel->find($invoice['client_id']);
+            $invoice['client_name'] = $client['name'] ?? 'Unknown';
+            $invoice['client_phone'] = $client['phone'] ?? '';
+            $invoice['client_email'] = $client['email'] ?? '';
+        }
+        
+        return $this->respond(['invoices' => $invoices]);
+    }
+    
+    /**
      * Check if user can access a payment
      */
     private function canAccessPayment($payment)

@@ -47,6 +47,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->match(['options'], 'auth/verify-otp', 'AuthController::verifyOtp');
     $routes->match(['options'], 'auth/refresh-token', 'AuthController::refreshToken');
 
+    // Ligo Webhook Route - Public
+    $routes->post('webhooks/ligo', 'LigoWebhookController::handlePaymentNotification');
+    $routes->match(['options'], 'webhooks/ligo', 'LigoWebhookController::handlePaymentNotification');
+
     // Organization Routes
     $routes->match(['get', 'options'], 'organizations/(:segment)/clients', 'OrganizationController::clients/$1');
 
@@ -69,6 +73,24 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'api-auth'], function ($routes) {
     // Auth Protected Routes
     $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
+    
+    // Mobile App Routes
+    $routes->match(['get', 'options'], 'portfolio/invoices', 'PortfolioController::myInvoices');
+    $routes->match(['get', 'options'], 'portfolio/my', 'PortfolioController::myPortfolios');
+    $routes->match(['get', 'options'], 'payments/search-invoices', 'PaymentController::searchInvoices');
+    $routes->match(['post', 'options'], 'payments/register', 'PaymentController::registerMobilePayment');
+    $routes->match(['get', 'options'], 'payments/generate-qr/(:num)', 'LigoPaymentController::generateQR/$1');
+    
+    // Invoice Routes
+    $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index');
+    $routes->match(['get', 'options'], 'invoices/(:segment)', 'InvoiceController::show/$1');
+    $routes->match(['get', 'options'], 'invoices/external/(:segment)', 'InvoiceController::findByExternalId');
+    $routes->match(['get', 'options'], 'invoices/overdue', 'InvoiceController::overdue');
+    
+    // Payment Routes
+    $routes->match(['get', 'options'], 'payments', 'PaymentController::index');
+    $routes->match(['get', 'options'], 'payments/(:segment)', 'PaymentController::show/$1');
+    $routes->match(['get', 'options'], 'payments/external/(:segment)', 'PaymentController::findByExternalId');
 });
 
 // Web Routes - Protected
@@ -146,6 +168,12 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->post('create', 'PaymentController::create');
         $routes->get('view/(:segment)', 'PaymentController::view/$1');
         $routes->get('search-invoices', 'PaymentController::searchInvoices');
+    });
+
+    // Ligo Payment Routes
+    $routes->group('payment/ligo', function ($routes) {
+        $routes->get('qr/(:num)', 'LigoPaymentController::showQRPage/$1');
+        $routes->get('generate-qr/(:num)', 'LigoPaymentController::generateQR/$1');
     });
 
     // Webhook Routes

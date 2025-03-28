@@ -12,7 +12,7 @@ class OrganizationModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
-    protected $allowedFields    = ['uuid', 'name', 'code', 'description', 'status'];
+    protected $allowedFields    = ['uuid', 'name', 'code', 'description', 'status', 'ligo_api_key', 'ligo_api_secret', 'ligo_webhook_secret', 'ligo_enabled'];
 
     // Dates
     protected $useTimestamps = true;

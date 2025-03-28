@@ -52,6 +52,50 @@
                         <?php endif; ?>
                     </div>
                     
+                    <!-- Ligo Payment Integration Settings -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Configuración de Pagos Ligo QR</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="ligo_enabled" name="ligo_enabled" value="1" <?= old('ligo_enabled', $organization['ligo_enabled'] ?? 0) == 1 ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="ligo_enabled">Habilitar pagos con QR de Ligo</label>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ligo_api_key" class="form-label">API Key de Ligo</label>
+                                <input type="text" class="form-control <?= session('errors.ligo_api_key') ? 'is-invalid' : '' ?>" id="ligo_api_key" name="ligo_api_key" value="<?= old('ligo_api_key', $organization['ligo_api_key'] ?? '') ?>">
+                                <?php if (session('errors.ligo_api_key')): ?>
+                                    <div class="invalid-feedback"><?= session('errors.ligo_api_key') ?></div>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ligo_api_secret" class="form-label">API Secret de Ligo</label>
+                                <input type="password" class="form-control <?= session('errors.ligo_api_secret') ? 'is-invalid' : '' ?>" id="ligo_api_secret" name="ligo_api_secret" value="<?= old('ligo_api_secret', $organization['ligo_api_secret'] ?? '') ?>">
+                                <?php if (session('errors.ligo_api_secret')): ?>
+                                    <div class="invalid-feedback"><?= session('errors.ligo_api_secret') ?></div>
+                                <?php endif; ?>
+                                <div class="form-text">Si no desea cambiar el API Secret, deje este campo en blanco.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ligo_webhook_secret" class="form-label">Webhook Secret de Ligo</label>
+                                <input type="password" class="form-control <?= session('errors.ligo_webhook_secret') ? 'is-invalid' : '' ?>" id="ligo_webhook_secret" name="ligo_webhook_secret" value="<?= old('ligo_webhook_secret', $organization['ligo_webhook_secret'] ?? '') ?>">
+                                <?php if (session('errors.ligo_webhook_secret')): ?>
+                                    <div class="invalid-feedback"><?= session('errors.ligo_webhook_secret') ?></div>
+                                <?php endif; ?>
+                                <div class="form-text">Si no desea cambiar el Webhook Secret, deje este campo en blanco.</div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <strong>Nota:</strong> Configure su webhook en el panel de Ligo con la siguiente URL:<br>
+                                <code><?= site_url('api/webhooks/ligo') ?></code>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-save"></i> Actualizar

@@ -78,6 +78,66 @@ class PortfolioController extends ResourceController
     }
     
     /**
+     * Get invoices from the collector's portfolio
+     */
+    public function myInvoices()
+    {
+        $portfolioModel = new PortfolioModel();
+        $invoiceModel = new \App\Models\InvoiceModel();
+        $clientModel = new \App\Models\ClientModel();
+        
+        // Get user's portfolio (one-to-one relationship)
+        $portfolio = $portfolioModel->where('collector_id', $this->user['id'])->first();
+        
+        if (!$portfolio) {
+            return $this->failForbidden('No portfolio assigned to this collector');
+        }
+        
+        // Get clients assigned to this portfolio
+        $clients = $portfolioModel->getAssignedClients($portfolio['id']);
+        
+        if (empty($clients)) {
+            return $this->respond(['invoices' => []]);
+        }
+        
+        // Get client IDs
+        $clientIds = array_column($clients, 'id');
+        
+        // Get invoices for these clients
+        $status = $this->request->getGet('status');
+        $dateStart = $this->request->getGet('date_start');
+        $dateEnd = $this->request->getGet('date_end');
+        
+        $invoices = $invoiceModel->where('organization_id', $this->user['organization_id'])
+                               ->whereIn('client_id', $clientIds);
+        
+        if ($status) {
+            $invoices->where('status', $status);
+        }
+        
+        if ($dateStart) {
+            $invoices->where('due_date >=', $dateStart);
+        }
+        
+        if ($dateEnd) {
+            $invoices->where('due_date <=', $dateEnd);
+        }
+        
+        $invoices = $invoices->findAll();
+        
+        // Add client information to each invoice
+        foreach ($invoices as &$invoice) {
+            $client = $clientModel->find($invoice['client_id']);
+            $invoice['client_name'] = $client['name'] ?? 'Unknown';
+            $invoice['client_phone'] = $client['phone'] ?? '';
+            $invoice['client_email'] = $client['email'] ?? '';
+            $invoice['client_address'] = $client['address'] ?? '';
+        }
+        
+        return $this->respond(['invoices' => $invoices]);
+    }
+    
+    /**
      * Check if user can access a portfolio
      */
     private function canAccessPortfolio($portfolio)

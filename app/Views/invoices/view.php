@@ -239,6 +239,16 @@
                             <i class="bi bi-cash"></i> Registrar Pago
                         </a>
                     <?php endif; ?>
+                    <?php 
+                    // Get organization to check if Ligo is enabled
+                    $organizationModel = new \App\Models\OrganizationModel();
+                    $organization = $organizationModel->find($invoice['organization_id']);
+                    if (isset($organization['ligo_enabled']) && $organization['ligo_enabled']): 
+                    ?>
+                    <a href="<?= site_url('payment/ligo/qr/' . $invoice['id']) ?>" class="btn btn-primary">
+                        <i class="bi bi-qr-code"></i> Pagar con QR Ligo
+                    </a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

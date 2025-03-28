@@ -154,6 +154,19 @@ class OrganizationController extends BaseController
             'status' => $postData['status']
         ];
         
+        // Handle Ligo payment settings
+        $data['ligo_enabled'] = isset($postData['ligo_enabled']) ? 1 : 0;
+        $data['ligo_api_key'] = $postData['ligo_api_key'] ?? null;
+        
+        // Only update secrets if they are provided
+        if (!empty($postData['ligo_api_secret'])) {
+            $data['ligo_api_secret'] = $postData['ligo_api_secret'];
+        }
+        
+        if (!empty($postData['ligo_webhook_secret'])) {
+            $data['ligo_webhook_secret'] = $postData['ligo_webhook_secret'];
+        }
+        
         try {
             $builder = $this->organizationModel->builder();
             $updated = $builder->where('uuid', $uuid)
