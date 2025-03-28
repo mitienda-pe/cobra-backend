@@ -33,7 +33,24 @@ class ClientModel extends Model
         'document_number' => 'required|min_length[3]|max_length[20]',
         'status'          => 'required|in_list[active,inactive]',
     ];
-    protected $validationMessages   = [];
+    protected $validationMessages   = [
+        'document_number' => [
+            'is_unique' => 'Ya existe un cliente con este número de documento.',
+            'required' => 'El número de documento es obligatorio.',
+            'min_length' => 'El número de documento debe tener al menos {param} caracteres.',
+            'max_length' => 'El número de documento no puede tener más de {param} caracteres.'
+        ],
+        'business_name' => [
+            'required' => 'El nombre comercial es obligatorio.',
+            'min_length' => 'El nombre comercial debe tener al menos {param} caracteres.',
+            'max_length' => 'El nombre comercial no puede tener más de {param} caracteres.'
+        ],
+        'legal_name' => [
+            'required' => 'La razón social es obligatoria.',
+            'min_length' => 'La razón social debe tener al menos {param} caracteres.',
+            'max_length' => 'La razón social no puede tener más de {param} caracteres.'
+        ]
+    ];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
 

@@ -236,7 +236,7 @@ class ClientController extends BaseController
             $rules = [
                 'business_name'   => 'required|min_length[3]|max_length[100]',
                 'legal_name'      => 'required|min_length[3]|max_length[100]',
-                'document_number' => 'required|min_length[3]|max_length[20]',
+                'document_number' => 'required|min_length[3]|max_length[20]|is_unique[clients.document_number]',
             ];
             
             if (!$this->validate($rules)) {
