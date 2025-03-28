@@ -99,8 +99,18 @@ function createLigoOrder($data, $organization) {
         return (object)['error' => 'Failed to connect to Ligo API: ' . $err];
     }
     
-    echo "<p>Respuesta cruda: " . htmlspecialchars($response) . "</p>";
+    // Mostrar la respuesta cruda exactamente como se recibió
+    echo "<h4>Respuesta cruda (sin procesar):</h4>";
+    echo "<pre style='background-color: #f5f5f5; padding: 10px; overflow: auto; max-height: 300px;'>";
+    echo htmlspecialchars($response);
+    echo "</pre>";
     
+    // Verificar si la respuesta es HTML
+    if (strpos($response, '<!DOCTYPE html>') !== false || strpos($response, '<html') !== false) {
+        echo "<p style='color: red;'>La respuesta parece ser HTML, no JSON. Esto podría indicar un error de autenticación o una redirección.</p>";
+    }
+    
+    // Intentar decodificar como JSON
     $decoded = json_decode($response);
     
     if (json_last_error() !== JSON_ERROR_NONE) {

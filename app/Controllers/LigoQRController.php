@@ -103,16 +103,25 @@ class LigoQRController extends Controller
         // Log para depuración
         log_message('debug', 'Iniciando llamada a Ligo API con organización ID: ' . $organization['id']);
         
-        $curl = curl_init();
-        
         // Asegurarse de que las credenciales estén presentes
         if (empty($organization['ligo_api_key'])) {
             log_message('error', 'API Key de Ligo no configurada para organización ID: ' . $organization['id']);
             return (object)['error' => 'Ligo API Key not configured'];
         }
         
+        // Intentar autenticarse primero para obtener un token
+        $authToken = $this->getLigoAuthToken($organization);
+        
+        if (isset($authToken->error)) {
+            log_message('error', 'Error al obtener token de autenticación de Ligo: ' . $authToken->error);
+            return $authToken; // Devolver el error de autenticación
+        }
+        
+        // Usar el token para la solicitud de creación de orden
+        $curl = curl_init();
+        
         $headers = [
-            'Authorization: Bearer ' . $organization['ligo_api_key'],
+            'Authorization: Bearer ' . $authToken->token,
             'Content-Type: application/json'
         ];
         
@@ -149,13 +158,26 @@ class LigoQRController extends Controller
         }
         
         // Log de la respuesta completa
-        log_message('debug', 'Ligo API Response: ' . $response);
+        log_message('debug', 'Ligo API Response (raw): ' . $response);
+        
+        // Verificar si la respuesta es HTML en lugar de JSON
+        if (strpos($response, '<!DOCTYPE html>') !== false || strpos($response, '<html') !== false) {
+            log_message('error', 'Ligo API devolvió HTML en lugar de JSON. Posible error de autenticación o redirección.');
+            return (object)['error' => 'API returned HTML instead of JSON. Check credentials.'];
+        }
+        
+        // Verificar si la respuesta está vacía
+        if (empty(trim($response))) {
+            log_message('error', 'Ligo API devolvió una respuesta vacía.');
+            return (object)['error' => 'Empty response from API'];
+        }
         
         $decoded = json_decode($response);
         
         // Verificar si la respuesta se pudo decodificar
         if (json_last_error() !== JSON_ERROR_NONE) {
             log_message('error', 'Error decodificando respuesta de Ligo: ' . json_last_error_msg());
+            log_message('error', 'Respuesta cruda: ' . $response);
             return (object)['error' => 'Invalid JSON response: ' . json_last_error_msg()];
         }
         
@@ -167,6 +189,82 @@ class LigoQRController extends Controller
             return (object)['error' => $errorMsg];
         }
         
+        return $decoded;
+    }
+    
+    /**
+     * Get authentication token from Ligo API
+     *
+     * @param array $organization Organization with Ligo credentials
+     * @return object Response with token or error
+     */
+    private function getLigoAuthToken($organization)
+    {
+        log_message('debug', 'Obteniendo token de autenticación de Ligo para organización ID: ' . $organization['id']);
+        
+        // Verificar credenciales
+        if (empty($organization['ligo_api_key']) || empty($organization['ligo_api_secret'])) {
+            log_message('error', 'Credenciales de Ligo incompletas para organización ID: ' . $organization['id']);
+            return (object)['error' => 'Incomplete Ligo credentials'];
+        }
+        
+        $curl = curl_init();
+        
+        // Datos de autenticación
+        $authData = [
+            'apiKey' => $organization['ligo_api_key'],
+            'apiSecret' => $organization['ligo_api_secret']
+        ];
+        
+        curl_setopt_array($curl, [
+            CURLOPT_URL => 'https://api.ligo.pe/v1/auth/token',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode($authData),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json'
+            ],
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => false
+        ]);
+        
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+        $info = curl_getinfo($curl);
+        
+        curl_close($curl);
+        
+        if ($err) {
+            log_message('error', 'Error al obtener token de Ligo: ' . $err);
+            return (object)['error' => 'Failed to connect to Ligo Auth API: ' . $err];
+        }
+        
+        // Log de respuesta
+        log_message('debug', 'Respuesta de autenticación Ligo: ' . $response);
+        
+        // Verificar si la respuesta es HTML
+        if (strpos($response, '<!DOCTYPE html>') !== false || strpos($response, '<html') !== false) {
+            log_message('error', 'Ligo Auth API devolvió HTML en lugar de JSON');
+            return (object)['error' => 'Auth API returned HTML instead of JSON'];
+        }
+        
+        $decoded = json_decode($response);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            log_message('error', 'Error decodificando respuesta de autenticación: ' . json_last_error_msg());
+            return (object)['error' => 'Invalid JSON in auth response: ' . json_last_error_msg()];
+        }
+        
+        if (!isset($decoded->token)) {
+            log_message('error', 'No se recibió token en la respuesta de autenticación');
+            return (object)['error' => 'No token in auth response'];
+        }
+        
+        log_message('info', 'Token de autenticación Ligo obtenido correctamente');
         return $decoded;
     }
 }
