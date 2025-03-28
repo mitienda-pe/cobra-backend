@@ -1,4 +1,4 @@
-openapi: 3.0.0
+openapi: 3.1.0
 info:
   title: Sistema de Cobranzas - API
   description: |
@@ -598,11 +598,11 @@ paths:
                   success:
                     type: boolean
                     example: true
+                  payment:
+                    $ref: '#/components/schemas/Payment'
                   message:
                     type: string
                     example: Pago registrado exitosamente
-                  payment:
-                    $ref: '#/components/schemas/Payment'
         '400':
           description: Solicitud inválida
           content:
@@ -661,6 +661,391 @@ paths:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Pago no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /portfolio/invoices:
+    get:
+      summary: Obtener facturas de la cartera
+      description: Obtiene la lista de facturas asociadas a los clientes de la cartera del cobrador
+      tags:
+        - Cartera
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filtrar por estado de factura
+          schema:
+            type: string
+            enum: [pending, paid, cancelled, rejected, expired]
+        - name: date_start
+          in: query
+          description: Fecha de inicio para filtrar (formato YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: date_end
+          in: query
+          description: Fecha de fin para filtrar (formato YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lista de facturas obtenida correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoices:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/Invoice'
+                        - type: object
+                          properties:
+                            client_name:
+                              type: string
+                              example: "Empresa ABC S.A."
+                            client_phone:
+                              type: string
+                              example: "+51999309748"
+                            client_email:
+                              type: string
+                              example: "contacto@empresaabc.com"
+                            client_address:
+                              type: string
+                              example: "Av. Principal 123, Lima"
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acceso prohibido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /portfolio/my:
+    get:
+      summary: Obtener carteras asignadas
+      description: Obtiene la lista de carteras asignadas al cobrador
+      tags:
+        - Cartera
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lista de carteras obtenida correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  portfolios:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Portfolio'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /payments/search-invoices:
+    get:
+      summary: Buscar facturas para registrar pagos
+      description: Busca facturas por número, cliente o ID externo para registrar pagos
+      tags:
+        - Pagos
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          description: Término de búsqueda (número de factura, nombre de cliente, ID externo)
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resultados de búsqueda obtenidos correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoices:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/Invoice'
+                        - type: object
+                          properties:
+                            client_name:
+                              type: string
+                              example: "Empresa ABC S.A."
+                            client_phone:
+                              type: string
+                              example: "+51999309748"
+                            client_email:
+                              type: string
+                              example: "contacto@empresaabc.com"
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acceso prohibido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /payments/register:
+    post:
+      summary: Registrar pago desde la aplicación móvil
+      description: Registra un pago para una factura desde la aplicación móvil
+      tags:
+        - Pagos
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                invoice_id:
+                  type: integer
+                  example: 123
+                amount:
+                  type: number
+                  format: float
+                  example: 1500.00
+                payment_method:
+                  type: string
+                  example: "efectivo"
+                payment_date:
+                  type: string
+                  format: date-time
+                  example: "2025-03-28T10:30:00"
+                reference_code:
+                  type: string
+                  example: "REF-12345"
+                notes:
+                  type: string
+                  example: "Pago recibido en oficina del cliente"
+                latitude:
+                  type: number
+                  format: float
+                  example: -12.0464
+                longitude:
+                  type: number
+                  format: float
+                  example: -77.0428
+              required:
+                - invoice_id
+                - amount
+                - payment_method
+                - payment_date
+      responses:
+        '201':
+          description: Pago registrado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payment:
+                    $ref: '#/components/schemas/Payment'
+                  message:
+                    type: string
+                    example: "Payment registered successfully"
+        '400':
+          description: Datos de pago inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acceso prohibido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Factura no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /payments/generate-qr/{id}:
+    get:
+      summary: Generar código QR para pago Ligo
+      description: Genera un código QR para realizar un pago mediante Ligo
+      tags:
+        - Pagos
+        - Ligo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID de la factura
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Código QR generado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  qr_data:
+                    type: string
+                    example: "00020101021226580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426655440000"
+                  qr_image_url:
+                    type: string
+                    format: uri
+                    example: "https://api.ligo.pe/v1/qr/123456789"
+                  order_id:
+                    type: string
+                    example: "ORD-123456"
+                  expiration:
+                    type: string
+                    format: date-time
+                    example: "2025-03-28T12:30:00Z"
+        '400':
+          description: Error al generar código QR
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acceso prohibido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Factura no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /webhooks/ligo:
+    post:
+      summary: Webhook para notificaciones de pago Ligo
+      description: Recibe notificaciones de pagos procesados por Ligo
+      tags:
+        - Webhooks
+        - Ligo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: "payment.succeeded"
+                data:
+                  type: object
+                  properties:
+                    order_id:
+                      type: string
+                      example: "123"
+                    payment_id:
+                      type: string
+                      example: "PAY-123456"
+                    amount:
+                      type: number
+                      format: float
+                      example: 1500.00
+                    status:
+                      type: string
+                      example: "completed"
+              required:
+                - type
+                - data
+      responses:
+        '200':
+          description: Notificación procesada correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Payment processed successfully"
+        '400':
+          description: Payload inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Firma inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Factura no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/ligo/token:
+    get:
+      summary: Obtener token de autenticación Ligo
+      description: Obtiene un token de autenticación para la API de Ligo
+      tags:
+        - Autenticación
+        - Ligo
+      responses:
+        '200':
+          description: Token obtenido correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  expires_in:
+                    type: integer
+                    example: 3600
+        '400':
+          description: Error al obtener token
           content:
             application/json:
               schema:
@@ -724,27 +1109,34 @@ components:
           example: 1
         name:
           type: string
-          example: Cartera Comercial 2025
+          example: "Cartera Principal"
         description:
           type: string
-          example: Clientes comerciales asignados para el año 2025
+          example: "Cartera de clientes principales de la empresa"
         organization_id:
           type: integer
           example: 1
+        collector_id:
+          type: integer
+          example: 5
+        status:
+          type: string
+          enum: [active, inactive]
+          example: "active"
         created_at:
           type: string
           format: date-time
-          example: 2025-03-19T10:00:00Z
-        clients_count:
-          type: integer
-          example: 45
-        invoices_count:
-          type: integer
-          example: 87
-        total_amount:
-          type: number
-          format: float
-          example: 125000.00
+          example: "2025-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-03-20T14:15:00Z"
+      required:
+        - id
+        - name
+        - organization_id
+        - collector_id
+        - status
     Client:
       type: object
       properties:
