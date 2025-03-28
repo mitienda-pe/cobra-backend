@@ -252,9 +252,6 @@ class ClientController extends BaseController
             
             // Process form data
             try {
-                $db = \Config\Database::connect();
-                $db->transStart();
-
                 // Determine organization_id
                 $organizationId = $this->auth->organizationId();
                 
@@ -288,7 +285,6 @@ class ClientController extends BaseController
                 $client = $this->clientModel->insert($insertData);
                 
                 if ($client === false) {
-                    $db->transRollback();
                     log_message('error', 'Error al crear cliente: ' . print_r($this->clientModel->errors(), true));
                     return redirect()->back()->withInput()->with('error', 'Error de validación: ' . implode(', ', $this->clientModel->errors()));
                 }
@@ -296,7 +292,6 @@ class ClientController extends BaseController
                 // Get the newly created client with UUID
                 $newClient = $this->clientModel->find($client);
                 if (!$newClient) {
-                    $db->transRollback();
                     log_message('error', 'No se pudo encontrar el cliente recién creado con ID: ' . $client);
                     return redirect()->back()->withInput()->with('error', 'Error al recuperar el cliente creado');
                 }
@@ -304,6 +299,7 @@ class ClientController extends BaseController
                 // Handle portfolio assignments
                 $portfolioIds = $this->request->getPost('portfolios');
                 if ($portfolioIds) {
+                    $db = \Config\Database::connect();
                     foreach ($portfolioIds as $portfolioId) {
                         $portfolio = $this->portfolioModel->find($portfolioId);
                         if ($portfolio) {
@@ -319,27 +315,16 @@ class ClientController extends BaseController
                                 }
                             } catch (\Exception $e) {
                                 log_message('error', 'Error al asignar cartera: ' . $e->getMessage());
-                                $db->transRollback();
                                 return redirect()->back()->withInput()->with('error', 'Error al asignar cartera: ' . $e->getMessage());
                             }
                         }
                     }
                 }
                 
-                $db->transComplete();
-                
-                if ($db->transStatus() === false) {
-                    log_message('error', 'Error en la transacción al crear cliente');
-                    return redirect()->back()->withInput()->with('error', 'Error en la transacción al crear el cliente');
-                }
-                
                 return redirect()->to('/clients')->with('message', 'Cliente creado exitosamente');
                 
             } catch (\Exception $e) {
                 log_message('error', 'Excepción al crear cliente: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-                if (isset($db)) {
-                    $db->transRollback();
-                }
                 return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . $e->getMessage());
             }
         }

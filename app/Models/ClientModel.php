@@ -13,7 +13,7 @@ class ClientModel extends Model
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'uuid', 'organization_id', 'external_id', 'id', 'business_name', 'legal_name', 
+        'uuid', 'organization_id', 'external_id', 'business_name', 'legal_name', 
         'document_number', 'contact_name', 'contact_phone', 'address', 
         'ubigeo', 'zip_code', 'latitude', 'longitude', 'status'
     ];
