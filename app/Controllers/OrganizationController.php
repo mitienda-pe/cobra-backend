@@ -156,15 +156,27 @@ class OrganizationController extends BaseController
         
         // Handle Ligo payment settings
         $data['ligo_enabled'] = isset($postData['ligo_enabled']) ? 1 : 0;
-        $data['ligo_api_key'] = $postData['ligo_api_key'] ?? null;
         
-        // Only update secrets if they are provided
-        if (!empty($postData['ligo_api_secret'])) {
-            $data['ligo_api_secret'] = $postData['ligo_api_secret'];
+        // Nuevos campos de Ligo
+        $data['ligo_username'] = $postData['ligo_username'] ?? null;
+        
+        // Solo actualizar contraseña si se proporciona
+        if (!empty($postData['ligo_password'])) {
+            $data['ligo_password'] = $postData['ligo_password'];
         }
         
+        $data['ligo_company_id'] = $postData['ligo_company_id'] ?? null;
+        $data['ligo_account_id'] = $postData['ligo_account_id'] ?? null;
+        $data['ligo_merchant_code'] = $postData['ligo_merchant_code'] ?? null;
+        
+        // Solo actualizar webhook secret si se proporciona
         if (!empty($postData['ligo_webhook_secret'])) {
             $data['ligo_webhook_secret'] = $postData['ligo_webhook_secret'];
+        }
+        
+        // Solo actualizar private key si se proporciona
+        if (!empty($postData['ligo_private_key'])) {
+            $data['ligo_private_key'] = $postData['ligo_private_key'];
         }
         
         try {
