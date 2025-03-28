@@ -15,6 +15,7 @@
             <div class="card-body">
                 <form action="<?= site_url('clients') ?>" method="post">
                     <?= csrf_field() ?>
+                    <input type="hidden" name="status" value="active">
                     
                     <?php if (isset($organizations) && $auth->hasRole('superadmin')): ?>
                     <!-- Organization information -->
