@@ -67,24 +67,24 @@
                             <div class="mb-3">
                                 <div class="users-list" style="max-height: 300px; overflow-y: auto;">
                                     <div id="users-container">
-                                    <?php if(isset($users)): ?>
-                                        <?php foreach ($users as $user): ?>
-                                            <?php if ($user['role'] == 'admin' || $user['role'] == 'user'): ?>
+                                        <?php if(isset($users)): ?>
+                                            <?php foreach ($users as $user): ?>
                                                 <div class="form-check">
                                                     <input class="form-check-input user-radio" 
                                                            type="radio" 
                                                            name="user_id" 
-                                                           id="user_<?= $user['id'] ?>" 
-                                                           value="<?= $user['id'] ?>" 
+                                                           id="user_<?= $user['uuid'] ?>" 
+                                                           value="<?= $user['uuid'] ?>" 
                                                            required>
-                                                    <label class="form-check-label" for="user_<?= $user['id'] ?>">
+                                                    <label class="form-check-label" for="user_<?= $user['uuid'] ?>">
                                                         <?= esc($user['name']) ?> 
                                                         <small class="text-muted">(<?= esc($user['email']) ?>)</small>
                                                     </label>
                                                 </div>
-                                            <?php endif; ?>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <p class="text-muted">Seleccione una organización para ver usuarios disponibles</p>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -101,13 +101,20 @@
                                 </div>
                                 <hr>
                                 <div class="clients-list" style="max-height: 300px; overflow-y: auto;">
-                                        <div id="clients-container">
+                                    <div id="clients-container">
                                         <?php if(isset($clients)): ?>
                                             <?php foreach ($clients as $client): ?>
                                                 <div class="form-check">
-                                                    <input class="form-check-input client-checkbox" type="checkbox" name="client_ids[]" id="client_<?= $client['id'] ?>" value="<?= $client['id'] ?>" <?= (old('client_ids') && in_array($client['id'], old('client_ids'))) ? 'checked' : '' ?>>
-                                                    <label class="form-check-label" for="client_<?= $client['id'] ?>">
-                                                        <?= $client['business_name'] ?> (<?= $client['document_number'] ?>)
+                                                    <input class="form-check-input client-checkbox" 
+                                                           type="checkbox" 
+                                                           name="client_ids[]" 
+                                                           id="client_<?= $client['uuid'] ?>" 
+                                                           value="<?= $client['uuid'] ?>">
+                                                    <label class="form-check-label" for="client_<?= $client['uuid'] ?>">
+                                                        <?= esc($client['name']) ?>
+                                                        <?php if (!empty($client['business_name'])): ?>
+                                                            <small class="text-muted">(<?= esc($client['business_name']) ?>)</small>
+                                                        <?php endif; ?>
                                                     </label>
                                                 </div>
                                             <?php endforeach; ?>
@@ -132,6 +139,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    var usersContainer = document.getElementById('users-container');
     var clientsContainer = document.getElementById('clients-container');
     
     // Seleccionar todos los clientes
@@ -142,11 +150,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }, this);
     });
 
-    // Función para cargar datos de la organización
-    function loadOrganizationData(organizationId) {
-        if (!organizationId) return;
+    // Manejar cambio de organización
+    var orgSelect = document.getElementById('organization_id');
+    if (orgSelect) {
+        orgSelect.addEventListener('change', function() {
+            var organizationId = this.value;
+            if (organizationId) {
+                loadOrganizationData(organizationId);
+            } else {
+                usersContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver usuarios disponibles</p>';
+                clientsContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver clientes disponibles</p>';
+            }
+        });
+    }
 
-        // Cargar clientes
+    // Cargar datos de organización predefinida
+    var hiddenOrgInput = document.querySelector('input[type="hidden"][name="organization_id"]');
+    if (hiddenOrgInput) {
+        loadOrganizationData(hiddenOrgInput.value);
+    }
+
+    function loadOrganizationData(organizationId) {
+        // Cargar usuarios disponibles
+        fetch(`/portfolios/organization/${organizationId}/users`)
+            .then(response => response.json())
+            .then(data => {
+                updateUsersContainer(data.users);
+            })
+            .catch(error => {
+                console.error('Error loading users:', error);
+                usersContainer.innerHTML = '<p class="text-danger">Error al cargar usuarios</p>';
+            });
+
+        // Cargar clientes disponibles
         fetch(`/portfolios/organization/${organizationId}/clients`)
             .then(response => response.json())
             .then(data => {
@@ -156,6 +192,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error loading clients:', error);
                 clientsContainer.innerHTML = '<p class="text-danger">Error al cargar clientes</p>';
             });
+    }
+
+    function updateUsersContainer(users) {
+        if (!users || users.length === 0) {
+            usersContainer.innerHTML = '<p class="text-muted">No hay usuarios disponibles</p>';
+            return;
+        }
+
+        let html = '';
+        users.forEach(user => {
+            html += `
+                <div class="form-check">
+                    <input class="form-check-input user-radio" 
+                           type="radio" 
+                           name="user_id" 
+                           id="user_${user.uuid}" 
+                           value="${user.uuid}"
+                           required>
+                    <label class="form-check-label" for="user_${user.uuid}">
+                        ${user.name}
+                        <small class="text-muted">(${user.email})</small>
+                    </label>
+                </div>
+            `;
+        });
+        usersContainer.innerHTML = html;
     }
 
     function updateClientsContainer(clients) {
@@ -168,33 +230,19 @@ document.addEventListener('DOMContentLoaded', function() {
         clients.forEach(client => {
             html += `
                 <div class="form-check">
-                    <input class="form-check-input client-checkbox" type="checkbox" name="client_ids[]" id="client_${client.uuid}" value="${client.uuid}">
+                    <input class="form-check-input client-checkbox" 
+                           type="checkbox" 
+                           name="client_ids[]" 
+                           id="client_${client.uuid}" 
+                           value="${client.uuid}">
                     <label class="form-check-label" for="client_${client.uuid}">
-                        ${client.name} (${client.email})
+                        ${client.name}
+                        ${client.business_name ? `<small class="text-muted">(${client.business_name})</small>` : ''}
                     </label>
                 </div>
             `;
         });
         clientsContainer.innerHTML = html;
-    }
-
-    // Manejar organización predefinida (hidden input)
-    var hiddenOrgInput = document.querySelector('input[type="hidden"][name="organization_id"]');
-    if (hiddenOrgInput) {
-        loadOrganizationData(hiddenOrgInput.value);
-    }
-
-    // Manejar cambio de organización (select)
-    var organizationSelect = document.getElementById('organization_id');
-    if (organizationSelect) {
-        organizationSelect.addEventListener('change', function() {
-            var organizationId = this.value;
-            if (organizationId) {
-                loadOrganizationData(organizationId);
-            } else {
-                clientsContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver clientes disponibles</p>';
-            }
-        });
     }
 });
 </script>
