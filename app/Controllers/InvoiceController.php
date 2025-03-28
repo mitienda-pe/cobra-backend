@@ -344,10 +344,24 @@ class InvoiceController extends Controller
     
     public function import()
     {
-        // Only allow POST for actual import
+        // GET request shows the import form
+        if ($this->request->getMethod() === 'get') {
+            $data = [
+                'auth' => $this->auth
+            ];
+
+            // If superadmin and no organization context, load organizations
+            if ($this->auth->hasRole('superadmin') && !$this->auth->organizationId()) {
+                $data['organizations'] = $this->organizationModel->findAll();
+            }
+
+            return view('invoices/import', $data);
+        }
+
+        // POST request processes the import
         if ($this->request->getMethod() === 'post') {
             // Get the uploaded file
-            $file = $this->request->getFile('file');
+            $file = $this->request->getFile('csv_file');
             
             // Check if a file was uploaded
             if (!$file || !$file->isValid()) {
@@ -355,155 +369,138 @@ class InvoiceController extends Controller
             }
             
             // Check file extension
-            $ext = $file->getClientExtension();
-            if ($ext !== 'csv' && $ext !== 'xlsx') {
-                return redirect()->back()->with('error', 'El archivo debe ser CSV o Excel (XLSX).');
+            if ($file->getClientExtension() !== 'csv') {
+                return redirect()->back()->with('error', 'El archivo debe ser CSV.');
             }
-            
+
             try {
                 // Move file to writable directory
                 $file->move(WRITEPATH . 'uploads');
-                
-                // Get the new file name (might be different from original)
                 $fileName = $file->getName();
                 
-                // Process the file based on its type
+                // Get organization ID based on role
+                $organizationId = $this->auth->hasRole('superadmin') 
+                    ? ($this->request->getVar('organization_id') ?? $this->auth->organizationId())
+                    : $this->auth->organizationId();
+
+                if (!$organizationId) {
+                    throw new \Exception('No se ha seleccionado una organización.');
+                }
+
+                // Process CSV file
                 $importedCount = 0;
                 $errors = [];
                 
-                if ($ext === 'csv') {
-                    // Process CSV file
-                    if (($handle = fopen(WRITEPATH . 'uploads/' . $fileName, "r")) !== FALSE) {
-                        $header = fgetcsv($handle); // Get header row
+                if (($handle = fopen(WRITEPATH . 'uploads/' . $fileName, "r")) !== FALSE) {
+                    $header = fgetcsv($handle); // Get header row
+                    
+                    // Normalize header names
+                    $header = array_map(function($field) {
+                        return trim(strtolower($field));
+                    }, $header);
+                    
+                    // Required fields check
+                    $requiredFields = ['document_number', 'invoice_number', 'concept', 'amount', 'due_date'];
+                    $missingFields = array_diff($requiredFields, $header);
+                    
+                    if (!empty($missingFields)) {
+                        throw new \Exception('Faltan campos requeridos: ' . implode(', ', $missingFields));
+                    }
+                    
+                    // Start database transaction
+                    $db = \Config\Database::connect();
+                    $db->transStart();
+                    
+                    while (($data = fgetcsv($handle)) !== FALSE) {
+                        // Skip empty rows
+                        if (empty(array_filter($data))) {
+                            continue;
+                        }
+
+                        // Create associative array from row data
+                        $rowData = array_combine($header, $data);
                         
-                        while (($data = fgetcsv($handle)) !== FALSE) {
-                            // Map CSV data to invoice fields
-                            $invoiceData = array_combine($header, $data);
+                        try {
+                            // Find client by document number
+                            $client = $this->clientModel->where('document_number', $rowData['document_number'])
+                                                      ->where('organization_id', $organizationId)
+                                                      ->first();
+                                                      
+                            if (!$client) {
+                                throw new \Exception("Cliente con documento {$rowData['document_number']} no encontrado");
+                            }
+                            
+                            // Validate amount format
+                            if (!is_numeric(str_replace(',', '.', $rowData['amount']))) {
+                                throw new \Exception('El monto debe ser un número válido');
+                            }
+                            
+                            // Validate date format
+                            $dueDate = date('Y-m-d', strtotime($rowData['due_date']));
+                            if ($dueDate === false) {
+                                throw new \Exception('Formato de fecha inválido. Use YYYY-MM-DD');
+                            }
+                            
+                            // Prepare invoice data
+                            $invoiceData = [
+                                'organization_id' => (int)$organizationId,
+                                'client_uuid' => $client['uuid'],
+                                'invoice_number' => $rowData['invoice_number'],
+                                'concept' => $rowData['concept'],
+                                'amount' => (float)str_replace(',', '.', $rowData['amount']),
+                                'due_date' => $dueDate,
+                                'external_id' => $rowData['external_id'] ?? null,
+                                'notes' => $rowData['notes'] ?? null,
+                                'status' => 'pending'
+                            ];
+                            
+                            // Check if invoice already exists
+                            $existingInvoice = $this->invoiceModel->where('invoice_number', $invoiceData['invoice_number'])
+                                                                ->where('organization_id', $organizationId)
+                                                                ->first();
+                                                                
+                            if ($existingInvoice) {
+                                throw new \Exception("La factura {$invoiceData['invoice_number']} ya existe");
+                            }
                             
                             // Insert invoice
-                            try {
-                                $this->insertImportedInvoice($invoiceData);
-                                $importedCount++;
-                            } catch (\Exception $e) {
-                                $errors[] = "Error en fila {$importedCount}: " . $e->getMessage();
+                            $result = $this->invoiceModel->insert($invoiceData);
+                            if ($result === false) {
+                                throw new \Exception('Error al insertar factura: ' . implode(', ', $this->invoiceModel->errors()));
                             }
-                        }
-                        fclose($handle);
-                    }
-                } else {
-                    // Process Excel file using PhpSpreadsheet
-                    $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
-                    $spreadsheet = $reader->load(WRITEPATH . 'uploads/' . $fileName);
-                    $worksheet = $spreadsheet->getActiveSheet();
-                    
-                    $header = [];
-                    foreach ($worksheet->getRowIterator() as $row) {
-                        $cellIterator = $row->getCellIterator();
-                        $cellIterator->setIterateOnlyExistingCells(FALSE);
-                        
-                        // Get header row
-                        if ($row->getRowIndex() === 1) {
-                            foreach ($cellIterator as $cell) {
-                                $header[] = $cell->getValue();
-                            }
-                            continue;
-                        }
-                        
-                        // Process data rows
-                        $rowData = [];
-                        foreach ($cellIterator as $cell) {
-                            $rowData[] = $cell->getValue();
-                        }
-                        
-                        // Skip empty rows
-                        if (empty(array_filter($rowData))) {
-                            continue;
-                        }
-                        
-                        // Map Excel data to invoice fields
-                        $invoiceData = array_combine($header, $rowData);
-                        
-                        // Insert invoice
-                        try {
-                            $this->insertImportedInvoice($invoiceData);
+                            
                             $importedCount++;
+                            
                         } catch (\Exception $e) {
-                            $errors[] = "Error en fila {$importedCount}: " . $e->getMessage();
+                            $errors[] = "Fila " . ($importedCount + 1) . ": " . $e->getMessage();
                         }
                     }
-                }
-                
-                // Delete the uploaded file
-                unlink(WRITEPATH . 'uploads/' . $fileName);
-                
-                // Prepare response message
-                $message = "Se importaron {$importedCount} facturas exitosamente.";
-                if (!empty($errors)) {
-                    $message .= " Hubo " . count($errors) . " errores.";
-                }
-                
-                if (!empty($errors)) {
-                    return redirect()->back()->with('warning', $message)->with('import_errors', $errors);
+                    
+                    fclose($handle);
+                    
+                    // Commit transaction if no errors
+                    if (empty($errors)) {
+                        $db->transComplete();
+                        if ($db->transStatus() === false) {
+                            throw new \Exception('Error en la transacción de la base de datos');
+                        }
+                        return redirect()->to('/invoices')->with('message', "Se importaron {$importedCount} facturas exitosamente.");
+                    } else {
+                        $db->transRollback();
+                        return redirect()->back()->with('errors', $errors);
+                    }
+                    
                 } else {
-                    return redirect()->back()->with('success', $message);
+                    throw new \Exception('No se pudo abrir el archivo CSV.');
                 }
                 
             } catch (\Exception $e) {
+                if (isset($db)) {
+                    $db->transRollback();
+                }
                 return redirect()->back()->with('error', 'Error al procesar el archivo: ' . $e->getMessage());
             }
         }
-        
-        // Show import form for GET requests
-        return view('invoices/import');
-    }
-    
-    private function insertImportedInvoice($data)
-    {
-        $invoiceModel = new InvoiceModel();
-        $clientModel = new ClientModel();
-        
-        // Required fields validation
-        if (empty($data['invoice_number']) || empty($data['client_document']) || empty($data['amount'])) {
-            throw new \Exception('Faltan campos requeridos (Número de factura, RUC del cliente o monto)');
-        }
-        
-        // Find client by document number
-        $client = $clientModel->where('document_number', $data['client_document'])->first();
-        
-        if (!$client) {
-            throw new \Exception("Cliente con RUC {$data['client_document']} no encontrado");
-        }
-        
-        // Check if invoice number already exists for this organization
-        $existingInvoice = $invoiceModel->where('organization_id', $client['organization_id'])
-            ->where('invoice_number', $data['invoice_number'])
-            ->first();
-        
-        if ($existingInvoice) {
-            throw new \Exception("Factura {$data['invoice_number']} ya existe en esta organización");
-        }
-        
-        // Prepare invoice data
-        $invoiceData = [
-            'organization_id' => $client['organization_id'],
-            'client_id'      => $client['id'],
-            'invoice_number' => $data['invoice_number'],
-            'concept'        => $data['concept'] ?? 'Importado',
-            'amount'         => $data['amount'],
-            'due_date'       => $data['due_date'] ?? date('Y-m-d'),
-            'external_id'    => $data['external_id'] ?? null,
-            'notes'          => $data['notes'] ?? null,
-            'status'         => 'pending'
-        ];
-        
-        // Insert invoice
-        $invoiceId = $invoiceModel->insert($invoiceData);
-        
-        if (!$invoiceId) {
-            throw new \Exception('Error al insertar factura en la base de datos');
-        }
-        
-        return $invoiceId;
     }
     
     /**

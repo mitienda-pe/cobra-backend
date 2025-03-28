@@ -12,6 +12,9 @@
         <a href="<?= site_url('invoices/create') ?>" class="btn btn-primary">
             <i class="bi bi-plus-lg"></i> Nueva Factura
         </a>
+        <a href="<?= site_url('invoices/import') ?><?= (isset($selected_organization_id) && $selected_organization_id) ? '?organization_id=' . $selected_organization_id : '' ?>" class="btn btn-outline-primary">
+            <i class="bi bi-upload"></i> Importar
+        </a>
     </div>
     <?php endif; ?>
 </div>
