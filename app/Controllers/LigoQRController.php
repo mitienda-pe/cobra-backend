@@ -216,8 +216,14 @@ class LigoQRController extends Controller
             'apiSecret' => $organization['ligo_api_secret']
         ];
         
+        // Usar la URL correcta según la documentación de Ligo
+        $url = 'https://api.ligo.pe/v1/auth/login';
+        
+        log_message('debug', 'URL de autenticación Ligo: ' . $url);
+        log_message('debug', 'Datos de autenticación: ' . json_encode($authData));
+        
         curl_setopt_array($curl, [
-            CURLOPT_URL => 'https://api.ligo.pe/v1/auth/token',
+            CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
@@ -226,10 +232,13 @@ class LigoQRController extends Controller
             CURLOPT_CUSTOMREQUEST => 'POST',
             CURLOPT_POSTFIELDS => json_encode($authData),
             CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json'
+                'Content-Type: application/json',
+                'Accept: application/json'
             ],
             CURLOPT_SSL_VERIFYHOST => 0,
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_FOLLOWLOCATION => true, // Seguir redirecciones
+            CURLOPT_VERBOSE => true
         ]);
         
         $response = curl_exec($curl);
@@ -238,29 +247,43 @@ class LigoQRController extends Controller
         
         curl_close($curl);
         
+        // Log detallado de la información de la solicitud
+        log_message('debug', 'Ligo Auth API Info: ' . json_encode($info));
+        
         if ($err) {
             log_message('error', 'Error al obtener token de Ligo: ' . $err);
             return (object)['error' => 'Failed to connect to Ligo Auth API: ' . $err];
         }
         
         // Log de respuesta
-        log_message('debug', 'Respuesta de autenticación Ligo: ' . $response);
+        log_message('debug', 'Respuesta de autenticación Ligo (primeros 500 caracteres): ' . substr($response, 0, 500));
         
         // Verificar si la respuesta es HTML
         if (strpos($response, '<!DOCTYPE html>') !== false || strpos($response, '<html') !== false) {
             log_message('error', 'Ligo Auth API devolvió HTML en lugar de JSON');
-            return (object)['error' => 'Auth API returned HTML instead of JSON'];
+            
+            // Guardar la respuesta HTML para diagnóstico
+            $htmlFile = WRITEPATH . 'logs/ligo_auth_response_' . date('Y-m-d_H-i-s') . '.html';
+            file_put_contents($htmlFile, $response);
+            log_message('error', 'Respuesta HTML guardada en: ' . $htmlFile);
+            
+            // Intentar extraer mensajes de error del HTML
+            preg_match('/<title>(.*?)<\/title>/i', $response, $titleMatches);
+            $errorTitle = isset($titleMatches[1]) ? $titleMatches[1] : 'Unknown error';
+            
+            return (object)['error' => 'Auth API returned HTML: ' . $errorTitle];
         }
         
         $decoded = json_decode($response);
         
         if (json_last_error() !== JSON_ERROR_NONE) {
             log_message('error', 'Error decodificando respuesta de autenticación: ' . json_last_error_msg());
+            log_message('error', 'Respuesta cruda: ' . $response);
             return (object)['error' => 'Invalid JSON in auth response: ' . json_last_error_msg()];
         }
         
         if (!isset($decoded->token)) {
-            log_message('error', 'No se recibió token en la respuesta de autenticación');
+            log_message('error', 'No se recibió token en la respuesta de autenticación: ' . json_encode($decoded));
             return (object)['error' => 'No token in auth response'];
         }
         
