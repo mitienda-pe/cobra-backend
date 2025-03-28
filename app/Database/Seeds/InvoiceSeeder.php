@@ -61,15 +61,20 @@ class InvoiceSeeder extends Seeder
                     $status = 'expired';
                 }
                 
+                // Random concept
+                $concept = $concepts[array_rand($concepts)];
+                
                 $invoice = [
                     'organization_id' => $organization->id,
                     'client_id'      => $client->id,
-                    'client_uuid'    => $client->uuid,
                     'uuid'           => generate_uuid(),
                     'document_type'  => '01',
                     'series'         => 'F' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT),
                     'number'         => str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT),
+                    'invoice_number' => 'F001-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT),
+                    'concept'        => $concept,
                     'total_amount'   => $amount,
+                    'amount'         => $amount,
                     'currency'       => (rand(0, 1) == 0) ? 'PEN' : 'USD',
                     'issue_date'     => date('Y-m-d'),
                     'due_date'       => $dueDate->format('Y-m-d'),
@@ -79,6 +84,11 @@ class InvoiceSeeder extends Seeder
                     'created_at'     => date('Y-m-d H:i:s'),
                     'updated_at'     => date('Y-m-d H:i:s')
                 ];
+
+                // Si el cliente tiene UUID, lo agregamos
+                if (isset($client->uuid)) {
+                    $invoice['client_uuid'] = $client->uuid;
+                }
                 
                 $this->db->table('invoices')->insert($invoice);
             }
