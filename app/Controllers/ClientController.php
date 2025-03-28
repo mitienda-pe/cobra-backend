@@ -252,13 +252,17 @@ class ClientController extends BaseController
             
             // Process form data
             try {
+                log_message('debug', '=== INICIO CREACIÓN DE CLIENTE ===');
+                log_message('debug', 'POST data: ' . print_r($this->request->getPost(), true));
+
                 // Determine organization_id
                 $organizationId = $this->auth->organizationId();
+                log_message('debug', 'Organization ID from auth: ' . $organizationId);
                 
                 // If superadmin, allow selecting organization
                 if ($this->auth->hasRole('superadmin') && $this->request->getPost('organization_id')) {
                     $organizationId = $this->request->getPost('organization_id');
-                    log_message('info', 'Superadmin selected organization: ' . $organizationId);
+                    log_message('debug', 'Superadmin selected organization: ' . $organizationId);
                 }
                 
                 // Prepare data
@@ -279,29 +283,41 @@ class ClientController extends BaseController
                 ];
                 
                 // Log before insert
-                log_message('info', 'Inserting client data: ' . json_encode($insertData));
+                log_message('debug', 'Data to insert: ' . print_r($insertData, true));
                 
                 // Insert the client
                 $client = $this->clientModel->insert($insertData);
+                log_message('debug', 'Insert result: ' . print_r($client, true));
                 
                 if ($client === false) {
-                    log_message('error', 'Error al crear cliente: ' . print_r($this->clientModel->errors(), true));
-                    return redirect()->back()->withInput()->with('error', 'Error de validación: ' . implode(', ', $this->clientModel->errors()));
+                    $errors = $this->clientModel->errors();
+                    log_message('error', 'Error al crear cliente: ' . print_r($errors, true));
+                    return redirect()->back()->withInput()
+                                           ->with('error', 'Error de validación: ' . implode(', ', $errors))
+                                           ->with('debug_error', print_r($errors, true));
                 }
                 
                 // Get the newly created client with UUID
                 $newClient = $this->clientModel->find($client);
+                log_message('debug', 'New client data: ' . print_r($newClient, true));
+                
                 if (!$newClient) {
                     log_message('error', 'No se pudo encontrar el cliente recién creado con ID: ' . $client);
-                    return redirect()->back()->withInput()->with('error', 'Error al recuperar el cliente creado');
+                    return redirect()->back()->withInput()
+                                           ->with('error', 'Error al recuperar el cliente creado')
+                                           ->with('debug_error', 'Cliente ID no encontrado: ' . $client);
                 }
                 
                 // Handle portfolio assignments
                 $portfolioIds = $this->request->getPost('portfolios');
                 if ($portfolioIds) {
+                    log_message('debug', 'Portfolio IDs to assign: ' . print_r($portfolioIds, true));
+                    
                     $db = \Config\Database::connect();
                     foreach ($portfolioIds as $portfolioId) {
                         $portfolio = $this->portfolioModel->find($portfolioId);
+                        log_message('debug', 'Portfolio data for ID ' . $portfolioId . ': ' . print_r($portfolio, true));
+                        
                         if ($portfolio) {
                             try {
                                 $result = $db->table('client_portfolio')->insert([
@@ -310,22 +326,29 @@ class ClientController extends BaseController
                                     'created_at' => date('Y-m-d H:i:s'),
                                     'updated_at' => date('Y-m-d H:i:s')
                                 ]);
+                                log_message('debug', 'Portfolio assignment result: ' . print_r($result, true));
+                                
                                 if (!$result) {
                                     throw new \Exception('Error al insertar en client_portfolio');
                                 }
                             } catch (\Exception $e) {
                                 log_message('error', 'Error al asignar cartera: ' . $e->getMessage());
-                                return redirect()->back()->withInput()->with('error', 'Error al asignar cartera: ' . $e->getMessage());
+                                return redirect()->back()->withInput()
+                                               ->with('error', 'Error al asignar cartera: ' . $e->getMessage())
+                                               ->with('debug_error', $e->getMessage() . "\n" . $e->getTraceAsString());
                             }
                         }
                     }
                 }
                 
+                log_message('debug', '=== FIN CREACIÓN DE CLIENTE ===');
                 return redirect()->to('/clients')->with('message', 'Cliente creado exitosamente');
                 
             } catch (\Exception $e) {
                 log_message('error', 'Excepción al crear cliente: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-                return redirect()->back()->withInput()->with('error', 'Error al crear el cliente: ' . $e->getMessage());
+                return redirect()->back()->withInput()
+                               ->with('error', 'Error al crear el cliente: ' . $e->getMessage())
+                               ->with('debug_error', $e->getMessage() . "\n" . $e->getTraceAsString());
             }
         }
         

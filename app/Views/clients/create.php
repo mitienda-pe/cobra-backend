@@ -13,10 +13,23 @@
                 </div>
             </div>
             <div class="card-body">
-                <div id="errorMessage" class="alert alert-danger d-none"></div>
-                <div id="successMessage" class="alert alert-success d-none"></div>
+                <?php if (session('error')): ?>
+                    <div class="alert alert-danger">
+                        <?= session('error') ?>
+                        <?php if (session('debug_error')): ?>
+                            <hr>
+                            <pre class="mb-0"><code><?= session('debug_error') ?></code></pre>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (session('message')): ?>
+                    <div class="alert alert-success">
+                        <?= session('message') ?>
+                    </div>
+                <?php endif; ?>
                 
-                <form id="clientForm" action="<?= site_url('clients') ?>" method="post">
+                <form id="clientForm" action="<?= site_url('clients/create') ?>" method="post">
                     <?= csrf_field() ?>
                     
                     <?php if (isset($organizations) && $auth->hasRole('superadmin')): ?>

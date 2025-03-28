@@ -52,7 +52,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
     // Client Routes
     $routes->match(['get', 'options'], 'clients', 'ClientController::index');
-    $routes->match(['post', 'options'], 'clients/create', 'ClientController::create');
+    $routes->match(['post', 'options'], 'clients', 'ClientController::create');
     $routes->match(['get', 'options'], 'clients/(:segment)', 'ClientController::show/$1');
     $routes->match(['put', 'options'], 'clients/(:segment)', 'ClientController::update/$1');
     $routes->match(['delete', 'options'], 'clients/(:segment)', 'ClientController::delete/$1');
@@ -102,7 +102,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     $routes->group('clients', function ($routes) {
         $routes->get('/', 'ClientController::index');
         $routes->get('create', 'ClientController::create');
-        $routes->post('create', 'ClientController::store');
+        $routes->post('/', 'ClientController::store');
         $routes->get('(:segment)', 'ClientController::view/$1');
         $routes->get('(:segment)/edit', 'ClientController::edit/$1');
         $routes->post('(:segment)', 'ClientController::update/$1');
