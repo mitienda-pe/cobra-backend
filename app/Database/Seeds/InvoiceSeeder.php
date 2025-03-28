@@ -9,7 +9,7 @@ class InvoiceSeeder extends Seeder
     public function run()
     {
         helper('uuid');
-        
+
         // Get organization
         $organization = $this->db->table('organizations')->get()->getRow();
         if (!$organization) {
@@ -33,7 +33,7 @@ class InvoiceSeeder extends Seeder
 
         // Current date for reference
         $currentDate = new \DateTime();
-        
+
         // Concepts for random selection
         $concepts = [
             'Servicio de mantenimiento',
@@ -45,68 +45,62 @@ class InvoiceSeeder extends Seeder
             'Servicio de transporte',
             'Servicios generales'
         ];
-        
+
         $invoicesCreated = 0;
-        
+
         // For each client, create 1-3 invoices
         foreach ($clients as $client) {
             echo "Creating invoices for client ID: {$client->id}\n";
-            
+
             // Random number of invoices for this client (1-3)
             $numInvoices = rand(1, 3);
-            
+
             for ($i = 0; $i < $numInvoices; $i++) {
                 // Random amount between 1000 and 5000
                 $amount = rand(1000, 5000) + (rand(0, 99) / 100);
-                
+
                 // Random due date between -15 and 45 days from now
                 $daysToAdd = rand(-15, 45);
                 $dueDate = (clone $currentDate)->modify("$daysToAdd days");
-                
+
                 // Determine status based on due date
                 $status = 'pending';
                 if ($dueDate < $currentDate) {
                     $status = 'expired';
                 }
-                
+
                 // Random concept
                 $concept = $concepts[array_rand($concepts)];
-                
+
+                // Generate invoice number
+                $invoiceNumber = 'F001-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
+
                 $invoice = [
                     'organization_id' => $organization->id,
                     'client_id'      => $client->id,
                     'uuid'           => generate_uuid(),
-                    'document_type'  => '01',
-                    'series'         => 'F001',
-                    'number'         => str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT),
+                    'external_id'    => 'EXT-' . strtoupper(bin2hex(random_bytes(4))),
+                    'invoice_number' => 'F001-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT),
                     'concept'        => $concept,
-                    'total_amount'   => $amount,
                     'amount'         => $amount,
-                    'currency'       => (rand(0, 1) == 0) ? 'PEN' : 'USD',
-                    'issue_date'     => date('Y-m-d'),
+                    'currency'       => 'PEN',
                     'due_date'       => $dueDate->format('Y-m-d'),
                     'status'         => $status,
-                    'external_id'    => 'EXT-' . strtoupper(bin2hex(random_bytes(4))),
                     'notes'          => 'Factura de prueba generada por seeder',
                     'created_at'     => date('Y-m-d H:i:s'),
                     'updated_at'     => date('Y-m-d H:i:s')
                 ];
 
-                // Si el cliente tiene UUID, lo agregamos
-                if (isset($client->uuid)) {
-                    $invoice['client_uuid'] = $client->uuid;
-                }
-                
                 try {
                     $this->db->table('invoices')->insert($invoice);
                     $invoicesCreated++;
-                    echo "Created invoice {$invoice['series']}-{$invoice['number']} for client {$client->id}\n";
+                    echo "Created invoice {$invoice['invoice_number']} for client {$client->id}\n";
                 } catch (\Exception $e) {
                     echo "Error creating invoice for client {$client->id}: " . $e->getMessage() . "\n";
                 }
             }
         }
-        
+
         echo "Total invoices created: {$invoicesCreated}\n";
     }
 }
