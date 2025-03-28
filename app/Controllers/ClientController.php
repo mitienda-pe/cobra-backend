@@ -202,156 +202,59 @@ class ClientController extends BaseController
     
     public function create()
     {
-        // Permission check (enable to enforce role)
-        // if (!$this->auth->hasRole(['superadmin', 'admin'])) {
-        //     return redirect()->to('/dashboard')->with('error', 'No tiene permisos para crear clientes.');
-        // }
-        
+        // Si es POST, procesar el formulario
+        if ($this->request->getMethod() === 'post') {
+            // Validación
+            $rules = [
+                'business_name'   => 'required|min_length[3]|max_length[100]',
+                'legal_name'      => 'required|min_length[3]|max_length[100]',
+                'document_number' => 'required|min_length[8]|max_length[20]|is_unique[clients.document_number]',
+            ];
+            
+            if (!$this->validate($rules)) {
+                return redirect()->back()
+                               ->withInput()
+                               ->with('errors', $this->validator->getErrors())
+                               ->with('error', 'Por favor corrija los errores en el formulario.');
+            }
+
+            // Preparar datos
+            $data = [
+                'organization_id' => $this->auth->organizationId(),
+                'business_name'   => $this->request->getPost('business_name'),
+                'legal_name'      => $this->request->getPost('legal_name'),
+                'document_number' => $this->request->getPost('document_number'),
+                'contact_name'    => $this->request->getPost('contact_name'),
+                'contact_phone'   => $this->request->getPost('contact_phone'),
+                'address'         => $this->request->getPost('address'),
+                'ubigeo'          => $this->request->getPost('ubigeo'),
+                'zip_code'        => $this->request->getPost('zip_code'),
+                'external_id'     => $this->request->getPost('external_id'),
+                'status'          => 'active'
+            ];
+
+            // Insertar cliente
+            try {
+                $this->clientModel->insert($data);
+                return redirect()->to('/clients')->with('message', 'Cliente creado exitosamente.');
+            } catch (\Exception $e) {
+                return redirect()->back()
+                               ->withInput()
+                               ->with('error', 'Error al crear el cliente: ' . $e->getMessage());
+            }
+        }
+
+        // Si es GET, mostrar el formulario
         $data = [
             'auth' => $this->auth,
         ];
-        
+
         // Get organization options for dropdown (only for superadmin)
         if ($this->auth->hasRole('superadmin')) {
             $organizations = $this->organizationModel->getActiveOrganizations();
             $data['organizations'] = $organizations;
         }
-        
-        // Get organization ID from Auth library
-        $organizationId = $this->auth->organizationId();
-        
-        // Get portfolios for the dropdown
-        $portfolios = $this->portfolioModel->where('organization_id', $organizationId)->findAll();
-        
-        $data['portfolios'] = $portfolios;
-        
-        // Handle form submission
-        if ($this->request->getMethod() === 'post') {
-            // Log submission data
-            log_message('info', 'Client form submitted: ' . json_encode($this->request->getPost()));
-            
-            // Validation
-            $rules = [
-                'business_name'   => 'required|min_length[3]|max_length[100]',
-                'legal_name'      => 'required|min_length[3]|max_length[100]',
-                'document_number' => 'required|min_length[3]|max_length[20]',
-            ];
-            
-            if (!$this->validate($rules)) {
-                log_message('error', 'Validation failed: ' . json_encode($this->validator->getErrors()));
-                
-                if ($this->request->isAJAX()) {
-                    return $this->response->setJSON([
-                        'success' => false,
-                        'errors' => $this->validator->getErrors()
-                    ]);
-                }
-                
-                return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-            }
-            
-            // Process form data
-            try {
-                log_message('debug', '=== INICIO CREACIÓN DE CLIENTE ===');
-                log_message('debug', 'POST data: ' . print_r($this->request->getPost(), true));
 
-                // Determine organization_id
-                $organizationId = $this->auth->organizationId();
-                log_message('debug', 'Organization ID from auth: ' . $organizationId);
-                
-                // If superadmin, allow selecting organization
-                if ($this->auth->hasRole('superadmin') && $this->request->getPost('organization_id')) {
-                    $organizationId = $this->request->getPost('organization_id');
-                    log_message('debug', 'Superadmin selected organization: ' . $organizationId);
-                }
-                
-                // Prepare data
-                $insertData = [
-                    'organization_id' => $organizationId,
-                    'business_name'   => $this->request->getPost('business_name'),
-                    'legal_name'      => $this->request->getPost('legal_name'),
-                    'document_number' => $this->request->getPost('document_number'),
-                    'contact_name'    => $this->request->getPost('contact_name'),
-                    'contact_phone'   => $this->request->getPost('contact_phone'),
-                    'address'         => $this->request->getPost('address'),
-                    'ubigeo'          => $this->request->getPost('ubigeo'),
-                    'zip_code'        => $this->request->getPost('zip_code'),
-                    'latitude'        => $this->request->getPost('latitude') ?: null,
-                    'longitude'       => $this->request->getPost('longitude') ?: null,
-                    'external_id'     => $this->request->getPost('external_id') ?: null,
-                    'status'          => 'active',
-                ];
-                
-                // Log before insert
-                log_message('debug', 'Data to insert: ' . print_r($insertData, true));
-                
-                // Insert the client
-                $client = $this->clientModel->insert($insertData);
-                log_message('debug', 'Insert result: ' . print_r($client, true));
-                
-                if ($client === false) {
-                    $errors = $this->clientModel->errors();
-                    log_message('error', 'Error al crear cliente: ' . print_r($errors, true));
-                    return redirect()->back()->withInput()
-                                           ->with('error', 'Error de validación: ' . implode(', ', $errors))
-                                           ->with('debug_error', print_r($errors, true));
-                }
-                
-                // Get the newly created client with UUID
-                $newClient = $this->clientModel->find($client);
-                log_message('debug', 'New client data: ' . print_r($newClient, true));
-                
-                if (!$newClient) {
-                    log_message('error', 'No se pudo encontrar el cliente recién creado con ID: ' . $client);
-                    return redirect()->back()->withInput()
-                                           ->with('error', 'Error al recuperar el cliente creado')
-                                           ->with('debug_error', 'Cliente ID no encontrado: ' . $client);
-                }
-                
-                // Handle portfolio assignments
-                $portfolioIds = $this->request->getPost('portfolios');
-                if ($portfolioIds) {
-                    log_message('debug', 'Portfolio IDs to assign: ' . print_r($portfolioIds, true));
-                    
-                    $db = \Config\Database::connect();
-                    foreach ($portfolioIds as $portfolioId) {
-                        $portfolio = $this->portfolioModel->find($portfolioId);
-                        log_message('debug', 'Portfolio data for ID ' . $portfolioId . ': ' . print_r($portfolio, true));
-                        
-                        if ($portfolio) {
-                            try {
-                                $result = $db->table('client_portfolio')->insert([
-                                    'portfolio_uuid' => $portfolio['uuid'],
-                                    'client_uuid' => $newClient['uuid'],
-                                    'created_at' => date('Y-m-d H:i:s'),
-                                    'updated_at' => date('Y-m-d H:i:s')
-                                ]);
-                                log_message('debug', 'Portfolio assignment result: ' . print_r($result, true));
-                                
-                                if (!$result) {
-                                    throw new \Exception('Error al insertar en client_portfolio');
-                                }
-                            } catch (\Exception $e) {
-                                log_message('error', 'Error al asignar cartera: ' . $e->getMessage());
-                                return redirect()->back()->withInput()
-                                               ->with('error', 'Error al asignar cartera: ' . $e->getMessage())
-                                               ->with('debug_error', $e->getMessage() . "\n" . $e->getTraceAsString());
-                            }
-                        }
-                    }
-                }
-                
-                log_message('debug', '=== FIN CREACIÓN DE CLIENTE ===');
-                return redirect()->to('/clients')->with('message', 'Cliente creado exitosamente');
-                
-            } catch (\Exception $e) {
-                log_message('error', 'Excepción al crear cliente: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-                return redirect()->back()->withInput()
-                               ->with('error', 'Error al crear el cliente: ' . $e->getMessage())
-                               ->with('debug_error', $e->getMessage() . "\n" . $e->getTraceAsString());
-            }
-        }
-        
         return view('clients/create', $data);
     }
     

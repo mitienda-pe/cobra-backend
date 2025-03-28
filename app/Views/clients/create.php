@@ -16,16 +16,22 @@
                 <?php if (session('error')): ?>
                     <div class="alert alert-danger">
                         <?= session('error') ?>
-                        <?php if (session('debug_error')): ?>
-                            <hr>
-                            <pre class="mb-0"><code><?= session('debug_error') ?></code></pre>
-                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if (session('message')): ?>
                     <div class="alert alert-success">
                         <?= session('message') ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (session('errors')): ?>
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            <?php foreach (session('errors') as $error): ?>
+                                <li><?= $error ?></li>
+                            <?php endforeach; ?>
+                        </ul>
                     </div>
                 <?php endif; ?>
                 

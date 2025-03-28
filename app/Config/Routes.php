@@ -102,7 +102,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     $routes->group('clients', function ($routes) {
         $routes->get('/', 'ClientController::index');
         $routes->get('create', 'ClientController::create');
-        $routes->post('/', 'ClientController::store');
+        $routes->post('create', 'ClientController::create');
         $routes->get('(:segment)', 'ClientController::view/$1');
         $routes->get('(:segment)/edit', 'ClientController::edit/$1');
         $routes->post('(:segment)', 'ClientController::update/$1');
