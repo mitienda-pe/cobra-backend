@@ -230,7 +230,7 @@ class PortfolioController extends BaseController
 
         // Get assigned clients
         $assigned_clients = $this->db->table('client_portfolio cp')
-            ->select('c.uuid, c.business_name as name, c.email, c.document_number')
+            ->select('c.uuid, c.business_name, c.document_number')
             ->join('clients c', 'c.uuid = cp.client_uuid')
             ->where('cp.portfolio_uuid', $uuid)
             ->where('c.deleted_at IS NULL')
