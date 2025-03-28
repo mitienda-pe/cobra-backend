@@ -26,21 +26,21 @@
                             <div class="alert alert-info mb-3">
                                 <i class="bi bi-building"></i> Creando cartera para: <strong><?= esc($orgName) ?></strong>
                             </div>
-                            <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
+                            <input type="hidden" name="organization_uuid" value="<?= $auth->organizationUuid() ?>">
                         <?php else: ?>
                             <div class="mb-3">
                                 <label for="organization_id" class="form-label">Organización *</label>
                                 <select class="form-select" id="organization_id" name="organization_id" required>
                                     <option value="">Seleccione una organización</option>
                                     <?php foreach($organizations as $org): ?>
-                                        <option value="<?= $org['id'] ?>"><?= $org['name'] ?></option>
+                                        <option value="<?= $org['id'] ?>" data-uuid="<?= $org['uuid'] ?>"><?= $org['name'] ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
                         <?php endif; ?>
                     <?php elseif (!$auth->hasRole('superadmin')): ?>
-                        <!-- For non-superadmins, just add the hidden organization ID -->
-                        <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
+                        <!-- For non-superadmins, just add the hidden organization UUID -->
+                        <input type="hidden" name="organization_uuid" value="<?= $auth->organizationUuid() ?>">
                     <?php endif; ?>
                     
                     <div class="mb-3">
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var clientsContainer = document.getElementById('clients-container');
     
     // Seleccionar todos los clientes
-    document.getElementById('select_all_clients').addEventListener('change', function() {
+    document.getElementById('select_all_clients')?.addEventListener('change', function() {
         var checkboxes = document.querySelectorAll('.client-checkbox');
         checkboxes.forEach(function(checkbox) {
             checkbox.checked = this.checked;
@@ -154,9 +154,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var orgSelect = document.getElementById('organization_id');
     if (orgSelect) {
         orgSelect.addEventListener('change', function() {
-            var organizationId = this.value;
-            if (organizationId) {
-                loadOrganizationData(organizationId);
+            var option = this.options[this.selectedIndex];
+            var organizationUuid = option.getAttribute('data-uuid');
+            if (organizationUuid) {
+                loadOrganizationData(organizationUuid);
             } else {
                 usersContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver usuarios disponibles</p>';
                 clientsContainer.innerHTML = '<p class="text-muted">Seleccione una organización para ver clientes disponibles</p>';
@@ -165,14 +166,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Cargar datos de organización predefinida
-    var hiddenOrgInput = document.querySelector('input[type="hidden"][name="organization_id"]');
+    var hiddenOrgInput = document.querySelector('input[type="hidden"][name="organization_uuid"]');
     if (hiddenOrgInput && hiddenOrgInput.value) {
         loadOrganizationData(hiddenOrgInput.value);
     }
 
-    function loadOrganizationData(organizationId) {
+    function loadOrganizationData(organizationUuid) {
         // Cargar usuarios disponibles
-        fetch(`/portfolios/organization/${organizationId}/users`)
+        fetch(`/portfolios/organization/${organizationUuid}/users`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -188,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
         // Cargar clientes disponibles
-        fetch(`/portfolios/organization/${organizationId}/clients`)
+        fetch(`/portfolios/organization/${organizationUuid}/clients`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');

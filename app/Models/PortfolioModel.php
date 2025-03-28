@@ -64,9 +64,9 @@ class PortfolioModel extends Model
     /**
      * Get portfolios by organization
      */
-    public function getByOrganization($organizationId)
+    public function getByOrganization($organizationUuid)
     {
-        return $this->where('organization_id', $organizationId)->findAll();
+        return $this->where('organization_uuid', $organizationUuid)->findAll();
     }
     
     /**
@@ -190,14 +190,12 @@ class PortfolioModel extends Model
     /**
      * Get available users (without portfolio assignment) for an organization
      */
-    public function getAvailableUsers($organizationId)
+    public function getAvailableUsers($organizationUuid)
     {
         return $this->db->table('users u')
-            ->select('u.*')
-            ->where('u.organization_id', $organizationId)
+            ->select('u.uuid, u.name, u.email')
+            ->where('u.organization_uuid', $organizationUuid)
             ->where('u.deleted_at IS NULL')
-            ->where('u.status', 'active')
-            ->where('u.role !=', 'superadmin')
             ->where("NOT EXISTS (
                 SELECT 1 FROM portfolio_user pu 
                 JOIN portfolios p ON p.uuid = pu.portfolio_uuid 
@@ -211,13 +209,12 @@ class PortfolioModel extends Model
     /**
      * Get available clients (without portfolio assignment) for an organization
      */
-    public function getAvailableClients($organizationId)
+    public function getAvailableClients($organizationUuid)
     {
         return $this->db->table('clients c')
             ->select('c.uuid, c.business_name, c.document_number')
-            ->where('c.organization_id', $organizationId)
+            ->where('c.organization_uuid', $organizationUuid)
             ->where('c.deleted_at IS NULL')
-            ->where('c.status', 'active')
             ->where("NOT EXISTS (
                 SELECT 1 FROM client_portfolio cp 
                 JOIN portfolios p ON p.uuid = cp.portfolio_uuid 
