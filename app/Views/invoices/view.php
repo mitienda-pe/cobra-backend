@@ -41,7 +41,7 @@
             <div class="card-body">
                 <h5 class="card-title">Detalles de la Factura</h5>
                 <hr>
-                
+
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <strong>Número de Factura:</strong>
@@ -95,35 +95,32 @@
                         <strong>Estado:</strong>
                     </div>
                     <div class="col-md-8">
-                        <span class="badge bg-<?= $invoice['status'] === 'paid' ? 'success' : 
-                            ($invoice['status'] === 'pending' ? 'warning' : 
-                            ($invoice['status'] === 'cancelled' ? 'danger' : 
-                            ($invoice['status'] === 'expired' ? 'secondary' : 'info'))) ?>">
+                        <span class="badge bg-<?= $invoice['status'] === 'paid' ? 'success' : ($invoice['status'] === 'pending' ? 'warning' : ($invoice['status'] === 'cancelled' ? 'danger' : ($invoice['status'] === 'expired' ? 'secondary' : 'info'))) ?>">
                             <?= ucfirst($invoice['status']) ?>
                         </span>
                     </div>
                 </div>
 
                 <?php if ($invoice['external_id']): ?>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <strong>ID Externo:</strong>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>ID Externo:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            <?= esc($invoice['external_id']) ?>
+                        </div>
                     </div>
-                    <div class="col-md-8">
-                        <?= esc($invoice['external_id']) ?>
-                    </div>
-                </div>
                 <?php endif; ?>
 
                 <?php if ($invoice['notes']): ?>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <strong>Notas:</strong>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Notas:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            <?= nl2br(esc($invoice['notes'])) ?>
+                        </div>
                     </div>
-                    <div class="col-md-8">
-                        <?= nl2br(esc($invoice['notes'])) ?>
-                    </div>
-                </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -193,7 +190,7 @@
             <div class="card-body">
                 <h5 class="card-title">Información del Cliente</h5>
                 <hr>
-                
+
                 <div class="mb-2">
                     <strong>Nombre / Razón Social:</strong><br>
                     <?= esc($client['business_name']) ?>
@@ -205,53 +202,54 @@
                 </div>
 
                 <?php if (isset($client['contact_name']) && $client['contact_name']): ?>
-                <div class="mb-2">
-                    <strong>Contacto:</strong><br>
-                    <?= esc($client['contact_name']) ?>
-                </div>
+                    <div class="mb-2">
+                        <strong>Contacto:</strong><br>
+                        <?= esc($client['contact_name']) ?>
+                    </div>
                 <?php endif; ?>
 
                 <?php if (isset($client['contact_phone']) && $client['contact_phone']): ?>
-                <div class="mb-2">
-                    <strong>Teléfono:</strong><br>
-                    <?= esc($client['contact_phone']) ?>
-                </div>
+                    <div class="mb-2">
+                        <strong>Teléfono:</strong><br>
+                        <?= esc($client['contact_phone']) ?>
+                    </div>
                 <?php endif; ?>
 
                 <?php if (isset($client['address']) && $client['address']): ?>
-                <div class="mb-2">
-                    <strong>Dirección:</strong><br>
-                    <?= esc($client['address']) ?>
-                </div>
+                    <div class="mb-2">
+                        <strong>Dirección:</strong><br>
+                        <?= esc($client['address']) ?>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
 
         <?php if ($invoice['status'] === 'pending'): ?>
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Acciones</h5>
-                <hr>
-                
-                <div class="d-grid gap-2">
-                    <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                        <a href="<?= site_url('payments/create/' . $invoice['uuid']) ?>" class="btn btn-success">
-                            <i class="bi bi-cash"></i> Registrar Pago
-                        </a>
-                    <?php endif; ?>
-                    <?php 
-                    // Get organization to check if Ligo is enabled
-                    $organizationModel = new \App\Models\OrganizationModel();
-                    $organization = $organizationModel->find($invoice['organization_id']);
-                    if (isset($organization['ligo_enabled']) && $organization['ligo_enabled']): 
-                    ?>
-                    <a href="<?= site_url('payment/ligo/qr/' . $invoice['id']) ?>" class="btn btn-primary">
-                        <i class="bi bi-qr-code"></i> Pagar con QR Ligo
-                    </a>
-                    <?php endif; ?>
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Acciones</h5>
+                    <hr>
+
+                    <div class="d-grid gap-2">
+                        <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                            <a href="<?= site_url('payments/create/' . $invoice['uuid']) ?>" class="btn btn-success">
+                                <i class="bi bi-cash"></i> Registrar Pago
+                            </a>
+                        <?php endif; ?>
+                        <?php
+                        // Get organization to check if Ligo is enabled
+                        $organizationModel = new \App\Models\OrganizationModel();
+                        $organization = $organizationModel->find($invoice['organization_id']);
+                        if (isset($organization['ligo_enabled']) && $organization['ligo_enabled']):
+                        ?>
+                            <!-- Ligo QR Payment -->
+                            <a href="<?= site_url('payment/ligo/qr/' . $invoice['id']) ?>" class="btn btn-primary">
+                                <i class="bi bi-qr-code"></i> Pagar con QR Ligo
+                            </a>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
-        </div>
         <?php endif; ?>
     </div>
 </div>

@@ -50,7 +50,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     // Ligo Webhook Route - Public
     $routes->post('webhooks/ligo', 'LigoWebhookController::handlePaymentNotification', ['csrf' => false]);
     $routes->match(['options'], 'webhooks/ligo', 'LigoWebhookController::handlePaymentNotification', ['csrf' => false]);
-    
+
     // Ligo Auth Route - Public
     $routes->get('auth/ligo/token', 'LigoAuthController::getToken', ['csrf' => false]);
     $routes->match(['options'], 'auth/ligo/token', 'LigoAuthController::getToken', ['csrf' => false]);
@@ -77,20 +77,20 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'api-auth'], function ($routes) {
     // Auth Protected Routes
     $routes->match(['post', 'options'], 'auth/logout', 'AuthController::logout');
-    
+
     // Mobile App Routes
     $routes->match(['get', 'options'], 'portfolio/invoices', 'PortfolioController::myInvoices');
     $routes->match(['get', 'options'], 'portfolio/my', 'PortfolioController::myPortfolios');
     $routes->match(['get', 'options'], 'payments/search-invoices', 'PaymentController::searchInvoices');
     $routes->match(['post', 'options'], 'payments/register', 'PaymentController::registerMobilePayment');
     $routes->match(['get', 'options'], 'payments/generate-qr/(:num)', 'LigoPaymentController::generateQR/$1');
-    
+
     // Invoice Routes
     $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index');
     $routes->match(['get', 'options'], 'invoices/(:segment)', 'InvoiceController::show/$1');
     $routes->match(['get', 'options'], 'invoices/external/(:segment)', 'InvoiceController::findByExternalId');
     $routes->match(['get', 'options'], 'invoices/overdue', 'InvoiceController::overdue');
-    
+
     // Payment Routes
     $routes->match(['get', 'options'], 'payments', 'PaymentController::index');
     $routes->match(['get', 'options'], 'payments/(:segment)', 'PaymentController::show/$1');
@@ -174,7 +174,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('search-invoices', 'PaymentController::searchInvoices');
     });
 
-    // Ligo Payment Routes
+    // Ligo Payment Routes CSRF disabled
     $routes->group('payment/ligo', function ($routes) {
         $routes->get('qr/(:num)', 'LigoQRController::index/$1', ['csrf' => false]);
         $routes->get('generate-qr/(:num)', 'LigoPaymentController::generateQR/$1', ['csrf' => false]);
