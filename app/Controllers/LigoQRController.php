@@ -63,17 +63,29 @@ class LigoQRController extends Controller
                 'description' => "Pago factura #{$invoice['invoice_number']}"
             ];
             
+            // Log para depuración
+            log_message('debug', 'Intentando crear orden en Ligo con datos: ' . json_encode($orderData));
+            log_message('debug', 'Organización: ' . $organization['id'] . ' - API Key: ' . substr($organization['ligo_api_key'], 0, 5) . '...');
+            
             // Crear orden en Ligo
             $response = $this->createLigoOrder($orderData, $organization);
+            
+            // Log de respuesta
+            log_message('debug', 'Respuesta de Ligo: ' . json_encode($response));
             
             if (!isset($response->error)) {
                 $data['qr_data'] = $response->qr_data ?? null;
                 $data['qr_image_url'] = $response->qr_image_url ?? null;
                 $data['order_id'] = $response->order_id ?? null;
                 $data['expiration'] = $response->expiration ?? null;
+                
+                // Log de éxito
+                log_message('info', 'QR generado exitosamente para factura #' . $invoice['invoice_number']);
             } else {
-                log_message('error', 'Error generando QR Ligo: ' . $response->error);
+                log_message('error', 'Error generando QR Ligo: ' . json_encode($response));
             }
+        } else {
+            log_message('error', 'Credenciales de Ligo no configuradas para la organización ID: ' . $organization['id']);
         }
         
         return view('payments/ligo_qr', $data);
@@ -88,7 +100,24 @@ class LigoQRController extends Controller
      */
     private function createLigoOrder($data, $organization)
     {
+        // Log para depuración
+        log_message('debug', 'Iniciando llamada a Ligo API con organización ID: ' . $organization['id']);
+        
         $curl = curl_init();
+        
+        // Asegurarse de que las credenciales estén presentes
+        if (empty($organization['ligo_api_key'])) {
+            log_message('error', 'API Key de Ligo no configurada para organización ID: ' . $organization['id']);
+            return (object)['error' => 'Ligo API Key not configured'];
+        }
+        
+        $headers = [
+            'Authorization: Bearer ' . $organization['ligo_api_key'],
+            'Content-Type: application/json'
+        ];
+        
+        log_message('debug', 'Headers para Ligo API: ' . json_encode($headers));
+        log_message('debug', 'Datos para Ligo API: ' . json_encode($data));
         
         curl_setopt_array($curl, [
             CURLOPT_URL => 'https://api.ligo.pe/v1/orders',
@@ -99,24 +128,45 @@ class LigoQRController extends Controller
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
             CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $organization['ligo_api_key'],
-                'Content-Type: application/json'
-            ],
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_SSL_VERIFYHOST => 0, // Deshabilitar verificación de host SSL
             CURLOPT_SSL_VERIFYPEER => false, // Deshabilitar verificación de certificado SSL
+            CURLOPT_VERBOSE => true
         ]);
         
         $response = curl_exec($curl);
         $err = curl_error($curl);
+        $info = curl_getinfo($curl);
+        
+        // Log de información de la solicitud
+        log_message('debug', 'Ligo API Info: ' . json_encode($info));
         
         curl_close($curl);
         
         if ($err) {
             log_message('error', 'Ligo API Error: ' . $err);
-            return (object)['error' => 'Failed to connect to Ligo API'];
+            return (object)['error' => 'Failed to connect to Ligo API: ' . $err];
         }
         
-        return json_decode($response);
+        // Log de la respuesta completa
+        log_message('debug', 'Ligo API Response: ' . $response);
+        
+        $decoded = json_decode($response);
+        
+        // Verificar si la respuesta se pudo decodificar
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            log_message('error', 'Error decodificando respuesta de Ligo: ' . json_last_error_msg());
+            return (object)['error' => 'Invalid JSON response: ' . json_last_error_msg()];
+        }
+        
+        // Verificar si hay errores en la respuesta de la API
+        if (isset($decoded->error) || isset($decoded->message) || $info['http_code'] >= 400) {
+            $errorMsg = isset($decoded->error) ? $decoded->error : 
+                       (isset($decoded->message) ? $decoded->message : 'HTTP Error: ' . $info['http_code']);
+            log_message('error', 'Ligo API Error Response: ' . $errorMsg);
+            return (object)['error' => $errorMsg];
+        }
+        
+        return $decoded;
     }
 }
