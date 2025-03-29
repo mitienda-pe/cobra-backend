@@ -14,7 +14,7 @@ info:
     La API utiliza autenticación basada en tokens y sigue el principio
     de filtrado por organización para garantizar que cada usuario solo acceda a los
     datos que le corresponden según su rol y asignaciones.
-  version: 1.2.0
+  version: 1.3.0
   contact:
     email: soporte@sistemacobranzas.com
 servers:
@@ -819,34 +819,37 @@ paths:
                 $ref: '#/components/schemas/Error'
   /portfolio/invoices:
     get:
-      summary: Obtener facturas de la cartera
-      description: Obtiene la lista de facturas asociadas a los clientes de la cartera del cobrador
+      summary: Obtener facturas del portafolio
+      description: |
+        Obtiene todas las facturas asignadas al portafolio del usuario.
+        Este endpoint es específico para la aplicación móvil y permite a los cobradores
+        ver las facturas que deben cobrar.
       tags:
-        - Cartera
+        - Portafolio
       security:
         - BearerAuth: []
       parameters:
-        - name: status
-          in: query
-          description: Filtrar por estado de factura
+        - in: query
+          name: status
           schema:
             type: string
-            enum: [pending, paid, cancelled, rejected, expired]
-        - name: date_start
-          in: query
-          description: Fecha de inicio para filtrar (formato YYYY-MM-DD)
-          schema:
-            type: string
-            format: date
-        - name: date_end
-          in: query
-          description: Fecha de fin para filtrar (formato YYYY-MM-DD)
+            enum: [pending, paid, partial, overdue, all]
+          description: Filtrar facturas por estado
+        - in: query
+          name: date_start
           schema:
             type: string
             format: date
+          description: Fecha de inicio para filtrar facturas (YYYY-MM-DD)
+        - in: query
+          name: date_end
+          schema:
+            type: string
+            format: date
+          description: Fecha de fin para filtrar facturas (YYYY-MM-DD)
       responses:
         '200':
-          description: Lista de facturas obtenida correctamente
+          description: Facturas obtenidas correctamente
           content:
             application/json:
               schema:
@@ -861,13 +864,13 @@ paths:
                           properties:
                             client_name:
                               type: string
-                              example: "Empresa ABC S.A."
+                              example: "Empresa XYZ"
                             client_phone:
                               type: string
                               example: "+51999309748"
                             client_email:
                               type: string
-                              example: "contacto@empresaabc.com"
+                              example: "contacto@empresaxyz.com"
                             client_address:
                               type: string
                               example: "Av. Principal 123, Lima"
@@ -878,22 +881,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: Acceso prohibido
+          description: Prohibido - No tiene acceso a este portafolio
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
   /portfolio/my:
     get:
-      summary: Obtener carteras asignadas
-      description: Obtiene la lista de carteras asignadas al cobrador
+      summary: Obtener portafolios asignados
+      description: |
+        Obtiene los portafolios asignados al usuario actual.
+        Este endpoint es específico para la aplicación móvil.
       tags:
-        - Cartera
+        - Portafolio
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Lista de carteras obtenida correctamente
+          description: Portafolios obtenidos correctamente
           content:
             application/json:
               schema:
@@ -1202,6 +1207,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /auth/logout:
+    post:
+      summary: Cerrar sesión
+      description: |
+        Cierra la sesión del usuario invalidando el token actual.
+        Este endpoint es público y no requiere autenticación, lo que permite cerrar sesión
+        incluso si el token ha expirado o se ha perdido.
+      tags:
+        - Autenticación
+      parameters:
+        - name: token
+          in: query
+          required: false
+          description: Token de autenticación (alternativa al encabezado Authorization)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sesión cerrada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Logged out successfully"
 components:
   securitySchemes:
     BearerAuth:
@@ -1259,18 +1294,18 @@ components:
         id:
           type: integer
           example: 1
-        name:
+        uuid:
           type: string
-          example: "Cartera Principal"
-        description:
-          type: string
-          example: "Cartera de clientes principales de la empresa"
+          example: "a1b2c3d4"
         organization_id:
           type: integer
           example: 1
-        collector_id:
-          type: integer
-          example: 5
+        name:
+          type: string
+          example: "Cartera Norte"
+        description:
+          type: string
+          example: "Clientes de la zona norte de la ciudad"
         status:
           type: string
           enum: [active, inactive]
@@ -1278,17 +1313,11 @@ components:
         created_at:
           type: string
           format: date-time
-          example: "2025-01-15T10:30:00Z"
+          example: "2023-01-15T10:30:00Z"
         updated_at:
           type: string
           format: date-time
-          example: "2025-03-20T14:15:00Z"
-      required:
-        - id
-        - name
-        - organization_id
-        - collector_id
-        - status
+          example: "2023-01-15T10:30:00Z"
     Client:
       type: object
       properties:

@@ -114,65 +114,28 @@ class PortfolioController extends ResourceController
         $invoiceModel = new \App\Models\InvoiceModel();
         $clientModel = new \App\Models\ClientModel();
         
-        // Get user's portfolio (one-to-one relationship)
+        // Get user's portfolio
         $user = $this->getAuthUser();
         
-        // Debug information
-        log_message('debug', 'User in myInvoices: ' . json_encode($user));
+        // Get portfolios assigned to this user
+        $portfolios = $portfolioModel->getByUser($user['id']);
         
-        // Try to find portfolio by collector_id
-        $portfolio = $portfolioModel->where('collector_id', $user['id'])->first();
-        
-        // If not found, try to find by user_id
-        if (!$portfolio) {
-            log_message('debug', 'No portfolio found by collector_id, trying user_id');
-            $portfolio = $portfolioModel->where('user_id', $user['id'])->first();
+        if (empty($portfolios)) {
+            return $this->respond(['invoices' => []]);
         }
         
-        // If still not found, try to get portfolios assigned to user
-        if (!$portfolio) {
-            log_message('debug', 'No portfolio found by user_id, trying to get assigned portfolios');
-            $portfolios = $portfolioModel->getByUser($user['uuid'] ?? $user['id']);
-            if (!empty($portfolios)) {
-                $portfolio = $portfolios[0]; // Use the first assigned portfolio
-                log_message('debug', 'Found portfolio by user assignment: ' . json_encode($portfolio));
-            }
-        }
-        
-        if (!$portfolio) {
-            log_message('error', 'No portfolio assigned to user with ID: ' . $user['id']);
-            return $this->failForbidden('No portfolio assigned to this collector');
-        }
-        
-        log_message('debug', 'Portfolio found: ' . json_encode($portfolio));
+        // Use the first portfolio
+        $portfolio = $portfolios[0];
         
         // Get clients assigned to this portfolio
-        $portfolioId = $portfolio['id'] ?? null;
-        $portfolioUuid = $portfolio['uuid'] ?? null;
-        
-        // Try with ID first, then with UUID
-        if ($portfolioId) {
-            $clients = $portfolioModel->getAssignedClients($portfolioId);
-            if (empty($clients) && $portfolioUuid) {
-                $clients = $portfolioModel->getAssignedClients($portfolioUuid);
-            }
-        } elseif ($portfolioUuid) {
-            $clients = $portfolioModel->getAssignedClients($portfolioUuid);
-        } else {
-            $clients = [];
-        }
-        
-        log_message('debug', 'Clients found: ' . json_encode($clients));
+        $clients = $portfolioModel->getAssignedClients($portfolio['id']);
         
         if (empty($clients)) {
-            log_message('error', 'No clients assigned to portfolio with ID: ' . ($portfolioId ?? $portfolioUuid));
             return $this->respond(['invoices' => []]);
         }
         
         // Get client IDs
         $clientIds = array_column($clients, 'id');
-        
-        log_message('debug', 'Client IDs: ' . json_encode($clientIds));
         
         // Get invoices for these clients
         $status = $this->request->getGet('status');
@@ -195,8 +158,6 @@ class PortfolioController extends ResourceController
         }
         
         $invoices = $invoices->findAll();
-        
-        log_message('debug', 'Invoices found: ' . count($invoices));
         
         // Add client information to each invoice
         foreach ($invoices as &$invoice) {

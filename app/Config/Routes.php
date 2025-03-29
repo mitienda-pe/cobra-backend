@@ -62,17 +62,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     // Organization Routes
     $routes->match(['get', 'options'], 'organizations/(:segment)/clients', 'OrganizationController::clients/$1');
 
-    // Client Routes
-    $routes->match(['get', 'options'], 'clients', 'ClientController::index');
-    $routes->match(['post', 'options'], 'clients', 'ClientController::create');
-    $routes->match(['get', 'options'], 'clients/(:segment)', 'ClientController::show/$1');
-    $routes->match(['put', 'options'], 'clients/(:segment)', 'ClientController::update/$1');
-    $routes->match(['delete', 'options'], 'clients/(:segment)', 'ClientController::delete/$1');
-    $routes->match(['get', 'options'], 'clients/uuid/(:segment)', 'ClientController::findByUuid/$1');
-    $routes->match(['get', 'options'], 'clients/external/(:segment)', 'ClientController::findByExternalId/$1');
-    $routes->match(['get', 'options'], 'clients/document/(:segment)', 'ClientController::findByDocument/$1');
-
-    // Portfolio Routes
+    // Portfolio Routes (Public)
     $routes->match(['get', 'options'], 'portfolios', 'PortfolioController::index');
     $routes->match(['get', 'options'], 'portfolios/(:segment)', 'PortfolioController::show/$1');
 });
@@ -82,6 +72,16 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     // Auth Protected Routes
     $routes->match(['get', 'options'], 'auth/me', 'AuthController::me');
     $routes->match(['get', 'options'], 'users/me', 'UserController::me');
+
+    // Client Routes
+    $routes->match(['get', 'options'], 'clients', 'ClientController::index');
+    $routes->match(['post', 'options'], 'clients', 'ClientController::create');
+    $routes->match(['get', 'options'], 'clients/(:segment)', 'ClientController::show/$1');
+    $routes->match(['put', 'options'], 'clients/(:segment)', 'ClientController::update/$1');
+    $routes->match(['delete', 'options'], 'clients/(:segment)', 'ClientController::delete/$1');
+    $routes->match(['get', 'options'], 'clients/uuid/(:segment)', 'ClientController::findByUuid/$1');
+    $routes->match(['get', 'options'], 'clients/external/(:segment)', 'ClientController::findByExternalId/$1');
+    $routes->match(['get', 'options'], 'clients/document/(:segment)', 'ClientController::findByDocument/$1');
 
     // Mobile App Routes
     $routes->match(['get', 'options'], 'portfolio/invoices', 'PortfolioController::myInvoices');

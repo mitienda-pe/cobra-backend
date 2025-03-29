@@ -51,6 +51,7 @@ class InvoiceController extends ResourceController
         $dateStart = $this->request->getGet('date_start');
         $dateEnd = $this->request->getGet('date_end');
         $clientId = $this->request->getGet('client_id');
+        $includeClients = $this->request->getGet('include_clients') === 'true';
         
         $invoiceModel = new InvoiceModel();
         
@@ -89,6 +90,28 @@ class InvoiceController extends ResourceController
                 $invoices = array_filter($invoices, function($invoice) use ($dateEnd) {
                     return $invoice['due_date'] <= $dateEnd;
                 });
+            }
+        }
+        
+        // Include client information if requested
+        if ($includeClients) {
+            $clientModel = new ClientModel();
+            $clientIds = array_unique(array_column($invoices, 'client_id'));
+            $clients = [];
+            
+            // Get all clients in a single query
+            if (!empty($clientIds)) {
+                $clientsData = $clientModel->whereIn('id', $clientIds)->findAll();
+                foreach ($clientsData as $client) {
+                    $clients[$client['id']] = $client;
+                }
+            }
+            
+            // Add client data to each invoice
+            foreach ($invoices as $key => $invoice) {
+                if (isset($clients[$invoice['client_id']])) {
+                    $invoices[$key]['client'] = $clients[$invoice['client_id']];
+                }
             }
         }
         
