@@ -35,6 +35,7 @@ class Filters extends BaseConfig
                 'api',
                 'clients/import*',
                 'invoices/import*',
+                'payment/ligo/*',
                 'login*',
                 'logout'
             ]],
