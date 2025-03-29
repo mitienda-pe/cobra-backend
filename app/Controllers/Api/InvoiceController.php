@@ -102,8 +102,19 @@ class InvoiceController extends ResourceController
             // Get all clients in a single query
             if (!empty($clientIds)) {
                 $clientsData = $clientModel->whereIn('id', $clientIds)->findAll();
+                
+                // Filter clients based on user's access
                 foreach ($clientsData as $client) {
-                    $clients[$client['id']] = $client;
+                    // Superadmin and admin can access all clients in their organization
+                    if ($this->getAuthUser()['role'] === 'superadmin' || $this->getAuthUser()['role'] === 'admin') {
+                        if ($client['organization_id'] == $this->getAuthUser()['organization_id']) {
+                            $clients[$client['id']] = $client;
+                        }
+                    } else {
+                        // For regular users, we'll include all clients since they're already filtered by portfolio
+                        // in the invoice query above
+                        $clients[$client['id']] = $client;
+                    }
                 }
             }
             
