@@ -88,7 +88,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     $routes->match(['get', 'options'], 'portfolio/my', 'PortfolioController::myPortfolios');
     $routes->match(['get', 'options'], 'payments/search-invoices', 'PaymentController::searchInvoices');
     $routes->match(['post', 'options'], 'payments/register', 'PaymentController::registerMobilePayment');
-    $routes->match(['get', 'options'], 'payments/generate-qr/(:num)', 'LigoPaymentController::generateQR/$1');
+    $routes->match(['get', 'options'], 'payments/generate-qr/(:num)', 'PaymentController::generateQR/$1');
 
     // Invoice Routes
     $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index');
@@ -182,7 +182,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     // Ligo Payment Routes
     $routes->group('payment/ligo', function ($routes) {
         $routes->get('qr/(:num)', 'LigoQRController::index/$1');
-        $routes->get('generate-qr/(:num)', 'LigoPaymentController::generateQR/$1');
+        $routes->get('generate-qr/(:num)', 'PaymentController::generateQR/$1');
     });
 
     // Webhook Routes
