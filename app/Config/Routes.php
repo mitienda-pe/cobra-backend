@@ -156,6 +156,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('view/(:segment)', 'InvoiceController::view/$1');
         $routes->get('edit/(:segment)', 'InvoiceController::edit/$1');
         $routes->post('edit/(:segment)', 'InvoiceController::edit/$1');
+        $routes->post('update/(:segment)', 'InvoiceController::update/$1');
         $routes->get('delete/(:segment)', 'InvoiceController::delete/$1');
         // Invoice import routes
         $routes->get('import', 'InvoiceController::import');
