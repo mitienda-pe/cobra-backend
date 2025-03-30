@@ -14,7 +14,7 @@ class InvoiceModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'organization_id', 'client_id', 'uuid', 'external_id',
-        'invoice_number', 'concept', 'amount', 'due_date',
+        'invoice_number', 'concept', 'amount', 'issue_date', 'due_date',
         'currency', 'status', 'notes'
     ];
 
@@ -32,6 +32,7 @@ class InvoiceModel extends Model
         'invoice_number' => 'required|max_length[50]',
         'concept'        => 'required|max_length[255]',
         'amount'         => 'required|numeric',
+        'issue_date'     => 'permit_empty|valid_date',
         'due_date'       => 'required|valid_date',
         'currency'       => 'required|in_list[PEN,USD]',
         'status'         => 'required|in_list[pending,paid,cancelled,rejected,expired]',

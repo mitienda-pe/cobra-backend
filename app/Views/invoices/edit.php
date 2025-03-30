@@ -75,6 +75,30 @@
             </div>
 
             <div class="mb-3">
+                <label for="issue_date" class="form-label">Fecha de Emisión *</label>
+                <input type="date" class="form-control <?= session('validation') && session('validation')->hasError('issue_date') ? 'is-invalid' : '' ?>" 
+                       id="issue_date" name="issue_date" 
+                       value="<?= old('issue_date', isset($invoice['issue_date']) ? $invoice['issue_date'] : date('Y-m-d')) ?>" required>
+                <?php if (session('validation') && session('validation')->hasError('issue_date')): ?>
+                    <div class="invalid-feedback">
+                        <?= session('validation')->getError('issue_date') ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="mb-3">
+                <label for="due_date" class="form-label">Fecha de Vencimiento *</label>
+                <input type="date" class="form-control <?= session('validation') && session('validation')->hasError('due_date') ? 'is-invalid' : '' ?>" 
+                       id="due_date" name="due_date" 
+                       value="<?= old('due_date', $invoice['due_date']) ?>" required>
+                <?php if (session('validation') && session('validation')->hasError('due_date')): ?>
+                    <div class="invalid-feedback">
+                        <?= session('validation')->getError('due_date') ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="mb-3">
                 <label for="currency" class="form-label">Moneda *</label>
                 <select name="currency" id="currency" class="form-select <?= session('validation') && session('validation')->hasError('currency') ? 'is-invalid' : '' ?>" required>
                     <option value="PEN" <?= old('currency', $invoice['currency']) === 'PEN' ? 'selected' : '' ?>>PEN - Soles</option>
@@ -104,18 +128,6 @@
                 <?php if (session('validation') && session('validation')->hasError('status')): ?>
                     <div class="invalid-feedback">
                         <?= session('validation')->getError('status') ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <div class="mb-3">
-                <label for="due_date" class="form-label" id="due_date_label">Fecha de Vencimiento *</label>
-                <input type="date" class="form-control <?= session('validation') && session('validation')->hasError('due_date') ? 'is-invalid' : '' ?>" 
-                       id="due_date" name="due_date" 
-                       value="<?= old('due_date', $invoice['due_date']) ?>" required>
-                <?php if (session('validation') && session('validation')->hasError('due_date')): ?>
-                    <div class="invalid-feedback">
-                        <?= session('validation')->getError('due_date') ?>
                     </div>
                 <?php endif; ?>
             </div>

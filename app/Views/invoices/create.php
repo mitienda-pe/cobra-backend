@@ -107,6 +107,44 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
+                                <label for="issue_date" class="form-label">Fecha de Emisión *</label>
+                                <input type="date" class="form-control" id="issue_date" name="issue_date" 
+                                       value="<?= old('issue_date', date('Y-m-d')) ?>" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="due_date" class="form-label" id="due_date_label">Fecha de Vencimiento *</label>
+                                <input type="date" class="form-control" id="due_date" name="due_date" 
+                                       value="<?= old('due_date', date('Y-m-d', strtotime('+30 days'))) ?>" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="external_id" class="form-label">ID Externo</label>
+                                <input type="text" class="form-control" id="external_id" name="external_id" 
+                                       value="<?= old('external_id') ?>" maxlength="36">
+                                <div class="form-text">ID opcional para integración con otros sistemas</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="num_instalments" class="form-label">Número de Cuotas *</label>
+                                <select class="form-select" id="num_instalments" name="num_instalments" required>
+                                    <?php for ($i = 1; $i <= 12; $i++): ?>
+                                        <option value="<?= $i ?>" <?= old('num_instalments', 1) == $i ? 'selected' : '' ?>><?= $i ?></option>
+                                    <?php endfor; ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
                                 <label for="currency" class="form-label">Moneda *</label>
                                 <select name="currency" id="currency" class="form-select" required>
                                     <option value="PEN" <?= old('currency') === 'PEN' ? 'selected' : '' ?>>Soles (PEN)</option>
@@ -124,33 +162,6 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="due_date" class="form-label" id="due_date_label">Fecha de Vencimiento *</label>
-                                <input type="date" class="form-control" id="due_date" name="due_date" 
-                                       value="<?= old('due_date', date('Y-m-d', strtotime('+30 days'))) ?>" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="external_id" class="form-label">ID Externo</label>
-                                <input type="text" class="form-control" id="external_id" name="external_id" 
-                                       value="<?= old('external_id') ?>" maxlength="36">
-                                <div class="form-text">ID opcional para integración con otros sistemas</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="num_instalments" class="form-label">Número de Cuotas *</label>
-                        <select class="form-select" id="num_instalments" name="num_instalments" required>
-                            <?php for ($i = 1; $i <= 12; $i++): ?>
-                                <option value="<?= $i ?>" <?= old('num_instalments', 1) == $i ? 'selected' : '' ?>><?= $i ?></option>
-                            <?php endfor; ?>
-                        </select>
                     </div>
 
                     <div id="instalment_interval_container" class="mb-3" style="display: none;">

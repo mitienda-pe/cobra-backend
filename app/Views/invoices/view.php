@@ -56,6 +56,15 @@
 
                 <div class="row mb-3">
                     <div class="col-md-4">
+                        <strong>Fecha de Emisión:</strong>
+                    </div>
+                    <div class="col-md-8">
+                        <?= isset($invoice['issue_date']) ? date('d/m/Y', strtotime($invoice['issue_date'])) : 'No especificada' ?>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
                         <strong>Cliente:</strong>
                     </div>
                     <div class="col-md-8">
@@ -81,15 +90,6 @@
                     </div>
                     <div class="col-md-8">
                         <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['amount'], 2) ?>
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <strong>Fecha de Vencimiento:</strong>
-                    </div>
-                    <div class="col-md-8">
-                        <?= date('d/m/Y', strtotime($invoice['due_date'])) ?>
                     </div>
                 </div>
 
@@ -203,7 +203,16 @@
                 <hr>
 
                 <?php if (!$has_instalments): ?>
-                    <p class="text-muted">No hay cuotas definidas para esta factura. Las cuotas se crean automáticamente al crear o editar la factura.</p>
+                    <div class="alert alert-info">
+                        <p class="mb-0">Esta factura no tiene cuotas definidas. Se creará una cuota única con la fecha de vencimiento <?= date('d/m/Y', strtotime($invoice['due_date'])) ?>.</p>
+                        <?php if ($auth->hasAnyRole(['superadmin', 'admin']) && $invoice['status'] === 'pending'): ?>
+                            <p class="mt-2 mb-0">
+                                <a href="<?= site_url('invoice/' . $invoice['uuid'] . '/instalments/create') ?>" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-plus-circle"></i> Definir cuotas
+                                </a>
+                            </p>
+                        <?php endif; ?>
+                    </div>
                 <?php else: ?>
                     <div class="table-responsive">
                         <table class="table table-hover">
