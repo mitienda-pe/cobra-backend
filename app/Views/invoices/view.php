@@ -16,7 +16,7 @@
                 <a href="<?= site_url('payments/create/' . $invoice['uuid']) ?>" class="btn btn-success">
                     <i class="bi bi-cash"></i> Registrar Pago
                 </a>
-                <a href="<?= site_url('invoice/' . $invoice['id'] . '/instalments') ?>" class="btn btn-info">
+                <a href="<?= site_url('invoice/' . $invoice['uuid'] . '/instalments') ?>" class="btn btn-info">
                     <i class="bi bi-list-ol"></i> Cuotas
                 </a>
             <?php endif; ?>
@@ -194,7 +194,7 @@
                     <h5 class="card-title mb-0">Cuotas</h5>
                     <?php if ($auth->hasAnyRole(['superadmin', 'admin']) && $invoice['status'] === 'pending'): ?>
                         <?php if ($has_instalments): ?>
-                            <a href="<?= site_url('invoice/' . $invoice['id'] . '/instalments') ?>" class="btn btn-sm btn-primary">
+                            <a href="<?= site_url('invoice/' . $invoice['uuid'] . '/instalments') ?>" class="btn btn-sm btn-primary">
                                 <i class="bi bi-list-ol"></i> Ver todas las cuotas
                             </a>
                         <?php endif; ?>
@@ -271,7 +271,7 @@
                     
                     <?php if (count($instalments) > 3): ?>
                         <div class="text-center mt-3">
-                            <a href="<?= site_url('invoice/' . $invoice['id'] . '/instalments') ?>" class="btn btn-outline-primary btn-sm">
+                            <a href="<?= site_url('invoice/' . $invoice['uuid'] . '/instalments') ?>" class="btn btn-outline-primary btn-sm">
                                 Ver todas las cuotas (<?= count($instalments) ?>)
                             </a>
                         </div>
@@ -345,7 +345,7 @@
                         if (isset($organization['ligo_enabled']) && $organization['ligo_enabled']):
                         ?>
                             <!-- Ligo QR Payment -->
-                            <a href="<?= site_url('payment/ligo/qr/' . $invoice['id']) ?>" class="btn btn-primary">
+                            <a href="<?= site_url('payment/ligo/qr/' . $invoice['uuid']) ?>" class="btn btn-primary">
                                 <i class="bi bi-qr-code"></i> Pagar con QR Ligo
                             </a>
                         <?php endif; ?>

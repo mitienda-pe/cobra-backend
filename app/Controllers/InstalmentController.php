@@ -24,7 +24,7 @@ class InstalmentController extends BaseController
         $this->paymentModel = new PaymentModel();
         $this->clientModel = new ClientModel();
         
-        helper(['form', 'url']);
+        helper(['form', 'url', 'text']);
     }
     
     /**
@@ -32,20 +32,28 @@ class InstalmentController extends BaseController
      */
     public function index($invoiceId)
     {
-        // Verificar acceso a la factura
-        if (!$this->canAccessInvoice($invoiceId)) {
-            return redirect()->to('/invoices')->with('error', 'No tiene acceso a esta factura');
+        // Verificar si el ID es un UUID
+        if (strlen($invoiceId) === 36 && strpos($invoiceId, '-') !== false) {
+            // Es un UUID, buscar por uuid
+            $invoice = $this->invoiceModel->where('uuid', $invoiceId)->first();
+        } else {
+            // Es un ID numérico, buscar por id
+            $invoice = $this->invoiceModel->find($invoiceId);
         }
         
-        $invoice = $this->invoiceModel->find($invoiceId);
         if (!$invoice) {
             return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
+        }
+        
+        // Verificar acceso a la factura
+        if (!$this->canAccessInvoice($invoice['id'])) {
+            return redirect()->to('/invoices')->with('error', 'No tiene acceso a esta factura');
         }
         
         $client = $this->clientModel->find($invoice['client_id']);
         
         // Usar el método que ordena las cuotas por prioridad de cobranza
-        $instalments = $this->instalmentModel->getByInvoiceForCollection($invoiceId);
+        $instalments = $this->instalmentModel->getByInvoiceForCollection($invoice['id']);
         
         // Obtener pagos por cuota
         $payments = [];
@@ -69,6 +77,11 @@ class InstalmentController extends BaseController
             $instalment['is_future'] = !$instalment['can_be_paid'] && $instalment['status'] !== 'paid';
         }
         
+        // Asegurar que la factura tenga una fecha de emisión
+        if (!isset($invoice['issue_date'])) {
+            $invoice['issue_date'] = date('Y-m-d'); // Usar la fecha actual como fallback
+        }
+        
         return view('instalments/index', [
             'invoice' => $invoice,
             'client' => $client,
@@ -82,20 +95,28 @@ class InstalmentController extends BaseController
      */
     public function create($invoiceId)
     {
-        // Verificar acceso a la factura
-        if (!$this->canAccessInvoice($invoiceId)) {
-            return redirect()->to('/invoices')->with('error', 'No tiene acceso a esta factura');
+        // Verificar si el ID es un UUID
+        if (strlen($invoiceId) === 36 && strpos($invoiceId, '-') !== false) {
+            // Es un UUID, buscar por uuid
+            $invoice = $this->invoiceModel->where('uuid', $invoiceId)->first();
+        } else {
+            // Es un ID numérico, buscar por id
+            $invoice = $this->invoiceModel->find($invoiceId);
         }
         
-        $invoice = $this->invoiceModel->find($invoiceId);
         if (!$invoice) {
             return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
         }
         
+        // Verificar acceso a la factura
+        if (!$this->canAccessInvoice($invoice['id'])) {
+            return redirect()->to('/invoices')->with('error', 'No tiene acceso a esta factura');
+        }
+        
         // Verificar si ya tiene cuotas
-        $existingInstalments = $this->instalmentModel->where('invoice_id', $invoiceId)->countAllResults();
+        $existingInstalments = $this->instalmentModel->where('invoice_id', $invoice['id'])->countAllResults();
         if ($existingInstalments > 0) {
-            return redirect()->to('/invoice/' . $invoiceId . '/instalments')
+            return redirect()->to('/invoice/' . $invoice['uuid'] . '/instalments')
                 ->with('error', 'Esta factura ya tiene cuotas creadas');
         }
         
@@ -119,20 +140,24 @@ class InstalmentController extends BaseController
     {
         $invoiceId = $this->request->getPost('invoice_id');
         
+        // Verificar si el ID es un UUID
+        if (strlen($invoiceId) === 36 && strpos($invoiceId, '-') !== false) {
+            // Es un UUID, buscar por uuid
+            $invoice = $this->invoiceModel->where('uuid', $invoiceId)->first();
+        } else {
+            // Es un ID numérico, buscar por id
+            $invoice = $this->invoiceModel->find($invoiceId);
+        }
+        
         // Verificar acceso a la factura
-        if (!$this->canAccessInvoice($invoiceId)) {
+        if (!$this->canAccessInvoice($invoice['id'])) {
             return redirect()->to('/invoices')->with('error', 'No tiene acceso a esta factura');
         }
         
-        $invoice = $this->invoiceModel->find($invoiceId);
-        if (!$invoice) {
-            return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
-        }
-        
         // Verificar si ya tiene cuotas
-        $existingInstalments = $this->instalmentModel->where('invoice_id', $invoiceId)->countAllResults();
+        $existingInstalments = $this->instalmentModel->where('invoice_id', $invoice['id'])->countAllResults();
         if ($existingInstalments > 0) {
-            return redirect()->to('/invoice/' . $invoiceId . '/instalments')
+            return redirect()->to('/invoice/' . $invoice['uuid'] . '/instalments')
                 ->with('error', 'Esta factura ya tiene cuotas creadas');
         }
         
@@ -166,11 +191,12 @@ class InstalmentController extends BaseController
                     $dueDate = date('Y-m-d', strtotime($firstDueDate . ' + ' . (($i - 1) * $interval) . ' days'));
                     
                     $this->instalmentModel->insert([
-                        'invoice_id' => $invoiceId,
+                        'invoice_id' => $invoice['id'],
                         'number' => $i,
                         'amount' => ($i == $numInstalments) ? $lastAmount : $amount,
                         'due_date' => $dueDate,
-                        'status' => 'pending'
+                        'status' => 'pending',
+                        'uuid' => random_string('alnum', 36)
                     ]);
                 }
             } else {
@@ -188,11 +214,12 @@ class InstalmentController extends BaseController
                     $totalAmount += $amount;
                     
                     $this->instalmentModel->insert([
-                        'invoice_id' => $invoiceId,
+                        'invoice_id' => $invoice['id'],
                         'number' => $i,
                         'amount' => $amount,
                         'due_date' => $dueDate,
-                        'status' => 'pending'
+                        'status' => 'pending',
+                        'uuid' => random_string('alnum', 36)
                     ]);
                 }
                 
@@ -203,7 +230,7 @@ class InstalmentController extends BaseController
             }
             
             $db->transCommit();
-            return redirect()->to('/invoice/' . $invoiceId . '/instalments')
+            return redirect()->to('/invoice/' . $invoice['uuid'] . '/instalments')
                 ->with('success', 'Cuotas creadas correctamente');
                 
         } catch (\Exception $e) {
@@ -218,36 +245,39 @@ class InstalmentController extends BaseController
      */
     public function delete($invoiceId)
     {
+        // Verificar si el ID es un UUID
+        if (strlen($invoiceId) === 36 && strpos($invoiceId, '-') !== false) {
+            // Es un UUID, buscar por uuid
+            $invoice = $this->invoiceModel->where('uuid', $invoiceId)->first();
+        } else {
+            // Es un ID numérico, buscar por id
+            $invoice = $this->invoiceModel->find($invoiceId);
+        }
+        
+        if (!$invoice) {
+            return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
+        }
+        
         // Verificar acceso a la factura
-        if (!$this->canAccessInvoice($invoiceId)) {
+        if (!$this->canAccessInvoice($invoice['id'])) {
             return redirect()->to('/invoices')->with('error', 'No tiene acceso a esta factura');
         }
         
         // Verificar si hay pagos asociados a las cuotas
-        $instalments = $this->instalmentModel->getByInvoice($invoiceId);
-        $instalmentIds = array_column($instalments, 'id');
-        
-        if (!empty($instalmentIds)) {
-            $paymentsCount = $this->paymentModel
-                ->whereIn('instalment_id', $instalmentIds)
-                ->countAllResults();
-                
-            if ($paymentsCount > 0) {
-                return redirect()->to('/invoice/' . $invoiceId . '/instalments')
-                    ->with('error', 'No se pueden eliminar las cuotas porque ya tienen pagos asociados');
+        $instalments = $this->instalmentModel->getByInvoice($invoice['id']);
+        foreach ($instalments as $instalment) {
+            $payments = $this->paymentModel->where('instalment_id', $instalment['id'])->findAll();
+            if (!empty($payments)) {
+                return redirect()->to('/invoice/' . $invoice['uuid'] . '/instalments')
+                    ->with('error', 'No se pueden eliminar las cuotas porque hay pagos asociados');
             }
-            
-            // Eliminar cuotas
-            foreach ($instalmentIds as $id) {
-                $this->instalmentModel->delete($id);
-            }
-            
-            return redirect()->to('/invoice/' . $invoiceId . '/instalments')
-                ->with('success', 'Cuotas eliminadas correctamente');
         }
         
-        return redirect()->to('/invoice/' . $invoiceId . '/instalments')
-            ->with('error', 'No hay cuotas para eliminar');
+        // Eliminar todas las cuotas
+        $this->instalmentModel->where('invoice_id', $invoice['id'])->delete();
+        
+        return redirect()->to('/invoice/' . $invoice['uuid'] . '/instalments')
+            ->with('success', 'Cuotas eliminadas correctamente');
     }
     
     /**
