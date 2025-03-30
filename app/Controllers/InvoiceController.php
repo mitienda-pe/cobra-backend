@@ -553,6 +553,11 @@ class InvoiceController extends Controller
                 if (!$organizationId) {
                     throw new \Exception('No se ha seleccionado una organización.');
                 }
+                
+                // Get default instalment settings
+                $defaultNumInstalments = (int)$this->request->getVar('default_num_instalments') ?: 1;
+                $defaultInstalmentInterval = (int)$this->request->getVar('default_instalment_interval') ?: 30;
+                $overrideCsvInstalments = (bool)$this->request->getVar('override_csv_instalments');
 
                 // Process CSV file
                 $importedCount = 0;
@@ -574,9 +579,15 @@ class InvoiceController extends Controller
                         throw new \Exception('El archivo CSV no tiene todas las columnas requeridas. Faltan: ' . implode(', ', $missingFields));
                     }
                     
+                    // Check if CSV has instalment columns
+                    $hasInstalmentColumns = in_array('num_instalments', $header) && in_array('instalment_interval', $header);
+                    
                     // Start database transaction
                     $db = \Config\Database::connect();
                     $db->transStart();
+                    
+                    // Load instalment model
+                    $instalmentModel = new \App\Models\InstalmentModel();
                     
                     while (($data = fgetcsv($handle)) !== FALSE) {
                         // Skip empty rows
@@ -655,6 +666,45 @@ class InvoiceController extends Controller
                                 throw new \Exception('Error al insertar factura: ' . implode(', ', $this->invoiceModel->errors()));
                             }
                             
+                            $invoiceId = $this->invoiceModel->getInsertID();
+                            
+                            // Determine number of instalments and interval
+                            $numInstalments = $defaultNumInstalments;
+                            $instalmentInterval = $defaultInstalmentInterval;
+                            
+                            // Override with CSV values if available and option is enabled
+                            if ($hasInstalmentColumns && $overrideCsvInstalments) {
+                                if (isset($rowData['num_instalments']) && is_numeric($rowData['num_instalments']) && (int)$rowData['num_instalments'] > 0) {
+                                    $numInstalments = (int)$rowData['num_instalments'];
+                                }
+                                
+                                if (isset($rowData['instalment_interval']) && is_numeric($rowData['instalment_interval']) && (int)$rowData['instalment_interval'] > 0) {
+                                    $instalmentInterval = (int)$rowData['instalment_interval'];
+                                }
+                            }
+                            
+                            // Create instalments
+                            $instalmentAmount = $invoiceData['amount'] / $numInstalments;
+                            $instalmentAmount = round($instalmentAmount, 2); // Redondear a 2 decimales
+                            
+                            // Ajustar la última cuota para que el total sea exacto
+                            $lastInstalmentAmount = $invoiceData['amount'] - ($instalmentAmount * ($numInstalments - 1));
+                            
+                            for ($i = 0; $i < $numInstalments; $i++) {
+                                $instalmentDueDate = date('Y-m-d', strtotime($dueDate . ' + ' . ($i * $instalmentInterval) . ' days'));
+                                $amount = ($i == $numInstalments - 1) ? $lastInstalmentAmount : $instalmentAmount;
+                                
+                                $instalmentData = [
+                                    'invoice_id' => $invoiceId,
+                                    'number' => $i + 1,
+                                    'amount' => $amount,
+                                    'due_date' => $instalmentDueDate,
+                                    'status' => 'pending'
+                                ];
+                                
+                                $instalmentModel->insert($instalmentData);
+                            }
+                            
                             $importedCount++;
                             
                         } catch (\Exception $e) {
@@ -670,7 +720,7 @@ class InvoiceController extends Controller
                         if ($db->transStatus() === false) {
                             throw new \Exception('Error en la transacción de la base de datos');
                         }
-                        return redirect()->to('/invoices')->with('message', "Se importaron {$importedCount} facturas exitosamente.");
+                        return redirect()->to('/invoices')->with('message', "Se importaron {$importedCount} facturas exitosamente con sus respectivas cuotas.");
                     } else {
                         $db->transRollback();
                         return redirect()->back()->with('errors', $errors);
