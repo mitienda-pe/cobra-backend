@@ -369,7 +369,7 @@
         <div class="sidebar">
             <!-- Sidebar header -->
             <div class="sidebar-header">
-                <a href="<?= site_url('dashboard') ?>" class="sidebar-brand">Cobrapp</a>
+                <a href="<?= site_url('dashboard') ?>" class="sidebar-brand">CobraPepe</a>
                 <button class="sidebar-toggle">
                     <i class="bi bi-chevron-left"></i>
                 </button>
