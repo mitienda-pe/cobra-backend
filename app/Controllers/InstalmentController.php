@@ -32,9 +32,9 @@ class InstalmentController extends BaseController
      */
     public function index($invoiceId)
     {
-        // Verificar si el ID es un UUID
-        if (strlen($invoiceId) === 36 && strpos($invoiceId, '-') !== false) {
-            // Es un UUID, buscar por uuid
+        // Verificar si el ID es un UUID o un ID numérico
+        if (!is_numeric($invoiceId)) {
+            // No es numérico, asumimos que es un UUID
             $invoice = $this->invoiceModel->where('uuid', $invoiceId)->first();
         } else {
             // Es un ID numérico, buscar por id
@@ -46,7 +46,7 @@ class InstalmentController extends BaseController
         }
         
         // Verificar acceso a la factura
-        if (!$this->canAccessInvoice($invoice['id'])) {
+        if (!$this->canAccessInvoice($invoiceId)) {
             return redirect()->to('/invoices')->with('error', 'No tiene acceso a esta factura');
         }
         
@@ -95,9 +95,9 @@ class InstalmentController extends BaseController
      */
     public function create($invoiceId)
     {
-        // Verificar si el ID es un UUID
-        if (strlen($invoiceId) === 36 && strpos($invoiceId, '-') !== false) {
-            // Es un UUID, buscar por uuid
+        // Verificar si el ID es un UUID o un ID numérico
+        if (!is_numeric($invoiceId)) {
+            // No es numérico, asumimos que es un UUID
             $invoice = $this->invoiceModel->where('uuid', $invoiceId)->first();
         } else {
             // Es un ID numérico, buscar por id
@@ -109,7 +109,7 @@ class InstalmentController extends BaseController
         }
         
         // Verificar acceso a la factura
-        if (!$this->canAccessInvoice($invoice['id'])) {
+        if (!$this->canAccessInvoice($invoiceId)) {
             return redirect()->to('/invoices')->with('error', 'No tiene acceso a esta factura');
         }
         
@@ -140,9 +140,9 @@ class InstalmentController extends BaseController
     {
         $invoiceId = $this->request->getPost('invoice_id');
         
-        // Verificar si el ID es un UUID
-        if (strlen($invoiceId) === 36 && strpos($invoiceId, '-') !== false) {
-            // Es un UUID, buscar por uuid
+        // Verificar si el ID es un UUID o un ID numérico
+        if (!is_numeric($invoiceId)) {
+            // No es numérico, asumimos que es un UUID
             $invoice = $this->invoiceModel->where('uuid', $invoiceId)->first();
         } else {
             // Es un ID numérico, buscar por id
@@ -150,7 +150,7 @@ class InstalmentController extends BaseController
         }
         
         // Verificar acceso a la factura
-        if (!$this->canAccessInvoice($invoice['id'])) {
+        if (!$this->canAccessInvoice($invoiceId)) {
             return redirect()->to('/invoices')->with('error', 'No tiene acceso a esta factura');
         }
         
@@ -245,9 +245,9 @@ class InstalmentController extends BaseController
      */
     public function delete($invoiceId)
     {
-        // Verificar si el ID es un UUID
-        if (strlen($invoiceId) === 36 && strpos($invoiceId, '-') !== false) {
-            // Es un UUID, buscar por uuid
+        // Verificar si el ID es un UUID o un ID numérico
+        if (!is_numeric($invoiceId)) {
+            // No es numérico, asumimos que es un UUID
             $invoice = $this->invoiceModel->where('uuid', $invoiceId)->first();
         } else {
             // Es un ID numérico, buscar por id
@@ -259,7 +259,7 @@ class InstalmentController extends BaseController
         }
         
         // Verificar acceso a la factura
-        if (!$this->canAccessInvoice($invoice['id'])) {
+        if (!$this->canAccessInvoice($invoiceId)) {
             return redirect()->to('/invoices')->with('error', 'No tiene acceso a esta factura');
         }
         
@@ -285,7 +285,14 @@ class InstalmentController extends BaseController
      */
     private function canAccessInvoice($invoiceId)
     {
+        // Primero intentamos buscar por ID numérico
         $invoice = $this->invoiceModel->find($invoiceId);
+        
+        // Si no encontramos la factura, intentamos buscar por UUID
+        if (!$invoice && !is_numeric($invoiceId)) {
+            $invoice = $this->invoiceModel->where('uuid', $invoiceId)->first();
+        }
+        
         if (!$invoice) {
             return false;
         }
