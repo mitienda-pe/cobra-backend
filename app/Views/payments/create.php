@@ -41,15 +41,15 @@
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>Concepto:</strong> <?= esc($invoice['concept']) ?></p>
-                                    <p><strong>Monto Total:</strong> S/ <?= number_format($invoice['amount'], 2) ?></p>
+                                    <p><strong>Monto Total:</strong> <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['amount'], 2) ?></p>
                                     <p><strong>Vencimiento:</strong> <?= date('d/m/Y', strtotime($invoice['due_date'])) ?></p>
                                 </div>
                             </div>
                             <hr>
                             <div class="row">
                                 <div class="col-md-12">
-                                    <p><strong>Total Pagado:</strong> S/ <?= number_format($invoice['total_paid'], 2) ?></p>
-                                    <p><strong>Saldo Pendiente:</strong> S/ <?= number_format($invoice['remaining_amount'], 2) ?></p>
+                                    <p><strong>Total Pagado:</strong> <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['total_paid'], 2) ?></p>
+                                    <p><strong>Saldo Pendiente:</strong> <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['remaining_amount'], 2) ?></p>
                                     <?php if(isset($payment_info) && !empty($payment_info['payments'])): ?>
                                     <div class="mt-2">
                                         <strong>Pagos Anteriores:</strong>
@@ -57,7 +57,7 @@
                                         <?php foreach($payment_info['payments'] as $prev_payment): ?>
                                             <li>
                                                 <?= date('d/m/Y', strtotime($prev_payment['payment_date'])) ?> - 
-                                                S/ <?= number_format($prev_payment['amount'], 2) ?> 
+                                                <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($prev_payment['amount'], 2) ?> 
                                                 (<?= esc($prev_payment['payment_method']) ?>)
                                             </li>
                                         <?php endforeach; ?>
@@ -67,6 +67,27 @@
                                 </div>
                             </div>
                         </div>
+
+                        <?php if(isset($instalments) && !empty($instalments)): ?>
+                        <div class="mb-3">
+                            <label for="instalment_id" class="form-label">Seleccionar Cuota</label>
+                            <select class="form-select" id="instalment_id" name="instalment_id">
+                                <option value="">Pago general (sin asociar a cuota específica)</option>
+                                <?php foreach($instalments as $instalment): ?>
+                                    <?php if($instalment['status'] !== 'paid' && $instalment['remaining_amount'] > 0): ?>
+                                    <option value="<?= $instalment['id'] ?>" 
+                                            data-amount="<?= $instalment['remaining_amount'] ?>"
+                                            <?= (isset($_GET['instalment_id']) && $_GET['instalment_id'] == $instalment['id']) ? 'selected' : '' ?>>
+                                        Cuota <?= $instalment['number'] ?> - 
+                                        Vence: <?= date('d/m/Y', strtotime($instalment['due_date'])) ?> - 
+                                        Pendiente: <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($instalment['remaining_amount'], 2) ?>
+                                    </option>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text">Si selecciona una cuota específica, el pago se asociará a esa cuota.</div>
+                        </div>
+                        <?php endif; ?>
                     <?php else: ?>
                         <!-- Campo de búsqueda de facturas con autocompletado -->
                         <div class="mb-3">
@@ -83,7 +104,7 @@
                     <div class="mb-3">
                         <label for="amount" class="form-label">Monto del Pago *</label>
                         <div class="input-group">
-                            <span class="input-group-text">S/</span>
+                            <span class="input-group-text"><?= !empty($invoice) && $invoice['currency'] === 'USD' ? '$' : 'S/' ?></span>
                             <input type="number" step="0.01" class="form-control" id="amount" name="amount" required 
                                    value="<?= old('amount') ?>" min="0.01" 
                                    <?php if(!empty($invoice)): ?>
@@ -190,12 +211,11 @@ $(document).ready(function() {
                 <div class="row">
                     <div class="col-md-6">
                         <p><strong>Factura:</strong> ${data.invoice_number}</p>
-                        <p><strong>Cliente:</strong> ${data.business_name}</p>
-                        <p><strong>Documento:</strong> ${data.document_number}</p>
+                        <p><strong>Cliente:</strong> ${data.client_name}</p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Monto Total:</strong> S/ ${data.total_amount}</p>
-                        <p><strong>Saldo Pendiente:</strong> S/ ${data.remaining}</p>
+                        <p><strong>Monto Total:</strong> ${data.currency === 'PEN' ? 'S/ ' : '$ '}${data.amount}</p>
+                        <p><strong>Saldo Pendiente:</strong> ${data.currency === 'PEN' ? 'S/ ' : '$ '}${data.remaining}</p>
                     </div>
                 </div>
             </div>
@@ -203,10 +223,31 @@ $(document).ready(function() {
         
         $('#invoice_details').html(detailsHtml).show();
         
-        // Actualizar el monto máximo permitido
+        // Actualizar el monto máximo del pago
         $('#amount').attr('max', data.remaining);
+        
+        // Actualizar el símbolo de la moneda
+        $('.input-group-text').text(data.currency === 'PEN' ? 'S/' : '$');
     });
     
+    // Manejar cambio de cuota seleccionada
+    $('#instalment_id').on('change', function() {
+        var selectedOption = $(this).find('option:selected');
+        if (selectedOption.val() !== '') {
+            var maxAmount = selectedOption.data('amount');
+            $('#amount').attr('max', maxAmount);
+            $('#amount').val(maxAmount);
+        } else {
+            var invoiceRemaining = <?= !empty($invoice) ? $invoice['remaining_amount'] : 0 ?>;
+            $('#amount').attr('max', invoiceRemaining);
+        }
+    });
+    
+    // Inicializar el valor del monto si hay una cuota seleccionada
+    if ($('#instalment_id').length && $('#instalment_id').val() !== '') {
+        $('#instalment_id').trigger('change');
+    }
+
     // Obtener la ubicación actual
     if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(function(position) {

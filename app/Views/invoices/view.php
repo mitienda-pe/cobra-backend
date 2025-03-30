@@ -186,6 +186,80 @@
                 <?php endif; ?>
             </div>
         </div>
+
+        <!-- Sección de Cuotas -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">Cuotas</h5>
+                    <?php if ($auth->hasAnyRole(['superadmin', 'admin']) && $invoice['status'] === 'pending'): ?>
+                        <?php if ($has_instalments): ?>
+                            <a href="<?= site_url('invoice/' . $invoice['id'] . '/instalments') ?>" class="btn btn-sm btn-primary">
+                                <i class="bi bi-list-ol"></i> Ver todas las cuotas
+                            </a>
+                        <?php else: ?>
+                            <a href="<?= site_url('invoice/' . $invoice['id'] . '/instalments/create') ?>" class="btn btn-sm btn-success">
+                                <i class="bi bi-plus-circle"></i> Crear cuotas
+                            </a>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+                <hr>
+
+                <?php if (!$has_instalments): ?>
+                    <p class="text-muted">No hay cuotas definidas para esta factura.</p>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Monto</th>
+                                    <th>Vencimiento</th>
+                                    <th>Estado</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php 
+                                // Mostrar solo las primeras 3 cuotas en esta vista
+                                $displayInstalments = array_slice($instalments, 0, 3);
+                                foreach ($displayInstalments as $instalment): 
+                                ?>
+                                    <tr>
+                                        <td><?= $instalment['number'] ?></td>
+                                        <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($instalment['amount'], 2) ?></td>
+                                        <td><?= date('d/m/Y', strtotime($instalment['due_date'])) ?></td>
+                                        <td>
+                                            <span class="badge bg-<?= $instalment['status'] === 'paid' ? 'success' : ($instalment['status'] === 'pending' ? 'warning' : 'secondary') ?>">
+                                                <?= $instalment['status'] === 'paid' ? 'Pagada' : ($instalment['status'] === 'pending' ? 'Pendiente' : ucfirst($instalment['status'])) ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <?php if ($instalment['status'] === 'pending' && $auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                                                <a href="<?= site_url('payments/create/' . $invoice['uuid'] . '?instalment_id=' . $instalment['id']) ?>" class="btn btn-sm btn-success">
+                                                    <i class="bi bi-cash"></i> Pagar
+                                                </a>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                
+                                <?php if (count($instalments) > 3): ?>
+                                    <tr>
+                                        <td colspan="5" class="text-center">
+                                            <a href="<?= site_url('invoice/' . $invoice['id'] . '/instalments') ?>" class="text-primary">
+                                                Ver todas las cuotas (<?= count($instalments) ?> en total)
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
 
     <div class="col-md-4">

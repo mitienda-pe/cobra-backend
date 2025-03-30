@@ -149,6 +149,44 @@
                         <textarea class="form-control" id="notes" name="notes" rows="3"><?= old('notes') ?></textarea>
                     </div>
 
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="create_instalments" name="create_instalments" value="1" <?= old('create_instalments') ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="create_instalments">
+                                        Crear cuotas para esta factura
+                                    </label>
+                                </div>
+                            </h5>
+                        </div>
+                        <div class="card-body" id="instalments_section" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="num_instalments" class="form-label">Número de Cuotas *</label>
+                                        <input type="number" class="form-control" id="num_instalments" name="num_instalments" 
+                                               value="<?= old('num_instalments', 3) ?>" min="1" max="36">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="instalment_interval" class="form-label">Intervalo (días) *</label>
+                                        <input type="number" class="form-control" id="instalment_interval" name="instalment_interval" 
+                                               value="<?= old('instalment_interval', 30) ?>" min="1" max="90">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <p class="mb-0">
+                                    <strong>Monto por cuota:</strong> <span id="instalment_amount">Calculando...</span>
+                                    <br>
+                                    <small class="text-muted">El monto de la última cuota puede variar ligeramente para ajustar el total.</small>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-end gap-2">
                         <a href="<?= site_url('invoices') ?>" class="btn btn-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-primary">Crear Factura</button>
@@ -186,6 +224,41 @@ document.addEventListener('DOMContentLoaded', function() {
     
     currencySelect.addEventListener('change', updateCurrencySymbol);
     updateCurrencySymbol();
+
+    // Manejo de cuotas
+    const createInstalmentsCheckbox = document.getElementById('create_instalments');
+    const instalmentsSection = document.getElementById('instalments_section');
+    const numInstalmentsInput = document.getElementById('num_instalments');
+    const amountInput = document.getElementById('amount');
+    const instalmentAmountSpan = document.getElementById('instalment_amount');
+    
+    function toggleInstalmentsSection() {
+        instalmentsSection.style.display = createInstalmentsCheckbox.checked ? 'block' : 'none';
+        if (createInstalmentsCheckbox.checked) {
+            updateInstalmentAmount();
+        }
+    }
+    
+    function updateInstalmentAmount() {
+        const totalAmount = parseFloat(amountInput.value) || 0;
+        const numInstalments = parseInt(numInstalmentsInput.value) || 1;
+        const symbol = currencySelect.value === 'PEN' ? 'S/ ' : '$ ';
+        
+        if (totalAmount > 0 && numInstalments > 0) {
+            const instalmentAmount = (totalAmount / numInstalments).toFixed(2);
+            instalmentAmountSpan.textContent = symbol + instalmentAmount;
+        } else {
+            instalmentAmountSpan.textContent = symbol + '0.00';
+        }
+    }
+    
+    createInstalmentsCheckbox.addEventListener('change', toggleInstalmentsSection);
+    numInstalmentsInput.addEventListener('input', updateInstalmentAmount);
+    amountInput.addEventListener('input', updateInstalmentAmount);
+    currencySelect.addEventListener('change', updateInstalmentAmount);
+    
+    // Inicializar sección de cuotas
+    toggleInstalmentsSection();
 
     // Handle client loading for organization selection
     const organizationSelect = document.getElementById('organization_id');

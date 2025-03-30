@@ -152,6 +152,54 @@ class InvoiceController extends Controller
                 
                 try {
                     if ($this->invoiceModel->insert($invoiceData)) {
+                        $invoiceId = $this->invoiceModel->getInsertID();
+                        
+                        // Verificar si se deben crear cuotas
+                        if ($this->request->getPost('create_instalments')) {
+                            $numInstalments = (int)$this->request->getPost('num_instalments');
+                            $interval = (int)$this->request->getPost('instalment_interval');
+                            
+                            if ($numInstalments > 0) {
+                                // Cargar el modelo de cuotas
+                                $instalmentModel = new \App\Models\InstalmentModel();
+                                
+                                // Calcular monto por cuota
+                                $totalAmount = (float)$invoiceData['amount'];
+                                $instalmentAmount = round($totalAmount / $numInstalments, 2);
+                                
+                                // Ajustar el último monto para que sume exactamente el total
+                                $lastInstalmentAmount = $totalAmount - ($instalmentAmount * ($numInstalments - 1));
+                                
+                                // Fecha base para las cuotas (fecha de vencimiento de la factura)
+                                $baseDate = new \DateTime($invoiceData['due_date']);
+                                
+                                // Crear las cuotas
+                                for ($i = 1; $i <= $numInstalments; $i++) {
+                                    // Para la primera cuota usamos la fecha de vencimiento de la factura
+                                    if ($i > 1) {
+                                        // Para las siguientes cuotas, añadimos el intervalo
+                                        $baseDate->modify("+{$interval} days");
+                                    }
+                                    
+                                    $dueDate = $baseDate->format('Y-m-d');
+                                    
+                                    // Determinar el monto de esta cuota
+                                    $amount = ($i == $numInstalments) ? $lastInstalmentAmount : $instalmentAmount;
+                                    
+                                    $instalmentData = [
+                                        'invoice_id' => $invoiceId,
+                                        'number' => $i,
+                                        'amount' => $amount,
+                                        'due_date' => $dueDate,
+                                        'status' => 'pending',
+                                        'notes' => "Cuota {$i} de {$numInstalments}"
+                                    ];
+                                    
+                                    $instalmentModel->insert($instalmentData);
+                                }
+                            }
+                        }
+                        
                         return redirect()->to('/invoices')
                             ->with('success', 'Factura creada exitosamente.');
                     } else {
@@ -214,13 +262,20 @@ class InvoiceController extends Controller
         $total_paid = floatval($paymentInfo['total_paid']);
         $remaining_amount = floatval($paymentInfo['remaining']);
 
+        // Cargar cuotas asociadas a la factura
+        $instalmentModel = new \App\Models\InstalmentModel();
+        $instalments = $instalmentModel->getByInvoice($invoice['id']);
+        $has_instalments = !empty($instalments);
+
         $data = [
             'auth' => $this->auth,
             'invoice' => $invoice,
             'client' => $client,
             'payments' => $payments,
             'total_paid' => $total_paid,
-            'remaining_amount' => $remaining_amount
+            'remaining_amount' => $remaining_amount,
+            'instalments' => $instalments,
+            'has_instalments' => $has_instalments
         ];
 
         return view('invoices/view', $data);
