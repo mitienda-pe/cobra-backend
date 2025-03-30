@@ -91,11 +91,16 @@
                 <label for="status" class="form-label">Estado *</label>
                 <select name="status" id="status" class="form-select <?= session('validation') && session('validation')->hasError('status') ? 'is-invalid' : '' ?>" required>
                     <option value="pending" <?= old('status', $invoice['status']) === 'pending' ? 'selected' : '' ?>>Pendiente</option>
-                    <option value="paid" <?= old('status', $invoice['status']) === 'paid' ? 'selected' : '' ?>>Pagada</option>
+                    <?php if ($invoice['status'] === 'paid'): ?>
+                        <option value="paid" selected>Pagada</option>
+                    <?php endif; ?>
                     <option value="cancelled" <?= old('status', $invoice['status']) === 'cancelled' ? 'selected' : '' ?>>Anulada</option>
                     <option value="rejected" <?= old('status', $invoice['status']) === 'rejected' ? 'selected' : '' ?>>Rechazada</option>
                     <option value="expired" <?= old('status', $invoice['status']) === 'expired' ? 'selected' : '' ?>>Vencida</option>
                 </select>
+                <div class="form-text">
+                    Nota: El estado "Pagada" solo se puede establecer automáticamente al registrar pagos que cubran el monto total.
+                </div>
                 <?php if (session('validation') && session('validation')->hasError('status')): ?>
                     <div class="invalid-feedback">
                         <?= session('validation')->getError('status') ?>

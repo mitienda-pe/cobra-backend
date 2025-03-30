@@ -197,17 +197,13 @@
                             <a href="<?= site_url('invoice/' . $invoice['id'] . '/instalments') ?>" class="btn btn-sm btn-primary">
                                 <i class="bi bi-list-ol"></i> Ver todas las cuotas
                             </a>
-                        <?php else: ?>
-                            <a href="<?= site_url('invoice/' . $invoice['id'] . '/instalments/create') ?>" class="btn btn-sm btn-success">
-                                <i class="bi bi-plus-circle"></i> Crear cuotas
-                            </a>
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>
                 <hr>
 
                 <?php if (!$has_instalments): ?>
-                    <p class="text-muted">No hay cuotas definidas para esta factura.</p>
+                    <p class="text-muted">No hay cuotas definidas para esta factura. Las cuotas se crean automáticamente al crear o editar la factura.</p>
                 <?php else: ?>
                     <div class="table-responsive">
                         <table class="table table-hover">

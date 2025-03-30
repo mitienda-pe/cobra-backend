@@ -101,6 +101,11 @@ class InstalmentController extends BaseController
         
         $client = $this->clientModel->find($invoice['client_id']);
         
+        // Asegurar que la factura tenga una fecha de emisión
+        if (!isset($invoice['issue_date'])) {
+            $invoice['issue_date'] = date('Y-m-d'); // Usar la fecha actual como fallback
+        }
+        
         return view('instalments/create', [
             'invoice' => $invoice,
             'client' => $client

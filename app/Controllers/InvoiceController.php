@@ -314,8 +314,8 @@ class InvoiceController extends Controller
             return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
         }
 
-        // Get organization ID from Auth library
-        $organizationId = $this->auth->organizationId();
+        // Get organization ID from invoice
+        $organizationId = $invoice['organization_id'];
         
         // Get clients for dropdown
         $clientModel = new ClientModel();
@@ -323,10 +323,26 @@ class InvoiceController extends Controller
                              ->where('status', 'active')
                              ->findAll();
 
+        // Get instalments info
+        $instalmentModel = new \App\Models\InstalmentModel();
+        $instalments = $instalmentModel->getByInvoice($invoice['id']);
+        $numInstalments = count($instalments) > 0 ? count($instalments) : 1;
+        $instalmentInterval = 30; // Valor por defecto
+        
+        // Si hay cuotas, calcular el intervalo entre la primera y la segunda (si existe)
+        if (count($instalments) > 1) {
+            $date1 = new \DateTime($instalments[0]['due_date']);
+            $date2 = new \DateTime($instalments[1]['due_date']);
+            $interval = $date1->diff($date2);
+            $instalmentInterval = $interval->days;
+        }
+
         $data = [
             'auth' => $this->auth,
             'invoice' => $invoice,
             'clients' => $clients,
+            'num_instalments' => $numInstalments,
+            'instalment_interval' => $instalmentInterval,
             'validation' => \Config\Services::validation()
         ];
 
