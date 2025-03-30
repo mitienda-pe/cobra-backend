@@ -154,50 +154,55 @@ class InvoiceController extends Controller
                     if ($this->invoiceModel->insert($invoiceData)) {
                         $invoiceId = $this->invoiceModel->getInsertID();
                         
-                        // Verificar si se deben crear cuotas
-                        if ($this->request->getPost('create_instalments')) {
-                            $numInstalments = (int)$this->request->getPost('num_instalments');
-                            $interval = (int)$this->request->getPost('instalment_interval');
-                            
-                            if ($numInstalments > 0) {
-                                // Cargar el modelo de cuotas
-                                $instalmentModel = new \App\Models\InstalmentModel();
-                                
-                                // Calcular monto por cuota
-                                $totalAmount = (float)$invoiceData['amount'];
-                                $instalmentAmount = round($totalAmount / $numInstalments, 2);
-                                
-                                // Ajustar el último monto para que sume exactamente el total
-                                $lastInstalmentAmount = $totalAmount - ($instalmentAmount * ($numInstalments - 1));
-                                
-                                // Fecha base para las cuotas (fecha de vencimiento de la factura)
-                                $baseDate = new \DateTime($invoiceData['due_date']);
-                                
-                                // Crear las cuotas
-                                for ($i = 1; $i <= $numInstalments; $i++) {
-                                    // Para la primera cuota usamos la fecha de vencimiento de la factura
-                                    if ($i > 1) {
-                                        // Para las siguientes cuotas, añadimos el intervalo
-                                        $baseDate->modify("+{$interval} days");
-                                    }
-                                    
-                                    $dueDate = $baseDate->format('Y-m-d');
-                                    
-                                    // Determinar el monto de esta cuota
-                                    $amount = ($i == $numInstalments) ? $lastInstalmentAmount : $instalmentAmount;
-                                    
-                                    $instalmentData = [
-                                        'invoice_id' => $invoiceId,
-                                        'number' => $i,
-                                        'amount' => $amount,
-                                        'due_date' => $dueDate,
-                                        'status' => 'pending',
-                                        'notes' => "Cuota {$i} de {$numInstalments}"
-                                    ];
-                                    
-                                    $instalmentModel->insert($instalmentData);
-                                }
+                        // Siempre crear cuotas para la factura
+                        $numInstalments = (int)$this->request->getPost('num_instalments');
+                        
+                        if ($numInstalments <= 0) {
+                            $numInstalments = 1; // Asegurar al menos una cuota
+                        }
+                        
+                        // Cargar el modelo de cuotas
+                        $instalmentModel = new \App\Models\InstalmentModel();
+                        
+                        // Calcular monto por cuota
+                        $totalAmount = (float)$invoiceData['amount'];
+                        $instalmentAmount = round($totalAmount / $numInstalments, 2);
+                        
+                        // Ajustar el último monto para que sume exactamente el total
+                        $lastInstalmentAmount = $totalAmount - ($instalmentAmount * ($numInstalments - 1));
+                        
+                        // Fecha base para las cuotas (fecha de vencimiento de la factura)
+                        $baseDate = new \DateTime($invoiceData['due_date']);
+                        
+                        // Intervalo entre cuotas (solo se usa si hay más de una cuota)
+                        $interval = ($numInstalments > 1) ? (int)$this->request->getPost('instalment_interval') : 0;
+                        if ($interval <= 0) {
+                            $interval = 30; // Valor predeterminado
+                        }
+                        
+                        // Crear las cuotas
+                        for ($i = 1; $i <= $numInstalments; $i++) {
+                            // Para la primera cuota usamos la fecha de vencimiento de la factura
+                            if ($i > 1) {
+                                // Para las siguientes cuotas, añadimos el intervalo
+                                $baseDate->modify("+{$interval} days");
                             }
+                            
+                            $dueDate = $baseDate->format('Y-m-d');
+                            
+                            // Determinar el monto de esta cuota
+                            $amount = ($i == $numInstalments) ? $lastInstalmentAmount : $instalmentAmount;
+                            
+                            $instalmentData = [
+                                'invoice_id' => $invoiceId,
+                                'number' => $i,
+                                'amount' => $amount,
+                                'due_date' => $dueDate,
+                                'status' => 'pending',
+                                'notes' => ($numInstalments > 1) ? "Cuota {$i} de {$numInstalments}" : "Pago único"
+                            ];
+                            
+                            $instalmentModel->insert($instalmentData);
                         }
                         
                         return redirect()->to('/invoices')

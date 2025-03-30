@@ -129,7 +129,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="due_date" class="form-label">Fecha de Vencimiento *</label>
+                                <label for="due_date" class="form-label" id="due_date_label">Fecha de Vencimiento *</label>
                                 <input type="date" class="form-control" id="due_date" name="due_date" 
                                        value="<?= old('due_date', date('Y-m-d', strtotime('+30 days'))) ?>" required>
                             </div>
@@ -145,46 +145,30 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="notes" class="form-label">Notas</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="3"><?= old('notes') ?></textarea>
+                        <label for="num_instalments" class="form-label">Número de Cuotas *</label>
+                        <select class="form-select" id="num_instalments" name="num_instalments" required>
+                            <?php for ($i = 1; $i <= 12; $i++): ?>
+                                <option value="<?= $i ?>" <?= old('num_instalments', 1) == $i ? 'selected' : '' ?>><?= $i ?></option>
+                            <?php endfor; ?>
+                        </select>
                     </div>
 
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="create_instalments" name="create_instalments" value="1" <?= old('create_instalments') ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="create_instalments">
-                                        Crear cuotas para esta factura
-                                    </label>
-                                </div>
-                            </h5>
+                    <div id="instalment_interval_container" class="mb-3" style="display: none;">
+                        <label for="instalment_interval" class="form-label">Intervalo entre cuotas (días) *</label>
+                        <input type="number" class="form-control" id="instalment_interval" name="instalment_interval" 
+                               value="<?= old('instalment_interval', 30) ?>" min="1" max="90">
+                        <div id="instalment_preview" class="alert alert-info mt-2" style="display: none;">
+                            <p class="mb-0">
+                                <strong>Monto por cuota:</strong> <span id="instalment_amount">Calculando...</span>
+                                <br>
+                                <small class="text-muted">El monto de la última cuota puede variar ligeramente para ajustar el total.</small>
+                            </p>
                         </div>
-                        <div class="card-body" id="instalments_section" style="display: none;">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="num_instalments" class="form-label">Número de Cuotas *</label>
-                                        <input type="number" class="form-control" id="num_instalments" name="num_instalments" 
-                                               value="<?= old('num_instalments', 3) ?>" min="1" max="36">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="instalment_interval" class="form-label">Intervalo (días) *</label>
-                                        <input type="number" class="form-control" id="instalment_interval" name="instalment_interval" 
-                                               value="<?= old('instalment_interval', 30) ?>" min="1" max="90">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="alert alert-info">
-                                <p class="mb-0">
-                                    <strong>Monto por cuota:</strong> <span id="instalment_amount">Calculando...</span>
-                                    <br>
-                                    <small class="text-muted">El monto de la última cuota puede variar ligeramente para ajustar el total.</small>
-                                </p>
-                            </div>
-                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notas</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"><?= old('notes') ?></textarea>
                     </div>
 
                     <div class="d-flex justify-content-end gap-2">
@@ -226,22 +210,32 @@ document.addEventListener('DOMContentLoaded', function() {
     updateCurrencySymbol();
 
     // Manejo de cuotas
-    const createInstalmentsCheckbox = document.getElementById('create_instalments');
-    const instalmentsSection = document.getElementById('instalments_section');
-    const numInstalmentsInput = document.getElementById('num_instalments');
+    const numInstalmentsSelect = document.getElementById('num_instalments');
+    const instalmentIntervalContainer = document.getElementById('instalment_interval_container');
+    const instalmentPreview = document.getElementById('instalment_preview');
+    const dueDateLabel = document.getElementById('due_date_label');
     const amountInput = document.getElementById('amount');
     const instalmentAmountSpan = document.getElementById('instalment_amount');
     
-    function toggleInstalmentsSection() {
-        instalmentsSection.style.display = createInstalmentsCheckbox.checked ? 'block' : 'none';
-        if (createInstalmentsCheckbox.checked) {
-            updateInstalmentAmount();
+    function toggleInstalmentFields() {
+        const numInstalments = parseInt(numInstalmentsSelect.value);
+        
+        if (numInstalments > 1) {
+            instalmentIntervalContainer.style.display = 'block';
+            instalmentPreview.style.display = 'block';
+            dueDateLabel.textContent = 'Fecha de Vencimiento de la Primera Cuota *';
+        } else {
+            instalmentIntervalContainer.style.display = 'none';
+            instalmentPreview.style.display = 'none';
+            dueDateLabel.textContent = 'Fecha de Vencimiento *';
         }
+        
+        updateInstalmentAmount();
     }
     
     function updateInstalmentAmount() {
         const totalAmount = parseFloat(amountInput.value) || 0;
-        const numInstalments = parseInt(numInstalmentsInput.value) || 1;
+        const numInstalments = parseInt(numInstalmentsSelect.value) || 1;
         const symbol = currencySelect.value === 'PEN' ? 'S/ ' : '$ ';
         
         if (totalAmount > 0 && numInstalments > 0) {
@@ -252,15 +246,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    createInstalmentsCheckbox.addEventListener('change', toggleInstalmentsSection);
-    numInstalmentsInput.addEventListener('input', updateInstalmentAmount);
+    numInstalmentsSelect.addEventListener('change', toggleInstalmentFields);
     amountInput.addEventListener('input', updateInstalmentAmount);
     currencySelect.addEventListener('change', updateInstalmentAmount);
     
-    // Inicializar sección de cuotas
-    toggleInstalmentsSection();
+    // Inicializar campos de cuotas
+    toggleInstalmentFields();
 
-    // Handle client loading for organization selection
+    // Handle client loading for organization
     const organizationSelect = document.getElementById('organization_id');
     if (organizationSelect) {
         organizationSelect.addEventListener('change', function() {
