@@ -13,9 +13,6 @@
                 <i class="bi bi-pencil"></i> Editar
             </a>
             <?php if ($invoice['status'] === 'pending'): ?>
-                <a href="<?= site_url('payments/create/' . $invoice['uuid']) ?>" class="btn btn-success">
-                    <i class="bi bi-cash"></i> Registrar Pago
-                </a>
                 <a href="<?= site_url('invoice/' . $invoice['uuid'] . '/instalments') ?>" class="btn btn-info">
                     <i class="bi bi-list-ol"></i> Cuotas
                 </a>
@@ -193,103 +190,72 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="card-title mb-0">Cuotas</h5>
                     <?php if ($auth->hasAnyRole(['superadmin', 'admin']) && $invoice['status'] === 'pending'): ?>
-                        <?php if ($has_instalments): ?>
-                            <a href="<?= site_url('invoice/' . $invoice['uuid'] . '/instalments') ?>" class="btn btn-sm btn-primary">
-                                <i class="bi bi-list-ol"></i> Ver todas las cuotas
-                            </a>
-                        <?php endif; ?>
+                        <a href="<?= site_url('invoice/' . $invoice['uuid'] . '/instalments') ?>" class="btn btn-sm btn-primary">
+                            <i class="bi bi-list-ol"></i> Ver todas las cuotas
+                        </a>
                     <?php endif; ?>
                 </div>
                 <hr>
 
-                <?php if (!$has_instalments): ?>
-                    <div class="alert alert-info">
-                        <p class="mb-0">Esta factura no tiene cuotas definidas. Se creará una cuota única con la fecha de vencimiento <?= date('d/m/Y', strtotime($invoice['due_date'])) ?>.</p>
-                        <?php if ($auth->hasAnyRole(['superadmin', 'admin']) && $invoice['status'] === 'pending'): ?>
-                            <p class="mt-2 mb-0">
-                                <a href="<?= site_url('invoice/' . $invoice['uuid'] . '/instalments/create') ?>" class="btn btn-sm btn-primary">
-                                    <i class="bi bi-plus-circle"></i> Definir cuotas
-                                </a>
-                            </p>
-                        <?php endif; ?>
-                    </div>
-                <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Monto</th>
-                                    <th>Vencimiento</th>
-                                    <th>Estado</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php 
-                                // Mostrar solo las primeras 3 cuotas en esta vista
-                                $displayInstalments = array_slice($instalments, 0, 3);
-                                foreach ($displayInstalments as $instalment): 
-                                    // Calcular clase de fila según estado de la cuota
-                                    $rowClass = '';
-                                    if ($instalment['is_overdue']) {
-                                        $rowClass = 'table-danger'; // Cuota vencida
-                                    } elseif ($instalment['can_be_paid'] && $instalment['status'] !== 'paid') {
-                                        $rowClass = 'table-warning'; // Cuota que se puede pagar
-                                    } elseif ($instalment['is_future']) {
-                                        $rowClass = 'table-secondary'; // Cuota futura (no se puede pagar aún)
-                                    } elseif ($instalment['status'] === 'paid') {
-                                        $rowClass = 'table-success'; // Cuota pagada
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Monto</th>
+                                <th>Vencimiento</th>
+                                <th>Estado</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            // Mostrar solo las primeras 3 cuotas en esta vista
+                            $displayInstalments = array_slice($instalments, 0, 3);
+                            foreach ($displayInstalments as $instalment): 
+                                // Calcular clase CSS para la fila
+                                $rowClass = '';
+                                if (isset($instalment['status'])) {
+                                    if ($instalment['status'] === 'paid') {
+                                        $rowClass = 'table-success';
+                                    } elseif (isset($instalment['is_overdue']) && $instalment['is_overdue']) {
+                                        $rowClass = 'table-danger';
                                     }
-                                ?>
-                                    <tr class="<?= $rowClass ?>">
-                                        <td><?= $instalment['number'] ?></td>
-                                        <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($instalment['amount'], 2) ?></td>
-                                        <td>
-                                            <?= date('d/m/Y', strtotime($instalment['due_date'])) ?>
-                                            <?php if ($instalment['is_overdue']): ?>
-                                                <span class="badge bg-danger">Vencida</span>
+                                }
+                            ?>
+                                <tr class="<?= $rowClass ?>">
+                                    <td><?= $instalment['number'] ?></td>
+                                    <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($instalment['amount'], 2) ?></td>
+                                    <td><?= date('d/m/Y', strtotime($instalment['due_date'])) ?></td>
+                                    <td>
+                                        <span class="badge bg-<?= $instalment['status'] === 'paid' ? 'success' : ($instalment['status'] === 'pending' ? 'warning' : ($instalment['status'] === 'cancelled' ? 'danger' : ($instalment['status'] === 'expired' ? 'secondary' : 'info'))) ?>">
+                                            <?= ucfirst($instalment['status']) ?>
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <?php if ($instalment['status'] === 'pending' && $auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                                            <?php if (!isset($instalment['is_virtual'])): ?>
+                                                <a href="<?= site_url('payments/create/' . $invoice['uuid'] . '/' . $instalment['id']) ?>" class="btn btn-sm btn-success">
+                                                    <i class="bi bi-cash"></i> Pagar
+                                                </a>
+                                            <?php else: ?>
+                                                <a href="<?= site_url('payments/create/' . $invoice['uuid']) ?>" class="btn btn-sm btn-success">
+                                                    <i class="bi bi-cash"></i> Pagar
+                                                </a>
                                             <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-<?= $instalment['status'] === 'paid' ? 'success' : ($instalment['status'] === 'pending' ? ($instalment['is_overdue'] ? 'danger' : 'warning') : 'secondary') ?>">
-                                                <?= $instalment['status'] === 'paid' ? 'Pagada' : ($instalment['status'] === 'pending' ? 'Pendiente' : ucfirst($instalment['status'])) ?>
-                                            </span>
-                                            <?php if ($instalment['is_future'] && $instalment['status'] !== 'paid'): ?>
-                                                <span class="badge bg-info">Pago futuro</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if ($instalment['status'] !== 'paid' && $auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                                <?php if ($instalment['can_be_paid']): ?>
-                                                    <a href="<?= site_url('payments/create/' . $invoice['uuid'] . '?instalment_id=' . $instalment['id']) ?>" class="btn btn-sm btn-success">
-                                                        <i class="bi bi-cash"></i> Pagar
-                                                    </a>
-                                                <?php else: ?>
-                                                    <button class="btn btn-sm btn-secondary" disabled title="No se puede pagar esta cuota hasta que se paguen las anteriores">
-                                                        <i class="bi bi-cash"></i> Pagar
-                                                    </button>
-                                                <?php endif; ?>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <?php if (count($instalments) > 3): ?>
-                        <div class="text-center mt-3">
-                            <a href="<?= site_url('invoice/' . $invoice['uuid'] . '/instalments') ?>" class="btn btn-outline-primary btn-sm">
-                                Ver todas las cuotas (<?= count($instalments) ?>)
-                            </a>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <div class="mt-3">
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle"></i> Las cuotas se muestran ordenadas por prioridad de cobranza. Las cuotas vencidas tienen mayor prioridad, seguidas por las próximas a vencer.
-                        </small>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <?php if (count($instalments) > 3): ?>
+                    <div class="text-center mt-3">
+                        <a href="<?= site_url('invoice/' . $invoice['uuid'] . '/instalments') ?>" class="btn btn-outline-primary btn-sm">
+                            Ver todas las cuotas (<?= count($instalments) ?>)
+                        </a>
                     </div>
                 <?php endif; ?>
             </div>
@@ -342,11 +308,6 @@
                     <hr>
 
                     <div class="d-grid gap-2">
-                        <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                            <a href="<?= site_url('payments/create/' . $invoice['uuid']) ?>" class="btn btn-success">
-                                <i class="bi bi-cash"></i> Registrar Pago
-                            </a>
-                        <?php endif; ?>
                         <?php
                         // Get organization to check if Ligo is enabled
                         $organizationModel = new \App\Models\OrganizationModel();

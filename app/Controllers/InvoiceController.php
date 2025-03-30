@@ -274,6 +274,24 @@ class InvoiceController extends Controller
         $instalments = $instalmentModel->getByInvoiceForCollection($invoice['id']);
         $has_instalments = !empty($instalments);
         
+        // Si no hay cuotas, crear una cuota virtual para mostrar en la vista
+        if (!$has_instalments) {
+            $instalments = [
+                [
+                    'id' => 0, // ID virtual
+                    'invoice_id' => $invoice['id'],
+                    'number' => 1,
+                    'amount' => $invoice['amount'],
+                    'due_date' => $invoice['due_date'],
+                    'status' => $invoice['status'],
+                    'notes' => 'Pago único',
+                    'is_virtual' => true // Marcar como cuota virtual
+                ]
+            ];
+            // Aunque es una cuota virtual, la consideramos como existente para la vista
+            $has_instalments = true;
+        }
+        
         // Categorizar las cuotas para mostrar información adicional en la vista
         $today = date('Y-m-d');
         foreach ($instalments as &$instalment) {
@@ -281,7 +299,7 @@ class InvoiceController extends Controller
             $instalment['is_overdue'] = ($instalment['status'] !== 'paid' && $instalment['due_date'] < $today);
             
             // Determinar si es una cuota que se puede pagar (todas las anteriores están pagadas)
-            $instalment['can_be_paid'] = $instalmentModel->canBePaid($instalment['id']);
+            $instalment['can_be_paid'] = isset($instalment['is_virtual']) ? true : $instalmentModel->canBePaid($instalment['id']);
             
             // Determinar si es una cuota futura (no se puede pagar aún)
             $instalment['is_future'] = !$instalment['can_be_paid'] && $instalment['status'] !== 'paid';

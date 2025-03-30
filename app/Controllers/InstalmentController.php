@@ -326,4 +326,36 @@ class InstalmentController extends BaseController
             
         return $portfolioClients > 0;
     }
+    
+    /**
+     * Crea automáticamente una cuota única para una factura
+     * 
+     * @param int $invoiceId ID de la factura
+     * @return bool Verdadero si se creó la cuota, falso en caso contrario
+     */
+    public function createSingleInstalment($invoiceId)
+    {
+        // Obtener la factura
+        $invoice = $this->invoiceModel->find($invoiceId);
+        if (!$invoice) {
+            return false;
+        }
+        
+        // Verificar si ya tiene cuotas
+        $existingInstalments = $this->instalmentModel->where('invoice_id', $invoice['id'])->countAllResults();
+        if ($existingInstalments > 0) {
+            return false; // Ya tiene cuotas, no crear una nueva
+        }
+        
+        // Crear una cuota única con el monto total de la factura
+        $data = [
+            'invoice_id' => $invoice['id'],
+            'number' => 1,
+            'amount' => $invoice['amount'],
+            'due_date' => $invoice['due_date'],
+            'status' => $invoice['status']
+        ];
+        
+        return $this->instalmentModel->insert($data) ? true : false;
+    }
 }
