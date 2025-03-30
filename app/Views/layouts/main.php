@@ -188,6 +188,7 @@
             padding: 4px 0;
             width: 100%;
         }
+
         <?php endif; ?>
 
         /* User profile section at bottom of sidebar */
@@ -319,12 +320,12 @@
                 cursor: pointer;
             }
         }
-        
+
         .sidebar-section {
             padding: 8px 0;
             border-bottom: 1px solid var(--notion-border);
         }
-        
+
         .sidebar-section-header {
             padding: 8px 16px;
             font-weight: 500;
@@ -402,38 +403,38 @@
                 <?php endif; ?>
 
                 <!-- Gestión de Cobranzas links moved to first level -->
-                <div class="sidebar-section">
+                <!-- <div class="sidebar-section">
                     <div class="sidebar-section-header">
                         <i class="bi bi-cash-coin me-2"></i>
                         <span>Gestión de Cobranzas</span>
                     </div>
-                </div>
-                
+                </div> -->
+
                 <a href="<?= site_url('clients') ?>" class="sidebar-item <?= $currentPath === '/clients' ? 'active' : '' ?>">
                     <i class="bi bi-person-vcard"></i>
                     <span class="sidebar-item-text">Clientes</span>
                 </a>
-                
+
                 <a href="<?= site_url('portfolios') ?>" class="sidebar-item <?= $currentPath === '/portfolios' ? 'active' : '' ?>">
                     <i class="bi bi-folder"></i>
                     <span class="sidebar-item-text">Carteras</span>
                 </a>
-                
+
                 <a href="<?= site_url('invoices') ?>" class="sidebar-item <?= $currentPath === '/invoices' ? 'active' : '' ?>">
                     <i class="bi bi-file-earmark-text"></i>
                     <span class="sidebar-item-text">Facturas</span>
                 </a>
-                
+
                 <a href="<?= site_url('payments') ?>" class="sidebar-item <?= $currentPath === '/payments' ? 'active' : '' ?>">
                     <i class="bi bi-credit-card"></i>
                     <span class="sidebar-item-text">Pagos</span>
                 </a>
-                
+
                 <a href="<?= site_url('payments/report') ?>" class="sidebar-item <?= $currentPath === '/payments/report' ? 'active' : '' ?>">
                     <i class="bi bi-bar-chart"></i>
                     <span class="sidebar-item-text">Reportes</span>
                 </a>
-                
+
                 <?php if ($isAdmin): ?>
                     <a href="<?= site_url('webhooks') ?>" class="sidebar-item <?= $currentPath === '/webhooks' ? 'active' : '' ?>">
                         <i class="bi bi-link-45deg"></i>
@@ -495,9 +496,9 @@
 
         <!-- Main content -->
         <div class="main-content">
-    <?php else: ?>
-        <div class="container">
-    <?php endif; ?>
+        <?php else: ?>
+            <div class="container">
+            <?php endif; ?>
 
             <!-- Mensajes Flash -->
             <?php if (session()->has('message')): ?>
@@ -528,76 +529,76 @@
             <!-- Contenido principal -->
             <?= $this->renderSection('content') ?>
 
-        </div>
+            </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Sidebar toggle functionality
-            const sidebarToggle = document.querySelector('.sidebar-toggle');
-            const sidebar = document.querySelector('.sidebar');
-            const mainContent = document.querySelector('.main-content');
-            
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('sidebar-collapsed');
-                    mainContent.classList.toggle('main-content-expanded');
-                    
-                    // Change toggle icon
-                    const icon = this.querySelector('i');
-                    if (sidebar.classList.contains('sidebar-collapsed')) {
-                        icon.classList.replace('bi-chevron-left', 'bi-chevron-right');
-                    } else {
-                        icon.classList.replace('bi-chevron-right', 'bi-chevron-left');
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Sidebar toggle functionality
+                    const sidebarToggle = document.querySelector('.sidebar-toggle');
+                    const sidebar = document.querySelector('.sidebar');
+                    const mainContent = document.querySelector('.main-content');
+
+                    if (sidebarToggle) {
+                        sidebarToggle.addEventListener('click', function() {
+                            sidebar.classList.toggle('sidebar-collapsed');
+                            mainContent.classList.toggle('main-content-expanded');
+
+                            // Change toggle icon
+                            const icon = this.querySelector('i');
+                            if (sidebar.classList.contains('sidebar-collapsed')) {
+                                icon.classList.replace('bi-chevron-left', 'bi-chevron-right');
+                            } else {
+                                icon.classList.replace('bi-chevron-right', 'bi-chevron-left');
+                            }
+                        });
+                    }
+
+                    // Dropdown functionality
+                    const dropdownToggles = document.querySelectorAll('.sidebar-dropdown-toggle');
+                    dropdownToggles.forEach(toggle => {
+                        toggle.addEventListener('click', function() {
+                            const dropdown = this.closest('.sidebar-dropdown');
+                            dropdown.classList.toggle('show');
+                        });
+                    });
+
+                    // User profile dropdown
+                    const userProfile = document.querySelector('.user-profile');
+                    const userDropdown = document.querySelector('.user-dropdown');
+
+                    if (userProfile && userDropdown) {
+                        userProfile.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            userDropdown.classList.toggle('show');
+                        });
+
+                        document.addEventListener('click', function(e) {
+                            if (!userProfile.contains(e.target)) {
+                                userDropdown.classList.remove('show');
+                            }
+                        });
+                    }
+
+                    // Mobile sidebar functionality
+                    const mobileToggle = document.querySelector('.mobile-toggle');
+                    const mobileOverlay = document.querySelector('.mobile-overlay');
+
+                    if (mobileToggle && mobileOverlay) {
+                        mobileToggle.addEventListener('click', function() {
+                            sidebar.classList.toggle('mobile-show');
+                            mobileOverlay.classList.toggle('show');
+                        });
+
+                        mobileOverlay.addEventListener('click', function() {
+                            sidebar.classList.remove('mobile-show');
+                            mobileOverlay.classList.remove('show');
+                        });
                     }
                 });
-            }
-            
-            // Dropdown functionality
-            const dropdownToggles = document.querySelectorAll('.sidebar-dropdown-toggle');
-            dropdownToggles.forEach(toggle => {
-                toggle.addEventListener('click', function() {
-                    const dropdown = this.closest('.sidebar-dropdown');
-                    dropdown.classList.toggle('show');
-                });
-            });
-            
-            // User profile dropdown
-            const userProfile = document.querySelector('.user-profile');
-            const userDropdown = document.querySelector('.user-dropdown');
-            
-            if (userProfile && userDropdown) {
-                userProfile.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    userDropdown.classList.toggle('show');
-                });
-                
-                document.addEventListener('click', function(e) {
-                    if (!userProfile.contains(e.target)) {
-                        userDropdown.classList.remove('show');
-                    }
-                });
-            }
-            
-            // Mobile sidebar functionality
-            const mobileToggle = document.querySelector('.mobile-toggle');
-            const mobileOverlay = document.querySelector('.mobile-overlay');
-            
-            if (mobileToggle && mobileOverlay) {
-                mobileToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('mobile-show');
-                    mobileOverlay.classList.toggle('show');
-                });
-                
-                mobileOverlay.addEventListener('click', function() {
-                    sidebar.classList.remove('mobile-show');
-                    mobileOverlay.classList.remove('show');
-                });
-            }
-        });
-    </script>
-    
-    <?= $this->renderSection('scripts') ?>
+            </script>
+
+            <?= $this->renderSection('scripts') ?>
 </body>
 
 </html>
