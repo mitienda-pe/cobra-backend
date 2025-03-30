@@ -345,8 +345,14 @@ class InvoiceController extends Controller
             'currency' => 'required|in_list[PEN,USD]',
             'status' => 'required|in_list[pending,paid,cancelled,rejected,expired]',
             'external_id' => 'permit_empty|max_length[36]',
-            'notes' => 'permit_empty'
+            'notes' => 'permit_empty',
+            'num_instalments' => 'required|integer|greater_than[0]|less_than_equal_to[12]'
         ];
+        
+        // Si hay más de una cuota, el intervalo es requerido
+        if ((int)$this->request->getPost('num_instalments') > 1) {
+            $rules['instalment_interval'] = 'required|integer|greater_than[0]|less_than_equal_to[90]';
+        }
 
         if (!$this->validate($rules)) {
             return redirect()->back()
@@ -364,18 +370,106 @@ class InvoiceController extends Controller
             'currency' => $this->request->getPost('currency'),
             'status' => $this->request->getPost('status'),
             'external_id' => $this->request->getPost('external_id') ?: null,
-            'notes' => $this->request->getPost('notes') ?: null,
-            'updated_at' => date('Y-m-d H:i:s')
+            'notes' => $this->request->getPost('notes') ?: null
         ];
 
-        if ($this->invoiceModel->update($invoice['id'], $data)) {
-            return redirect()->to('/invoices/view/' . $uuid)
-                           ->with('success', 'Factura actualizada correctamente.');
+        // Check if invoice number already exists (excluding current invoice)
+        $existingInvoice = $this->invoiceModel->where('invoice_number', $data['invoice_number'])
+                                            ->where('id !=', $invoice['id'])
+                                            ->where('organization_id', $invoice['organization_id'])
+                                            ->first();
+
+        if ($existingInvoice) {
+            return redirect()->back()
+                           ->withInput()
+                           ->with('error', 'Ya existe otra factura con este número en la organización.');
         }
 
-        return redirect()->back()
-                       ->withInput()
-                       ->with('error', 'Error al actualizar la factura. Por favor intente nuevamente.');
+        try {
+            $db = \Config\Database::connect();
+            $db->transStart();
+            
+            // Update invoice
+            $this->invoiceModel->update($invoice['id'], $data);
+            
+            // Procesar cuotas
+            $numInstalments = (int)$this->request->getPost('num_instalments');
+            $instalmentModel = new \App\Models\InstalmentModel();
+            
+            // Verificar si hay pagos asociados a cuotas
+            $paymentModel = new \App\Models\PaymentModel();
+            $paymentsWithInstalments = $paymentModel->where('invoice_id', $invoice['id'])
+                                                   ->where('instalment_id IS NOT NULL')
+                                                   ->countAllResults();
+            
+            // Si hay pagos asociados a cuotas y se está cambiando el número de cuotas, mostrar advertencia
+            $currentInstalments = $instalmentModel->where('invoice_id', $invoice['id'])->countAllResults();
+            
+            if ($paymentsWithInstalments > 0 && $numInstalments != $currentInstalments) {
+                $db->transRollback();
+                return redirect()->back()
+                               ->withInput()
+                               ->with('error', 'No se puede cambiar el número de cuotas porque hay pagos asociados a las cuotas existentes.');
+            }
+            
+            // Eliminar cuotas existentes
+            $instalmentModel->where('invoice_id', $invoice['id'])->delete();
+            
+            // Crear nuevas cuotas
+            $totalAmount = (float)$data['amount'];
+            $instalmentAmount = round($totalAmount / $numInstalments, 2);
+            $lastInstalmentAmount = $totalAmount - ($instalmentAmount * ($numInstalments - 1));
+            
+            // Fecha base para las cuotas (fecha de vencimiento de la factura)
+            $baseDate = new \DateTime($data['due_date']);
+            
+            // Intervalo entre cuotas (solo se usa si hay más de una cuota)
+            $interval = ($numInstalments > 1) ? (int)$this->request->getPost('instalment_interval') : 0;
+            if ($interval <= 0) {
+                $interval = 30; // Valor predeterminado
+            }
+            
+            // Crear las cuotas
+            for ($i = 1; $i <= $numInstalments; $i++) {
+                // Para la primera cuota usamos la fecha de vencimiento de la factura
+                if ($i > 1) {
+                    // Para las siguientes cuotas, añadimos el intervalo
+                    $baseDate->modify("+{$interval} days");
+                }
+                
+                $dueDate = $baseDate->format('Y-m-d');
+                
+                // Determinar el monto de esta cuota
+                $amount = ($i == $numInstalments) ? $lastInstalmentAmount : $instalmentAmount;
+                
+                $instalmentData = [
+                    'invoice_id' => $invoice['id'],
+                    'number' => $i,
+                    'amount' => $amount,
+                    'due_date' => $dueDate,
+                    'status' => 'pending',
+                    'notes' => ($numInstalments > 1) ? "Cuota {$i} de {$numInstalments}" : "Pago único"
+                ];
+                
+                $instalmentModel->insert($instalmentData);
+            }
+            
+            $db->transComplete();
+            
+            if ($db->transStatus() === false) {
+                return redirect()->back()
+                               ->withInput()
+                               ->with('error', 'Error al actualizar la factura.');
+            }
+            
+            return redirect()->to('/invoices/view/' . $uuid)
+                           ->with('success', 'Factura actualizada exitosamente.');
+        } catch (\Exception $e) {
+            log_message('error', 'Error updating invoice: ' . $e->getMessage());
+            return redirect()->back()
+                           ->withInput()
+                           ->with('error', 'Error al actualizar la factura: ' . $e->getMessage());
+        }
     }
 
     public function delete($uuid = null)

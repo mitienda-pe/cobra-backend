@@ -104,7 +104,7 @@
             </div>
 
             <div class="mb-3">
-                <label for="due_date" class="form-label">Fecha de Vencimiento *</label>
+                <label for="due_date" class="form-label" id="due_date_label">Fecha de Vencimiento *</label>
                 <input type="date" class="form-control <?= session('validation') && session('validation')->hasError('due_date') ? 'is-invalid' : '' ?>" 
                        id="due_date" name="due_date" 
                        value="<?= old('due_date', $invoice['due_date']) ?>" required>
@@ -113,6 +113,55 @@
                         <?= session('validation')->getError('due_date') ?>
                     </div>
                 <?php endif; ?>
+            </div>
+
+            <div class="mb-3">
+                <label for="num_instalments" class="form-label">Número de Cuotas *</label>
+                <select class="form-select <?= session('validation') && session('validation')->hasError('num_instalments') ? 'is-invalid' : '' ?>" 
+                        id="num_instalments" name="num_instalments" required>
+                    <?php 
+                    // Obtener el número actual de cuotas
+                    $instalmentModel = new \App\Models\InstalmentModel();
+                    $currentInstalments = $instalmentModel->where('invoice_id', $invoice['id'])->countAllResults();
+                    $currentInstalments = $currentInstalments > 0 ? $currentInstalments : 1;
+                    
+                    for ($i = 1; $i <= 12; $i++): 
+                    ?>
+                        <option value="<?= $i ?>" <?= old('num_instalments', $currentInstalments) == $i ? 'selected' : '' ?>><?= $i ?></option>
+                    <?php endfor; ?>
+                </select>
+                <?php if (session('validation') && session('validation')->hasError('num_instalments')): ?>
+                    <div class="invalid-feedback">
+                        <?= session('validation')->getError('num_instalments') ?>
+                    </div>
+                <?php endif; ?>
+                <?php if ($currentInstalments > 0): ?>
+                    <div class="form-text text-warning">
+                        <i class="bi bi-exclamation-triangle"></i> Cambiar el número de cuotas recreará todas las cuotas existentes.
+                        <?php if ($currentInstalments > 1): ?>
+                            Actualmente hay <?= $currentInstalments ?> cuotas.
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <div id="instalment_interval_container" class="mb-3" style="display: none;">
+                <label for="instalment_interval" class="form-label">Intervalo entre cuotas (días) *</label>
+                <input type="number" class="form-control <?= session('validation') && session('validation')->hasError('instalment_interval') ? 'is-invalid' : '' ?>" 
+                       id="instalment_interval" name="instalment_interval" 
+                       value="<?= old('instalment_interval', 30) ?>" min="1" max="90">
+                <?php if (session('validation') && session('validation')->hasError('instalment_interval')): ?>
+                    <div class="invalid-feedback">
+                        <?= session('validation')->getError('instalment_interval') ?>
+                    </div>
+                <?php endif; ?>
+                <div id="instalment_preview" class="alert alert-info mt-2" style="display: none;">
+                    <p class="mb-0">
+                        <strong>Monto por cuota:</strong> <span id="instalment_amount">Calculando...</span>
+                        <br>
+                        <small class="text-muted">El monto de la última cuota puede variar ligeramente para ajustar el total.</small>
+                    </p>
+                </div>
             </div>
 
             <div class="mb-3">
@@ -145,4 +194,55 @@
         </form>
     </div>
 </div>
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Manejo de cuotas
+    const numInstalmentsSelect = document.getElementById('num_instalments');
+    const instalmentIntervalContainer = document.getElementById('instalment_interval_container');
+    const instalmentPreview = document.getElementById('instalment_preview');
+    const dueDateLabel = document.getElementById('due_date_label');
+    const amountInput = document.getElementById('amount');
+    const instalmentAmountSpan = document.getElementById('instalment_amount');
+    const currencySelect = document.getElementById('currency');
+    
+    function toggleInstalmentFields() {
+        const numInstalments = parseInt(numInstalmentsSelect.value);
+        
+        if (numInstalments > 1) {
+            instalmentIntervalContainer.style.display = 'block';
+            instalmentPreview.style.display = 'block';
+            dueDateLabel.textContent = 'Fecha de Vencimiento de la Primera Cuota *';
+        } else {
+            instalmentIntervalContainer.style.display = 'none';
+            instalmentPreview.style.display = 'none';
+            dueDateLabel.textContent = 'Fecha de Vencimiento *';
+        }
+        
+        updateInstalmentAmount();
+    }
+    
+    function updateInstalmentAmount() {
+        const totalAmount = parseFloat(amountInput.value) || 0;
+        const numInstalments = parseInt(numInstalmentsSelect.value) || 1;
+        const symbol = currencySelect.value === 'PEN' ? 'S/ ' : '$ ';
+        
+        if (totalAmount > 0 && numInstalments > 0) {
+            const instalmentAmount = (totalAmount / numInstalments).toFixed(2);
+            instalmentAmountSpan.textContent = symbol + instalmentAmount;
+        } else {
+            instalmentAmountSpan.textContent = symbol + '0.00';
+        }
+    }
+    
+    numInstalmentsSelect.addEventListener('change', toggleInstalmentFields);
+    amountInput.addEventListener('input', updateInstalmentAmount);
+    currencySelect.addEventListener('change', updateInstalmentAmount);
+    
+    // Inicializar campos de cuotas
+    toggleInstalmentFields();
+});
+</script>
 <?= $this->endSection() ?>
