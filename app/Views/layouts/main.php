@@ -13,7 +13,7 @@
             --sidebar-width: 250px;
             --sidebar-collapsed-width: 70px;
             --notion-bg: #ffffff;
-            --notion-sidebar: #f7f7f7;
+            --notion-sidebar: #ffffff;
             --notion-text: #37352f;
             --notion-light-text: #6b6b6b;
             --notion-border: #e0e0e0;
@@ -319,6 +319,17 @@
                 cursor: pointer;
             }
         }
+        
+        .sidebar-section {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--notion-border);
+        }
+        
+        .sidebar-section-header {
+            padding: 8px 16px;
+            font-weight: 500;
+            color: var(--notion-text);
+        }
     </style>
 </head>
 
@@ -390,41 +401,45 @@
                     </a>
                 <?php endif; ?>
 
-                <div class="sidebar-dropdown <?= in_array($currentPath, ['/clients', '/portfolios', '/invoices', '/payments', '/payments/report', '/webhooks']) ? 'show' : '' ?>">
-                    <div class="sidebar-dropdown-toggle">
-                        <i class="bi bi-cash-coin menu-icon"></i>
-                        <span class="sidebar-item-text">Gestión de Cobranzas</span>
-                        <i class="bi bi-chevron-right dropdown-icon"></i>
-                    </div>
-                    <div class="sidebar-dropdown-menu">
-                        <a href="<?= site_url('clients') ?>" class="sidebar-item <?= $currentPath === '/clients' ? 'active' : '' ?>">
-                            <i class="bi bi-person-vcard"></i>
-                            <span class="sidebar-item-text">Clientes</span>
-                        </a>
-                        <a href="<?= site_url('portfolios') ?>" class="sidebar-item <?= $currentPath === '/portfolios' ? 'active' : '' ?>">
-                            <i class="bi bi-folder"></i>
-                            <span class="sidebar-item-text">Carteras</span>
-                        </a>
-                        <a href="<?= site_url('invoices') ?>" class="sidebar-item <?= $currentPath === '/invoices' ? 'active' : '' ?>">
-                            <i class="bi bi-file-earmark-text"></i>
-                            <span class="sidebar-item-text">Facturas</span>
-                        </a>
-                        <a href="<?= site_url('payments') ?>" class="sidebar-item <?= $currentPath === '/payments' ? 'active' : '' ?>">
-                            <i class="bi bi-credit-card"></i>
-                            <span class="sidebar-item-text">Pagos</span>
-                        </a>
-                        <a href="<?= site_url('payments/report') ?>" class="sidebar-item <?= $currentPath === '/payments/report' ? 'active' : '' ?>">
-                            <i class="bi bi-bar-chart"></i>
-                            <span class="sidebar-item-text">Reportes</span>
-                        </a>
-                        <?php if ($isAdmin): ?>
-                            <a href="<?= site_url('webhooks') ?>" class="sidebar-item <?= $currentPath === '/webhooks' ? 'active' : '' ?>">
-                                <i class="bi bi-link-45deg"></i>
-                                <span class="sidebar-item-text">Webhooks</span>
-                            </a>
-                        <?php endif; ?>
+                <!-- Gestión de Cobranzas links moved to first level -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-header">
+                        <i class="bi bi-cash-coin me-2"></i>
+                        <span>Gestión de Cobranzas</span>
                     </div>
                 </div>
+                
+                <a href="<?= site_url('clients') ?>" class="sidebar-item <?= $currentPath === '/clients' ? 'active' : '' ?>">
+                    <i class="bi bi-person-vcard"></i>
+                    <span class="sidebar-item-text">Clientes</span>
+                </a>
+                
+                <a href="<?= site_url('portfolios') ?>" class="sidebar-item <?= $currentPath === '/portfolios' ? 'active' : '' ?>">
+                    <i class="bi bi-folder"></i>
+                    <span class="sidebar-item-text">Carteras</span>
+                </a>
+                
+                <a href="<?= site_url('invoices') ?>" class="sidebar-item <?= $currentPath === '/invoices' ? 'active' : '' ?>">
+                    <i class="bi bi-file-earmark-text"></i>
+                    <span class="sidebar-item-text">Facturas</span>
+                </a>
+                
+                <a href="<?= site_url('payments') ?>" class="sidebar-item <?= $currentPath === '/payments' ? 'active' : '' ?>">
+                    <i class="bi bi-credit-card"></i>
+                    <span class="sidebar-item-text">Pagos</span>
+                </a>
+                
+                <a href="<?= site_url('payments/report') ?>" class="sidebar-item <?= $currentPath === '/payments/report' ? 'active' : '' ?>">
+                    <i class="bi bi-bar-chart"></i>
+                    <span class="sidebar-item-text">Reportes</span>
+                </a>
+                
+                <?php if ($isAdmin): ?>
+                    <a href="<?= site_url('webhooks') ?>" class="sidebar-item <?= $currentPath === '/webhooks' ? 'active' : '' ?>">
+                        <i class="bi bi-link-45deg"></i>
+                        <span class="sidebar-item-text">Webhooks</span>
+                    </a>
+                <?php endif; ?>
 
                 <?php if ($isSuperadmin): ?>
                     <div class="sidebar-dropdown">
