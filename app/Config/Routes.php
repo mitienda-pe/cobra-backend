@@ -177,17 +177,18 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     });
 
     // Payment Routes
-    $routes->group('payments', ['namespace' => 'App\Controllers'], function ($routes) {
+    $routes->group('payments', function ($routes) {
         $routes->get('/', 'PaymentController::index');
         $routes->get('create', 'PaymentController::create');
         $routes->get('create/(:segment)', 'PaymentController::create/$1');
+        $routes->get('create/(:segment)/(:num)', 'PaymentController::create/$1/$2');
         $routes->post('create', 'PaymentController::create');
         $routes->get('view/(:segment)', 'PaymentController::view/$1');
         $routes->get('search-invoices', 'PaymentController::searchInvoices');
     });
 
     // Instalment Routes
-    $routes->group('invoice', ['namespace' => 'App\Controllers'], function ($routes) {
+    $routes->group('invoice', function ($routes) {
         $routes->get('(:segment)/instalments', 'InstalmentController::index/$1');
         $routes->get('(:segment)/instalments/create', 'InstalmentController::create/$1');
         $routes->post('instalments/store', 'InstalmentController::store');

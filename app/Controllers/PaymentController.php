@@ -77,7 +77,7 @@ class PaymentController extends BaseController
         return view('payments/index', $data);
     }
     
-    public function create($invoiceUuid = null)
+    public function create($invoiceUuid = null, $instalmentId = null)
     {
         // Only collector users can create payments
         if (!$this->auth->hasAnyRole(['superadmin', 'admin', 'user'])) {
@@ -276,6 +276,9 @@ class PaymentController extends BaseController
             $instalments = $instalmentModel->getByInvoice($invoice['id']);
             
             if (!empty($instalments)) {
+                // Categorizar las cuotas para mostrar información adicional en la vista
+                $today = date('Y-m-d');
+                
                 // Calculate remaining amount for each instalment
                 foreach ($instalments as &$instalment) {
                     $instalmentPayments = $this->paymentModel
@@ -290,9 +293,42 @@ class PaymentController extends BaseController
                     
                     $instalment['paid_amount'] = $instalmentPaid;
                     $instalment['remaining_amount'] = $instalment['amount'] - $instalmentPaid;
+                    
+                    // Determinar si es una cuota vencida
+                    $instalment['is_overdue'] = ($instalment['status'] !== 'paid' && $instalment['due_date'] < $today);
+                    
+                    // Determinar si es una cuota que se puede pagar (todas las anteriores están pagadas)
+                    $instalment['can_be_paid'] = $instalmentModel->canBePaid($instalment['id']);
+                    
+                    // Determinar si es una cuota futura (no se puede pagar aún)
+                    $instalment['is_future'] = !$instalment['can_be_paid'] && $instalment['status'] !== 'paid';
                 }
                 
                 $data['instalments'] = $instalments;
+                
+                // Si se proporciona un ID de cuota, verificar que sea válido y preseleccionarlo
+                if ($instalmentId) {
+                    $selectedInstalment = null;
+                    foreach ($instalments as $instalment) {
+                        if ($instalment['id'] == $instalmentId) {
+                            $selectedInstalment = $instalment;
+                            break;
+                        }
+                    }
+                    
+                    if ($selectedInstalment) {
+                        // Verificar que se pueda pagar esta cuota
+                        if (!$selectedInstalment['can_be_paid']) {
+                            return redirect()->to('/invoices/view/' . $invoice['uuid'])
+                                ->with('error', 'No se puede pagar esta cuota porque hay cuotas anteriores pendientes de pago.');
+                        }
+                        
+                        $data['selected_instalment'] = $selectedInstalment;
+                    } else {
+                        return redirect()->to('/invoices/view/' . $invoice['uuid'])
+                            ->with('error', 'La cuota seleccionada no es válida para esta factura.');
+                    }
+                }
             }
         }
         

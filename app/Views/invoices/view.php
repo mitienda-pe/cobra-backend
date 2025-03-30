@@ -234,11 +234,15 @@
                                     </td>
                                     <td class="text-end">
                                         <?php if ($instalment['status'] === 'pending' && $auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                            <?php if (!isset($instalment['is_virtual'])): ?>
+                                            <?php if (!isset($instalment['is_virtual']) && isset($instalment['can_be_paid']) && $instalment['can_be_paid']): ?>
                                                 <a href="<?= site_url('payments/create/' . $invoice['uuid'] . '/' . $instalment['id']) ?>" class="btn btn-sm btn-success">
                                                     <i class="bi bi-cash"></i> Pagar
                                                 </a>
-                                            <?php else: ?>
+                                            <?php elseif (!isset($instalment['is_virtual']) && isset($instalment['can_be_paid']) && !$instalment['can_be_paid']): ?>
+                                                <button class="btn btn-sm btn-secondary" disabled title="No se puede pagar esta cuota hasta que se paguen las anteriores">
+                                                    <i class="bi bi-cash"></i> Pagar
+                                                </button>
+                                            <?php elseif (isset($instalment['is_virtual'])): ?>
                                                 <a href="<?= site_url('payments/create/' . $invoice['uuid']) ?>" class="btn btn-sm btn-success">
                                                     <i class="bi bi-cash"></i> Pagar
                                                 </a>
