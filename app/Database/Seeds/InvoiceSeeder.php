@@ -63,6 +63,9 @@ class InvoiceSeeder extends Seeder
                 $daysToAdd = rand(-15, 45);
                 $dueDate = (clone $currentDate)->modify("$daysToAdd days");
 
+                // Issue date should be before due date
+                $issueDate = (clone $dueDate)->modify("-" . rand(5, 30) . " days");
+
                 // Determine status based on due date
                 $status = 'pending';
                 if ($dueDate < $currentDate) {
@@ -84,6 +87,7 @@ class InvoiceSeeder extends Seeder
                     'concept'        => $concept,
                     'amount'         => $amount,
                     'currency'       => 'PEN',
+                    'issue_date'     => $issueDate->format('Y-m-d'),
                     'due_date'       => $dueDate->format('Y-m-d'),
                     'status'         => $status,
                     'notes'          => 'Factura de prueba generada por seeder',

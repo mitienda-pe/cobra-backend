@@ -8,6 +8,9 @@ class PortfolioSeeder extends Seeder
 {
     public function run()
     {
+        // Cargar helper de UUID
+        helper('uuid');
+        
         // Get the organization ID
         $orgId = $this->db->table('organizations')->select('id')->get()->getRow()->id;
         
@@ -18,6 +21,7 @@ class PortfolioSeeder extends Seeder
                 'name' => 'Cartera Empresarial',
                 'description' => 'Clientes corporativos y empresas B2B',
                 'status' => 'active',
+                'uuid' => generate_uuid(),
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ],
