@@ -43,7 +43,9 @@ class InstalmentController extends BaseController
         }
         
         $client = $this->clientModel->find($invoice['client_id']);
-        $instalments = $this->instalmentModel->getByInvoice($invoiceId);
+        
+        // Usar el método que ordena las cuotas por prioridad de cobranza
+        $instalments = $this->instalmentModel->getByInvoiceForCollection($invoiceId);
         
         // Obtener pagos por cuota
         $payments = [];
@@ -52,6 +54,19 @@ class InstalmentController extends BaseController
                 ->where('instalment_id', $instalment['id'])
                 ->where('status', 'completed')
                 ->findAll();
+        }
+        
+        // Categorizar las cuotas para mostrar información adicional en la vista
+        $today = date('Y-m-d');
+        foreach ($instalments as &$instalment) {
+            // Determinar si es una cuota vencida
+            $instalment['is_overdue'] = ($instalment['status'] !== 'paid' && $instalment['due_date'] < $today);
+            
+            // Determinar si es una cuota que se puede pagar (todas las anteriores están pagadas)
+            $instalment['can_be_paid'] = $this->instalmentModel->canBePaid($instalment['id']);
+            
+            // Determinar si es una cuota futura (no se puede pagar aún)
+            $instalment['is_future'] = !$instalment['can_be_paid'] && $instalment['status'] !== 'paid';
         }
         
         return view('instalments/index', [

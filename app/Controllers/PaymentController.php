@@ -163,6 +163,12 @@ class PaymentController extends BaseController
                             ->with('error', 'La cuota seleccionada no es válida para esta factura.');
                     }
                     
+                    // Verificar que se estén pagando las cuotas en orden cronológico
+                    if (!$instalmentModel->canBePaid($instalment['id'])) {
+                        return redirect()->back()->withInput()
+                            ->with('error', 'No se puede pagar esta cuota porque hay cuotas anteriores pendientes de pago. Debe pagar las cuotas en orden cronológico.');
+                    }
+                    
                     // Check if payment amount is valid for the instalment
                     $instalmentPayments = $this->paymentModel
                         ->where('instalment_id', $instalment['id'])

@@ -86,40 +86,89 @@
                         </thead>
                         <tbody>
                             <?php foreach ($instalments as $instalment) : ?>
-                                <tr>
+                                <?php 
+                                    // Calcular clase de fila según estado de la cuota
+                                    $rowClass = '';
+                                    if ($instalment['is_overdue']) {
+                                        $rowClass = 'table-danger'; // Cuota vencida
+                                    } elseif ($instalment['can_be_paid'] && $instalment['status'] !== 'paid') {
+                                        $rowClass = 'table-warning'; // Cuota que se puede pagar
+                                    } elseif ($instalment['is_future']) {
+                                        $rowClass = 'table-secondary'; // Cuota futura (no se puede pagar aún)
+                                    } elseif ($instalment['status'] === 'paid') {
+                                        $rowClass = 'table-success'; // Cuota pagada
+                                    }
+                                ?>
+                                <tr class="<?= $rowClass ?>">
                                     <td><?= $instalment['number'] ?></td>
-                                    <td><?= $invoice['currency'] ?> <?= number_format($instalment['amount'], 2) ?></td>
-                                    <td><?= date('d/m/Y', strtotime($instalment['due_date'])) ?></td>
+                                    <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($instalment['amount'], 2) ?></td>
                                     <td>
-                                        <span class="badge bg-<?= $instalment['status'] === 'paid' ? 'success' : ($instalment['status'] === 'pending' ? 'warning' : 'danger') ?>">
-                                            <?= $instalment['status'] === 'paid' ? 'Pagada' : ($instalment['status'] === 'pending' ? 'Pendiente' : 'Cancelada') ?>
-                                        </span>
+                                        <?= date('d/m/Y', strtotime($instalment['due_date'])) ?>
+                                        <?php if ($instalment['is_overdue']): ?>
+                                            <span class="badge bg-danger">Vencida</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php 
-                                        $instalmentPayments = isset($payments[$instalment['id']]) ? $payments[$instalment['id']] : [];
-                                        $totalPaid = 0;
-                                        foreach ($instalmentPayments as $payment) {
-                                            $totalPaid += $payment['amount'];
-                                        }
-                                        ?>
-                                        <?php if (!empty($instalmentPayments)) : ?>
-                                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="<?= count($instalmentPayments) ?> pagos registrados">
-                                                <?= $invoice['currency'] ?> <?= number_format($totalPaid, 2) ?>
-                                            </span>
+                                        <span class="badge bg-<?= $instalment['status'] === 'paid' ? 'success' : ($instalment['status'] === 'pending' ? ($instalment['is_overdue'] ? 'danger' : 'warning') : 'secondary') ?>">
+                                            <?= $instalment['status'] === 'paid' ? 'Pagada' : ($instalment['status'] === 'pending' ? 'Pendiente' : ucfirst($instalment['status'])) ?>
+                                        </span>
+                                        <?php if ($instalment['is_future'] && $instalment['status'] !== 'paid'): ?>
+                                            <span class="badge bg-info">Pago futuro</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($payments[$instalment['id']])) : ?>
+                                            <ul class="list-unstyled mb-0">
+                                                <?php foreach ($payments[$instalment['id']] as $payment) : ?>
+                                                    <li>
+                                                        <small>
+                                                            <?= date('d/m/Y', strtotime($payment['payment_date'])) ?> - 
+                                                            <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($payment['amount'], 2) ?>
+                                                        </small>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
                                         <?php else : ?>
                                             <span class="text-muted">Sin pagos</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <a href="<?= site_url('payments/create/' . $invoice['uuid']) ?>?instalment_id=<?= $instalment['id'] ?>" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-money-bill"></i> Registrar Pago
-                                        </a>
+                                        <?php if ($instalment['status'] !== 'paid') : ?>
+                                            <?php if ($instalment['can_be_paid']) : ?>
+                                                <a href="<?= site_url('payments/create/' . $invoice['uuid'] . '?instalment_id=' . $instalment['id']) ?>" class="btn btn-success btn-sm">
+                                                    <i class="fas fa-money-bill"></i> Registrar Pago
+                                                </a>
+                                            <?php else : ?>
+                                                <button class="btn btn-secondary btn-sm" disabled title="No se puede pagar esta cuota hasta que se paguen las anteriores">
+                                                    <i class="fas fa-money-bill"></i> Registrar Pago
+                                                </button>
+                                            <?php endif; ?>
+                                        <?php else : ?>
+                                            <span class="badge bg-success">Completada</span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
+                
+                <div class="mt-4">
+                    <h5>Leyenda:</h5>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div>
+                            <span class="badge bg-danger">Vencida</span> - Cuota pendiente con fecha de vencimiento pasada
+                        </div>
+                        <div>
+                            <span class="badge bg-warning">Pendiente</span> - Cuota por vencer que puede ser pagada
+                        </div>
+                        <div>
+                            <span class="badge bg-info">Pago futuro</span> - Cuota que no puede ser pagada hasta que se paguen las anteriores
+                        </div>
+                        <div>
+                            <span class="badge bg-success">Pagada</span> - Cuota completamente pagada
+                        </div>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>

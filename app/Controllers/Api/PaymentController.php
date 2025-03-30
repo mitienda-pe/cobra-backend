@@ -206,6 +206,11 @@ class PaymentController extends ResourceController
                 return $this->failValidationErrors(['instalment_id' => 'Invalid instalment for this invoice']);
             }
             
+            // Verificar que se estén pagando las cuotas en orden cronológico
+            if (!$instalmentModel->canBePaid($instalment['id'])) {
+                return $this->failValidationErrors(['instalment_id' => 'Cannot pay this instalment because there are previous unpaid instalments. You must pay instalments in chronological order.']);
+            }
+            
             // Check if payment amount is valid for the instalment
             $paymentModel = new PaymentModel();
             $instalmentPayments = $paymentModel
@@ -295,7 +300,8 @@ class PaymentController extends ResourceController
         }
         
         $instalmentModel = new InstalmentModel();
-        $instalments = $instalmentModel->getByInvoice($invoiceId);
+        // Usar el método que ordena las cuotas por prioridad de cobranza
+        $instalments = $instalmentModel->getByInvoiceForCollection($invoiceId);
         
         // Calculate remaining amount for each instalment
         $paymentModel = new PaymentModel();

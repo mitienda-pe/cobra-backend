@@ -269,8 +269,21 @@ class InvoiceController extends Controller
 
         // Cargar cuotas asociadas a la factura
         $instalmentModel = new \App\Models\InstalmentModel();
-        $instalments = $instalmentModel->getByInvoice($invoice['id']);
+        $instalments = $instalmentModel->getByInvoiceForCollection($invoice['id']);
         $has_instalments = !empty($instalments);
+        
+        // Categorizar las cuotas para mostrar información adicional en la vista
+        $today = date('Y-m-d');
+        foreach ($instalments as &$instalment) {
+            // Determinar si es una cuota vencida
+            $instalment['is_overdue'] = ($instalment['status'] !== 'paid' && $instalment['due_date'] < $today);
+            
+            // Determinar si es una cuota que se puede pagar (todas las anteriores están pagadas)
+            $instalment['can_be_paid'] = $instalmentModel->canBePaid($instalment['id']);
+            
+            // Determinar si es una cuota futura (no se puede pagar aún)
+            $instalment['is_future'] = !$instalment['can_be_paid'] && $instalment['status'] !== 'paid';
+        }
 
         $data = [
             'auth' => $this->auth,
