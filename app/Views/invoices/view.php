@@ -16,6 +16,9 @@
                 <a href="<?= site_url('payments/create/' . $invoice['uuid']) ?>" class="btn btn-success">
                     <i class="bi bi-cash"></i> Registrar Pago
                 </a>
+                <a href="<?= site_url('invoice/' . $invoice['id'] . '/instalments') ?>" class="btn btn-info">
+                    <i class="bi bi-list-ol"></i> Cuotas
+                </a>
             <?php endif; ?>
         <?php endif; ?>
     </div>

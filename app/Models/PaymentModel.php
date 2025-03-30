@@ -13,7 +13,7 @@ class PaymentModel extends Model
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'invoice_id', 'user_id', 'uuid', 'external_id', 'amount', 'payment_method', 
+        'invoice_id', 'instalment_id', 'user_id', 'uuid', 'external_id', 'amount', 'payment_method', 
         'reference_code', 'payment_date', 'status', 'notes', 'latitude', 
         'longitude', 'is_notified'
     ];
@@ -28,6 +28,7 @@ class PaymentModel extends Model
     // Validation
     protected $validationRules      = [
         'invoice_id'     => 'required|is_natural_no_zero',
+        'instalment_id'  => 'permit_empty|is_natural_no_zero',
         'amount'         => 'required|numeric',
         'payment_method' => 'required|max_length[50]',
         'payment_date'   => 'required',
@@ -38,7 +39,7 @@ class PaymentModel extends Model
     protected $cleanValidationRules = true;
     
     // Callbacks
-    protected $beforeInsert = ['generateExternalId', 'generateUuid', 'updateInvoiceStatus'];
+    protected $beforeInsert = ['generateExternalId', 'generateUuid', 'updateInvoiceStatus', 'updateInstalmentStatus'];
     protected $afterInsert  = ['notifyWebhook'];
 
     /**
@@ -105,6 +106,28 @@ class PaymentModel extends Model
                           'Amount paid: ' . $data['data']['amount'] . ', Total paid so far: ' . $totalPaid . 
                           ', Invoice amount: ' . $invoice['amount'] . ', Remaining: ' . ($invoice['amount'] - $totalPaid));
             }
+            
+            // Check if all instalments are paid
+            if (isset($data['data']['instalment_id'])) {
+                $instalmentModel = new InstalmentModel();
+                if ($instalmentModel->areAllPaid($data['data']['invoice_id'])) {
+                    $invoiceModel->update($data['data']['invoice_id'], ['status' => 'paid']);
+                    log_message('info', 'Invoice #' . $invoice['invoice_number'] . ' (ID: ' . $invoice['id'] . ') marked as paid because all instalments are paid.');
+                }
+            }
+        }
+        
+        return $data;
+    }
+    
+    /**
+     * Update instalment status when payment is recorded
+     */
+    protected function updateInstalmentStatus(array $data)
+    {
+        if (isset($data['data']['instalment_id']) && isset($data['data']['status']) && $data['data']['status'] === 'completed') {
+            $instalmentModel = new InstalmentModel();
+            $instalmentModel->updateStatus($data['data']['instalment_id']);
         }
         
         return $data;

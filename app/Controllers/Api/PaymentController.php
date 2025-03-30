@@ -7,6 +7,7 @@ use App\Models\InvoiceModel;
 use App\Models\PaymentModel;
 use App\Models\ClientModel;
 use App\Models\PortfolioModel;
+use App\Models\InstalmentModel;
 
 class PaymentController extends ResourceController
 {
@@ -171,6 +172,7 @@ class PaymentController extends ResourceController
         // Validate request
         $rules = [
             'invoice_id'    => 'required|is_natural_no_zero',
+            'instalment_id' => 'permit_empty|is_natural_no_zero',
             'amount'        => 'required|numeric',
             'payment_date'  => 'required|valid_date',
             'payment_method'=> 'required|in_list[cash,transfer,deposit,check,other]',
@@ -194,12 +196,43 @@ class PaymentController extends ResourceController
             return $this->failForbidden('You do not have access to this invoice');
         }
         
+        // Validate instalment if provided
+        $instalmentId = $this->request->getVar('instalment_id');
+        if (!empty($instalmentId)) {
+            $instalmentModel = new InstalmentModel();
+            $instalment = $instalmentModel->find($instalmentId);
+            
+            if (!$instalment || $instalment['invoice_id'] != $invoice['id']) {
+                return $this->failValidationErrors(['instalment_id' => 'Invalid instalment for this invoice']);
+            }
+            
+            // Check if payment amount is valid for the instalment
+            $paymentModel = new PaymentModel();
+            $instalmentPayments = $paymentModel
+                ->where('instalment_id', $instalment['id'])
+                ->where('status', 'completed')
+                ->findAll();
+                
+            $instalmentPaid = 0;
+            foreach ($instalmentPayments as $payment) {
+                $instalmentPaid += $payment['amount'];
+            }
+            
+            $instalmentRemaining = $instalment['amount'] - $instalmentPaid;
+            $paymentAmount = $this->request->getVar('amount');
+            
+            if ($paymentAmount > $instalmentRemaining) {
+                return $this->failValidationErrors(['amount' => 'Payment amount cannot exceed the remaining instalment amount']);
+            }
+        }
+        
         // Create payment
         $paymentModel = new PaymentModel();
         
         $data = [
             'organization_id' => $invoice['organization_id'],
             'invoice_id'      => $invoice['id'],
+            'instalment_id'   => $instalmentId ?: null,
             'client_id'       => $invoice['client_id'],
             'amount'          => $this->request->getVar('amount'),
             'payment_date'    => $this->request->getVar('payment_date'),
@@ -224,9 +257,64 @@ class PaymentController extends ResourceController
             $invoiceModel->update($invoice['id'], ['status' => 'partial']);
         }
         
+        // Update instalment status if applicable
+        if (!empty($instalmentId)) {
+            $instalmentModel = new InstalmentModel();
+            $instalmentModel->updateStatus($instalmentId);
+            
+            // Check if all instalments are paid
+            if ($instalmentModel->areAllPaid($invoice['id'])) {
+                $invoiceModel->update($invoice['id'], ['status' => 'paid']);
+            }
+        }
+        
         $payment = $paymentModel->find($paymentId);
         
         return $this->respondCreated(['payment' => $payment]);
+    }
+    
+    /**
+     * Get instalments for an invoice
+     */
+    public function getInstalments($invoiceId)
+    {
+        if (!$invoiceId) {
+            return $this->failValidationErrors('Invoice ID is required');
+        }
+        
+        $invoiceModel = new InvoiceModel();
+        $invoice = $invoiceModel->find($invoiceId);
+        
+        if (!$invoice) {
+            return $this->failNotFound('Invoice not found');
+        }
+        
+        // Check if user has access to this invoice
+        if (!$this->canAccessInvoice($invoice)) {
+            return $this->failForbidden('You do not have access to this invoice');
+        }
+        
+        $instalmentModel = new InstalmentModel();
+        $instalments = $instalmentModel->getByInvoice($invoiceId);
+        
+        // Calculate remaining amount for each instalment
+        $paymentModel = new PaymentModel();
+        foreach ($instalments as &$instalment) {
+            $instalmentPayments = $paymentModel
+                ->where('instalment_id', $instalment['id'])
+                ->where('status', 'completed')
+                ->findAll();
+                
+            $instalmentPaid = 0;
+            foreach ($instalmentPayments as $payment) {
+                $instalmentPaid += $payment['amount'];
+            }
+            
+            $instalment['paid_amount'] = $instalmentPaid;
+            $instalment['remaining_amount'] = $instalment['amount'] - $instalmentPaid;
+        }
+        
+        return $this->respond(['instalments' => $instalments]);
     }
     
     /**

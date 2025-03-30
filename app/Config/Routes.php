@@ -95,11 +95,17 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     $routes->match(['get', 'options'], 'invoices/(:segment)', 'InvoiceController::show/$1');
     $routes->match(['get', 'options'], 'invoices/external/(:segment)', 'InvoiceController::findByExternalId');
     $routes->match(['get', 'options'], 'invoices/overdue', 'InvoiceController::overdue');
+    $routes->match(['get', 'options'], 'invoices/(:segment)/instalments', 'PaymentController::getInstalments/$1');
 
     // Payment Routes
     $routes->match(['get', 'options'], 'payments', 'PaymentController::index');
     $routes->match(['get', 'options'], 'payments/(:segment)', 'PaymentController::show/$1');
     $routes->match(['get', 'options'], 'payments/external/(:segment)', 'PaymentController::findByExternalId');
+    
+    // Instalment Routes
+    $routes->match(['get', 'options'], 'instalments/invoice/(:segment)', 'InstalmentController::getByInvoice/$1');
+    $routes->match(['post', 'options'], 'instalments/create', 'InstalmentController::create');
+    $routes->match(['delete', 'options'], 'instalments/invoice/(:segment)', 'InstalmentController::delete/$1');
 });
 
 // Web Routes - Protected
@@ -177,6 +183,14 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->post('create', 'PaymentController::create');
         $routes->get('view/(:segment)', 'PaymentController::view/$1');
         $routes->get('search-invoices', 'PaymentController::searchInvoices');
+    });
+
+    // Instalment Routes
+    $routes->group('invoice', ['namespace' => 'App\Controllers'], function ($routes) {
+        $routes->get('(:segment)/instalments', 'InstalmentController::index/$1');
+        $routes->get('(:segment)/instalments/create', 'InstalmentController::create/$1');
+        $routes->post('instalments/store', 'InstalmentController::store');
+        $routes->post('(:segment)/instalments/delete', 'InstalmentController::delete/$1');
     });
 
     // Ligo Payment Routes

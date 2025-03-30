@@ -6,6 +6,7 @@ use App\Models\PaymentModel;
 use App\Models\InvoiceModel;
 use App\Models\ClientModel;
 use App\Models\PortfolioModel;
+use App\Models\InstalmentModel;
 use App\Libraries\Auth;
 use App\Traits\OrganizationTrait;
 
@@ -87,6 +88,7 @@ class PaymentController extends BaseController
         if ($this->request->getMethod() === 'post') {
             $rules = [
                 'invoice_id'     => 'required|is_natural_no_zero',
+                'instalment_id'  => 'permit_empty|is_natural_no_zero',
                 'amount'         => 'required|numeric|greater_than[0]',
                 'payment_method' => 'required|max_length[50]',
                 'reference_code' => 'permit_empty|max_length[100]',
@@ -139,6 +141,7 @@ class PaymentController extends BaseController
                 // Prepare payment data
                 $paymentData = [
                     'invoice_id'     => $invoice['id'],
+                    'instalment_id'  => $this->request->getPost('instalment_id') ?: null,
                     'user_id'        => $this->auth->user()['id'],
                     'amount'         => $paymentAmount,
                     'payment_method' => $this->request->getPost('payment_method'),
@@ -149,6 +152,35 @@ class PaymentController extends BaseController
                     'payment_date'   => date('Y-m-d H:i:s'),
                     'status'         => 'completed'
                 ];
+                
+                // Validate instalment if provided
+                if (!empty($paymentData['instalment_id'])) {
+                    $instalmentModel = new InstalmentModel();
+                    $instalment = $instalmentModel->find($paymentData['instalment_id']);
+                    
+                    if (!$instalment || $instalment['invoice_id'] != $invoice['id']) {
+                        return redirect()->back()->withInput()
+                            ->with('error', 'La cuota seleccionada no es válida para esta factura.');
+                    }
+                    
+                    // Check if payment amount is valid for the instalment
+                    $instalmentPayments = $this->paymentModel
+                        ->where('instalment_id', $instalment['id'])
+                        ->where('status', 'completed')
+                        ->findAll();
+                        
+                    $instalmentPaid = 0;
+                    foreach ($instalmentPayments as $payment) {
+                        $instalmentPaid += $payment['amount'];
+                    }
+                    
+                    $instalmentRemaining = $instalment['amount'] - $instalmentPaid;
+                    
+                    if ($paymentAmount > $instalmentRemaining) {
+                        return redirect()->back()->withInput()
+                            ->with('error', 'El monto del pago no puede ser mayor al saldo pendiente de la cuota.');
+                    }
+                }
                 
                 try {
                     // Start transaction
@@ -232,6 +264,30 @@ class PaymentController extends BaseController
             $clientModel = new ClientModel();
             $client = $clientModel->find($invoice['client_id']);
             $data['client'] = $client;
+            
+            // Get instalments if available
+            $instalmentModel = new InstalmentModel();
+            $instalments = $instalmentModel->getByInvoice($invoice['id']);
+            
+            if (!empty($instalments)) {
+                // Calculate remaining amount for each instalment
+                foreach ($instalments as &$instalment) {
+                    $instalmentPayments = $this->paymentModel
+                        ->where('instalment_id', $instalment['id'])
+                        ->where('status', 'completed')
+                        ->findAll();
+                        
+                    $instalmentPaid = 0;
+                    foreach ($instalmentPayments as $payment) {
+                        $instalmentPaid += $payment['amount'];
+                    }
+                    
+                    $instalment['paid_amount'] = $instalmentPaid;
+                    $instalment['remaining_amount'] = $instalment['amount'] - $instalmentPaid;
+                }
+                
+                $data['instalments'] = $instalments;
+            }
         }
         
         return view('payments/create', $data);
@@ -323,11 +379,19 @@ class PaymentController extends BaseController
         $userModel = new \App\Models\UserModel();
         $collector = $userModel->find($payment['user_id']);
         
+        // Get instalment information if available
+        $instalment = null;
+        if (!empty($payment['instalment_id'])) {
+            $instalmentModel = new InstalmentModel();
+            $instalment = $instalmentModel->find($payment['instalment_id']);
+        }
+        
         $data = [
             'payment' => $payment,
             'invoice' => $invoice,
             'client' => $client,
             'collector' => $collector,
+            'instalment' => $instalment,
             'auth' => $this->auth,
         ];
         
@@ -368,6 +432,12 @@ class PaymentController extends BaseController
                 if ($paymentInfo['remaining'] > 0 && $invoice['status'] === 'paid') {
                     $invoiceModel->update($invoice['id'], ['status' => 'pending']);
                 }
+            }
+            
+            // Update instalment status if applicable
+            if (!empty($payment['instalment_id'])) {
+                $instalmentModel = new InstalmentModel();
+                $instalmentModel->updateStatus($payment['instalment_id']);
             }
             
             $db->transComplete();
