@@ -20,13 +20,14 @@ class LigoQRController extends Controller
     /**
      * Display QR code page for invoice payment
      *
-     * @param string $invoiceId
+     * @param string $invoiceUuid UUID de la factura
+     * @param int|null $instalmentId ID de la cuota (opcional)
      * @return mixed
      */
-    public function index($invoiceId)
+    public function index($invoiceUuid, $instalmentId = null)
     {
         // Get invoice details
-        $invoice = $this->invoiceModel->find($invoiceId);
+        $invoice = $this->invoiceModel->where('uuid', $invoiceUuid)->first();
         
         if (!$invoice) {
             return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
@@ -37,6 +38,39 @@ class LigoQRController extends Controller
         
         if (!$organization) {
             return redirect()->to('/invoices')->with('error', 'Organización no encontrada');
+        }
+        
+        // Si se proporciona ID de cuota, obtener los detalles de la cuota
+        $instalment = null;
+        $paymentAmount = $invoice['amount']; // Por defecto, el monto total de la factura
+        $paymentDescription = 'Pago de factura ' . $invoice['invoice_number'];
+        
+        if ($instalmentId) {
+            $instalmentModel = new \App\Models\InstalmentModel();
+            $instalment = $instalmentModel->find($instalmentId);
+            
+            if (!$instalment || $instalment['invoice_id'] != $invoice['id']) {
+                return redirect()->to('/invoices/view/' . $invoiceUuid)->with('error', 'Cuota no encontrada o no pertenece a esta factura');
+            }
+            
+            // Verificar que se puedan pagar las cuotas en orden
+            if (!$instalmentModel->canBePaid($instalment['id'])) {
+                return redirect()->to('/invoices/view/' . $invoiceUuid)->with('error', 'No se puede pagar esta cuota porque hay cuotas anteriores pendientes de pago');
+            }
+            
+            // Calcular el monto pendiente de la cuota
+            $paymentModel = new \App\Models\PaymentModel();
+            $instalmentPayments = $paymentModel->where('instalment_id', $instalment['id'])
+                                              ->where('status', 'completed')
+                                              ->findAll();
+            
+            $instalmentPaid = 0;
+            foreach ($instalmentPayments as $payment) {
+                $instalmentPaid += $payment['amount'];
+            }
+            
+            $paymentAmount = $instalment['amount'] - $instalmentPaid;
+            $paymentDescription = 'Pago de cuota ' . $instalment['number'] . ' de factura ' . $invoice['invoice_number'];
         }
         
         // Check if Ligo is enabled for this organization
@@ -50,9 +84,9 @@ class LigoQRController extends Controller
                 'invoice' => $invoice,
                 'qr_data' => json_encode([
                     'invoice_id' => $invoice['id'],
-                    'amount' => $invoice['amount'],
+                    'amount' => $paymentAmount,
                     'currency' => $invoice['currency'] ?? 'PEN',
-                    'description' => "Pago factura #{$invoice['invoice_number']}",
+                    'description' => $paymentDescription,
                     'demo' => true
                 ]),
                 'qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode("DEMO QR - Factura #{$invoice['invoice_number']}"),
@@ -78,10 +112,10 @@ class LigoQRController extends Controller
         if (!empty($organization['ligo_username']) && !empty($organization['ligo_password']) && !empty($organization['ligo_company_id'])) {
             // Preparar datos para la orden
             $orderData = [
-                'amount' => $invoice['amount'],
+                'amount' => $paymentAmount,
                 'currency' => $invoice['currency'] ?? 'PEN',
                 'orderId' => $invoice['id'],
-                'description' => "Pago factura #{$invoice['invoice_number']}"
+                'description' => $paymentDescription
             ];
             
             // Log para depuración

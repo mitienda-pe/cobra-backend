@@ -189,11 +189,6 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="card-title mb-0">Cuotas</h5>
-                    <?php if ($auth->hasAnyRole(['superadmin', 'admin']) && $invoice['status'] === 'pending'): ?>
-                        <a href="<?= site_url('invoice/' . $invoice['uuid'] . '/instalments') ?>" class="btn btn-sm btn-primary">
-                            <i class="bi bi-list-ol"></i> Ver todas las cuotas
-                        </a>
-                    <?php endif; ?>
                 </div>
                 <hr>
 
@@ -235,17 +230,39 @@
                                     <td class="text-end">
                                         <?php if ($instalment['status'] === 'pending' && $auth->hasAnyRole(['superadmin', 'admin'])): ?>
                                             <?php if (!isset($instalment['is_virtual']) && isset($instalment['can_be_paid']) && $instalment['can_be_paid']): ?>
-                                                <a href="<?= site_url('payments/create/' . $invoice['uuid'] . '/' . $instalment['id']) ?>" class="btn btn-sm btn-success">
-                                                    <i class="bi bi-cash"></i> Pagar
-                                                </a>
+                                                <div class="btn-group">
+                                                    <a href="<?= site_url('payments/create/' . $invoice['uuid'] . '/' . $instalment['id']) ?>" class="btn btn-sm btn-success">
+                                                        <i class="bi bi-cash"></i> Pagar
+                                                    </a>
+                                                    <?php
+                                                    // Get organization to check if Ligo is enabled
+                                                    $organizationModel = new \App\Models\OrganizationModel();
+                                                    $organization = $organizationModel->find($invoice['organization_id']);
+                                                    if (isset($organization['ligo_enabled']) && $organization['ligo_enabled']): ?>
+                                                        <a href="<?= site_url('payment/ligo/qr/' . $invoice['uuid'] . '/' . $instalment['id']) ?>" class="btn btn-sm btn-primary">
+                                                            <i class="bi bi-qr-code"></i> QR Ligo
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </div>
                                             <?php elseif (!isset($instalment['is_virtual']) && isset($instalment['can_be_paid']) && !$instalment['can_be_paid']): ?>
                                                 <button class="btn btn-sm btn-secondary" disabled title="No se puede pagar esta cuota hasta que se paguen las anteriores">
                                                     <i class="bi bi-cash"></i> Pagar
                                                 </button>
                                             <?php elseif (isset($instalment['is_virtual'])): ?>
-                                                <a href="<?= site_url('payments/create/' . $invoice['uuid']) ?>" class="btn btn-sm btn-success">
-                                                    <i class="bi bi-cash"></i> Pagar
-                                                </a>
+                                                <div class="btn-group">
+                                                    <a href="<?= site_url('payments/create/' . $invoice['uuid']) ?>" class="btn btn-sm btn-success">
+                                                        <i class="bi bi-cash"></i> Pagar
+                                                    </a>
+                                                    <?php
+                                                    // Get organization to check if Ligo is enabled
+                                                    $organizationModel = new \App\Models\OrganizationModel();
+                                                    $organization = $organizationModel->find($invoice['organization_id']);
+                                                    if (isset($organization['ligo_enabled']) && $organization['ligo_enabled']): ?>
+                                                        <a href="<?= site_url('payment/ligo/qr/' . $invoice['uuid']) ?>" class="btn btn-sm btn-primary">
+                                                            <i class="bi bi-qr-code"></i> QR Ligo
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </div>
                                             <?php endif; ?>
                                         <?php endif; ?>
                                     </td>
@@ -316,13 +333,7 @@
                         // Get organization to check if Ligo is enabled
                         $organizationModel = new \App\Models\OrganizationModel();
                         $organization = $organizationModel->find($invoice['organization_id']);
-                        if (isset($organization['ligo_enabled']) && $organization['ligo_enabled']):
                         ?>
-                            <!-- Ligo QR Payment -->
-                            <a href="<?= site_url('payment/ligo/qr/' . $invoice['uuid']) ?>" class="btn btn-primary">
-                                <i class="bi bi-qr-code"></i> Pagar con QR Ligo
-                            </a>
-                        <?php endif; ?>
                     </div>
                 </div>
             </div>
