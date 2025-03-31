@@ -86,7 +86,7 @@
                         <strong>Importe:</strong>
                     </div>
                     <div class="col-md-8">
-                        <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['amount'], 2) ?>
+                        <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['total_amount'] ?? $invoice['amount'] ?? 0, 2) ?>
                     </div>
                 </div>
 
