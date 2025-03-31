@@ -20,7 +20,7 @@ class InstalmentController extends BaseController
     protected $clientModel;
     protected $portfolioModel;
     protected $request;
-    protected $user;
+    protected $auth;
     
     public function __construct()
     {
@@ -30,9 +30,22 @@ class InstalmentController extends BaseController
         $this->clientModel = new ClientModel();
         $this->portfolioModel = new PortfolioModel();
         $this->request = \Config\Services::request();
+        $this->auth = service('auth');
+    }
+    
+    /**
+     * Get the authenticated user
+     * This method ensures we have a user object even if request data is missing
+     */
+    protected function getAuthUser()
+    {
+        // Try to get user from request object (set by ApiAuthFilter)
+        if (isset($this->request) && isset($this->request->user)) {
+            return $this->request->user;
+        }
         
-        // El usuario será establecido por el filtro de autenticación
-        $this->user = session()->get('api_user');
+        // If no user, return null
+        return null;
     }
     
     /**
@@ -238,10 +251,11 @@ class InstalmentController extends BaseController
      */
     public function portfolioInstalments($portfolioUuid = null)
     {
-        // Obtener el usuario actual
-        $user = $this->user;
+        // Obtener el usuario autenticado
+        $user = $this->getAuthUser();
         
         if (!$user) {
+            log_message('error', 'InstalmentController::portfolioInstalments - Usuario no autenticado');
             return $this->failUnauthorized('Usuario no autenticado');
         }
         
@@ -371,7 +385,7 @@ class InstalmentController extends BaseController
         }
         
         // Usar la propiedad user de la clase en lugar de obtenerla del request
-        $user = $this->user;
+        $user = $this->getAuthUser();
         
         // Superadmin puede acceder a todo
         if ($user['role'] === 'superadmin') {
