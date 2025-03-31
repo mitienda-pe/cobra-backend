@@ -380,14 +380,12 @@ class InstalmentController extends BaseController
         // Preparar la consulta base
         $db = \Config\Database::connect();
         $builder = $db->table('instalments i');
-        $builder->select('i.*, inv.invoice_number, inv.uuid as invoice_uuid, c.name as client_name, p.name as portfolio_name');
+        $builder->select('i.*, inv.invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name');
         $builder->join('invoices inv', 'i.invoice_id = inv.id');
         $builder->join('clients c', 'inv.client_id = c.id');
-        $builder->join('portfolios p', 'c.portfolio_id = p.id');
         $builder->where('i.deleted_at IS NULL');
         $builder->where('inv.deleted_at IS NULL');
         $builder->where('c.deleted_at IS NULL');
-        $builder->where('p.deleted_at IS NULL');
         
         // Filtrar por organización
         if ($organizationId && !$this->auth->hasRole('superadmin')) {
@@ -398,7 +396,13 @@ class InstalmentController extends BaseController
         
         // Filtrar por cartera
         if ($portfolioId) {
-            $builder->where('c.portfolio_id', $portfolioId);
+            // Usamos una subconsulta para obtener los clientes de la cartera seleccionada
+            $builder->whereIn('c.id', function($subquery) use ($portfolioId) {
+                $subquery->select('client_id')
+                        ->from('client_portfolio')
+                        ->where('portfolio_id', $portfolioId)
+                        ->where('deleted_at IS NULL');
+            });
         }
         
         // Filtrar por estado

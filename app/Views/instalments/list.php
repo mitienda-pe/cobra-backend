@@ -78,7 +78,6 @@
                             <tr>
                                 <th>Factura</th>
                                 <th>Cliente</th>
-                                <th>Cartera</th>
                                 <th>Cuota</th>
                                 <th>Monto</th>
                                 <th>Pagado</th>
@@ -105,7 +104,6 @@
                                         </a>
                                     </td>
                                     <td><?= esc($instalment['client_name']) ?></td>
-                                    <td><?= esc($instalment['portfolio_name']) ?></td>
                                     <td><?= $instalment['number'] ?></td>
                                     <td>S/ <?= number_format($instalment['amount'], 2) ?></td>
                                     <td>S/ <?= number_format($instalment['paid_amount'], 2) ?></td>
