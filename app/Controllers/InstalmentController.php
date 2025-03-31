@@ -406,16 +406,24 @@ class InstalmentController extends BaseController
         
         // Filtrar por cartera
         if ($portfolioUuid) {
-            // Primero obtenemos los IDs de los clientes en la cartera
-            $clientsQuery = $db->table('client_portfolio cp')
-                            ->select('c.id')
-                            ->join('clients c', 'cp.client_uuid = c.uuid')
-                            ->where('cp.portfolio_uuid', $portfolioUuid)
-                            ->where('cp.deleted_at IS NULL')
-                            ->where('c.deleted_at IS NULL')
-                            ->getCompiledSelect();
-                            
-            $builder->whereIn('c.id', $clientsQuery);
+            // Primero verificamos si hay clientes en esta cartera
+            $clientsInPortfolio = $db->table('client_portfolio cp')
+                                  ->select('c.id')
+                                  ->join('clients c', 'cp.client_uuid = c.uuid')
+                                  ->where('cp.portfolio_uuid', $portfolioUuid)
+                                  ->where('cp.deleted_at IS NULL')
+                                  ->where('c.deleted_at IS NULL')
+                                  ->get()
+                                  ->getResultArray();
+            
+            if (!empty($clientsInPortfolio)) {
+                // Si hay clientes, extraemos sus IDs
+                $clientIds = array_column($clientsInPortfolio, 'id');
+                $builder->whereIn('c.id', $clientIds);
+            } else {
+                // Si no hay clientes, forzamos que no haya resultados
+                $builder->where('1=0'); // Condición siempre falsa
+            }
         }
         
         // Filtrar por estado

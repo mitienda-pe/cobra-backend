@@ -99,7 +99,7 @@
                             ?>
                                 <tr class="<?= $rowClass ?>">
                                     <td>
-                                        <a href="<?= site_url('invoice/' . $instalment['invoice_uuid']) ?>">
+                                        <a href="<?= site_url('invoices/view/' . $instalment['invoice_uuid']) ?>">
                                             <?= esc($instalment['invoice_number']) ?>
                                         </a>
                                     </td>
