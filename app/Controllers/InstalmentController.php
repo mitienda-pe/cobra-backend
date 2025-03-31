@@ -377,6 +377,16 @@ class InstalmentController extends BaseController
         $status = $this->request->getGet('status') ?: 'pending'; // Por defecto, mostrar cuotas pendientes
         $dueDate = $this->request->getGet('due_date') ?: 'all'; // all, overdue, upcoming
         
+        // Si tenemos un ID de cartera, necesitamos obtener su UUID
+        $portfolioUuid = null;
+        if ($portfolioId) {
+            $portfolioModel = new \App\Models\PortfolioModel();
+            $portfolio = $portfolioModel->find($portfolioId);
+            if ($portfolio) {
+                $portfolioUuid = $portfolio['uuid'];
+            }
+        }
+        
         // Preparar la consulta base
         $db = \Config\Database::connect();
         $builder = $db->table('instalments i');
@@ -395,14 +405,17 @@ class InstalmentController extends BaseController
         }
         
         // Filtrar por cartera
-        if ($portfolioId) {
-            // Usamos una subconsulta para obtener los clientes de la cartera seleccionada
-            $builder->whereIn('c.id', function($subquery) use ($portfolioId) {
-                $subquery->select('client_id')
-                        ->from('client_portfolio')
-                        ->where('portfolio_id', $portfolioId)
-                        ->where('deleted_at IS NULL');
-            });
+        if ($portfolioUuid) {
+            // Primero obtenemos los IDs de los clientes en la cartera
+            $clientsQuery = $db->table('client_portfolio cp')
+                            ->select('c.id')
+                            ->join('clients c', 'cp.client_uuid = c.uuid')
+                            ->where('cp.portfolio_uuid', $portfolioUuid)
+                            ->where('cp.deleted_at IS NULL')
+                            ->where('c.deleted_at IS NULL')
+                            ->getCompiledSelect();
+                            
+            $builder->whereIn('c.id', $clientsQuery);
         }
         
         // Filtrar por estado
