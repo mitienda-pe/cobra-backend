@@ -100,7 +100,7 @@
                                 <tr class="<?= $rowClass ?>">
                                     <td>
                                         <a href="<?= site_url('invoices/view/' . $instalment['invoice_uuid']) ?>" class="text-decoration-none">
-                                            <?= esc($instalment['number'] ?? $instalment['invoice_number'] ?? 'N/A') ?>
+                                            <?= esc(($instalment['series'] ? $instalment['series'] . '-' : '') . ($instalment['number'] ?? $instalment['invoice_number'] ?? 'N/A')) ?>
                                         </a>
                                     </td>
                                     <td><?= esc($instalment['client_name']) ?></td>
