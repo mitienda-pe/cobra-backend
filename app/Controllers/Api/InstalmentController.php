@@ -7,6 +7,7 @@ use App\Models\InstalmentModel;
 use App\Models\InvoiceModel;
 use App\Models\PaymentModel;
 use App\Models\ClientModel;
+use App\Models\PortfolioModel;
 use CodeIgniter\API\ResponseTrait;
 
 class InstalmentController extends BaseController
@@ -17,6 +18,7 @@ class InstalmentController extends BaseController
     protected $invoiceModel;
     protected $paymentModel;
     protected $clientModel;
+    protected $portfolioModel;
     protected $request;
     protected $user;
     
@@ -26,6 +28,7 @@ class InstalmentController extends BaseController
         $this->invoiceModel = new InvoiceModel();
         $this->paymentModel = new PaymentModel();
         $this->clientModel = new ClientModel();
+        $this->portfolioModel = new PortfolioModel();
         $this->request = \Config\Services::request();
         
         // El usuario será establecido por el filtro de autenticación
@@ -225,6 +228,129 @@ class InstalmentController extends BaseController
         }
         
         return $this->fail('No hay cuotas para eliminar', 400);
+    }
+    
+    /**
+     * Obtiene las cuotas pendientes de las facturas en las carteras del usuario
+     */
+    public function portfolioInstalments()
+    {
+        // Obtener el usuario actual
+        $user = $this->user;
+        
+        if (!$user) {
+            return $this->failUnauthorized('Usuario no autenticado');
+        }
+        
+        // Obtener parámetros de filtro
+        $portfolioUuid = $this->request->getGet('portfolio_uuid');
+        $status = $this->request->getGet('status') ?: 'pending'; // Por defecto, mostrar cuotas pendientes
+        $dueDate = $this->request->getGet('due_date') ?: 'all'; // all, overdue, upcoming
+        
+        // Preparar la consulta base
+        $db = \Config\Database::connect();
+        $builder = $db->table('instalments i');
+        $builder->select('i.*, inv.number as invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name, c.uuid as client_uuid');
+        $builder->join('invoices inv', 'i.invoice_id = inv.id');
+        $builder->join('clients c', 'inv.client_id = c.id');
+        $builder->where('i.deleted_at IS NULL');
+        $builder->where('inv.deleted_at IS NULL');
+        $builder->where('c.deleted_at IS NULL');
+        
+        // Si el usuario no es superadmin o admin, filtrar por sus carteras
+        if (!$this->auth->hasRole('superadmin') && !$this->auth->hasRole('admin')) {
+            // Obtener las carteras asignadas al usuario
+            $userPortfolios = $db->table('portfolio_user')
+                ->select('portfolio_uuid')
+                ->where('user_uuid', $user['uuid'])
+                ->where('deleted_at IS NULL')
+                ->get()
+                ->getResultArray();
+                
+            if (empty($userPortfolios)) {
+                return $this->respond([
+                    'status' => 'success',
+                    'data' => []
+                ]);
+            }
+            
+            $portfolioUuids = array_column($userPortfolios, 'portfolio_uuid');
+            
+            // Obtener los clientes en esas carteras
+            $clientsInPortfolios = $db->table('client_portfolio cp')
+                ->select('c.id')
+                ->join('clients c', 'cp.client_uuid = c.uuid')
+                ->whereIn('cp.portfolio_uuid', $portfolioUuids)
+                ->where('cp.deleted_at IS NULL')
+                ->where('c.deleted_at IS NULL')
+                ->get()
+                ->getResultArray();
+                
+            if (empty($clientsInPortfolios)) {
+                return $this->respond([
+                    'status' => 'success',
+                    'data' => []
+                ]);
+            }
+            
+            $clientIds = array_column($clientsInPortfolios, 'id');
+            $builder->whereIn('c.id', $clientIds);
+        }
+        
+        // Filtrar por cartera específica si se proporciona
+        if ($portfolioUuid) {
+            try {
+                // Obtener los clientes en esa cartera
+                $clientsInPortfolio = $db->table('client_portfolio cp')
+                    ->select('c.id')
+                    ->join('clients c', 'cp.client_uuid = c.uuid')
+                    ->where('cp.portfolio_uuid', $portfolioUuid)
+                    ->where('cp.deleted_at IS NULL')
+                    ->where('c.deleted_at IS NULL')
+                    ->get()
+                    ->getResultArray();
+                    
+                if (empty($clientsInPortfolio)) {
+                    return $this->respond([
+                        'status' => 'success',
+                        'data' => []
+                    ]);
+                }
+                
+                $clientIds = array_column($clientsInPortfolio, 'id');
+                $builder->whereIn('c.id', $clientIds);
+            } catch (\Exception $e) {
+                log_message('error', 'Error al filtrar por cartera: ' . $e->getMessage());
+                return $this->respond([
+                    'status' => 'success',
+                    'data' => []
+                ]);
+            }
+        }
+        
+        // Filtrar por estado
+        if ($status !== 'all') {
+            $builder->where('i.status', $status);
+        }
+        
+        // Filtrar por fecha de vencimiento
+        $today = date('Y-m-d');
+        if ($dueDate === 'overdue') {
+            $builder->where('i.due_date <', $today);
+        } else if ($dueDate === 'upcoming') {
+            $builder->where('i.due_date >=', $today);
+        }
+        
+        // Ordenar por fecha de vencimiento (más próximas primero)
+        $builder->orderBy('i.due_date', 'ASC');
+        
+        // Ejecutar la consulta
+        $instalments = $builder->get()->getResultArray();
+        
+        return $this->respond([
+            'status' => 'success',
+            'data' => $instalments
+        ]);
     }
     
     /**

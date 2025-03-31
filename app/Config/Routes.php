@@ -86,6 +86,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     // Mobile App Routes
     $routes->match(['get', 'options'], 'portfolio/invoices', 'PortfolioController::myInvoices');
     $routes->match(['get', 'options'], 'portfolio/my', 'PortfolioController::myPortfolios');
+    $routes->match(['get', 'options'], 'portfolio/instalments', 'InstalmentController::portfolioInstalments');
     $routes->match(['get', 'options'], 'payments/search-invoices', 'PaymentController::searchInvoices');
     $routes->match(['post', 'options'], 'payments/register', 'PaymentController::registerMobilePayment');
     $routes->match(['get', 'options'], 'payments/generate-qr/(:num)', 'PaymentController::generateQR/$1');
