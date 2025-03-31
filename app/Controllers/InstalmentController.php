@@ -358,4 +358,108 @@ class InstalmentController extends BaseController
         
         return $this->instalmentModel->insert($data) ? true : false;
     }
+    
+    /**
+     * Lista todas las cuotas vencidas o vigentes filtradas por cartera y organización
+     */
+    public function list()
+    {
+        // Verificar si el usuario está autenticado
+        if (!$this->auth->isLoggedIn()) {
+            return redirect()->to('/login');
+        }
+        
+        // Obtener el ID de la organización del usuario
+        $organizationId = $this->getCurrentOrganizationId();
+        
+        // Obtener parámetros de filtro
+        $portfolioId = $this->request->getGet('portfolio_id');
+        $status = $this->request->getGet('status') ?: 'pending'; // Por defecto, mostrar cuotas pendientes
+        $dueDate = $this->request->getGet('due_date') ?: 'all'; // all, overdue, upcoming
+        
+        // Preparar la consulta base
+        $db = \Config\Database::connect();
+        $builder = $db->table('instalments i');
+        $builder->select('i.*, inv.invoice_number, inv.uuid as invoice_uuid, c.name as client_name, p.name as portfolio_name');
+        $builder->join('invoices inv', 'i.invoice_id = inv.id');
+        $builder->join('clients c', 'inv.client_id = c.id');
+        $builder->join('portfolios p', 'c.portfolio_id = p.id');
+        $builder->where('i.deleted_at IS NULL');
+        $builder->where('inv.deleted_at IS NULL');
+        $builder->where('c.deleted_at IS NULL');
+        $builder->where('p.deleted_at IS NULL');
+        
+        // Filtrar por organización
+        if ($organizationId && !$this->auth->hasRole('superadmin')) {
+            $builder->where('inv.organization_id', $organizationId);
+        } else if ($organizationId && $this->auth->hasRole('superadmin')) {
+            $builder->where('inv.organization_id', $organizationId);
+        }
+        
+        // Filtrar por cartera
+        if ($portfolioId) {
+            $builder->where('c.portfolio_id', $portfolioId);
+        }
+        
+        // Filtrar por estado
+        if ($status !== 'all') {
+            $builder->where('i.status', $status);
+        }
+        
+        // Filtrar por fecha de vencimiento
+        $today = date('Y-m-d');
+        if ($dueDate === 'overdue') {
+            $builder->where('i.due_date <', $today);
+        } else if ($dueDate === 'upcoming') {
+            $builder->where('i.due_date >=', $today);
+        }
+        
+        // Ordenar por fecha de vencimiento (más próximas primero)
+        $builder->orderBy('i.due_date', 'ASC');
+        
+        // Ejecutar la consulta
+        $instalments = $builder->get()->getResultArray();
+        
+        // Obtener carteras para el filtro
+        $portfolioModel = new \App\Models\PortfolioModel();
+        if ($organizationId && !$this->auth->hasRole('superadmin')) {
+            $portfolios = $portfolioModel->where('organization_id', $organizationId)->findAll();
+        } else {
+            $portfolios = $portfolioModel->findAll();
+        }
+        
+        // Categorizar las cuotas para mostrar información adicional en la vista
+        foreach ($instalments as &$instalment) {
+            // Determinar si es una cuota vencida
+            $instalment['is_overdue'] = ($instalment['status'] !== 'paid' && $instalment['due_date'] < $today);
+            
+            // Calcular el monto pagado para esta cuota
+            $paymentModel = new PaymentModel();
+            $payments = $paymentModel
+                ->where('instalment_id', $instalment['id'])
+                ->where('status', 'completed')
+                ->findAll();
+                
+            $paidAmount = 0;
+            foreach ($payments as $payment) {
+                $paidAmount += $payment['amount'];
+            }
+            
+            $instalment['paid_amount'] = $paidAmount;
+            $instalment['remaining_amount'] = $instalment['amount'] - $paidAmount;
+        }
+        
+        // Preparar datos para la vista
+        $data = [
+            'auth' => $this->auth,
+            'instalments' => $instalments,
+            'portfolios' => $portfolios,
+            'selectedPortfolio' => $portfolioId,
+            'selectedStatus' => $status,
+            'selectedDueDate' => $dueDate,
+            'organizationId' => $organizationId
+        ];
+        
+        return view('instalments/list', $data);
+    }
 }

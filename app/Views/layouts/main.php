@@ -425,6 +425,11 @@
                     <span class="sidebar-item-text">Facturas</span>
                 </a>
 
+                <a href="<?= site_url('instalments') ?>" class="sidebar-item <?= $currentPath === '/instalments' ? 'active' : '' ?>">
+                    <i class="bi bi-calendar-check"></i>
+                    <span class="sidebar-item-text">Cuotas</span>
+                </a>
+
                 <a href="<?= site_url('payments') ?>" class="sidebar-item <?= $currentPath === '/payments' ? 'active' : '' ?>">
                     <i class="bi bi-credit-card"></i>
                     <span class="sidebar-item-text">Pagos</span>

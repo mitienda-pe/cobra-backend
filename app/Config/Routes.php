@@ -194,6 +194,9 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->post('instalments/store', 'InstalmentController::store');
         $routes->post('(:segment)/instalments/delete', 'InstalmentController::delete/$1');
     });
+    
+    // Nueva ruta para listar todas las cuotas
+    $routes->get('instalments', 'InstalmentController::list');
 
     // Ligo Payment Routes
     $routes->group('payment/ligo', function ($routes) {
