@@ -106,6 +106,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     
     // Instalment Routes
     $routes->match(['get', 'options'], 'instalments/invoice/(:segment)', 'InstalmentController::getByInvoice/$1');
+    $routes->match(['get', 'options'], 'instalments/(:num)', 'InstalmentController::show/$1');
     $routes->match(['post', 'options'], 'instalments/create', 'InstalmentController::create');
     $routes->match(['delete', 'options'], 'instalments/invoice/(:segment)', 'InstalmentController::delete/$1');
 });

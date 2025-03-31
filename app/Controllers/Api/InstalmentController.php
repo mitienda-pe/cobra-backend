@@ -40,7 +40,7 @@ class InstalmentController extends BaseController
     protected function getAuthUser()
     {
         // Try to get user from request object (set by ApiAuthFilter)
-        if (isset($this->request) && isset($this->request->user)) {
+        if (property_exists($this->request, 'user')) {
             return $this->request->user;
         }
         
@@ -389,6 +389,59 @@ class InstalmentController extends BaseController
             'status' => 'success',
             'data' => $instalments
         ]);
+    }
+    
+    /**
+     * Obtiene una cuota específica por ID
+     * 
+     * @param int $id ID de la cuota
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function show($id)
+    {
+        // Buscar la cuota
+        $instalment = $this->instalmentModel->find($id);
+        if (!$instalment) {
+            return $this->failNotFound('Cuota no encontrada');
+        }
+        
+        // Verificar acceso a la factura asociada
+        if (!$this->canAccessInvoice($instalment['invoice_id'])) {
+            return $this->failForbidden('No tiene acceso a esta cuota');
+        }
+        
+        // Obtener información adicional según los parámetros
+        $includeInvoice = $this->request->getGet('include_invoice') === 'true';
+        $includeClient = $this->request->getGet('include_client') === 'true';
+        $includePayments = $this->request->getGet('include_payments') === 'true';
+        
+        $response = [
+            'instalment' => $instalment
+        ];
+        
+        // Incluir información de la factura si se solicita
+        if ($includeInvoice) {
+            $invoice = $this->invoiceModel->find($instalment['invoice_id']);
+            $response['invoice'] = $invoice;
+        }
+        
+        // Incluir información del cliente si se solicita
+        if ($includeClient) {
+            $invoice = $this->invoiceModel->find($instalment['invoice_id']);
+            $client = $this->clientModel->find($invoice['client_id']);
+            $response['client'] = $client;
+        }
+        
+        // Incluir pagos asociados a la cuota si se solicita
+        if ($includePayments) {
+            $payments = $this->paymentModel
+                ->where('instalment_id', $id)
+                ->where('status', 'completed')
+                ->findAll();
+            $response['payments'] = $payments;
+        }
+        
+        return $this->respond($response);
     }
     
     /**
