@@ -133,9 +133,12 @@ class PaymentController extends BaseController
                 
                 // Check if payment amount is valid
                 $paymentAmount = floatval($this->request->getPost('amount'));
+                if ($paymentAmount <= 0) {
+                    return redirect()->back()->withInput()->with('error', 'El monto del pago debe ser mayor a cero.');
+                }
+                
                 if ($paymentAmount > $remainingAmount) {
-                    return redirect()->back()->withInput()
-                        ->with('error', 'El monto del pago no puede ser mayor al saldo pendiente.');
+                    return redirect()->back()->withInput()->with('error', 'El monto del pago no puede ser mayor al saldo pendiente de la factura.');
                 }
                 
                 // Prepare payment data
@@ -170,12 +173,11 @@ class PaymentController extends BaseController
                     }
                     
                     // Check if payment amount is valid for the instalment
-                    $instalmentPayments = $this->paymentModel
-                        ->where('instalment_id', $instalment['id'])
-                        ->where('status', 'completed')
-                        ->findAll();
-                        
                     $instalmentPaid = 0;
+                    $instalmentPayments = $paymentModel->where('instalment_id', $instalment['id'])
+                                                     ->where('status', 'completed')
+                                                     ->findAll();
+                    
                     foreach ($instalmentPayments as $payment) {
                         $instalmentPaid += $payment['amount'];
                     }
@@ -305,7 +307,7 @@ class PaymentController extends BaseController
             $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
             $invoice['total_paid'] = floatval($paymentInfo['total_paid']);
             $invoice['remaining_amount'] = floatval($paymentInfo['remaining']);
-            $invoice['amount'] = floatval($invoice['amount']);
+            $invoice['amount'] = floatval($invoice['total_amount'] ?? $invoice['amount'] ?? $paymentInfo['invoice_amount']);
             
             $data['invoice'] = $invoice;
             $data['payment_info'] = $paymentInfo;
@@ -420,7 +422,7 @@ class PaymentController extends BaseController
             // Calculate remaining amount
             $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
             $remaining = floatval($paymentInfo['remaining']);
-            $totalAmount = floatval($invoice['amount']);
+            $totalAmount = floatval($invoice['total_amount'] ?? $invoice['amount'] ?? $paymentInfo['invoice_amount']);
             
             $results[] = [
                 'id' => $invoice['id'],
