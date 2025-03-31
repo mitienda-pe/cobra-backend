@@ -389,8 +389,28 @@ class InstalmentController extends BaseController
         
         // Preparar la consulta base
         $db = \Config\Database::connect();
+        
+        // Verificar si existe la columna series en la tabla invoices
+        $hasSeriesColumn = false;
+        try {
+            $columnsQuery = $db->query("PRAGMA table_info(invoices)");
+            $columns = $columnsQuery->getResultArray();
+            foreach ($columns as $column) {
+                if ($column['name'] === 'series') {
+                    $hasSeriesColumn = true;
+                    break;
+                }
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error al verificar columnas de la tabla invoices: ' . $e->getMessage());
+        }
+        
         $builder = $db->table('instalments i');
-        $builder->select('i.*, inv.number as invoice_number, inv.series, inv.uuid as invoice_uuid, c.business_name as client_name');
+        if ($hasSeriesColumn) {
+            $builder->select('i.*, inv.number as invoice_number, inv.series, inv.uuid as invoice_uuid, c.business_name as client_name');
+        } else {
+            $builder->select('i.*, inv.number as invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name');
+        }
         $builder->join('invoices inv', 'i.invoice_id = inv.id');
         $builder->join('clients c', 'inv.client_id = c.id');
         $builder->where('i.deleted_at IS NULL');
