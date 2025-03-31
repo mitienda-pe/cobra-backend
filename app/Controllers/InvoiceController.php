@@ -232,11 +232,13 @@ class InvoiceController extends Controller
         return view('invoices/create', $data);
     }
     
-    public function view($uuid)
+    public function view($uuid = null)
     {
-        $invoiceModel = new InvoiceModel();
-        $invoice = $invoiceModel->where('uuid', $uuid)->first();
+        if (!$uuid) {
+            return redirect()->to('/invoices')->with('error', 'ID de factura no proporcionado.');
+        }
 
+        $invoice = $this->invoiceModel->where('uuid', $uuid)->first();
         if (!$invoice) {
             return redirect()->to('/invoices')->with('error', 'Factura no encontrada.');
         }
@@ -265,7 +267,7 @@ class InvoiceController extends Controller
             ->findAll();
 
         // Calcular totales
-        $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
+        $paymentInfo = $this->invoiceModel->calculateRemainingAmount($invoice['id']);
         $total_paid = floatval($paymentInfo['total_paid']);
         $remaining_amount = floatval($paymentInfo['remaining']);
 
@@ -275,21 +277,27 @@ class InvoiceController extends Controller
         $has_instalments = !empty($instalments);
         
         // Si no hay cuotas, crear una cuota virtual para mostrar en la vista
-        if (!$has_instalments) {
-            $instalments = [
-                [
-                    'id' => 0, // ID virtual
-                    'invoice_id' => $invoice['id'],
-                    'number' => 1,
-                    'amount' => $invoice['amount'],
-                    'due_date' => $invoice['due_date'],
-                    'status' => $invoice['status'],
-                    'notes' => 'Pago único',
-                    'is_virtual' => true // Marcar como cuota virtual
-                ]
+        if (empty($instalments)) {
+            $instalments[] = [
+                'id' => 0,
+                'invoice_id' => $invoice['id'],
+                'number' => 1,
+                'amount' => $invoice['amount'],
+                'due_date' => $invoice['due_date'],
+                'status' => $invoice['status'],
+                'is_virtual' => true
             ];
-            // Aunque es una cuota virtual, la consideramos como existente para la vista
+            $has_instalments = false;
+        } else {
             $has_instalments = true;
+        }
+        
+        // Actualizar el estado de las cuotas según los pagos registrados
+        foreach ($instalments as $key => $instalment) {
+            $instalmentModel->updateStatus($instalment['id']);
+            
+            // Recargar la cuota con el estado actualizado
+            $instalments[$key] = $instalmentModel->find($instalment['id']);
         }
         
         // Categorizar las cuotas para mostrar información adicional en la vista

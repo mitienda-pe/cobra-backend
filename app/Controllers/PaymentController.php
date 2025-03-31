@@ -212,15 +212,26 @@ class PaymentController extends BaseController
                             ->where('status', 'completed')
                             ->findAll();
                             
-                        $totalPaid = 0;
+                        $totalPaid = $paymentAmount; // Iniciar con el pago actual
                         foreach ($instalmentPayments as $payment) {
                             $totalPaid += $payment['amount'];
                         }
-                        $totalPaid += $paymentAmount; // Añadir el pago actual
                         
                         // Si se ha pagado el monto completo de la cuota, actualizar su estado a "paid"
                         if ($totalPaid >= $instalment['amount']) {
                             $instalmentModel->update($instalment['id'], ['status' => 'paid']);
+                            
+                            // Habilitar la siguiente cuota para pago si existe
+                            $nextInstalment = $instalmentModel
+                                ->where('invoice_id', $instalment['invoice_id'])
+                                ->where('number', $instalment['number'] + 1)
+                                ->first();
+                                
+                            if ($nextInstalment) {
+                                // No necesitamos actualizar nada en la base de datos, ya que el método canBePaid
+                                // verificará automáticamente si las cuotas anteriores están pagadas
+                                log_message('info', 'Siguiente cuota habilitada para pago: ' . $nextInstalment['id']);
+                            }
                         }
                     }
                     

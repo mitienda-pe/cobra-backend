@@ -190,12 +190,15 @@ class InstalmentModel extends Model
         
         // Update status based on total paid
         if ($totalPaid >= $instalment['amount']) {
-            return $this->update($instalmentId, ['status' => 'paid']);
-        } else if ($totalPaid > 0) {
-            return $this->update($instalmentId, ['status' => 'pending']);
+            $this->update($instalmentId, ['status' => 'paid']);
+            
+            // Log the status update
+            log_message('info', "Instalment {$instalmentId} marked as paid. Total paid: {$totalPaid}, Required: {$instalment['amount']}");
+            
+            return true;
         }
         
-        return true;
+        return false;
     }
     
     /**

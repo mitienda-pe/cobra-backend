@@ -125,70 +125,11 @@
             </div>
         </div>
 
-        <!-- Lista de Pagos -->
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Pagos Registrados</h5>
-                <hr>
-
-                <?php if (empty($payments)): ?>
-                    <p class="text-muted">No hay pagos registrados para esta factura.</p>
-                <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Monto</th>
-                                    <th>Método</th>
-                                    <th>Referencia</th>
-                                    <th>Estado</th>
-                                    <th>Cobrador</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($payments as $payment): ?>
-                                    <tr>
-                                        <td><?= date('d/m/Y H:i', strtotime($payment['payment_date'])) ?></td>
-                                        <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($payment['amount'], 2) ?></td>
-                                        <td><?= esc($payment['payment_method']) ?></td>
-                                        <td><?= esc($payment['reference_code']) ?: '-' ?></td>
-                                        <td>
-                                            <span class="badge bg-<?= $payment['status'] === 'completed' ? 'success' : 'warning' ?>">
-                                                <?= ucfirst($payment['status']) ?>
-                                            </span>
-                                        </td>
-                                        <td><?= esc($payment['collector_name']) ?></td>
-                                        <td>
-                                            <a href="<?= site_url('payments/view/' . $payment['uuid']) ?>" class="btn btn-sm btn-info">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-light">
-                                    <td colspan="1"><strong>Total Pagado:</strong></td>
-                                    <td colspan="6"><strong><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($total_paid, 2) ?></strong></td>
-                                </tr>
-                                <tr class="table-light">
-                                    <td colspan="1"><strong>Saldo Pendiente:</strong></td>
-                                    <td colspan="6"><strong><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($remaining_amount, 2) ?></strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-
         <!-- Sección de Cuotas -->
         <div class="card mt-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="card-title mb-0">Cuotas</h5>
+                    <h5 class="card-title mb-0">Cuotas y Pagos Registrados</h5>
                 </div>
                 <hr>
 
@@ -206,9 +147,8 @@
                         </thead>
                         <tbody>
                             <?php 
-                            // Mostrar solo las primeras 3 cuotas en esta vista
-                            $displayInstalments = array_slice($instalments, 0, 3);
-                            foreach ($displayInstalments as $instalment): 
+                            // Mostrar todas las cuotas en esta vista
+                            foreach ($instalments as $instalment): 
                                 // Calcular clase CSS para la fila
                                 $rowClass = '';
                                 if (isset($instalment['status'])) {
@@ -228,14 +168,17 @@
                                         $instalmentPaidAmount += $payment['amount'];
                                     }
                                 }
+                                
+                                // Verificar si la cuota está completamente pagada
+                                $isPaid = $instalmentPaidAmount >= $instalment['amount'];
                             ?>
                                 <tr class="<?= $rowClass ?>">
                                     <td><?= $instalment['number'] ?></td>
                                     <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($instalment['amount'], 2) ?></td>
                                     <td><?= date('d/m/Y', strtotime($instalment['due_date'])) ?></td>
                                     <td>
-                                        <span class="badge bg-<?= $instalment['status'] === 'paid' ? 'success' : ($instalment['status'] === 'pending' ? 'warning' : ($instalment['status'] === 'cancelled' ? 'danger' : ($instalment['status'] === 'expired' ? 'secondary' : 'info'))) ?>">
-                                            <?= ucfirst($instalment['status']) ?>
+                                        <span class="badge bg-<?= $isPaid ? 'success' : ($instalment['status'] === 'pending' ? 'warning' : ($instalment['status'] === 'cancelled' ? 'danger' : ($instalment['status'] === 'expired' ? 'secondary' : 'info'))) ?>">
+                                            <?= $isPaid ? 'Paid' : ucfirst($instalment['status']) ?>
                                         </span>
                                     </td>
                                     <td>
@@ -261,7 +204,7 @@
                                     </td>
                                     <td class="text-end">
                                         <?php if ($instalment['status'] === 'pending' && $auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                            <?php if (!isset($instalment['is_virtual']) && isset($instalment['can_be_paid']) && $instalment['can_be_paid']): ?>
+                                            <?php if (!isset($instalment['is_virtual']) && isset($instalment['can_be_paid']) && $instalment['can_be_paid'] && !$isPaid): ?>
                                                 <div class="btn-group">
                                                     <a href="<?= site_url('payments/create/' . $invoice['uuid'] . '/' . $instalment['id']) ?>" class="btn btn-sm btn-success">
                                                         <i class="bi bi-cash"></i> Pagar
@@ -276,11 +219,11 @@
                                                         </a>
                                                     <?php endif; ?>
                                                 </div>
-                                            <?php elseif (!isset($instalment['is_virtual']) && isset($instalment['can_be_paid']) && !$instalment['can_be_paid']): ?>
+                                            <?php elseif (!isset($instalment['is_virtual']) && isset($instalment['can_be_paid']) && !$instalment['can_be_paid'] && !$isPaid): ?>
                                                 <button class="btn btn-sm btn-secondary" disabled title="No se puede pagar esta cuota hasta que se paguen las anteriores">
                                                     <i class="bi bi-cash"></i> Pagar
                                                 </button>
-                                            <?php elseif (isset($instalment['is_virtual'])): ?>
+                                            <?php elseif (isset($instalment['is_virtual']) && !$isPaid): ?>
                                                 <div class="btn-group">
                                                     <a href="<?= site_url('payments/create/' . $invoice['uuid']) ?>" class="btn btn-sm btn-success">
                                                         <i class="bi bi-cash"></i> Pagar
@@ -303,19 +246,12 @@
                         </tbody>
                     </table>
                 </div>
-
-                <?php if (count($instalments) > 3): ?>
-                    <div class="text-center mt-3">
-                        <a href="<?= site_url('invoice/' . $invoice['uuid'] . '/instalments') ?>" class="btn btn-outline-primary btn-sm">
-                            Ver todas las cuotas (<?= count($instalments) ?>)
-                        </a>
-                    </div>
-                <?php endif; ?>
             </div>
         </div>
     </div>
 
     <div class="col-md-4">
+        <?php /* Eliminamos el card de Acciones */ ?>
         <div class="card mb-4">
             <div class="card-body">
                 <h5 class="card-title">Información del Cliente</h5>
@@ -353,23 +289,6 @@
                 <?php endif; ?>
             </div>
         </div>
-
-        <?php if ($invoice['status'] === 'pending'): ?>
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Acciones</h5>
-                    <hr>
-
-                    <div class="d-grid gap-2">
-                        <?php
-                        // Get organization to check if Ligo is enabled
-                        $organizationModel = new \App\Models\OrganizationModel();
-                        $organization = $organizationModel->find($invoice['organization_id']);
-                        ?>
-                    </div>
-                </div>
-            </div>
-        <?php endif; ?>
     </div>
 </div>
 <?= $this->endSection() ?>
