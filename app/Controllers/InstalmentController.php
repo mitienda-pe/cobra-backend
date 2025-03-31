@@ -374,15 +374,15 @@ class InstalmentController extends BaseController
         
         // Obtener parámetros de filtro
         $portfolioId = $this->request->getGet('portfolio_id');
+        $portfolioUuid = $this->request->getGet('portfolio_uuid'); // Añadir soporte para portfolio_uuid directo
         $status = $this->request->getGet('status') ?: 'pending'; // Por defecto, mostrar cuotas pendientes
         $dueDate = $this->request->getGet('due_date') ?: 'all'; // all, overdue, upcoming
         
-        // Si tenemos un ID de cartera, necesitamos obtener su UUID
-        $portfolioUuid = null;
-        if ($portfolioId) {
+        // Si tenemos un ID de cartera pero no UUID, intentamos obtener el UUID
+        if ($portfolioId && !$portfolioUuid) {
             $portfolioModel = new \App\Models\PortfolioModel();
             $portfolio = $portfolioModel->find($portfolioId);
-            if ($portfolio) {
+            if ($portfolio && isset($portfolio['uuid'])) {
                 $portfolioUuid = $portfolio['uuid'];
             }
         }
@@ -390,7 +390,7 @@ class InstalmentController extends BaseController
         // Preparar la consulta base
         $db = \Config\Database::connect();
         $builder = $db->table('instalments i');
-        $builder->select('i.*, inv.invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name');
+        $builder->select('i.*, inv.number as invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name');
         $builder->join('invoices inv', 'i.invoice_id = inv.id');
         $builder->join('clients c', 'inv.client_id = c.id');
         $builder->where('i.deleted_at IS NULL');
@@ -406,23 +406,34 @@ class InstalmentController extends BaseController
         
         // Filtrar por cartera
         if ($portfolioUuid) {
-            // Primero verificamos si hay clientes en esta cartera
-            $clientsInPortfolio = $db->table('client_portfolio cp')
-                                  ->select('c.id')
-                                  ->join('clients c', 'cp.client_uuid = c.uuid')
-                                  ->where('cp.portfolio_uuid', $portfolioUuid)
-                                  ->where('cp.deleted_at IS NULL')
-                                  ->where('c.deleted_at IS NULL')
-                                  ->get()
-                                  ->getResultArray();
-            
-            if (!empty($clientsInPortfolio)) {
-                // Si hay clientes, extraemos sus IDs
-                $clientIds = array_column($clientsInPortfolio, 'id');
-                $builder->whereIn('c.id', $clientIds);
-            } else {
-                // Si no hay clientes, forzamos que no haya resultados
-                $builder->where('1=0'); // Condición siempre falsa
+            try {
+                // Primero verificamos si hay clientes en esta cartera
+                $clientsInPortfolio = $db->table('client_portfolio cp')
+                                      ->select('c.id')
+                                      ->join('clients c', 'cp.client_uuid = c.uuid')
+                                      ->where('cp.portfolio_uuid', $portfolioUuid)
+                                      ->where('cp.deleted_at IS NULL')
+                                      ->where('c.deleted_at IS NULL')
+                                      ->get()
+                                      ->getResultArray();
+                
+                if (!empty($clientsInPortfolio)) {
+                    // Si hay clientes, extraemos sus IDs
+                    $clientIds = array_column($clientsInPortfolio, 'id');
+                    if (!empty($clientIds)) {
+                        $builder->whereIn('c.id', $clientIds);
+                    } else {
+                        // Si el array está vacío, forzamos que no haya resultados
+                        $builder->where('1=0'); // Condición siempre falsa
+                    }
+                } else {
+                    // Si no hay clientes, forzamos que no haya resultados
+                    $builder->where('1=0'); // Condición siempre falsa
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Error al filtrar por cartera: ' . $e->getMessage());
+                // Si hay un error, forzamos que no haya resultados
+                $builder->where('1=0');
             }
         }
         
