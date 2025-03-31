@@ -47,7 +47,7 @@ class InstalmentSeeder extends Seeder
                 
             if ($existingInstalments > 0) {
                 // Usar invoice_number si existe, de lo contrario usar number, o un valor predeterminado
-                $invoiceNumber = $invoice->invoice_number ?? $invoice->number ?? "ID: {$invoice->id}";
+                $invoiceNumber = isset($invoice->invoice_number) ? $invoice->invoice_number : (isset($invoice->number) ? $invoice->number : "ID: {$invoice->id}");
                 echo "Invoice {$invoiceNumber} (ID: {$invoice->id}) already has {$existingInstalments} instalments. Skipping...\n";
                 $invoicesSkipped++;
                 continue;
@@ -60,14 +60,14 @@ class InstalmentSeeder extends Seeder
             $interval = $possibleIntervals[array_rand($possibleIntervals)];
             
             // Usar invoice_number si existe, de lo contrario usar number, o un valor predeterminado
-            $invoiceNumber = $invoice->invoice_number ?? $invoice->number ?? "ID: {$invoice->id}";
+            $invoiceNumber = isset($invoice->invoice_number) ? $invoice->invoice_number : (isset($invoice->number) ? $invoice->number : "ID: {$invoice->id}");
             echo "Creating {$numInstalments} instalments with {$interval}-day interval for invoice {$invoiceNumber} (ID: {$invoice->id})\n";
             
             // Fecha de vencimiento de la factura como punto de partida
             $invoiceDueDate = new \DateTime($invoice->due_date);
             
             // Monto total de la factura
-            $totalAmount = (float)$invoice->total_amount;
+            $totalAmount = (float)(isset($invoice->total_amount) ? $invoice->total_amount : $invoice->amount);
             
             // Monto por cuota (redondeado a 2 decimales)
             $amountPerInstalment = round($totalAmount / $numInstalments, 2);
