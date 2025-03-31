@@ -80,10 +80,10 @@
                 <tbody>
                     <?php foreach ($invoices as $invoice): ?>
                         <tr>
-                            <td><?= esc($invoice['invoice_number']) ?></td>
+                            <td><?= esc($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A') ?></td>
                             <td><?= esc($invoice['business_name'] ?? 'N/A') ?></td>
                             <td><?= esc($invoice['concept']) ?></td>
-                            <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['amount'], 2) ?></td>
+                            <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['total_amount'] ?? $invoice['amount'] ?? 0, 2) ?></td>
                             <td><?= date('d/m/Y', strtotime($invoice['due_date'])) ?></td>
                             <td>
                                 <span class="badge bg-<?= $invoice['status'] === 'paid' ? 'success' : 
@@ -109,7 +109,7 @@
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#deleteModal"
                                                 data-uuid="<?= $invoice['uuid'] ?>"
-                                                data-number="<?= esc($invoice['invoice_number']) ?>">
+                                                data-number="<?= esc($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A') ?>">
                                             <i class="bi bi-trash"></i> Eliminar
                                         </button>
                                     <?php endif; ?>

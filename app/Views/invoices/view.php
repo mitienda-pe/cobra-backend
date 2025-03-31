@@ -1,11 +1,11 @@
 <?= $this->extend('layouts/main') ?>
 
-<?= $this->section('title') ?>Factura <?= esc($invoice['invoice_number']) ?><?= $this->endSection() ?>
+<?= $this->section('title') ?>Factura <?= esc($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A') ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <div class="row mb-4">
     <div class="col">
-        <h1>Factura <?= esc($invoice['invoice_number']) ?></h1>
+        <h1>Factura <?= esc($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A') ?></h1>
     </div>
     <div class="col text-end">
         <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
@@ -44,10 +44,10 @@
 
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <strong>Número de Factura:</strong>
+                        <strong>Número:</strong>
                     </div>
                     <div class="col-md-8">
-                        <?= esc($invoice['invoice_number']) ?>
+                        <?= esc($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A') ?>
                     </div>
                 </div>
 

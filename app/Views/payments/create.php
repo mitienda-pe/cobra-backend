@@ -35,7 +35,7 @@
                             <h5>Información de la Cuenta por Cobrar</h5>
                             <div class="row">
                                 <div class="col-md-6">
-                                    <p><strong>Factura:</strong> <?= esc($invoice['invoice_number']) ?></p>
+                                    <p><strong>Factura:</strong> <?= esc($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A') ?></p>
                                     <p><strong>Cliente:</strong> <?= esc($client['business_name']) ?></p>
                                     <p><strong>Documento:</strong> <?= esc($client['document_number']) ?></p>
                                 </div>
@@ -210,7 +210,7 @@ $(document).ready(function() {
                 <h5>Información de la Cuenta por Cobrar</h5>
                 <div class="row">
                     <div class="col-md-6">
-                        <p><strong>Factura:</strong> ${data.invoice_number}</p>
+                        <p><strong>Factura:</strong> ${data.number || data.invoice_number || 'N/A'}</p>
                         <p><strong>Cliente:</strong> ${data.client_name}</p>
                     </div>
                     <div class="col-md-6">

@@ -26,7 +26,7 @@
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">Factura:</label>
-                            <div><?= esc($invoice['invoice_number']) ?></div>
+                            <div><?= esc($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A') ?></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Cliente:</label>
@@ -127,7 +127,7 @@
             <div class="card-body">
                 <div class="mb-3">
                     <label class="form-label fw-bold">Número de Factura:</label>
-                    <div><?= esc($invoice['invoice_number']) ?></div>
+                    <div><?= esc($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A') ?></div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Concepto:</label>

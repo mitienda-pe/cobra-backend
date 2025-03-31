@@ -172,7 +172,7 @@ class InvoiceController extends ResourceController
         
         $rules = [
             'client_id'      => 'required|is_natural_no_zero',
-            'invoice_number' => 'required|max_length[50]',
+            'number' => 'required|max_length[50]',
             'concept'        => 'required|max_length[255]',
             'amount'         => 'required|numeric',
             'due_date'       => 'required|valid_date',
@@ -197,7 +197,7 @@ class InvoiceController extends ResourceController
         $data = [
             'organization_id' => $this->getAuthUser()['organization_id'],
             'client_id'       => $this->request->getVar('client_id'),
-            'invoice_number'  => $this->request->getVar('invoice_number'),
+            'number'  => $this->request->getVar('number'),
             'concept'         => $this->request->getVar('concept'),
             'amount'          => $this->request->getVar('amount'),
             'due_date'        => $this->request->getVar('due_date'),
@@ -244,7 +244,7 @@ class InvoiceController extends ResourceController
         }
         
         $rules = [
-            'invoice_number' => 'permit_empty|max_length[50]',
+            'number' => 'permit_empty|max_length[50]',
             'concept'        => 'permit_empty|max_length[255]',
             'amount'         => 'permit_empty|numeric',
             'due_date'       => 'permit_empty|valid_date',
@@ -260,8 +260,8 @@ class InvoiceController extends ResourceController
         $data = [];
         
         // Only update provided fields
-        if ($this->request->getVar('invoice_number') !== null) {
-            $data['invoice_number'] = $this->request->getVar('invoice_number');
+        if ($this->request->getVar('number') !== null) {
+            $data['number'] = $this->request->getVar('number');
         }
         
         if ($this->request->getVar('concept') !== null) {

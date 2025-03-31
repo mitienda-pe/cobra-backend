@@ -1,6 +1,6 @@
 <?= $this->extend('layouts/main') ?>
 
-<?= $this->section('title') ?>Crear Cuotas para Factura #<?= $invoice['invoice_number'] ?><?= $this->endSection() ?>
+<?= $this->section('title') ?>Crear Cuotas para Factura #<?= $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A' ?><?= $this->endSection() ?>
 
 <?= $this->section('styles') ?>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -13,11 +13,11 @@
 
 <?= $this->section('content') ?>
 <div class="container-fluid px-4">
-    <h1 class="mt-4">Crear Cuotas para Factura #<?= $invoice['invoice_number'] ?></h1>
+    <h1 class="mt-4">Crear Cuotas para Factura #<?= $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A' ?></h1>
     <ol class="breadcrumb mb-4">
         <li class="breadcrumb-item"><a href="<?= site_url('dashboard') ?>">Dashboard</a></li>
         <li class="breadcrumb-item"><a href="<?= site_url('invoices') ?>">Facturas</a></li>
-        <li class="breadcrumb-item"><a href="<?= site_url('invoices/view/' . $invoice['uuid']) ?>">Factura #<?= $invoice['invoice_number'] ?></a></li>
+        <li class="breadcrumb-item"><a href="<?= site_url('invoices/view/' . $invoice['uuid']) ?>">Factura #<?= $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A' ?></a></li>
         <li class="breadcrumb-item"><a href="<?= site_url('invoice/' . $invoice['id'] . '/instalments') ?>">Cuotas</a></li>
         <li class="breadcrumb-item active">Crear</li>
     </ol>

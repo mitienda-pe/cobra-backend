@@ -43,7 +43,7 @@ class LigoQRController extends Controller
         // Si se proporciona ID de cuota, obtener los detalles de la cuota
         $instalment = null;
         $paymentAmount = $invoice['amount']; // Por defecto, el monto total de la factura
-        $paymentDescription = 'Pago de factura ' . $invoice['invoice_number'];
+        $paymentDescription = 'Pago de factura ' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A');
         
         if ($instalmentId) {
             $instalmentModel = new \App\Models\InstalmentModel();
@@ -70,7 +70,7 @@ class LigoQRController extends Controller
             }
             
             $paymentAmount = $instalment['amount'] - $instalmentPaid;
-            $paymentDescription = 'Pago de cuota ' . $instalment['number'] . ' de factura ' . $invoice['invoice_number'];
+            $paymentDescription = 'Pago de cuota ' . $instalment['number'] . ' de factura ' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A');
         }
         
         // Check if Ligo is enabled for this organization
@@ -89,7 +89,7 @@ class LigoQRController extends Controller
                     'description' => $paymentDescription,
                     'demo' => true
                 ]),
-                'qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode("DEMO QR - Factura #{$invoice['invoice_number']}"),
+                'qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode("DEMO QR - Factura #" . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A')),
                 'order_id' => 'DEMO-' . time(),
                 'expiration' => date('Y-m-d H:i:s', strtotime('+30 minutes')),
                 'is_demo' => true
@@ -135,7 +135,7 @@ class LigoQRController extends Controller
                 $data['expiration'] = $response->expiration ?? null;
                 
                 // Log de éxito
-                log_message('info', 'QR generado exitosamente para factura #' . $invoice['invoice_number']);
+                log_message('info', 'QR generado exitosamente para factura #' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A'));
             } else {
                 log_message('error', 'Error generando QR Ligo: ' . json_encode($response));
                 

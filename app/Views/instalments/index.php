@@ -1,14 +1,14 @@
 <?= $this->extend('layouts/main') ?>
 
-<?= $this->section('title') ?>Cuotas de la Factura #<?= $invoice['invoice_number'] ?><?= $this->endSection() ?>
+<?= $this->section('title') ?>Cuotas de la Factura #<?= $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A' ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <div class="container-fluid px-4">
-    <h1 class="mt-4">Cuotas de la Factura #<?= $invoice['invoice_number'] ?></h1>
+    <h1 class="mt-4">Cuotas de la Factura #<?= $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A' ?></h1>
     <ol class="breadcrumb mb-4">
         <li class="breadcrumb-item"><a href="<?= site_url('dashboard') ?>">Dashboard</a></li>
         <li class="breadcrumb-item"><a href="<?= site_url('invoices') ?>">Facturas</a></li>
-        <li class="breadcrumb-item"><a href="<?= site_url('invoices/view/' . $invoice['uuid']) ?>">Factura #<?= $invoice['invoice_number'] ?></a></li>
+        <li class="breadcrumb-item"><a href="<?= site_url('invoices/view/' . $invoice['uuid']) ?>">Factura #<?= $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A' ?></a></li>
         <li class="breadcrumb-item active">Cuotas</li>
     </ol>
     
@@ -109,7 +109,7 @@
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <span class="badge bg-<?= $instalment['status'] === 'paid' ? 'success' : ($instalment['status'] === 'pending' ? ($instalment['is_overdue'] ? 'danger' : 'warning') : 'secondary') ?>">
+                                        <span class="badge bg-<?= $instalment['status'] === 'paid' ? 'success' : ($instalment['status'] === 'pending' ? 'warning' : 'secondary') ?>">
                                             <?= $instalment['status'] === 'paid' ? 'Pagada' : ($instalment['status'] === 'pending' ? 'Pendiente' : ucfirst($instalment['status'])) ?>
                                         </span>
                                         <?php if ($instalment['is_future'] && $instalment['status'] !== 'paid'): ?>

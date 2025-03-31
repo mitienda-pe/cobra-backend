@@ -178,7 +178,7 @@
                                     <tr>
                                         <td><?= $invoice['id'] ?></td>
                                         <td><?= $invoice['client_name'] ?></td>
-                                        <td><?= $invoice['invoice_number'] ?></td>
+                                        <td><?= $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A' ?></td>
                                         <td><?= number_format($invoice['amount'], 2) ?></td>
                                         <td>
                                             <?php if ($invoice['status'] == 'paid'): ?>

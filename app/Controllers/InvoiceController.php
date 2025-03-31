@@ -103,9 +103,9 @@ class InvoiceController extends Controller
         if ($this->request->getMethod() === 'post') {
             $rules = [
                 'client_id'      => 'required|is_natural_no_zero',
-                'invoice_number' => 'required|max_length[50]',
+                'number' => 'required|max_length[50]',
                 'concept'        => 'required|max_length[255]',
-                'amount'         => 'required|numeric',
+                'total_amount'         => 'required|numeric',
                 'issue_date'     => 'required|valid_date',
                 'due_date'       => 'required|valid_date',
                 'external_id'    => 'permit_empty|max_length[36]',
@@ -124,11 +124,11 @@ class InvoiceController extends Controller
                     ? $this->request->getPost('organization_id')
                     : $this->auth->organizationId();
                 
-                $invoiceNumber = $this->request->getPost('invoice_number');
+                $invoiceNumber = $this->request->getPost('number');
                 
                 // Check if invoice number already exists in this organization
                 $existingInvoice = $this->invoiceModel->where('organization_id', $invoiceOrgId)
-                    ->where('invoice_number', $invoiceNumber)
+                    ->where('number', $invoiceNumber)
                     ->first();
                 
                 if ($existingInvoice) {
@@ -141,9 +141,9 @@ class InvoiceController extends Controller
                 $invoiceData = [
                     'organization_id' => $invoiceOrgId,
                     'client_id'      => $this->request->getPost('client_id'),
-                    'invoice_number' => $invoiceNumber,
+                    'number' => $invoiceNumber,
                     'concept'        => $this->request->getPost('concept'),
-                    'amount'         => $this->request->getPost('amount'),
+                    'total_amount'         => $this->request->getPost('total_amount'),
                     'issue_date'     => $this->request->getPost('issue_date'),
                     'due_date'       => $this->request->getPost('due_date'),
                     'external_id'    => $this->request->getPost('external_id') ?: null,
@@ -167,7 +167,7 @@ class InvoiceController extends Controller
                         $instalmentModel = new \App\Models\InstalmentModel();
                         
                         // Calcular monto por cuota
-                        $totalAmount = (float)$invoiceData['amount'];
+                        $totalAmount = (float)$invoiceData['total_amount'];
                         $instalmentAmount = round($totalAmount / $numInstalments, 2);
                         
                         // Ajustar el último monto para que sume exactamente el total
@@ -282,7 +282,7 @@ class InvoiceController extends Controller
                 'id' => 0,
                 'invoice_id' => $invoice['id'],
                 'number' => 1,
-                'amount' => $invoice['amount'],
+                'amount' => $invoice['total_amount'],
                 'due_date' => $invoice['due_date'],
                 'status' => $invoice['status'],
                 'is_virtual' => true
@@ -400,9 +400,9 @@ class InvoiceController extends Controller
         // Validate form
         $rules = [
             'client_id' => 'required|is_natural_no_zero',
-            'invoice_number' => 'required|max_length[50]',
+            'number' => 'required|max_length[50]',
             'concept' => 'required|max_length[255]',
-            'amount' => 'required|numeric',
+            'total_amount' => 'required|numeric',
             'issue_date' => 'required|valid_date',
             'due_date' => 'required|valid_date',
             'currency' => 'required|in_list[PEN,USD]',
@@ -426,9 +426,9 @@ class InvoiceController extends Controller
         // Update invoice
         $data = [
             'client_id' => $this->request->getPost('client_id'),
-            'invoice_number' => $this->request->getPost('invoice_number'),
+            'number' => $this->request->getPost('number'),
             'concept' => $this->request->getPost('concept'),
-            'amount' => $this->request->getPost('amount'),
+            'total_amount' => $this->request->getPost('total_amount'),
             'issue_date' => $this->request->getPost('issue_date'),
             'due_date' => $this->request->getPost('due_date'),
             'currency' => $this->request->getPost('currency'),
@@ -438,7 +438,7 @@ class InvoiceController extends Controller
         ];
 
         // Check if invoice number already exists (excluding current invoice)
-        $existingInvoice = $this->invoiceModel->where('invoice_number', $data['invoice_number'])
+        $existingInvoice = $this->invoiceModel->where('number', $data['number'])
                                             ->where('id !=', $invoice['id'])
                                             ->where('organization_id', $invoice['organization_id'])
                                             ->first();
@@ -480,7 +480,7 @@ class InvoiceController extends Controller
             $instalmentModel->where('invoice_id', $invoice['id'])->delete();
             
             // Crear nuevas cuotas
-            $totalAmount = (float)$data['amount'];
+            $totalAmount = (float)$data['total_amount'];
             $instalmentAmount = round($totalAmount / $numInstalments, 2);
             $lastInstalmentAmount = $totalAmount - ($instalmentAmount * ($numInstalments - 1));
             
@@ -623,7 +623,7 @@ class InvoiceController extends Controller
                     }, $header);
                     
                     // Required fields check in header
-                    $requiredFields = ['document_number', 'invoice_number', 'concept', 'amount', 'currency', 'due_date'];
+                    $requiredFields = ['document_number', 'number', 'concept', 'total_amount', 'currency', 'due_date'];
                     $missingFields = array_diff($requiredFields, $header);
                     
                     if (!empty($missingFields)) {
@@ -672,7 +672,7 @@ class InvoiceController extends Controller
                             }
                             
                             // Validate amount format
-                            if (!is_numeric(str_replace(',', '.', $rowData['amount']))) {
+                            if (!is_numeric(str_replace(',', '.', $rowData['total_amount']))) {
                                 throw new \Exception('El monto debe ser un número válido');
                             }
                             
@@ -692,9 +692,9 @@ class InvoiceController extends Controller
                                 'organization_id' => (int)$organizationId,
                                 'client_id'      => (int)$client['id'],
                                 'client_uuid'    => $client['uuid'],
-                                'invoice_number' => $rowData['invoice_number'],
+                                'number' => $rowData['number'] ?? $rowData['invoice_number'],
                                 'concept'        => $rowData['concept'],
-                                'amount'         => (float)str_replace(',', '.', $rowData['amount']),
+                                'total_amount'         => (float)str_replace(',', '.', $rowData['total_amount']),
                                 'currency'       => strtoupper($rowData['currency']),
                                 'due_date'       => $dueDate,
                                 'external_id'    => $rowData['external_id'] ?? null,
@@ -703,12 +703,12 @@ class InvoiceController extends Controller
                             ];
                             
                             // Check if invoice already exists
-                            $existingInvoice = $this->invoiceModel->where('invoice_number', $invoiceData['invoice_number'])
+                            $existingInvoice = $this->invoiceModel->where('number', $invoiceData['number'])
                                                                 ->where('organization_id', $organizationId)
                                                                 ->first();
                                                                 
                             if ($existingInvoice) {
-                                throw new \Exception("La factura {$invoiceData['invoice_number']} ya existe");
+                                throw new \Exception("La factura {$invoiceData['number']} ya existe");
                             }
                             
                             // Insert invoice
@@ -735,11 +735,11 @@ class InvoiceController extends Controller
                             }
                             
                             // Create instalments
-                            $instalmentAmount = $invoiceData['amount'] / $numInstalments;
+                            $instalmentAmount = $invoiceData['total_amount'] / $numInstalments;
                             $instalmentAmount = round($instalmentAmount, 2); // Redondear a 2 decimales
                             
                             // Ajustar la última cuota para que el total sea exacto
-                            $lastInstalmentAmount = $invoiceData['amount'] - ($instalmentAmount * ($numInstalments - 1));
+                            $lastInstalmentAmount = $invoiceData['total_amount'] - ($instalmentAmount * ($numInstalments - 1));
                             
                             for ($i = 0; $i < $numInstalments; $i++) {
                                 $instalmentDueDate = date('Y-m-d', strtotime($dueDate . ' + ' . ($i * $instalmentInterval) . ' days'));

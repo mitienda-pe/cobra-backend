@@ -61,7 +61,7 @@
                             <tr>
                                 <td><?= date('d/m/Y H:i', strtotime($payment['payment_date'])) ?></td>
                                 <td><?= esc($payment['business_name'] ?? 'N/A') ?></td>
-                                <td><?= esc($payment['invoice_number'] ?? 'N/A') ?></td>
+                                <td><?= esc($payment['number'] ?? $payment['invoice_number'] ?? 'N/A') ?></td>
                                 <td><?= $payment['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($payment['amount'], 2) ?></td>
                                 <td><?= esc($payment['payment_method']) ?></td>
                                 <td><?= esc($payment['reference_code']) ?></td>

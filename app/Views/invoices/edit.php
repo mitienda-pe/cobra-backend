@@ -40,12 +40,12 @@
             
             <div class="mb-3">
                 <label for="invoice_number" class="form-label">Número de Factura *</label>
-                <input type="text" class="form-control <?= session('validation') && session('validation')->hasError('invoice_number') ? 'is-invalid' : '' ?>" 
-                       id="invoice_number" name="invoice_number" 
-                       value="<?= old('invoice_number', $invoice['invoice_number']) ?>" required maxlength="50">
-                <?php if (session('validation') && session('validation')->hasError('invoice_number')): ?>
+                <input type="text" class="form-control <?= session('validation') && session('validation')->hasError('number') ? 'is-invalid' : '' ?>" 
+                       id="invoice_number" name="number" 
+                       value="<?= old('number', $invoice['number'] ?? $invoice['invoice_number'] ?? '') ?>" required maxlength="50">
+                <?php if (session('validation') && session('validation')->hasError('number')): ?>
                     <div class="invalid-feedback">
-                        <?= session('validation')->getError('invoice_number') ?>
+                        <?= session('validation')->getError('number') ?>
                     </div>
                 <?php endif; ?>
             </div>

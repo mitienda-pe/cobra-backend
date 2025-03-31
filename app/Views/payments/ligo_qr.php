@@ -11,7 +11,7 @@
                     <h4 class="mb-0">Pago con QR - Ligo</h4>
                 </div>
                 <div class="card-body text-center">
-                    <h5 class="card-title">Factura #<?= $invoice['invoice_number'] ?></h5>
+                    <h5 class="card-title">Factura #<?= $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A' ?></h5>
                     <p class="card-text">Monto a pagar: <?= $invoice['currency'] ?> <?= number_format($invoice['amount'], 2) ?></p>
                     
                     <?php if (isset($error_message) && !empty($error_message)): ?>
