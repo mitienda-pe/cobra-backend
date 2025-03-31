@@ -200,6 +200,7 @@
                                 <th>Monto</th>
                                 <th>Vencimiento</th>
                                 <th>Estado</th>
+                                <th>Pagos</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -217,6 +218,16 @@
                                         $rowClass = 'table-danger';
                                     }
                                 }
+                                
+                                // Buscar pagos asociados a esta cuota
+                                $instalmentPayments = [];
+                                $instalmentPaidAmount = 0;
+                                foreach ($payments as $payment) {
+                                    if (isset($payment['instalment_id']) && $payment['instalment_id'] == $instalment['id']) {
+                                        $instalmentPayments[] = $payment;
+                                        $instalmentPaidAmount += $payment['amount'];
+                                    }
+                                }
                             ?>
                                 <tr class="<?= $rowClass ?>">
                                     <td><?= $instalment['number'] ?></td>
@@ -226,6 +237,27 @@
                                         <span class="badge bg-<?= $instalment['status'] === 'paid' ? 'success' : ($instalment['status'] === 'pending' ? 'warning' : ($instalment['status'] === 'cancelled' ? 'danger' : ($instalment['status'] === 'expired' ? 'secondary' : 'info'))) ?>">
                                             <?= ucfirst($instalment['status']) ?>
                                         </span>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($instalmentPayments)): ?>
+                                            <span class="badge bg-success">
+                                                <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($instalmentPaidAmount, 2) ?>
+                                            </span>
+                                            <button type="button" class="btn btn-sm btn-link" data-bs-toggle="tooltip" data-bs-html="true" 
+                                                title="<?php 
+                                                    $tooltipContent = '';
+                                                    foreach ($instalmentPayments as $p) {
+                                                        $tooltipContent .= date('d/m/Y', strtotime($p['payment_date'])) . ': ' . 
+                                                            ($invoice['currency'] === 'PEN' ? 'S/ ' : '$ ') . 
+                                                            number_format($p['amount'], 2) . '<br>';
+                                                    }
+                                                    echo $tooltipContent;
+                                                ?>">
+                                                <i class="bi bi-info-circle"></i>
+                                            </button>
+                                        <?php else: ?>
+                                            <span class="text-muted">-</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="text-end">
                                         <?php if ($instalment['status'] === 'pending' && $auth->hasAnyRole(['superadmin', 'admin'])): ?>
@@ -340,4 +372,16 @@
         <?php endif; ?>
     </div>
 </div>
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 <?= $this->endSection() ?>

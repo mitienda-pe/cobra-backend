@@ -201,6 +201,39 @@ class PaymentController extends BaseController
                         throw new \Exception(implode(', ', $error));
                     }
                     
+                    // Si el pago es para una cuota específica, actualizar el estado de la cuota si corresponde
+                    if (!empty($paymentData['instalment_id'])) {
+                        $instalmentModel = new InstalmentModel();
+                        $instalment = $instalmentModel->find($paymentData['instalment_id']);
+                        
+                        // Calcular el total pagado para esta cuota después de este nuevo pago
+                        $instalmentPayments = $this->paymentModel
+                            ->where('instalment_id', $instalment['id'])
+                            ->where('status', 'completed')
+                            ->findAll();
+                            
+                        $totalPaid = 0;
+                        foreach ($instalmentPayments as $payment) {
+                            $totalPaid += $payment['amount'];
+                        }
+                        $totalPaid += $paymentAmount; // Añadir el pago actual
+                        
+                        // Si se ha pagado el monto completo de la cuota, actualizar su estado a "paid"
+                        if ($totalPaid >= $instalment['amount']) {
+                            $instalmentModel->update($instalment['id'], ['status' => 'paid']);
+                        }
+                    }
+                    
+                    // Verificar si se ha pagado el monto total de la factura
+                    $invoiceModel = new InvoiceModel();
+                    $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
+                    $remainingAfterPayment = $paymentInfo['remaining'] - $paymentAmount;
+                    
+                    // Si no queda saldo pendiente, marcar la factura como pagada
+                    if ($remainingAfterPayment <= 0) {
+                        $invoiceModel->update($invoice['id'], ['status' => 'paid']);
+                    }
+                    
                     $db->transComplete();
                     
                     if ($db->transStatus() === false) {
