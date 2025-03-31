@@ -13,9 +13,10 @@ class InvoiceModel extends Model
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'organization_id', 'client_id', 'uuid', 'external_id',
-        'invoice_number', 'concept', 'amount', 'issue_date', 'due_date',
-        'currency', 'status', 'notes'
+        'organization_id', 'client_id', 'client_uuid', 'uuid', 'external_id',
+        'number', 'concept', 'total_amount', 'currency', 'due_date', 'issue_date',
+        'status', 'notes', 'document_type', 'series', 'client_document_type',
+        'client_document_number', 'client_name', 'client_address', 'paid_amount'
     ];
 
     // Dates
@@ -29,9 +30,9 @@ class InvoiceModel extends Model
     protected $validationRules      = [
         'organization_id' => 'required|is_natural_no_zero',
         'client_id'      => 'required|is_natural_no_zero',
-        'invoice_number' => 'required|max_length[50]',
+        'number' => 'required|max_length[50]',
         'concept'        => 'required|max_length[255]',
-        'amount'         => 'required|numeric',
+        'total_amount'   => 'required|numeric',
         'issue_date'     => 'permit_empty|valid_date',
         'due_date'       => 'required|valid_date',
         'currency'       => 'required|in_list[PEN,USD]',
@@ -226,7 +227,7 @@ class InvoiceModel extends Model
      */
     public function isInvoiceNumberDuplicate($invoiceNumber, $organizationId, $excludeId = null)
     {
-        $builder = $this->where('invoice_number', $invoiceNumber)
+        $builder = $this->where('number', $invoiceNumber)
                        ->where('organization_id', $organizationId);
         
         // Exclude current invoice when editing
@@ -270,10 +271,10 @@ class InvoiceModel extends Model
         }
         
         return [
-            'invoice_amount' => $invoice['amount'],
+            'invoice_amount' => $invoice['total_amount'] ?? $invoice['amount'] ?? 0,
             'total_paid' => $totalPaid,
-            'remaining' => max(0, $invoice['amount'] - $totalPaid),
-            'is_fully_paid' => $totalPaid >= $invoice['amount'],
+            'remaining' => max(0, ($invoice['total_amount'] ?? $invoice['amount'] ?? 0) - $totalPaid),
+            'is_fully_paid' => $totalPaid >= ($invoice['total_amount'] ?? $invoice['amount'] ?? 0),
             'payments' => $payments
         ];
     }
@@ -349,9 +350,9 @@ class InvoiceModel extends Model
                 'organization_id' => $organizationId,
                 'client_id'       => $clientId,
                 'external_id'     => $externalId,
-                'invoice_number'  => $invoiceNumber,
+                'number'          => $invoiceNumber,
                 'concept'         => $concept,
-                'amount'          => $amount,
+                'total_amount'    => $amount,
                 'due_date'        => $dueDate,
                 'status'          => 'pending'
             ];
