@@ -365,7 +365,7 @@ class InstalmentController extends BaseController
     public function list()
     {
         // Verificar si el usuario está autenticado
-        if (!$this->auth->isLoggedIn()) {
+        if (!session()->get('isLoggedIn')) {
             return redirect()->to('/login');
         }
         
