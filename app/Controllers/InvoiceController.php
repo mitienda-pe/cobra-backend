@@ -300,6 +300,11 @@ class InvoiceController extends Controller
             $instalments[$key] = $instalmentModel->find($instalment['id']);
         }
         
+        // Asegurarnos de que las cuotas estén ordenadas por número
+        usort($instalments, function($a, $b) {
+            return $a['number'] - $b['number'];
+        });
+        
         // Categorizar las cuotas para mostrar información adicional en la vista
         $today = date('Y-m-d');
         foreach ($instalments as &$instalment) {
