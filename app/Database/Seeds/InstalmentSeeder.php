@@ -46,7 +46,9 @@ class InstalmentSeeder extends Seeder
                 ->countAllResults();
                 
             if ($existingInstalments > 0) {
-                echo "Invoice {$invoice->number} (ID: {$invoice->id}) already has {$existingInstalments} instalments. Skipping...\n";
+                // Usar invoice_number si existe, de lo contrario usar number, o un valor predeterminado
+                $invoiceNumber = $invoice->invoice_number ?? $invoice->number ?? "ID: {$invoice->id}";
+                echo "Invoice {$invoiceNumber} (ID: {$invoice->id}) already has {$existingInstalments} instalments. Skipping...\n";
                 $invoicesSkipped++;
                 continue;
             }
@@ -57,7 +59,9 @@ class InstalmentSeeder extends Seeder
             // Determinar aleatoriamente el intervalo entre cuotas
             $interval = $possibleIntervals[array_rand($possibleIntervals)];
             
-            echo "Creating {$numInstalments} instalments with {$interval}-day interval for invoice {$invoice->number} (ID: {$invoice->id})\n";
+            // Usar invoice_number si existe, de lo contrario usar number, o un valor predeterminado
+            $invoiceNumber = $invoice->invoice_number ?? $invoice->number ?? "ID: {$invoice->id}";
+            echo "Creating {$numInstalments} instalments with {$interval}-day interval for invoice {$invoiceNumber} (ID: {$invoice->id})\n";
             
             // Fecha de vencimiento de la factura como punto de partida
             $invoiceDueDate = new \DateTime($invoice->due_date);
@@ -119,7 +123,7 @@ class InstalmentSeeder extends Seeder
                 try {
                     $this->db->table('instalments')->insert($instalment);
                     $instalmentsCreated++;
-                    echo "  Created instalment #{$i} for invoice {$invoice->number}, amount: {$amount}, due date: {$dueDate->format('Y-m-d')}, status: {$status}\n";
+                    echo "  Created instalment #{$i} for invoice {$invoiceNumber}, amount: {$amount}, due date: {$dueDate->format('Y-m-d')}, status: {$status}\n";
                 } catch (\Exception $e) {
                     echo "  Error creating instalment: " . $e->getMessage() . "\n";
                 }
