@@ -271,7 +271,24 @@ class InstalmentController extends BaseController
         // Preparar la consulta base
         $db = \Config\Database::connect();
         $builder = $db->table('instalments i');
-        $builder->select('i.*, inv.number as invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name, c.uuid as client_uuid');
+        
+        // Seleccionar campos adaptándose a la estructura de la base de datos
+        // Intentar usar invoice_number si existe, de lo contrario usar number
+        try {
+            // Verificar si existe la columna invoice_number en la tabla invoices
+            $hasInvoiceNumber = $db->fieldExists('invoice_number', 'invoices');
+            
+            if ($hasInvoiceNumber) {
+                $builder->select('i.*, inv.invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name, c.uuid as client_uuid');
+            } else {
+                $builder->select('i.*, inv.number as invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name, c.uuid as client_uuid');
+            }
+        } catch (\Exception $e) {
+            // Si hay error al verificar la estructura, usar una consulta más segura
+            $builder->select('i.*, inv.uuid as invoice_uuid, c.business_name as client_name, c.uuid as client_uuid');
+            log_message('error', 'Error al verificar estructura de la tabla: ' . $e->getMessage());
+        }
+        
         $builder->join('invoices inv', 'i.invoice_id = inv.id');
         $builder->join('clients c', 'inv.client_id = c.id');
         $builder->where('i.deleted_at IS NULL');
