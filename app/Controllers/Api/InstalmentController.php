@@ -232,8 +232,11 @@ class InstalmentController extends BaseController
     
     /**
      * Obtiene las cuotas pendientes de las facturas en las carteras del usuario
+     * 
+     * @param string $portfolioUuid UUID de la cartera (opcional)
+     * @return \CodeIgniter\HTTP\Response
      */
-    public function portfolioInstalments()
+    public function portfolioInstalments($portfolioUuid = null)
     {
         // Obtener el usuario actual
         $user = $this->user;
@@ -242,8 +245,12 @@ class InstalmentController extends BaseController
             return $this->failUnauthorized('Usuario no autenticado');
         }
         
+        // Si no se proporcionó un UUID en la URL, intentar obtenerlo de los parámetros de consulta
+        if ($portfolioUuid === null) {
+            $portfolioUuid = $this->request->getGet('portfolio_uuid');
+        }
+        
         // Obtener parámetros de filtro
-        $portfolioUuid = $this->request->getGet('portfolio_uuid');
         $status = $this->request->getGet('status') ?: 'pending'; // Por defecto, mostrar cuotas pendientes
         $dueDate = $this->request->getGet('due_date') ?: 'all'; // all, overdue, upcoming
         
