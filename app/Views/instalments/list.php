@@ -5,15 +5,15 @@
 <?= $this->section('content') ?>
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3">Cuotas</h1>
-        
+        <h1>Cuotas</h1>
+
         <div>
             <a href="<?= site_url('instalments') ?>" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-clockwise"></i> Actualizar
             </a>
         </div>
     </div>
-    
+
     <!-- Filtros -->
     <div class="card mb-4">
         <div class="card-body">
@@ -30,7 +30,7 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                
+
                 <!-- Filtro por Estado -->
                 <div class="col-md-3">
                     <label for="status" class="form-label">Estado</label>
@@ -41,7 +41,7 @@
                         <option value="cancelled" <?= $selectedStatus === 'cancelled' ? 'selected' : '' ?>>Canceladas</option>
                     </select>
                 </div>
-                
+
                 <!-- Filtro por Fecha de Vencimiento -->
                 <div class="col-md-3">
                     <label for="due_date" class="form-label">Vencimiento</label>
@@ -51,7 +51,7 @@
                         <option value="upcoming" <?= $selectedDueDate === 'upcoming' ? 'selected' : '' ?>>Por vencer</option>
                     </select>
                 </div>
-                
+
                 <div class="col-md-3 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-filter"></i> Filtrar
@@ -63,7 +63,7 @@
             </form>
         </div>
     </div>
-    
+
     <!-- Tabla de Cuotas -->
     <div class="card">
         <div class="card-body">
@@ -88,7 +88,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($instalments as $instalment): 
+                            <?php foreach ($instalments as $instalment):
                                 // Calcular clase CSS para la fila
                                 $rowClass = '';
                                 if ($instalment['status'] === 'paid') {

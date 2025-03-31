@@ -8,13 +8,14 @@ info:
     * Autenticarse mediante OTP (One-Time Password) por email o teléfono
     * Ver sus carteras asignadas y clientes
     * Consultar facturas pendientes de cobro
+    * Consultar cuotas pendientes de pago
     * Registrar pagos con geolocalización
     * Consultar historiales de pago
     
     La API utiliza autenticación basada en tokens y sigue el principio
     de filtrado por organización para garantizar que cada usuario solo acceda a los
     datos que le corresponden según su rol y asignaciones.
-  version: 1.3.0
+  version: 1.4.0
   contact:
     email: soporte@sistemacobranzas.com
 servers:
@@ -914,6 +915,80 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /portfolio/instalments:
+    get:
+      summary: Obtener cuotas pendientes de mis carteras
+      description: |
+        Obtiene todas las cuotas pendientes de las carteras asignadas al usuario.
+        Este endpoint es especialmente útil para la aplicación móvil, permitiendo a los cobradores
+        ver todas las cuotas pendientes de pago en sus carteras asignadas.
+      tags:
+        - Cuotas
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, paid, cancelled, all]
+            default: pending
+          description: Filtrar por estado de la cuota
+        - name: due_date
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [overdue, upcoming, all]
+            default: all
+          description: Filtrar por fecha de vencimiento (vencidas, próximas, todas)
+        - name: include_client
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+          description: Incluir información del cliente
+        - name: include_invoice
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+          description: Incluir información de la factura
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lista de cuotas pendientes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  instalments:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/Instalment'
+                        - type: object
+                          properties:
+                            client:
+                              $ref: '#/components/schemas/Client'
+                            invoice:
+                              $ref: '#/components/schemas/Invoice'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      per_page:
+                        type: integer
+                      current_page:
+                        type: integer
+                      last_page:
+                        type: integer
+        '401':
+          description: No autorizado
   /payments/search-invoices:
     get:
       summary: Buscar facturas para registrar pagos
@@ -955,16 +1030,8 @@ paths:
                               example: "contacto@empresaabc.com"
         '401':
           description: No autorizado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '403':
           description: Acceso prohibido
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
   /payments/register:
     post:
       summary: Registrar pago desde la aplicación móvil
@@ -1526,3 +1593,42 @@ components:
         code:
           type: string
           example: INVALID_REQUEST
+    Instalment:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        invoice_id:
+          type: integer
+          example: 123
+        number:
+          type: integer
+          example: 1
+        amount:
+          type: number
+          format: float
+          example: 1500.00
+        due_date:
+          type: string
+          format: date
+          example: 2025-04-30
+        status:
+          type: string
+          enum: [pending, paid, cancelled, rejected]
+          example: pending
+        payment_id:
+          type: integer
+          example: 123
+        payment_date:
+          type: string
+          format: date-time
+          example: 2025-03-19T15:30:00Z
+        created_at:
+          type: string
+          format: date-time
+          example: 2025-03-19T10:00:00Z
+        updated_at:
+          type: string
+          format: date-time
+          example: 2025-03-19T10:00:00Z
