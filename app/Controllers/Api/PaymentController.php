@@ -348,58 +348,75 @@ class PaymentController extends ResourceController
         }
         
         // Check if required fields exist
-        if (!isset($invoice['organization_id'])) {
+        if (!isset($invoice['id']) && !isset($invoice['organization_id'])) {
             return false;
         }
         
-        // Check if user has role and organization_id
+        // Ensure we have the full invoice data
+        $invoiceModel = new InvoiceModel();
+        $fullInvoice = isset($invoice['id']) ? $invoiceModel->find($invoice['id']) : $invoice;
+        
+        if (!$fullInvoice) {
+            return false;
+        }
+        
+        // Check if user has role
         if (!isset($this->user['role'])) {
             return false;
         }
         
-        if ($this->user['role'] === 'superadmin' || $this->user['role'] === 'admin') {
-            // Admins and superadmins can access any invoice in their organization
-            // Check if organization_id exists in user data
-            if (!isset($this->user['organization_id'])) {
-                return false;
-            }
-            return $invoice['organization_id'] == $this->user['organization_id'];
-        } else {
-            // For regular users, check if they have access to the client through portfolios
-            if (!isset($this->user['id'])) {
-                return false;
-            }
-            
-            $portfolioModel = new PortfolioModel();
-            $portfolios = $portfolioModel->getByUser($this->user['id']);
-            
-            // Get all client IDs from user's portfolios
-            $clientIds = [];
-            foreach ($portfolios as $portfolio) {
-                if (!isset($portfolio['id'])) {
-                    continue;
-                }
-                $clients = $portfolioModel->getAssignedClients($portfolio['id']);
-                foreach ($clients as $client) {
-                    if (isset($client['id'])) {
-                        $clientIds[] = $client['id'];
-                    }
-                }
-            }
-            
-            // Check if invoice's client is in user's portfolios
-            if (!isset($invoice['id'])) {
-                return false;
-            }
-            
-            $invoiceModel = new InvoiceModel();
-            $fullInvoice = $invoiceModel->find($invoice['id']);
-            
-            if (!$fullInvoice || !isset($fullInvoice['client_id'])) {
-                return false;
-            }
-            
-            return in_array($fullInvoice['client_id'], $clientIds);
+        // Superadmin puede acceder a todo
+        if ($this->user['role'] === 'superadmin') {
+            return true;
         }
+        
+        // Admin puede acceder a facturas de su organización
+        if ($this->user['role'] === 'admin') {
+            if (!isset($this->user['organization_id']) || !isset($fullInvoice['organization_id'])) {
+                return false;
+            }
+            return $fullInvoice['organization_id'] == $this->user['organization_id'];
+        }
+        
+        // Usuario regular solo puede acceder a facturas de sus clientes asignados
+        if (!isset($fullInvoice['client_id'])) {
+            return false;
+        }
+        
+        $clientModel = new ClientModel();
+        $client = $clientModel->find($fullInvoice['client_id']);
+        if (!$client) {
+            return false;
+        }
+        
+        // Verificar si el cliente está en el portafolio del usuario
+        if (!isset($this->user['uuid'])) {
+            return false;
+        }
+        
+        $db = \Config\Database::connect();
+        
+        // Obtener las carteras asignadas al usuario
+        $userPortfolios = $db->table('portfolio_user')
+            ->select('portfolio_uuid')
+            ->where('user_uuid', $this->user['uuid'])
+            ->where('deleted_at IS NULL')
+            ->get()
+            ->getResultArray();
+            
+        if (empty($userPortfolios)) {
+            return false;
+        }
+        
+        $portfolioUuids = array_column($userPortfolios, 'portfolio_uuid');
+        
+        // Verificar si el cliente está en alguna de las carteras del usuario
+        $clientInPortfolio = $db->table('client_portfolio')
+            ->where('client_uuid', $client['uuid'])
+            ->whereIn('portfolio_uuid', $portfolioUuids)
+            ->where('deleted_at IS NULL')
+            ->countAllResults();
+            
+        return $clientInPortfolio > 0;
     }
 }
