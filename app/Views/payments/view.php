@@ -78,7 +78,13 @@
                 
                 <div class="mb-3">
                     <label class="form-label fw-bold">Cobrador:</label>
-                    <div><?= esc($collector['name']) ?> (<?= esc($collector['email']) ?>)</div>
+                    <div>
+                        <?php if (isset($collector) && isset($collector['name']) && isset($collector['email'])): ?>
+                            <?= esc($collector['name']) ?> (<?= esc($collector['email']) ?>)
+                        <?php else: ?>
+                            Usuario no disponible
+                        <?php endif; ?>
+                    </div>
                 </div>
                 
                 <div class="mb-3">
