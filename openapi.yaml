@@ -15,7 +15,7 @@ info:
     La API utiliza autenticación basada en tokens y sigue el principio
     de filtrado por organización para garantizar que cada usuario solo acceda a los
     datos que le corresponden según su rol y asignaciones.
-  version: 1.4.0
+  version: 1.5.0
   contact:
     email: soporte@sistemacobranzas.com
 servers:
@@ -718,6 +718,10 @@ paths:
                 invoice_id:
                   type: integer
                   example: 123
+                instalment_id:
+                  type: integer
+                  description: ID de la cuota específica a la que se aplica el pago (opcional)
+                  example: 456
                 amount:
                   type: number
                   format: float
@@ -1050,6 +1054,10 @@ paths:
                 invoice_id:
                   type: integer
                   example: 123
+                instalment_id:
+                  type: integer
+                  description: ID de la cuota específica a la que se aplica el pago (opcional)
+                  example: 456
                 amount:
                   type: number
                   format: float
@@ -1632,3 +1640,58 @@ components:
           type: string
           format: date-time
           example: 2025-03-19T10:00:00Z
+        client_business_name:
+          type: string
+          example: "Empresa ABC S.A."
+        client_document:
+          type: string
+          example: "20123456789"
+        client_contact_name:
+          type: string
+          example: "Juan Pérez"
+        client_address:
+          type: string
+          example: "Av. Principal 123, Lima"
+        client_phone:
+          type: string
+          example: "+51999309748"
+        client_email:
+          type: string
+          format: email
+          example: "contacto@empresaabc.com"
+        client_ubigeo:
+          type: string
+          example: "150101"
+        client_zip_code:
+          type: string
+          example: "15001"
+        client_latitude:
+          type: number
+          format: float
+          example: -12.046374
+        client_longitude:
+          type: number
+          format: float
+          example: -77.042793
+        client_uuid:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        invoice_uuid:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        invoice_concept:
+          type: string
+          example: "Venta de productos"
+        invoice_due_date:
+          type: string
+          format: date
+          example: "2025-04-30"
+        invoice_issue_date:
+          type: string
+          format: date
+          example: "2025-03-30"
+        invoice_instalment_count:
+          type: integer
+          example: 3
