@@ -481,6 +481,16 @@ class PaymentController extends BaseController
         $userModel = new \App\Models\UserModel();
         $collector = $userModel->find($payment['user_id']);
         
+        // Si el cobrador no existe, crear un array con valores por defecto
+        if (!$collector) {
+            $collector = [
+                'name' => 'Usuario no disponible',
+                'email' => 'N/A',
+                'id' => $payment['user_id'] ?? 0
+            ];
+            log_message('warning', 'Cobrador no encontrado para el pago: ' . $uuid . ', ID de usuario: ' . ($payment['user_id'] ?? 'no definido'));
+        }
+        
         // Get instalment information if available
         $instalment = null;
         if (!empty($payment['instalment_id'])) {
