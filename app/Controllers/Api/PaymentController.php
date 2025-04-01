@@ -220,6 +220,29 @@ class PaymentController extends ResourceController
         
         log_message('debug', 'Invoice found: ' . json_encode($invoice));
         
+        // Asegurarnos de que la propiedad 'amount' esté definida
+        if (!isset($invoice['amount']) && isset($invoice['total_amount'])) {
+            $invoice['amount'] = $invoice['total_amount'];
+            log_message('debug', 'Using total_amount as amount: ' . $invoice['amount']);
+        } else if (!isset($invoice['amount'])) {
+            // Si no hay amount ni total_amount, intentar calcular el total de las cuotas
+            $instalmentModel = new InstalmentModel();
+            $instalments = $instalmentModel->where('invoice_id', $invoice['id'])->findAll();
+            $totalAmount = 0;
+            foreach ($instalments as $instalment) {
+                $totalAmount += floatval($instalment['amount']);
+            }
+            
+            if ($totalAmount > 0) {
+                $invoice['amount'] = $totalAmount;
+                log_message('debug', 'Calculated amount from instalments: ' . $invoice['amount']);
+            } else {
+                // Si todo lo anterior falla, establecer un valor por defecto
+                $invoice['amount'] = 0;
+                log_message('warning', 'Could not determine invoice amount, setting to 0');
+            }
+        }
+        
         // Si se proporciona un ID de cuota, verificar primero el acceso a la cuota
         $instalmentId = $this->request->getVar('instalment_id');
         if (!empty($instalmentId)) {
@@ -360,10 +383,20 @@ class PaymentController extends ResourceController
         
         log_message('debug', 'Total pagado para factura ' . $invoice['id'] . ': ' . $totalPaid);
         
-        if ($totalPaid >= $invoice['amount']) {
+        // Asegurarnos de que la propiedad 'amount' esté definida antes de comparar
+        $invoiceAmount = isset($invoice['amount']) ? floatval($invoice['amount']) : 0;
+        if ($invoiceAmount <= 0 && isset($invoice['total_amount'])) {
+            $invoiceAmount = floatval($invoice['total_amount']);
+        }
+        
+        log_message('debug', 'Monto de la factura: ' . $invoiceAmount);
+        
+        if ($totalPaid >= $invoiceAmount && $invoiceAmount > 0) {
             $invoiceModel->update($invoice['id'], ['status' => 'paid']);
+            log_message('debug', 'Factura marcada como pagada');
         } else if ($totalPaid > 0) {
             $invoiceModel->update($invoice['id'], ['status' => 'partial']);
+            log_message('debug', 'Factura marcada como pago parcial');
         }
         
         // Update instalment status if applicable
