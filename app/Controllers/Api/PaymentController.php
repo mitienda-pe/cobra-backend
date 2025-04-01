@@ -13,11 +13,13 @@ class PaymentController extends ResourceController
 {
     protected $format = 'json';
     protected $user;
+    protected $paymentModel;
     
     public function __construct()
     {
         // User will be set by the auth filter
         $this->user = session()->get('api_user');
+        $this->paymentModel = new \App\Models\PaymentModel();
     }
     
     /**
@@ -30,12 +32,10 @@ class PaymentController extends ResourceController
         $dateEnd = $this->request->getGet('date_end');
         $clientId = $this->request->getGet('client_id');
         
-        $paymentModel = new PaymentModel();
-        
         // Different queries based on user role
         if ($this->user['role'] === 'superadmin' || $this->user['role'] === 'admin') {
             // Admins and superadmins can see all payments for their organization
-            $payments = $paymentModel->getByOrganization(
+            $payments = $this->paymentModel->getByOrganization(
                 $this->user['organization_id'],
                 $status,
                 $dateStart,
@@ -60,7 +60,7 @@ class PaymentController extends ResourceController
                 }
             }
             
-            $payments = $paymentModel->getByClients($clientIds, $status);
+            $payments = $this->paymentModel->getByClients($clientIds, $status);
             
             if ($dateStart) {
                 $payments = array_filter($payments, function($payment) use ($dateStart) {
@@ -87,8 +87,7 @@ class PaymentController extends ResourceController
             return $this->failValidationErrors('Payment ID is required');
         }
         
-        $paymentModel = new PaymentModel();
-        $payment = $paymentModel->find($id);
+        $payment = $this->paymentModel->find($id);
         
         if (!$payment) {
             return $this->failNotFound('Payment not found');
@@ -169,6 +168,10 @@ class PaymentController extends ResourceController
      */
     public function registerMobilePayment()
     {
+        log_message('debug', '====== INICIO REGISTER MOBILE PAYMENT ======');
+        log_message('debug', 'User data: ' . json_encode($this->user));
+        log_message('debug', 'Request data: ' . json_encode($this->request->getVar()));
+        
         // Validate request
         $rules = [
             'invoice_id'    => 'required|is_natural_no_zero',
@@ -180,6 +183,7 @@ class PaymentController extends ResourceController
         ];
         
         if (!$this->validate($rules)) {
+            log_message('debug', 'Validation errors: ' . json_encode($this->validator->getErrors()));
             return $this->failValidationErrors($this->validator->getErrors());
         }
         
@@ -188,11 +192,17 @@ class PaymentController extends ResourceController
         $invoice = $invoiceModel->find($this->request->getVar('invoice_id'));
         
         if (!$invoice) {
+            log_message('debug', 'Invoice not found: ' . $this->request->getVar('invoice_id'));
             return $this->failNotFound('Invoice not found');
         }
         
+        log_message('debug', 'Invoice found: ' . json_encode($invoice));
+        
         // Check if user has access to this invoice
-        if (!$this->canAccessInvoice($invoice)) {
+        $hasAccess = $this->canAccessInvoice($invoice);
+        log_message('debug', 'Has access to invoice: ' . ($hasAccess ? 'true' : 'false'));
+        
+        if (!$hasAccess) {
             return $this->failForbidden('You do not have access to this invoice');
         }
         
@@ -202,19 +212,28 @@ class PaymentController extends ResourceController
             $instalmentModel = new InstalmentModel();
             $instalment = $instalmentModel->find($instalmentId);
             
-            if (!$instalment || $instalment['invoice_id'] != $invoice['id']) {
-                return $this->failValidationErrors(['instalment_id' => 'Invalid instalment for this invoice']);
+            if (!$instalment) {
+                log_message('debug', 'Instalment not found: ' . $instalmentId);
+                return $this->failNotFound('Instalment not found');
             }
             
-            // Verificar que se estén pagando las cuotas en orden cronológico
-            if (!$instalmentModel->canBePaid($instalment['id'])) {
-                return $this->failValidationErrors(['instalment_id' => 'Cannot pay this instalment because there are previous unpaid instalments. You must pay instalments in chronological order.']);
+            log_message('debug', 'Instalment found: ' . json_encode($instalment));
+            
+            // Verify that the instalment belongs to the invoice
+            if ($instalment['invoice_id'] != $invoice['id']) {
+                log_message('debug', 'Instalment does not belong to invoice');
+                return $this->failValidationErrors('Instalment does not belong to this invoice');
             }
             
-            // Check if payment amount is valid for the instalment
-            $paymentModel = new PaymentModel();
-            $instalmentPayments = $paymentModel
-                ->where('instalment_id', $instalment['id'])
+            // Verify that the instalment can be paid (all previous instalments are paid)
+            if (!$instalmentModel->canBePaid($instalmentId)) {
+                log_message('debug', 'Instalment cannot be paid yet');
+                return $this->failValidationErrors('Previous instalments must be paid first');
+            }
+            
+            // Verify that the payment amount is not greater than the instalment remaining amount
+            $instalmentPayments = $this->paymentModel
+                ->where('instalment_id', $instalmentId)
                 ->where('status', 'completed')
                 ->findAll();
                 
@@ -224,16 +243,17 @@ class PaymentController extends ResourceController
             }
             
             $instalmentRemaining = $instalment['amount'] - $instalmentPaid;
-            $paymentAmount = $this->request->getVar('amount');
+            $paymentAmount = (float)$this->request->getVar('amount');
             
             if ($paymentAmount > $instalmentRemaining) {
-                return $this->failValidationErrors(['amount' => 'Payment amount cannot exceed the remaining instalment amount']);
+                log_message('debug', 'Payment amount exceeds instalment remaining amount');
+                return $this->failValidationErrors('Payment amount cannot exceed the instalment remaining amount');
             }
+            
+            log_message('debug', 'Instalment validation passed');
         }
         
         // Create payment
-        $paymentModel = new PaymentModel();
-        
         $data = [
             'organization_id' => $invoice['organization_id'],
             'invoice_id'      => $invoice['id'],
@@ -247,14 +267,14 @@ class PaymentController extends ResourceController
             'registered_by'   => $this->user['id']
         ];
         
-        $paymentId = $paymentModel->insert($data);
+        $paymentId = $this->paymentModel->insert($data);
         
         if (!$paymentId) {
             return $this->failServerError('Failed to register payment');
         }
         
         // Update invoice status if payment is full
-        $totalPaid = $paymentModel->getTotalPaidForInvoice($invoice['id']);
+        $totalPaid = $this->paymentModel->getTotalPaidForInvoice($invoice['id']);
         
         if ($totalPaid >= $invoice['amount']) {
             $invoiceModel->update($invoice['id'], ['status' => 'paid']);
@@ -273,7 +293,7 @@ class PaymentController extends ResourceController
             }
         }
         
-        $payment = $paymentModel->find($paymentId);
+        $payment = $this->paymentModel->find($paymentId);
         
         return $this->respondCreated(['payment' => $payment]);
     }
@@ -304,9 +324,8 @@ class PaymentController extends ResourceController
         $instalments = $instalmentModel->getByInvoiceForCollection($invoiceId);
         
         // Calculate remaining amount for each instalment
-        $paymentModel = new PaymentModel();
         foreach ($instalments as &$instalment) {
-            $instalmentPayments = $paymentModel
+            $instalmentPayments = $this->paymentModel
                 ->where('instalment_id', $instalment['id'])
                 ->where('status', 'completed')
                 ->findAll();
@@ -342,13 +361,19 @@ class PaymentController extends ResourceController
      */
     private function canAccessInvoice($invoice)
     {
+        log_message('debug', '====== INICIO CAN ACCESS INVOICE ======');
+        log_message('debug', 'Invoice data: ' . json_encode($invoice));
+        log_message('debug', 'User data: ' . json_encode($this->user));
+        
         // Check if invoice is null or not an array
         if (!$invoice || !is_array($invoice)) {
+            log_message('debug', 'Invoice is not an array');
             return false;
         }
         
         // Check if required fields exist
         if (!isset($invoice['id']) && !isset($invoice['organization_id'])) {
+            log_message('debug', 'Invoice does not have required fields');
             return false;
         }
         
@@ -357,40 +382,53 @@ class PaymentController extends ResourceController
         $fullInvoice = isset($invoice['id']) ? $invoiceModel->find($invoice['id']) : $invoice;
         
         if (!$fullInvoice) {
+            log_message('debug', 'Invoice not found');
             return false;
         }
         
+        log_message('debug', 'Full invoice data: ' . json_encode($fullInvoice));
+        
         // Check if user has role
         if (!isset($this->user['role'])) {
+            log_message('debug', 'User does not have role');
             return false;
         }
         
         // Superadmin puede acceder a todo
         if ($this->user['role'] === 'superadmin') {
+            log_message('debug', 'User is superadmin');
             return true;
         }
         
         // Admin puede acceder a facturas de su organización
         if ($this->user['role'] === 'admin') {
             if (!isset($this->user['organization_id']) || !isset($fullInvoice['organization_id'])) {
+                log_message('debug', 'User or invoice does not have organization ID');
                 return false;
             }
+            log_message('debug', 'User organization ID: ' . $this->user['organization_id']);
+            log_message('debug', 'Invoice organization ID: ' . $fullInvoice['organization_id']);
             return $fullInvoice['organization_id'] == $this->user['organization_id'];
         }
         
         // Usuario regular solo puede acceder a facturas de sus clientes asignados
         if (!isset($fullInvoice['client_id'])) {
+            log_message('debug', 'Invoice does not have client ID');
             return false;
         }
         
         $clientModel = new ClientModel();
         $client = $clientModel->find($fullInvoice['client_id']);
         if (!$client) {
+            log_message('debug', 'Client not found');
             return false;
         }
         
+        log_message('debug', 'Client data: ' . json_encode($client));
+        
         // Verificar si el cliente está en el portafolio del usuario
         if (!isset($this->user['uuid'])) {
+            log_message('debug', 'User does not have UUID');
             return false;
         }
         
@@ -405,18 +443,29 @@ class PaymentController extends ResourceController
             ->getResultArray();
             
         if (empty($userPortfolios)) {
+            log_message('debug', 'User does not have portfolios');
             return false;
         }
         
         $portfolioUuids = array_column($userPortfolios, 'portfolio_uuid');
         
         // Verificar si el cliente está en alguna de las carteras del usuario
+        // Usamos el UUID del cliente en lugar del ID
+        if (!isset($client['uuid'])) {
+            log_message('debug', 'Client does not have UUID');
+            return false;
+        }
+        
         $clientInPortfolio = $db->table('client_portfolio')
             ->where('client_uuid', $client['uuid'])
             ->whereIn('portfolio_uuid', $portfolioUuids)
             ->where('deleted_at IS NULL')
             ->countAllResults();
-            
+        
+        log_message('debug', 'Client in portfolio: ' . ($clientInPortfolio > 0 ? 'true' : 'false'));
+        log_message('debug', 'Client UUID: ' . $client['uuid']);
+        log_message('debug', 'Portfolio UUIDs: ' . json_encode($portfolioUuids));
+        
         return $clientInPortfolio > 0;
     }
 }
