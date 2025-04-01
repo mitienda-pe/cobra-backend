@@ -347,7 +347,18 @@ class PaymentController extends ResourceController
         }
         
         // Update invoice status if payment is full
-        $totalPaid = $this->paymentModel->getTotalPaidForInvoice($invoice['id']);
+        // Calcular el total pagado para esta factura
+        $totalPaid = 0;
+        $payments = $this->paymentModel
+            ->where('invoice_id', $invoice['id'])
+            ->where('status', 'completed')
+            ->findAll();
+            
+        foreach ($payments as $payment) {
+            $totalPaid += $payment['amount'];
+        }
+        
+        log_message('debug', 'Total pagado para factura ' . $invoice['id'] . ': ' . $totalPaid);
         
         if ($totalPaid >= $invoice['amount']) {
             $invoiceModel->update($invoice['id'], ['status' => 'paid']);
