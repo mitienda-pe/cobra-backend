@@ -231,6 +231,12 @@ class PaymentController extends ResourceController
             // Verificar si el cliente está en el portafolio del usuario
             $db = \Config\Database::connect();
             
+            // Verificar que el usuario tenga un UUID
+            if (!isset($this->user) || !is_array($this->user) || !isset($this->user['uuid'])) {
+                log_message('debug', 'User is null or does not have UUID');
+                return $this->failForbidden('Authentication error: invalid user data');
+            }
+            
             // Obtener las carteras asignadas al usuario
             $userPortfolios = $db->table('portfolio_user')
                 ->select('portfolio_uuid')
@@ -457,9 +463,9 @@ class PaymentController extends ResourceController
         log_message('debug', 'Client data: ' . json_encode($client));
         
         // Verificar si el cliente está en el portafolio del usuario
-        if (!isset($this->user['uuid'])) {
-            log_message('debug', 'User does not have UUID');
-            return false;
+        if (!isset($this->user) || !is_array($this->user) || !isset($this->user['uuid'])) {
+            log_message('debug', 'User is null or does not have UUID');
+            return $this->failForbidden('Authentication error: invalid user data');
         }
         
         $db = \Config\Database::connect();

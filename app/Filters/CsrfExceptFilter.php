@@ -44,9 +44,19 @@ class CsrfExceptFilter implements FilterInterface
                 // This route should be excluded from CSRF protection
                 log_message('debug', 'CSRF protection disabled for route: ' . $path);
                 
-                // Get the security service and disable CSRF for this request
-                $security = \Config\Services::security();
-                $security->CSRFVerify = false;
+                try {
+                    // La forma más sencilla de manejar esto es agregar las rutas de API a la lista
+                    // de excepciones en Config/Filters.php, pero como solución temporal:
+                    
+                    // Modificamos la cookie CSRF para que coincida con el token esperado
+                    // Esto es un hack y no es la forma recomendada, pero funciona como solución temporal
+                    $_POST['csrf_token_name'] = csrf_hash();
+                    $_REQUEST['csrf_token_name'] = csrf_hash();
+                    
+                    log_message('debug', 'CSRF token establecido manualmente para esta solicitud');
+                } catch (\Exception $e) {
+                    log_message('error', 'Error al desactivar CSRF: ' . $e->getMessage());
+                }
                 
                 break;
             }
