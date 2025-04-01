@@ -453,79 +453,114 @@ class InstalmentController extends BaseController
         $db = \Config\Database::connect();
         $builder = $db->table('instalments i');
         
-        // Seleccionar todos los campos necesarios
-        $selectFields = [
-            'i.*', 
-            'inv.uuid as invoice_uuid',
-            'inv.concept as invoice_concept',
-            'inv.due_date as invoice_due_date',
-            'inv.issue_date as invoice_issue_date',
-            'inv.amount as invoice_amount',
-            'inv.status as invoice_status',
-            'c.business_name as client_business_name',
-            'c.document_number as client_document',
-            'c.contact_name as client_contact_name',
-            'c.address as client_address',
-            'c.contact_phone as client_phone',
-            'c.email as client_email',
-            'c.ubigeo as client_ubigeo',
-            'c.zip_code as client_zip_code',
-            'c.latitude as client_latitude',
-            'c.longitude as client_longitude',
-            'c.uuid as client_uuid'
-        ];
-        
-        // Verificar si existe la columna invoice_number en la tabla invoices
-        $hasInvoiceNumber = $db->fieldExists('invoice_number', 'invoices');
-        
-        // Añadir invoice_number o number dependiendo de la estructura
-        if ($hasInvoiceNumber) {
-            $selectFields[] = 'inv.invoice_number';
-        } else {
-            $selectFields[] = 'inv.number as invoice_number';
-        }
-        
-        $builder->select(implode(', ', $selectFields));
-        
-        // Obtener el número total de cuotas por factura para incluirlo en la respuesta
-        $subquery = $db->table('instalments')
-            ->select('invoice_id, COUNT(*) as instalment_count')
-            ->groupBy('invoice_id');
+        try {
+            // Verificar las columnas que existen en la tabla invoices
+            $invoiceColumns = $db->getFieldNames('invoices');
             
-        $builder->join("({$subquery->getCompiledSelect()}) as ic", 'i.invoice_id = ic.invoice_id', 'left');
-        $builder->select('IFNULL(ic.instalment_count, 0) as invoice_instalment_count');
-        
-        $builder->join('invoices inv', 'i.invoice_id = inv.id');
-        $builder->join('clients c', 'inv.client_id = c.id');
-        $builder->where('i.id', $id);
-        $builder->where('i.deleted_at IS NULL');
-        $builder->where('inv.deleted_at IS NULL');
-        $builder->where('c.deleted_at IS NULL');
-        
-        // Ejecutar la consulta
-        $detailedInstalment = $builder->get()->getRowArray();
-        
-        if (!$detailedInstalment) {
-            return $this->failNotFound('Cuota no encontrada');
-        }
-        
-        $response = [
-            'instalment' => $detailedInstalment
-        ];
-        
-        // Incluir información adicional según los parámetros
-        
-        // Incluir información de la factura si se solicita explícitamente
-        if ($includeInvoice) {
-            $invoice = $this->invoiceModel->find($instalment['invoice_id']);
-            $response['invoice'] = $invoice;
-        }
-        
-        // Incluir información del cliente si se solicita explícitamente
-        if ($includeClient) {
-            $invoice = $this->invoiceModel->find($instalment['invoice_id']);
-            $client = $this->clientModel->find($invoice['client_id']);
-            $response['client'] = $client;
+            // Seleccionar campos básicos de la cuota
+            $selectFields = ['i.*'];
+            
+            // Verificar y añadir campos de la factura
+            $invoiceFields = [
+                'uuid' => 'invoice_uuid',
+                'concept' => 'invoice_concept',
+                'due_date' => 'invoice_due_date',
+                'issue_date' => 'invoice_issue_date',
+                'status' => 'invoice_status'
+            ];
+            
+            // Añadir amount solo si existe
+            if (in_array('amount', $invoiceColumns)) {
+                $invoiceFields['amount'] = 'invoice_amount';
+            }
+            
+            // Verificar si existe invoice_number o number
+            if (in_array('invoice_number', $invoiceColumns)) {
+                $invoiceFields['invoice_number'] = 'invoice_number';
+            } elseif (in_array('number', $invoiceColumns)) {
+                $invoiceFields['number'] = 'invoice_number';
+            }
+            
+            // Añadir campos de factura a la consulta
+            foreach ($invoiceFields as $field => $alias) {
+                if (in_array($field, $invoiceColumns)) {
+                    $selectFields[] = "inv.{$field} as {$alias}";
+                }
+            }
+            
+            // Verificar las columnas que existen en la tabla clients
+            $clientColumns = $db->getFieldNames('clients');
+            
+            // Verificar y añadir campos del cliente
+            $clientFields = [
+                'business_name' => 'client_business_name',
+                'document_number' => 'client_document',
+                'contact_name' => 'client_contact_name',
+                'address' => 'client_address',
+                'contact_phone' => 'client_phone',
+                'email' => 'client_email',
+                'ubigeo' => 'client_ubigeo',
+                'zip_code' => 'client_zip_code',
+                'latitude' => 'client_latitude',
+                'longitude' => 'client_longitude',
+                'uuid' => 'client_uuid'
+            ];
+            
+            // Añadir campos de cliente a la consulta
+            foreach ($clientFields as $field => $alias) {
+                if (in_array($field, $clientColumns)) {
+                    $selectFields[] = "c.{$field} as {$alias}";
+                }
+            }
+            
+            $builder->select(implode(', ', $selectFields));
+            
+            // Obtener el número total de cuotas por factura para incluirlo en la respuesta
+            $subquery = $db->table('instalments')
+                ->select('invoice_id, COUNT(*) as instalment_count')
+                ->groupBy('invoice_id');
+                
+            $builder->join("({$subquery->getCompiledSelect()}) as ic", 'i.invoice_id = ic.invoice_id', 'left');
+            $builder->select('IFNULL(ic.instalment_count, 0) as invoice_instalment_count');
+            
+            $builder->join('invoices inv', 'i.invoice_id = inv.id');
+            $builder->join('clients c', 'inv.client_id = c.id');
+            $builder->where('i.id', $id);
+            $builder->where('i.deleted_at IS NULL');
+            $builder->where('inv.deleted_at IS NULL');
+            $builder->where('c.deleted_at IS NULL');
+            
+            // Ejecutar la consulta
+            $detailedInstalment = $builder->get()->getRowArray();
+            
+            if (!$detailedInstalment) {
+                return $this->failNotFound('Cuota no encontrada');
+            }
+            
+            $response = [
+                'instalment' => $detailedInstalment
+            ];
+            
+        } catch (\Exception $e) {
+            // Si hay error en la consulta detallada, usar el enfoque simple
+            log_message('error', 'Error al obtener detalle de cuota: ' . $e->getMessage());
+            
+            $response = [
+                'instalment' => $instalment
+            ];
+            
+            // Incluir información de la factura
+            if ($includeInvoice || true) { // Siempre incluir factura en caso de error
+                $invoice = $this->invoiceModel->find($instalment['invoice_id']);
+                $response['invoice'] = $invoice;
+            }
+            
+            // Incluir información del cliente
+            if ($includeClient || true) { // Siempre incluir cliente en caso de error
+                $invoice = $this->invoiceModel->find($instalment['invoice_id']);
+                $client = $this->clientModel->find($invoice['client_id']);
+                $response['client'] = $client;
+            }
         }
         
         // Incluir pagos asociados a la cuota si se solicita
