@@ -198,15 +198,7 @@ class PaymentController extends ResourceController
         
         log_message('debug', 'Invoice found: ' . json_encode($invoice));
         
-        // Check if user has access to this invoice
-        $hasAccess = $this->canAccessInvoice($invoice);
-        log_message('debug', 'Has access to invoice: ' . ($hasAccess ? 'true' : 'false'));
-        
-        if (!$hasAccess) {
-            return $this->failForbidden('You do not have access to this invoice');
-        }
-        
-        // Validate instalment if provided
+        // Si se proporciona un ID de cuota, verificar primero el acceso a la cuota
         $instalmentId = $this->request->getVar('instalment_id');
         if (!empty($instalmentId)) {
             $instalmentModel = new InstalmentModel();
@@ -219,19 +211,63 @@ class PaymentController extends ResourceController
             
             log_message('debug', 'Instalment found: ' . json_encode($instalment));
             
-            // Verify that the instalment belongs to the invoice
+            // Verificar que la cuota pertenece a la factura
             if ($instalment['invoice_id'] != $invoice['id']) {
                 log_message('debug', 'Instalment does not belong to invoice');
                 return $this->failValidationErrors('Instalment does not belong to this invoice');
             }
             
-            // Verify that the instalment can be paid (all previous instalments are paid)
+            // Verificar acceso al cliente de la factura
+            $clientModel = new ClientModel();
+            $client = $clientModel->find($invoice['client_id']);
+            
+            if (!$client) {
+                log_message('debug', 'Client not found for invoice: ' . $invoice['id']);
+                return $this->failNotFound('Client not found');
+            }
+            
+            log_message('debug', 'Client found: ' . json_encode($client));
+            
+            // Verificar si el cliente está en el portafolio del usuario
+            $db = \Config\Database::connect();
+            
+            // Obtener las carteras asignadas al usuario
+            $userPortfolios = $db->table('portfolio_user')
+                ->select('portfolio_uuid')
+                ->where('user_uuid', $this->user['uuid'])
+                ->where('deleted_at IS NULL')
+                ->get()
+                ->getResultArray();
+                
+            if (empty($userPortfolios)) {
+                log_message('debug', 'User does not have portfolios');
+                return $this->failForbidden('You do not have access to this invoice');
+            }
+            
+            $portfolioUuids = array_column($userPortfolios, 'portfolio_uuid');
+            
+            // Verificar si el cliente está en alguna de las carteras del usuario
+            $clientInPortfolio = $db->table('client_portfolio')
+                ->where('client_uuid', $client['uuid'])
+                ->whereIn('portfolio_uuid', $portfolioUuids)
+                ->where('deleted_at IS NULL')
+                ->countAllResults();
+                
+            log_message('debug', 'Client in portfolio: ' . ($clientInPortfolio > 0 ? 'true' : 'false'));
+            log_message('debug', 'Client UUID: ' . $client['uuid']);
+            log_message('debug', 'Portfolio UUIDs: ' . json_encode($portfolioUuids));
+            
+            if ($clientInPortfolio == 0) {
+                return $this->failForbidden('You do not have access to this client');
+            }
+            
+            // Verificar que la cuota puede ser pagada (todas las cuotas anteriores están pagadas)
             if (!$instalmentModel->canBePaid($instalmentId)) {
                 log_message('debug', 'Instalment cannot be paid yet');
                 return $this->failValidationErrors('Previous instalments must be paid first');
             }
             
-            // Verify that the payment amount is not greater than the instalment remaining amount
+            // Verificar que el monto del pago no es mayor que el monto restante de la cuota
             $instalmentPayments = $this->paymentModel
                 ->where('instalment_id', $instalmentId)
                 ->where('status', 'completed')
@@ -251,6 +287,15 @@ class PaymentController extends ResourceController
             }
             
             log_message('debug', 'Instalment validation passed');
+        } else {
+            // Si no se proporciona un ID de cuota, verificar el acceso a la factura
+            // Check if user has access to this invoice
+            $hasAccess = $this->canAccessInvoice($invoice);
+            log_message('debug', 'Has access to invoice: ' . ($hasAccess ? 'true' : 'false'));
+            
+            if (!$hasAccess) {
+                return $this->failForbidden('You do not have access to this invoice');
+            }
         }
         
         // Create payment
@@ -357,7 +402,7 @@ class PaymentController extends ResourceController
     }
     
     /**
-     * Check if user can access an invoice
+     * Verifica si el usuario puede acceder a una factura
      */
     private function canAccessInvoice($invoice)
     {
@@ -371,22 +416,11 @@ class PaymentController extends ResourceController
             return false;
         }
         
-        // Check if required fields exist
-        if (!isset($invoice['id']) && !isset($invoice['organization_id'])) {
+        // Check if invoice has required fields
+        if (!isset($invoice['id']) || !isset($invoice['organization_id']) || !isset($invoice['client_id'])) {
             log_message('debug', 'Invoice does not have required fields');
             return false;
         }
-        
-        // Ensure we have the full invoice data
-        $invoiceModel = new InvoiceModel();
-        $fullInvoice = isset($invoice['id']) ? $invoiceModel->find($invoice['id']) : $invoice;
-        
-        if (!$fullInvoice) {
-            log_message('debug', 'Invoice not found');
-            return false;
-        }
-        
-        log_message('debug', 'Full invoice data: ' . json_encode($fullInvoice));
         
         // Check if user has role
         if (!isset($this->user['role'])) {
@@ -394,31 +428,27 @@ class PaymentController extends ResourceController
             return false;
         }
         
-        // Superadmin puede acceder a todo
+        // Superadmin can access everything
         if ($this->user['role'] === 'superadmin') {
             log_message('debug', 'User is superadmin');
             return true;
         }
         
-        // Admin puede acceder a facturas de su organización
+        // Admin can access invoices from their organization
         if ($this->user['role'] === 'admin') {
-            if (!isset($this->user['organization_id']) || !isset($fullInvoice['organization_id'])) {
-                log_message('debug', 'User or invoice does not have organization ID');
+            if (!isset($this->user['organization_id'])) {
+                log_message('debug', 'User does not have organization ID');
                 return false;
             }
             log_message('debug', 'User organization ID: ' . $this->user['organization_id']);
-            log_message('debug', 'Invoice organization ID: ' . $fullInvoice['organization_id']);
-            return $fullInvoice['organization_id'] == $this->user['organization_id'];
+            log_message('debug', 'Invoice organization ID: ' . $invoice['organization_id']);
+            return $invoice['organization_id'] == $this->user['organization_id'];
         }
         
-        // Usuario regular solo puede acceder a facturas de sus clientes asignados
-        if (!isset($fullInvoice['client_id'])) {
-            log_message('debug', 'Invoice does not have client ID');
-            return false;
-        }
+        // Regular user can only access invoices from clients in their portfolios
+        $clientModel = new \App\Models\ClientModel();
+        $client = $clientModel->find($invoice['client_id']);
         
-        $clientModel = new ClientModel();
-        $client = $clientModel->find($fullInvoice['client_id']);
         if (!$client) {
             log_message('debug', 'Client not found');
             return false;
@@ -450,7 +480,6 @@ class PaymentController extends ResourceController
         $portfolioUuids = array_column($userPortfolios, 'portfolio_uuid');
         
         // Verificar si el cliente está en alguna de las carteras del usuario
-        // Usamos el UUID del cliente en lugar del ID
         if (!isset($client['uuid'])) {
             log_message('debug', 'Client does not have UUID');
             return false;
