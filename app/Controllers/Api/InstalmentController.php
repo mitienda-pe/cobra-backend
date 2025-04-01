@@ -41,9 +41,13 @@ class InstalmentController extends BaseController
      */
     protected function getAuthUser()
     {
-        // The ApiAuthFilter sets the user property on the request object
-        // Simply return it directly
-        return $this->request->user ?? null;
+        // Try to get user from request object (set by ApiAuthFilter)
+        if (property_exists($this->request, 'user')) {
+            return $this->request->user;
+        }
+        
+        // If no user, return null
+        return null;
     }
     
     /**
