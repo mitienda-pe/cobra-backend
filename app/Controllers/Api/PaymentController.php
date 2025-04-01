@@ -19,6 +19,21 @@ class PaymentController extends ResourceController
     {
         // User will be set by the auth filter
         $this->user = session()->get('api_user');
+        
+        // Si el usuario no está en la sesión, intentar obtenerlo del request
+        $request = service('request');
+        if (empty($this->user) && property_exists($request, 'user')) {
+            $this->user = $request->user;
+            log_message('debug', 'Usuario obtenido desde request: ' . json_encode($this->user));
+        }
+        
+        // Verificar si el usuario está definido
+        if (empty($this->user)) {
+            log_message('error', 'PaymentController: Usuario no definido en constructor');
+        } else {
+            log_message('debug', 'PaymentController: Usuario inicializado correctamente: ' . json_encode($this->user));
+        }
+        
         $this->paymentModel = new \App\Models\PaymentModel();
     }
     
@@ -169,6 +184,13 @@ class PaymentController extends ResourceController
     public function registerMobilePayment()
     {
         log_message('debug', '====== INICIO REGISTER MOBILE PAYMENT ======');
+        
+        // Verificar que el usuario esté autenticado
+        if (empty($this->user) || !is_array($this->user)) {
+            log_message('error', 'Usuario no autenticado o inválido en registerMobilePayment');
+            return $this->failUnauthorized('Usuario no autenticado o sesión expirada');
+        }
+        
         log_message('debug', 'User data: ' . json_encode($this->user));
         log_message('debug', 'Request data: ' . json_encode($this->request->getVar()));
         
