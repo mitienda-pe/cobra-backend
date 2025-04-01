@@ -8,6 +8,8 @@ use App\Models\InvoiceModel;
 use App\Models\PaymentModel;
 use App\Models\ClientModel;
 use App\Models\PortfolioModel;
+use App\Models\TokenModel;
+use App\Models\UserModel;
 use CodeIgniter\API\ResponseTrait;
 
 class InstalmentController extends BaseController
@@ -39,8 +41,9 @@ class InstalmentController extends BaseController
      */
     protected function getAuthUser()
     {
-        // Use the auth service directly
-        return $this->auth->user();
+        // The ApiAuthFilter sets the user property on the request object
+        // Simply return it directly
+        return $this->request->user ?? null;
     }
     
     /**
