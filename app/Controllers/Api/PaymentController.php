@@ -342,6 +342,16 @@ class PaymentController extends ResourceController
      */
     private function canAccessInvoice($invoice)
     {
+        // Check if invoice is null or not an array
+        if (!$invoice || !is_array($invoice)) {
+            return false;
+        }
+        
+        // Check if required fields exist
+        if (!isset($invoice['organization_id'])) {
+            return false;
+        }
+        
         if ($this->user['role'] === 'superadmin' || $this->user['role'] === 'admin') {
             // Admins and superadmins can access any invoice in their organization
             return $invoice['organization_id'] == $this->user['organization_id'];
@@ -363,7 +373,7 @@ class PaymentController extends ResourceController
             $invoiceModel = new InvoiceModel();
             $fullInvoice = $invoiceModel->find($invoice['id']);
             
-            if (!$fullInvoice) {
+            if (!$fullInvoice || !isset($fullInvoice['client_id'])) {
                 return false;
             }
             
