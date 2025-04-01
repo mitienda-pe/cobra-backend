@@ -993,6 +993,83 @@ paths:
                         type: integer
         '401':
           description: No autorizado
+  /instalments/{id}:
+    get:
+      summary: Obtener detalle de una cuota específica
+      description: |
+        Obtiene la información detallada de una cuota específica, incluyendo datos completos 
+        de la factura relacionada, del cliente y su contacto.
+      tags:
+        - Cuotas
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID de la cuota
+          required: true
+          schema:
+            type: integer
+        - name: include_payments
+          in: query
+          description: Incluir pagos asociados a la cuota
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: include_invoice
+          in: query
+          description: Incluir información completa de la factura (para compatibilidad)
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: include_client
+          in: query
+          description: Incluir información completa del cliente (para compatibilidad)
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Detalle de la cuota
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  instalment:
+                    $ref: '#/components/schemas/Instalment'
+                  invoice:
+                    $ref: '#/components/schemas/Invoice'
+                    description: Solo presente si include_invoice=true
+                  client:
+                    $ref: '#/components/schemas/Client'
+                    description: Solo presente si include_client=true
+                  payments:
+                    type: array
+                    description: Solo presente si include_payments=true
+                    items:
+                      $ref: '#/components/schemas/Payment'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acceso prohibido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Cuota no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /payments/search-invoices:
     get:
       summary: Buscar facturas para registrar pagos
@@ -1537,7 +1614,7 @@ components:
           example: cash
         reference_code:
           type: string
-          example: REF-12345
+          example: "REF-12345"
         payment_date:
           type: string
           format: date-time
