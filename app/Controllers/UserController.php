@@ -365,7 +365,7 @@ class UserController extends BaseController
         
         // Get portfolios assigned to this user
         $portfolioModel = new \App\Models\PortfolioModel();
-        $portfolios = $portfolioModel->getByUser($user['id']);
+        $portfolios = $portfolioModel->getByUser($user['uuid']);
         
         $data = [
             'user' => $user,
