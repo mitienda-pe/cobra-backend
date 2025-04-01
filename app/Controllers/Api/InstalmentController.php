@@ -292,6 +292,11 @@ class InstalmentController extends BaseController
                 'c.contact_name as client_contact_name',
                 'c.address as client_address',
                 'c.contact_phone as client_phone',
+                'c.email as client_email',
+                'c.ubigeo as client_ubigeo',
+                'c.zip_code as client_zip_code',
+                'c.latitude as client_latitude',
+                'c.longitude as client_longitude',
                 'c.uuid as client_uuid'
             ];
             

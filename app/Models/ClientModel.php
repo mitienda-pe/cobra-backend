@@ -14,7 +14,7 @@ class ClientModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'uuid', 'organization_id', 'external_id', 'business_name', 'legal_name', 
-        'document_number', 'contact_name', 'contact_phone', 'address', 
+        'document_number', 'contact_name', 'contact_phone', 'email', 'address', 
         'ubigeo', 'zip_code', 'latitude', 'longitude', 'status'
     ];
 

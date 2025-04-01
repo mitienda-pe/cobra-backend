@@ -110,6 +110,16 @@
 
                     <div class="row">
                         <div class="col-md-12 mb-3">
+                            <label for="email" class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control <?= session('errors.email') ? 'is-invalid' : '' ?>" id="email" name="email" value="<?= old('email') ?>">
+                            <?php if (session('errors.email')): ?>
+                                <div class="invalid-feedback"><?= session('errors.email') ?></div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
                             <label for="address" class="form-label">Dirección</label>
                             <input type="text" class="form-control <?= session('errors.address') ? 'is-invalid' : '' ?>" id="address" name="address" value="<?= old('address') ?>">
                             <?php if (session('errors.address')): ?>

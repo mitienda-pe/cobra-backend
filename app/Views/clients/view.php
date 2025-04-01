@@ -55,6 +55,9 @@
                     <dt class="col-sm-4">Teléfono</dt>
                     <dd class="col-sm-8"><?= $client['contact_phone'] ?: 'No especificado' ?></dd>
 
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8"><?= $client['email'] ?: 'No especificado' ?></dd>
+
                     <dt class="col-sm-4">Dirección</dt>
                     <dd class="col-sm-8"><?= $client['address'] ?: 'No especificada' ?></dd>
 
