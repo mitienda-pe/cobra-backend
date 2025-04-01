@@ -39,13 +39,8 @@ class InstalmentController extends BaseController
      */
     protected function getAuthUser()
     {
-        // Try to get user from request object (set by ApiAuthFilter)
-        if (property_exists($this->request, 'user')) {
-            return $this->request->user;
-        }
-        
-        // If no user, return null
-        return null;
+        // Use the auth service directly
+        return $this->auth->user();
     }
     
     /**
@@ -273,19 +268,47 @@ class InstalmentController extends BaseController
         $builder = $db->table('instalments i');
         
         // Seleccionar campos adaptándose a la estructura de la base de datos
-        // Intentar usar invoice_number si existe, de lo contrario usar number
+        // Incluir información adicional del cliente y la factura
         try {
             // Verificar si existe la columna invoice_number en la tabla invoices
             $hasInvoiceNumber = $db->fieldExists('invoice_number', 'invoices');
             
+            // Seleccionar todos los campos necesarios
+            $selectFields = [
+                'i.*', 
+                'inv.uuid as invoice_uuid',
+                'inv.concept as invoice_concept',
+                'inv.due_date as invoice_due_date',
+                'inv.issue_date as invoice_issue_date',
+                'c.business_name as client_business_name',
+                'c.document_number as client_document',
+                'c.contact_name as client_contact_name',
+                'c.address as client_address',
+                'c.contact_phone as client_phone',
+                'c.email as client_email',
+                'c.uuid as client_uuid'
+            ];
+            
+            // Añadir invoice_number o number dependiendo de la estructura
             if ($hasInvoiceNumber) {
-                $builder->select('i.*, inv.invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name, c.uuid as client_uuid');
+                $selectFields[] = 'inv.invoice_number';
             } else {
-                $builder->select('i.*, inv.number as invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name, c.uuid as client_uuid');
+                $selectFields[] = 'inv.number as invoice_number';
             }
+            
+            $builder->select(implode(', ', $selectFields));
+            
+            // Obtener el número total de cuotas por factura para incluirlo en la respuesta
+            $subquery = $db->table('instalments')
+                ->select('invoice_id, COUNT(*) as instalment_count')
+                ->groupBy('invoice_id');
+                
+            $builder->join("({$subquery->getCompiledSelect()}) as ic", 'i.invoice_id = ic.invoice_id', 'left');
+            $builder->select('IFNULL(ic.instalment_count, 0) as invoice_instalment_count');
+            
         } catch (\Exception $e) {
             // Si hay error al verificar la estructura, usar una consulta más segura
-            $builder->select('i.*, inv.uuid as invoice_uuid, c.business_name as client_name, c.uuid as client_uuid');
+            $builder->select('i.*, inv.uuid as invoice_uuid, c.business_name as client_business_name, c.uuid as client_uuid');
             log_message('error', 'Error al verificar estructura de la tabla: ' . $e->getMessage());
         }
         
@@ -475,13 +498,28 @@ class InstalmentController extends BaseController
         
         // Verificar si el cliente está en el portafolio del usuario
         $db = \Config\Database::connect();
-        $portfolioClients = $db->table('portfolio_clients')
-            ->join('portfolios', 'portfolios.id = portfolio_clients.portfolio_id')
-            ->join('portfolio_users', 'portfolios.id = portfolio_users.portfolio_id')
-            ->where('portfolio_users.user_id', $user['id'])
-            ->where('portfolio_clients.client_id', $client['id'])
+        
+        // Obtener las carteras asignadas al usuario
+        $userPortfolios = $db->table('portfolio_user')
+            ->select('portfolio_uuid')
+            ->where('user_uuid', $user['uuid'])
+            ->where('deleted_at IS NULL')
+            ->get()
+            ->getResultArray();
+            
+        if (empty($userPortfolios)) {
+            return false;
+        }
+        
+        $portfolioUuids = array_column($userPortfolios, 'portfolio_uuid');
+        
+        // Verificar si el cliente está en alguna de las carteras del usuario
+        $clientInPortfolio = $db->table('client_portfolio')
+            ->where('client_uuid', $client['uuid'])
+            ->whereIn('portfolio_uuid', $portfolioUuids)
+            ->where('deleted_at IS NULL')
             ->countAllResults();
             
-        return $portfolioClients > 0;
+        return $clientInPortfolio > 0;
     }
 }
