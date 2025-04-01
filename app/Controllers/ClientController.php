@@ -405,6 +405,11 @@ class ClientController extends BaseController
             'assignedPortfolios' => $assignedPortfolios,
             'auth' => $this->auth
         ];
+        
+        // Get organization options for dropdown (only for superadmin)
+        if ($this->auth->hasRole('superadmin')) {
+            $data['organizations'] = $this->organizationModel->getActiveOrganizations();
+        }
 
         return view('clients/edit', $data);
     }
