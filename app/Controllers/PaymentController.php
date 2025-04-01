@@ -109,6 +109,11 @@ class PaymentController extends BaseController
                         ->with('error', 'Factura no encontrada.');
                 }
                 
+                // Ensure the amount field exists for backward compatibility
+                if (!isset($invoice['amount']) && isset($invoice['total_amount'])) {
+                    $invoice['amount'] = $invoice['total_amount'];
+                }
+                
                 // Check if user has access to this invoice
                 if (!$this->hasAccessToInvoice($invoice)) {
                     return redirect()->back()->withInput()
@@ -288,6 +293,11 @@ class PaymentController extends BaseController
                 return redirect()->to('/payments')->with('error', 'Factura no encontrada.');
             }
             
+            // Ensure the amount field exists for backward compatibility
+            if (!isset($invoice['amount']) && isset($invoice['total_amount'])) {
+                $invoice['amount'] = $invoice['total_amount'];
+            }
+            
             // Check if user has access to this invoice
             if (!$this->hasAccessToInvoice($invoice)) {
                 return redirect()->to('/payments')->with('error', 'No tiene permisos para registrar pagos para esta factura.');
@@ -307,7 +317,7 @@ class PaymentController extends BaseController
             $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
             $invoice['total_paid'] = floatval($paymentInfo['total_paid']);
             $invoice['remaining_amount'] = floatval($paymentInfo['remaining']);
-            $invoice['amount'] = floatval($invoice['total_amount'] ?? $invoice['amount'] ?? $paymentInfo['invoice_amount']);
+            $invoice['amount'] = floatval($invoice['total_amount'] ?? $paymentInfo['invoice_amount']);
             
             $data['invoice'] = $invoice;
             $data['payment_info'] = $paymentInfo;

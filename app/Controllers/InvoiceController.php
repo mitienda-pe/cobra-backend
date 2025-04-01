@@ -378,6 +378,11 @@ class InvoiceController extends Controller
             'instalment_interval' => $instalmentInterval,
             'validation' => \Config\Services::validation()
         ];
+        
+        // Ensure the amount field exists for backward compatibility with the view
+        if (!isset($data['invoice']['amount'])) {
+            $data['invoice']['amount'] = $invoice['total_amount'] ?? 0;
+        }
 
         return view('invoices/edit', $data);
     }
