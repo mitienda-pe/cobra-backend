@@ -352,24 +352,46 @@ class PaymentController extends ResourceController
             return false;
         }
         
+        // Check if user has role and organization_id
+        if (!isset($this->user['role'])) {
+            return false;
+        }
+        
         if ($this->user['role'] === 'superadmin' || $this->user['role'] === 'admin') {
             // Admins and superadmins can access any invoice in their organization
+            // Check if organization_id exists in user data
+            if (!isset($this->user['organization_id'])) {
+                return false;
+            }
             return $invoice['organization_id'] == $this->user['organization_id'];
         } else {
             // For regular users, check if they have access to the client through portfolios
+            if (!isset($this->user['id'])) {
+                return false;
+            }
+            
             $portfolioModel = new PortfolioModel();
             $portfolios = $portfolioModel->getByUser($this->user['id']);
             
             // Get all client IDs from user's portfolios
             $clientIds = [];
             foreach ($portfolios as $portfolio) {
+                if (!isset($portfolio['id'])) {
+                    continue;
+                }
                 $clients = $portfolioModel->getAssignedClients($portfolio['id']);
                 foreach ($clients as $client) {
-                    $clientIds[] = $client['id'];
+                    if (isset($client['id'])) {
+                        $clientIds[] = $client['id'];
+                    }
                 }
             }
             
             // Check if invoice's client is in user's portfolios
+            if (!isset($invoice['id'])) {
+                return false;
+            }
+            
             $invoiceModel = new InvoiceModel();
             $fullInvoice = $invoiceModel->find($invoice['id']);
             
