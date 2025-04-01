@@ -459,6 +459,10 @@ class PaymentController extends BaseController
             return redirect()->to('/payments')->with('error', 'Factura asociada no encontrada');
         }
         
+        // Calculate remaining amount and ensure amount field exists
+        $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
+        $invoice['amount'] = floatval($invoice['total_amount'] ?? $paymentInfo['invoice_amount']);
+        
         // Get client information
         $clientModel = new ClientModel();
         $client = $clientModel->find($invoice['client_id']);
