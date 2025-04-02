@@ -100,6 +100,12 @@ class PaymentModel extends Model
                 log_message('info', 'Calculated invoice amount: ' . $invoice['amount'] . ' for invoice ID: ' . $invoice['id']);
             }
             
+            // Asegurarse de que invoice_number esté definido
+            if (!isset($invoice['invoice_number']) || $invoice['invoice_number'] === null) {
+                $invoice['invoice_number'] = isset($invoice['number']) ? $invoice['number'] : 'N/A';
+                log_message('info', 'Using alternative invoice number: ' . $invoice['invoice_number'] . ' for invoice ID: ' . $invoice['id']);
+            }
+            
             // Calculate total paid amount including this new payment
             $totalPaid = $data['data']['amount'];
             
