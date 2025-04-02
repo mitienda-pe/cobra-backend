@@ -358,10 +358,12 @@ class PaymentController extends ResourceController
             'amount'          => $this->request->getVar('amount'),
             'payment_date'    => $this->request->getVar('payment_date'),
             'payment_method'  => $this->request->getVar('payment_method'),
-            'status'          => 'pending',
+            'status'          => 'completed',
             'notes'           => $this->request->getVar('notes'),
             'registered_by'   => $this->user['id']
         ];
+        
+        log_message('debug', 'Registrando pago con estado: completed');
         
         $paymentId = $this->paymentModel->insert($data);
         

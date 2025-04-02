@@ -29,6 +29,7 @@ class CsrfExceptFilter implements FilterInterface
         $excludedRoutes = [
             'clients/import',
             'invoices/import',
+            'api/'  // Excluir todas las rutas de la API
         ];
 
         // Get current URI path
