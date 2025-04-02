@@ -187,6 +187,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('create/(:segment)/(:num)', 'PaymentController::create/$1/$2');
         $routes->post('create', 'PaymentController::create');
         $routes->get('view/(:segment)', 'PaymentController::view/$1');
+        $routes->get('delete/(:segment)', 'PaymentController::delete/$1');
         $routes->get('search-invoices', 'PaymentController::searchInvoices');
     });
 
