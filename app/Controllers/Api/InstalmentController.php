@@ -272,10 +272,7 @@ class InstalmentController extends BaseController
         
         // Preparar la consulta base
         $db = \Config\Database::connect();
-        $builder = $db->table('instalments i');
         
-        // Seleccionar campos adaptándose a la estructura de la base de datos
-        // Incluir información adicional del cliente y la factura
         try {
             // Verificar si existe la columna invoice_number en la tabla invoices
             $hasInvoiceNumber = $db->fieldExists('invoice_number', 'invoices');
@@ -307,117 +304,159 @@ class InstalmentController extends BaseController
                 $selectFields[] = 'inv.number as invoice_number';
             }
             
-            $builder->select(implode(', ', $selectFields));
+            // Construir la lista de campos para la consulta
+            $selectFieldsStr = implode(', ', $selectFields);
             
             // Obtener el número total de cuotas por factura para incluirlo en la respuesta
-            $subquery = $db->table('instalments')
+            $countSubquery = $db->table('instalments')
                 ->select('invoice_id, COUNT(*) as instalment_count')
-                ->groupBy('invoice_id');
-                
-            $builder->join("({$subquery->getCompiledSelect()}) as ic", 'i.invoice_id = ic.invoice_id', 'left');
-            $builder->select('IFNULL(ic.instalment_count, 0) as invoice_instalment_count');
+                ->groupBy('invoice_id')
+                ->getCompiledSelect();
             
-        } catch (\Exception $e) {
-            // Si hay error al verificar la estructura, usar una consulta más segura
-            $builder->select('i.*, inv.uuid as invoice_uuid, c.business_name as client_business_name, c.uuid as client_uuid');
-            log_message('error', 'Error al verificar estructura de la tabla: ' . $e->getMessage());
-        }
-        
-        $builder->join('invoices inv', 'i.invoice_id = inv.id');
-        $builder->join('clients c', 'inv.client_id = c.id');
-        $builder->where('i.deleted_at IS NULL');
-        $builder->where('inv.deleted_at IS NULL');
-        $builder->where('c.deleted_at IS NULL');
-        
-        // Si el usuario no es superadmin o admin, filtrar por sus carteras
-        if (!$this->auth->hasRole('superadmin') && !$this->auth->hasRole('admin')) {
-            // Obtener las carteras asignadas al usuario
-            $userPortfolios = $db->table('portfolio_user')
-                ->select('portfolio_uuid')
-                ->where('user_uuid', $user['uuid'])
-                ->where('deleted_at IS NULL')
-                ->get()
-                ->getResultArray();
-                
-            if (empty($userPortfolios)) {
-                return $this->respond([
-                    'status' => 'success',
-                    'data' => []
-                ]);
+            // Construir una subconsulta para obtener la cuota más antigua pendiente por factura
+            // Esta subconsulta selecciona el ID de la cuota con el número más bajo (más antigua) 
+            // que aún no ha sido pagada para cada factura
+            $oldestInstalmentSubquery = $db->table('instalments i2')
+                ->select('MIN(i2.id) as id')
+                ->where('i2.status', 'pending')
+                ->where('i2.deleted_at IS NULL');
+            
+            // Añadir condición de fecha de vencimiento si es necesario
+            $today = date('Y-m-d');
+            if ($dueDate === 'overdue') {
+                $oldestInstalmentSubquery->where('i2.due_date <', $today);
+            } else if ($dueDate === 'upcoming') {
+                $oldestInstalmentSubquery->where('i2.due_date >=', $today);
             }
             
-            $portfolioUuids = array_column($userPortfolios, 'portfolio_uuid');
+            $oldestInstalmentSubquery->groupBy('i2.invoice_id');
+            $oldestInstalmentSubqueryStr = $oldestInstalmentSubquery->getCompiledSelect();
             
-            // Obtener los clientes en esas carteras
-            $clientsInPortfolios = $db->table('client_portfolio cp')
-                ->select('c.id')
-                ->join('clients c', 'cp.client_uuid = c.uuid')
-                ->whereIn('cp.portfolio_uuid', $portfolioUuids)
-                ->where('cp.deleted_at IS NULL')
-                ->where('c.deleted_at IS NULL')
-                ->get()
-                ->getResultArray();
-                
-            if (empty($clientsInPortfolios)) {
-                return $this->respond([
-                    'status' => 'success',
-                    'data' => []
-                ]);
-            }
+            // Consulta principal que une la subconsulta de la cuota más antigua
+            $builder = $db->table('instalments i');
+            $builder->select("$selectFieldsStr, IFNULL(ic.instalment_count, 0) as invoice_instalment_count");
+            $builder->join('invoices inv', 'i.invoice_id = inv.id');
+            $builder->join('clients c', 'inv.client_id = c.id');
+            $builder->join("($countSubquery) as ic", 'i.invoice_id = ic.invoice_id', 'left');
+            // Unir con la subconsulta para obtener solo las cuotas más antiguas pendientes
+            $builder->join("($oldestInstalmentSubqueryStr) as oldest", 'i.id = oldest.id', 'inner');
             
-            $clientIds = array_column($clientsInPortfolios, 'id');
-            $builder->whereIn('c.id', $clientIds);
-        }
-        
-        // Filtrar por cartera específica si se proporciona
-        if ($portfolioUuid) {
-            try {
-                // Obtener los clientes en esa cartera
-                $clientsInPortfolio = $db->table('client_portfolio cp')
-                    ->select('c.id')
-                    ->join('clients c', 'cp.client_uuid = c.uuid')
-                    ->where('cp.portfolio_uuid', $portfolioUuid)
-                    ->where('cp.deleted_at IS NULL')
-                    ->where('c.deleted_at IS NULL')
+            $builder->where('i.deleted_at IS NULL');
+            $builder->where('inv.deleted_at IS NULL');
+            $builder->where('c.deleted_at IS NULL');
+            
+            // Si el usuario no es superadmin o admin, filtrar por sus carteras
+            if (!$this->auth->hasRole('superadmin') && !$this->auth->hasRole('admin')) {
+                // Obtener las carteras asignadas al usuario
+                $userPortfolios = $db->table('portfolio_user')
+                    ->select('portfolio_uuid')
+                    ->where('user_uuid', $user['uuid'])
+                    ->where('deleted_at IS NULL')
                     ->get()
                     ->getResultArray();
                     
-                if (empty($clientsInPortfolio)) {
+                if (empty($userPortfolios)) {
                     return $this->respond([
                         'status' => 'success',
                         'data' => []
                     ]);
                 }
                 
-                $clientIds = array_column($clientsInPortfolio, 'id');
+                $portfolioUuids = array_column($userPortfolios, 'portfolio_uuid');
+                
+                // Obtener los clientes en esas carteras
+                $clientsInPortfolios = $db->table('client_portfolio cp')
+                    ->select('c.id')
+                    ->join('clients c', 'cp.client_uuid = c.uuid')
+                    ->whereIn('cp.portfolio_uuid', $portfolioUuids)
+                    ->where('cp.deleted_at IS NULL')
+                    ->where('c.deleted_at IS NULL')
+                    ->get()
+                    ->getResultArray();
+                    
+                if (empty($clientsInPortfolios)) {
+                    return $this->respond([
+                        'status' => 'success',
+                        'data' => []
+                    ]);
+                }
+                
+                $clientIds = array_column($clientsInPortfolios, 'id');
                 $builder->whereIn('c.id', $clientIds);
-            } catch (\Exception $e) {
-                log_message('error', 'Error al filtrar por cartera: ' . $e->getMessage());
-                return $this->respond([
-                    'status' => 'success',
-                    'data' => []
-                ]);
+            }
+            
+            // Filtrar por cartera específica si se proporciona
+            if ($portfolioUuid) {
+                try {
+                    // Obtener los clientes en esa cartera
+                    $clientsInPortfolio = $db->table('client_portfolio cp')
+                        ->select('c.id')
+                        ->join('clients c', 'cp.client_uuid = c.uuid')
+                        ->where('cp.portfolio_uuid', $portfolioUuid)
+                        ->where('cp.deleted_at IS NULL')
+                        ->where('c.deleted_at IS NULL')
+                        ->get()
+                        ->getResultArray();
+                        
+                    if (empty($clientsInPortfolio)) {
+                        return $this->respond([
+                            'status' => 'success',
+                            'data' => []
+                        ]);
+                    }
+                    
+                    $clientIds = array_column($clientsInPortfolio, 'id');
+                    $builder->whereIn('c.id', $clientIds);
+                } catch (\Exception $e) {
+                    log_message('error', 'Error al filtrar por cartera: ' . $e->getMessage());
+                    return $this->respond([
+                        'status' => 'success',
+                        'data' => []
+                    ]);
+                }
+            }
+            
+            // Ordenar por fecha de vencimiento (más próximas primero)
+            $builder->orderBy('i.due_date', 'ASC');
+            
+            // Ejecutar la consulta
+            $instalments = $builder->get()->getResultArray();
+            
+        } catch (\Exception $e) {
+            // Si hay error en la consulta avanzada, intentar con una consulta más simple
+            log_message('error', 'Error en consulta avanzada de cuotas: ' . $e->getMessage());
+            
+            // Consulta simple como fallback
+            $builder = $db->table('instalments i');
+            $builder->select('i.*, inv.uuid as invoice_uuid, c.business_name as client_business_name, c.uuid as client_uuid');
+            $builder->join('invoices inv', 'i.invoice_id = inv.id');
+            $builder->join('clients c', 'inv.client_id = c.id');
+            $builder->where('i.status', 'pending');
+            $builder->where('i.deleted_at IS NULL');
+            $builder->orderBy('i.due_date', 'ASC');
+            
+            // Ejecutar la consulta simple
+            $allInstalments = $builder->get()->getResultArray();
+            
+            // Filtrar manualmente para obtener solo la cuota más antigua por factura
+            $processedInvoices = [];
+            $instalments = [];
+            
+            foreach ($allInstalments as $instalment) {
+                $invoiceId = $instalment['invoice_id'];
+                
+                // Si esta factura ya fue procesada, omitir esta cuota
+                if (in_array($invoiceId, $processedInvoices)) {
+                    continue;
+                }
+                
+                // Marcar esta factura como procesada
+                $processedInvoices[] = $invoiceId;
+                
+                // Añadir esta cuota al resultado
+                $instalments[] = $instalment;
             }
         }
-        
-        // Filtrar por estado
-        if ($status !== 'all') {
-            $builder->where('i.status', $status);
-        }
-        
-        // Filtrar por fecha de vencimiento
-        $today = date('Y-m-d');
-        if ($dueDate === 'overdue') {
-            $builder->where('i.due_date <', $today);
-        } else if ($dueDate === 'upcoming') {
-            $builder->where('i.due_date >=', $today);
-        }
-        
-        // Ordenar por fecha de vencimiento (más próximas primero)
-        $builder->orderBy('i.due_date', 'ASC');
-        
-        // Ejecutar la consulta
-        $instalments = $builder->get()->getResultArray();
         
         return $this->respond([
             'status' => 'success',
