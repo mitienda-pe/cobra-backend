@@ -77,7 +77,27 @@ class PaymentModel extends Model
             $invoice = $invoiceModel->find($data['data']['invoice_id']);
             
             if (!$invoice) {
+                log_message('error', 'Invoice not found for payment: ' . json_encode($data['data']));
                 return $data;
+            }
+            
+            // Asegurarse de que el monto de la factura esté definido
+            if (!isset($invoice['amount']) || $invoice['amount'] === null) {
+                // Intentar usar total_amount si está disponible
+                if (isset($invoice['total_amount']) && $invoice['total_amount'] !== null) {
+                    $invoice['amount'] = $invoice['total_amount'];
+                } else {
+                    // Calcular el total de las cuotas si no hay un monto definido
+                    $instalmentModel = new InstalmentModel();
+                    $instalments = $instalmentModel->where('invoice_id', $invoice['id'])->findAll();
+                    $totalAmount = 0;
+                    foreach ($instalments as $instalment) {
+                        $totalAmount += $instalment['amount'];
+                    }
+                    $invoice['amount'] = $totalAmount;
+                }
+                
+                log_message('info', 'Calculated invoice amount: ' . $invoice['amount'] . ' for invoice ID: ' . $invoice['id']);
             }
             
             // Calculate total paid amount including this new payment
