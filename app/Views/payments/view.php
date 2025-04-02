@@ -113,7 +113,7 @@
                 </a>
                 
                 <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                    <button type="button" class="btn btn-danger" onclick="confirmDelete(<?= $payment['id'] ?>)">
+                    <button type="button" class="btn btn-danger" onclick="confirmDelete('<?= $payment['uuid'] ?>')">
                         Eliminar Pago
                     </button>
                 <?php endif; ?>
@@ -203,8 +203,8 @@
 </div>
 
 <script>
-    function confirmDelete(id) {
-        document.getElementById('deleteLink').href = '<?= site_url('payments/delete/') ?>' + id;
+    function confirmDelete(uuid) {
+        document.getElementById('deleteLink').href = '<?= site_url('payments/delete/') ?>' + uuid;
         
         var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
         modal.show();

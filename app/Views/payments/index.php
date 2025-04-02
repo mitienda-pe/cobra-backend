@@ -86,7 +86,7 @@
                                         </a>
 
                                         <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-                                            <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete(<?= $payment['id'] ?>)">
+                                            <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete('<?= $payment['uuid'] ?>')">
                                                 <i class="bi bi-trash"></i> Eliminar
                                             </button>
                                         <?php endif; ?>
@@ -127,8 +127,8 @@
 
 <?= $this->section('scripts') ?>
 <script>
-    function confirmDelete(id) {
-        document.getElementById('deleteLink').href = '<?= site_url('payments/delete/') ?>' + id;
+    function confirmDelete(uuid) {
+        document.getElementById('deleteLink').href = '<?= site_url('payments/delete/') ?>' + uuid;
         var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
         deleteModal.show();
     }

@@ -510,18 +510,19 @@ class PaymentController extends BaseController
         return view('payments/view', $data);
     }
     
-    public function delete($id = null)
+    public function delete($uuid = null)
     {
         // Only admins and superadmins can delete payments
         if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
             return redirect()->to('/payments')->with('error', 'No tiene permisos para eliminar pagos.');
         }
         
-        if (!$id) {
+        if (!$uuid) {
             return redirect()->to('/payments')->with('error', 'ID de pago no especificado');
         }
         
-        $payment = $this->paymentModel->find($id);
+        // Buscar el pago por UUID en lugar de ID
+        $payment = $this->paymentModel->where('uuid', $uuid)->first();
         
         if (!$payment) {
             return redirect()->to('/payments')->with('error', 'Pago no encontrado');
@@ -533,7 +534,7 @@ class PaymentController extends BaseController
             $db->transStart();
             
             // Delete payment
-            $this->paymentModel->delete($id);
+            $this->paymentModel->delete($payment['id']);
             
             // Update invoice status
             $invoiceModel = new InvoiceModel();
