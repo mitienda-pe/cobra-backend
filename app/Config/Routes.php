@@ -99,6 +99,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     $routes->match(['get', 'options'], 'payments/search-invoices', 'PaymentController::searchInvoices');
     $routes->match(['post', 'options'], 'payments/register', 'PaymentController::registerMobilePayment');
     $routes->match(['get', 'options'], 'payments/generate-qr/(:num)', 'PaymentController::generateQR/$1');
+    
+    // Ligo Payment Routes
+    $routes->match(['get', 'options'], 'ligo/generate-qr/(:num)', 'LigoPaymentController::generateQR/$1');
+    $routes->match(['get', 'options'], 'ligo/generate-static-qr/(:segment)', 'LigoPaymentController::generateStaticQR/$1');
 
     // Invoice Routes
     $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index');

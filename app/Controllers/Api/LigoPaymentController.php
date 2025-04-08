@@ -87,6 +87,97 @@ class LigoPaymentController extends ResourceController
     }
     
     /**
+     * Generate static QR code for organization via mobile app
+     * This QR code doesn't have a predefined amount and can be used for multiple payments
+     *
+     * @param string $organizationId
+     * @return mixed
+     */
+    public function generateStaticQR($organizationId = null)
+    {
+        if (!$organizationId) {
+            return $this->failValidationErrors('Organization ID is required');
+        }
+        
+        // Get organization details
+        $organization = $this->organizationModel->find($organizationId);
+        
+        if (!$organization) {
+            // Try to find by UUID
+            $organization = $this->organizationModel->where('uuid', $organizationId)->first();
+            
+            if (!$organization) {
+                return $this->fail('Organization not found', 404);
+            }
+        }
+        
+        // Check if user has access to this organization
+        if (!$this->canAccessOrganization($organization)) {
+            return $this->failForbidden('You do not have access to this organization');
+        }
+        
+        // Check if Ligo is enabled for this organization
+        if (!isset($organization['ligo_enabled']) || !$organization['ligo_enabled']) {
+            return $this->fail('Ligo payments not enabled for this organization', 400);
+        }
+        
+        // Check if Ligo credentials are configured
+        if (empty($organization['ligo_username']) || empty($organization['ligo_password']) || empty($organization['ligo_company_id'])) {
+            return $this->fail('Ligo API credentials not configured', 400);
+        }
+        
+        // Prepare order data for Ligo
+        $orderData = [
+            'amount' => null, // No amount for static QR
+            'currency' => 'PEN',
+            'orderId' => 'static-' . $organization['id'] . '-' . time(),
+            'description' => 'QR Estático para ' . $organization['name'],
+            'qr_type' => 'static'
+        ];
+        
+        // Create order in Ligo
+        $response = $this->createLigoOrder($orderData, $organization);
+        
+        if (isset($response->error)) {
+            return $this->fail($response->error, 400);
+        }
+        
+        return $this->respond([
+            'success' => true,
+            'organization_name' => $organization['name'],
+            'qr_data' => $response->qr_data ?? null,
+            'qr_image_url' => $response->qr_image_url ?? null,
+            'order_id' => $response->order_id ?? null
+        ]);
+    }
+    
+    /**
+     * Check if user can access organization
+     *
+     * @param array $organization
+     * @return bool
+     */
+    private function canAccessOrganization($organization)
+    {
+        // Superadmin can access any organization
+        if ($this->user['role'] === 'superadmin') {
+            return true;
+        }
+        
+        // Admin can access their own organization
+        if ($this->user['role'] === 'admin' && $this->user['organization_id'] == $organization['id']) {
+            return true;
+        }
+        
+        // Regular users can access their organization
+        if ($this->user['organization_id'] == $organization['id']) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
      * Create order in Ligo API
      *
      * @param array $data Order data

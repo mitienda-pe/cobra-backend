@@ -1249,6 +1249,115 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+                
+  /ligo/generate-qr/{id}:
+    get:
+      summary: Generar código QR dinámico para pago Ligo
+      description: Genera un código QR dinámico (con monto fijo) para realizar un pago mediante Ligo
+      tags:
+        - Pagos
+        - Ligo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID de la factura
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Código QR generado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  qr_data:
+                    type: string
+                    example: "00020101021226580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426655440000"
+                  qr_image_url:
+                    type: string
+                    format: uri
+                    example: "https://api.ligo.pe/v1/qr/123456789"
+                  order_id:
+                    type: string
+                    example: "ORD-123456"
+                  expiration:
+                    type: string
+                    format: date-time
+                    example: "2025-03-28T12:30:00Z"
+        '400':
+          description: Error al generar código QR
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+  /ligo/generate-static-qr/{id}:
+    get:
+      summary: Generar código QR estático para pago Ligo
+      description: |
+        Genera un código QR estático (sin monto predefinido) para realizar múltiples pagos mediante Ligo.
+        Este QR puede ser utilizado repetidamente y el usuario ingresa el monto al momento del pago.
+      tags:
+        - Pagos
+        - Ligo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID o UUID de la organización
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Código QR estático generado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  organization_name:
+                    type: string
+                    example: "Empresa ABC"
+                  qr_data:
+                    type: string
+                    example: "00020101021226580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426655440000"
+                  qr_image_url:
+                    type: string
+                    format: uri
+                    example: "https://api.ligo.pe/v1/qr/123456789"
+                  order_id:
+                    type: string
+                    example: "STATIC-123456"
+        '400':
+          description: Error al generar código QR estático
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: No tiene permisos para acceder a esta organización
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organización no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           description: No autorizado
           content:
