@@ -36,6 +36,10 @@ $routes->get('debug/csrf', 'Debug::csrf');
 $routes->get('debug/db-test', 'Debug::dbTest');
 $routes->get('debug/test-api', 'Debug::testApi');
 
+// Ligo Debug Routes
+$routes->get('debug/ligo/status', 'DebugController::ligoStatus');
+$routes->get('debug/ligo/enable', 'DebugController::enableLigo');
+
 // API Routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth Public Routes

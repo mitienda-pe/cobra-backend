@@ -110,10 +110,21 @@ class LigoQRController extends Controller
             $paymentDescription = 'Pago de cuota ' . $instalment['number'] . ' de factura ' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A');
         }
 
-        // Check if Ligo is enabled for this organization
-        if (!isset($organization['ligo_enabled']) || !$organization['ligo_enabled']) {
-            // Si Ligo no está habilitado, usar un QR de demostración temporal
-            log_message('info', 'Ligo no está habilitado para la organización ID: ' . $organization['id'] . '. Usando QR de demostración.');
+        // Check if Ligo is enabled for this organization and has valid credentials
+        $ligoEnabled = isset($organization['ligo_enabled']) && $organization['ligo_enabled'];
+        $hasValidCredentials = !empty($organization['ligo_username']) && 
+                              !empty($organization['ligo_password']) && 
+                              !empty($organization['ligo_company_id']);
+        $hasValidToken = !empty($organization['ligo_token']) && 
+                         !empty($organization['ligo_token_expiry']) && 
+                         strtotime($organization['ligo_token_expiry']) > time();
+        
+        if (!$ligoEnabled || (!$hasValidCredentials && !$hasValidToken)) {
+            // Si Ligo no está habilitado o no hay credenciales válidas, usar un QR de demostración temporal
+            log_message('info', 'Ligo no está configurado correctamente para la organización ID: ' . $organization['id'] . '. Usando QR de demostración.');
+            log_message('debug', 'Estado Ligo: habilitado=' . ($ligoEnabled ? 'Sí' : 'No') . 
+                                ', credenciales=' . ($hasValidCredentials ? 'Sí' : 'No') . 
+                                ', token=' . ($hasValidToken ? 'Sí' : 'No'));
 
             // Prepare demo QR data
             return $this->response->setJSON([

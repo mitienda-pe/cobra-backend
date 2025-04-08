@@ -179,9 +179,8 @@ class OrganizationController extends BaseController
             $data['ligo_private_key'] = $postData['ligo_private_key'];
         }
         
-        // Si Ligo está habilitado y se proporcionan credenciales, probar la autenticación
-        if ($data['ligo_enabled'] && 
-            !empty($data['ligo_username']) && 
+        // Si se proporcionan credenciales, probar la autenticación independientemente del estado de ligo_enabled
+        if (!empty($data['ligo_username']) && 
             (!empty($data['ligo_password']) || !empty($organization['ligo_password'])) && 
             !empty($data['ligo_company_id'])) {
             
@@ -205,7 +204,10 @@ class OrganizationController extends BaseController
                 $data['ligo_token_expiry'] = $authResult['expiry'];
                 $data['ligo_auth_error'] = null;
                 
-                log_message('info', 'Autenticación con Ligo exitosa. Token guardado.');
+                // Si las credenciales son válidas, habilitar Ligo automáticamente
+                $data['ligo_enabled'] = 1;
+                
+                log_message('info', 'Autenticación con Ligo exitosa. Token guardado y Ligo habilitado.');
             } else {
                 // Guardar el error de autenticación
                 $data['ligo_auth_error'] = $authResult['error'] ?? 'Error desconocido';
