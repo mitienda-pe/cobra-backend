@@ -1327,7 +1327,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
                 
-  /payments/generate-static-qr/{id}:
+  /ligo/generate-static-qr/{id}:
     get:
       summary: Generar código QR estático para pago Ligo
       description: |
