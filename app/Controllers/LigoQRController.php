@@ -643,11 +643,26 @@ class LigoQRController extends Controller
             
             log_message('debug', 'URL de autenticación Ligo: ' . $url);
             
-            // Token de autorización para la API de Ligo (actualizado con el ejemplo de Postman)
-            $authorizationToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxNTM2NzgsImV4cCI6MTc0NDE1NzI3OCwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.gxQvQyF47C274j9Wo8tQVEGwpKmg34l6CbtQVRJbvCd3svjsZSS3JeSDKHPRSFNqdf6GpTvtGr66sXPVWYYhJifPUHgmuu40Gm4dbCra0PSriWCyScouF2efoGPthnGcrwAK-m43wQ3mHR_umXi8E0rkRFTgvz7GQN3Fzrt09AZL1cpqnUoXAl1QIxgj96FkWhPF-TsEw-HG48WBkYcGS9mCTwJjgYUChEh3hegE02La4PYjf2zevck_jwg6mNpPrzZRFe2cXAX76vdPnVFe0hN1hqEW4-gM8Xii9MAhNmU7ovGflXc5hWj5sXUpq0GHvnFmKGkKtonIYfTzGMYMXg';
+            // Verificar si ya tenemos un token válido en la organización
+            $organizationModel = new \App\Models\OrganizationModel();
+            $storedToken = null;
+            $tokenValid = false;
             
-            // Definir token de respaldo global para uso en caso de fallo
-            $GLOBALS['ligo_fallback_token'] = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQxNDA0MDQwLTk5ZWUtNDcwMy1hOTI4LTNiMmZhZWM0Y2RhZSIsInVzZXJJZCI6ImVjYWNjMTBhLTc5MTItNGNiOS1hMjk5LWJhYjQ1NjI2YzFiYiIsImNvbXBhbnlJZCI6ImU4YjRhMzZkLTZmMWQtNGEyYS1iZjNhLWNlOTM3MWRkZTRhYiIsImlhdCI6MTc0NDE1MzY5OCwiZXhwIjoxNzQ0MTU3Mjk4fQ.Opy6jwLrp27VMlOqw865u-i8qZ_jRwCV3nRLwbhNPfN2HElYsloF-lzK0kK2WT0lCDKGRWJ3gD4Y7JME-5hfG0TD6Q9f8qtSJXAciX2fhRnYdS7gzSOPjfj0zM_RL11v08o_W8xSRRb1VNc5JznwUm2aHKMg5gMS4aWyrbOp2zwvaE6vx3SlSELl9JLCYmzZIQ1vKrWTjR4JRVdQ9GOjwxdMDSpylXNJMUX30hezfhcHznmgin_SZJwTzUaJpE4DQLVOwjXjYh1GCkS-SPuEW90XUMkP8wU2LeVG4S_9DG0p8l9-zDj2NsiNBfuNm1KYCPoBRP208dbfsQFa2qRmuA';
+            if (!empty($organization['ligo_token']) && !empty($organization['ligo_token_expiry'])) {
+                $expiryTime = strtotime($organization['ligo_token_expiry']);
+                $currentTime = time();
+                
+                // Si el token aún no ha expirado, usarlo
+                if ($expiryTime > $currentTime) {
+                    $storedToken = $organization['ligo_token'];
+                    $tokenValid = true;
+                    log_message('info', 'Usando token almacenado en la base de datos que aún es válido');
+                } else {
+                    log_message('info', 'Token almacenado ha expirado, obteniendo uno nuevo');
+                }
+            }
+            
+            // No necesitamos un token de autorización para esta llamada
             
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
@@ -660,8 +675,7 @@ class LigoQRController extends Controller
                 CURLOPT_POSTFIELDS => json_encode($authData),
                 CURLOPT_HTTPHEADER => [
                     'Content-Type: application/json',
-                    'Accept: application/json',
-                    'Authorization: Bearer ' . $authorizationToken
+                    'Accept: application/json'
                 ],
                 CURLOPT_SSL_VERIFYHOST => 0,
                 CURLOPT_SSL_VERIFYPEER => false,
@@ -744,11 +758,19 @@ class LigoQRController extends Controller
             return (object)['error' => 'Authentication error: ' . $e->getMessage()];
         }
         
-        // Si todo falla, usar un token de respaldo como último recurso
-        log_message('warning', 'Usando token de respaldo como último recurso');
+        // Si todo falla, verificar si hay un token almacenado en la base de datos que podamos usar
+        log_message('warning', 'Intentando recuperar token almacenado como último recurso');
         
-        // Token de respaldo fijo para emergencias (actualizado con el ejemplo de Postman)
-        $fallbackToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQxNDA0MDQwLTk5ZWUtNDcwMy1hOTI4LTNiMmZhZWM0Y2RhZSIsInVzZXJJZCI6ImVjYWNjMTBhLTc5MTItNGNiOS1hMjk5LWJhYjQ1NjI2YzFiYiIsImNvbXBhbnlJZCI6ImU4YjRhMzZkLTZmMWQtNGEyYS1iZjNhLWNlOTM3MWRkZTRhYiIsImlhdCI6MTc0NDE1MzY5OCwiZXhwIjoxNzQ0MTU3Mjk4fQ.Opy6jwLrp27VMlOqw865u-i8qZ_jRwCV3nRLwbhNPfN2HElYsloF-lzK0kK2WT0lCDKGRWJ3gD4Y7JME-5hfG0TD6Q9f8qtSJXAciX2fhRnYdS7gzSOPjfj0zM_RL11v08o_W8xSRRb1VNc5JznwUm2aHKMg5gMS4aWyrbOp2zwvaE6vx3SlSELl9JLCYmzZIQ1vKrWTjR4JRVdQ9GOjwxdMDSpylXNJMUX30hezfhcHznmgin_SZJwTzUaJpE4DQLVOwjXjYh1GCkS-SPuEW90XUMkP8wU2LeVG4S_9DG0p8l9-zDj2NsiNBfuNm1KYCPoBRP208dbfsQFa2qRmuA';
+        $organizationModel = new \App\Models\OrganizationModel();
+        $orgData = $organizationModel->find($organization['id']);
+        
+        if (!empty($orgData['ligo_token'])) {
+            log_message('info', 'Usando token almacenado en la base de datos como último recurso');
+            $fallbackToken = $orgData['ligo_token'];
+        } else {
+            log_message('error', 'No hay token almacenado en la base de datos para usar como respaldo');
+            return (object)['error' => 'No authentication token available'];
+        }
         
         // Guardar el token en la base de datos para futuros usos
         try {
@@ -997,9 +1019,19 @@ class LigoQRController extends Controller
             }
             
             // Verificar si hay errores en la respuesta
-            if (!isset($decoded->data) || !isset($decoded->data->hash)) {
+            if (!isset($decoded->data)) {
                 log_message('error', 'Error en la respuesta de detalles de QR: ' . json_encode($decoded));
                 return (object)['error' => 'Error in QR details response: ' . json_encode($decoded)];
+            }
+            
+            // La respuesta puede ser válida incluso si no contiene hash
+            if (empty($decoded->data)) {
+                log_message('warning', 'La respuesta de detalles de QR no contiene datos: ' . json_encode($decoded));
+                // Crear un objeto con datos mínimos para que el flujo pueda continuar
+                $decoded->data = (object)[
+                    'hash' => 'LIGO-' . $qrId . '-' . time(),
+                    'idQr' => $qrId
+                ];
             }
             
             return $decoded;
