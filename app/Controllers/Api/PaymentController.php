@@ -37,44 +37,8 @@ class PaymentController extends ResourceController
         $this->paymentModel = new \App\Models\PaymentModel();
     }
     
-    /**
-     * Generate QR code for invoice payment via mobile app
-     * This method delegates to LigoPaymentController for compatibility
-     *
-     * @param string $invoiceId
-     * @return mixed
-     */
-    public function generateQR($invoiceId = null)
-    {
-        log_message('info', 'PaymentController::generateQR called with invoiceId: ' . $invoiceId);
-        
-        // Create instance of LigoPaymentController
-        $ligoController = new \App\Controllers\Api\LigoPaymentController();
-        
-        // Delegate to LigoPaymentController's generateQR method
-        return $ligoController->generateQR($invoiceId);
-    }
-    
-    /**
-     * Generate QR code for instalment payment via mobile app
-     *
-     * @param string $instalmentId
-     * @return mixed
-     */
-    public function generateInstalmentQR($instalmentId = null)
-    {
-        log_message('info', 'PaymentController::generateInstalmentQR called with instalmentId: ' . $instalmentId);
-        
-        if (!$instalmentId) {
-            return $this->fail('Instalment ID is required', 400);
-        }
-        
-        // Create instance of LigoPaymentController
-        $ligoController = new \App\Controllers\Api\LigoPaymentController();
-        
-        // Delegate to LigoPaymentController's generateInstalmentQR method
-        return $ligoController->generateInstalmentQR($instalmentId);
-    }
+    // Los métodos de generación de QR se han movido a LigoPaymentController
+    // para evitar redundancia y mantener un único punto de entrada
     
     /**
      * List payments based on user role and filters
