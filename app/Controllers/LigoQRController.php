@@ -441,14 +441,29 @@ class LigoQRController extends Controller
             $curl = curl_init();
             
             // Datos de autenticación según la documentación
+            // Trimming credentials to remove any whitespace
             $authData = [
-                'username' => $organization['ligo_username'],
-                'password' => $organization['ligo_password']
+                'username' => trim($organization['ligo_username']),
+                'password' => trim($organization['ligo_password'])
             ];
+            
+            // También hacer trim al company ID en la URL
+            $companyId = trim($organization['ligo_company_id']);
             
             // URL de autenticación según la documentación de Postman
             $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
-            $url = 'https://cce-auth-' . $prefix . '.ligocloud.tech/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
+            $url = 'https://cce-auth-' . $prefix . '.ligocloud.tech/v1/auth/sign-in?companyId=' . $companyId;
+            
+            // Verificar si las credenciales contienen espacios en blanco al inicio o final
+            if (trim($organization['ligo_username']) !== $organization['ligo_username']) {
+                log_message('warning', 'El nombre de usuario de Ligo contiene espacios en blanco al inicio o final');
+            }
+            if (trim($organization['ligo_password']) !== $organization['ligo_password']) {
+                log_message('warning', 'La contraseña de Ligo contiene espacios en blanco al inicio o final');
+            }
+            if (trim($organization['ligo_company_id']) !== $organization['ligo_company_id']) {
+                log_message('warning', 'El ID de compañía de Ligo contiene espacios en blanco al inicio o final');
+            }
             
             log_message('debug', 'URL de autenticación Ligo: ' . $url);
             log_message('debug', 'Datos de autenticación: ' . json_encode($authData));
@@ -485,8 +500,10 @@ class LigoQRController extends Controller
                 return (object)['error' => 'Failed to connect to Ligo Auth API: ' . $err];
             }
             
-            // Log de respuesta
-            log_message('debug', 'Respuesta de autenticación Ligo (primeros 500 caracteres): ' . substr($response, 0, 500));
+            // Log de respuesta completa
+            log_message('debug', 'Respuesta de autenticación Ligo completa: ' . $response);
+            log_message('debug', 'Código de estado HTTP: ' . $info['http_code']);
+            log_message('debug', 'Tiempo de respuesta: ' . $info['total_time'] . ' segundos');
             
             // Verificar si la respuesta es HTML
             if (strpos($response, '<!DOCTYPE html>') !== false || strpos($response, '<html') !== false) {
@@ -515,7 +532,26 @@ class LigoQRController extends Controller
             // Verificar si hay errores en la respuesta
             if (!isset($decoded->data) || !isset($decoded->data->access_token)) {
                 log_message('error', 'No se recibió token en la respuesta de autenticación: ' . json_encode($decoded));
-                return (object)['error' => 'No token in auth response'];
+                
+                // Verificar si hay un mensaje de error específico
+                $errorMsg = 'No token in auth response';
+                if (isset($decoded->message)) {
+                    $errorMsg .= ': ' . $decoded->message;
+                } elseif (isset($decoded->error)) {
+                    $errorMsg .= ': ' . (is_string($decoded->error) ? $decoded->error : json_encode($decoded->error));
+                } elseif (isset($decoded->errors)) {
+                    $errorMsg .= ': ' . json_encode($decoded->errors);
+                }
+                
+                // Verificar si hay campos específicos que ayuden a diagnosticar
+                if (isset($decoded->status)) {
+                    log_message('error', 'Estado de respuesta: ' . $decoded->status);
+                }
+                
+                // Verificar si la estructura es diferente a la esperada
+                log_message('error', 'Estructura de la respuesta: ' . json_encode(array_keys((array)$decoded)));
+                
+                return (object)['error' => $errorMsg];
             }
             
             log_message('info', 'Token de autenticación Ligo obtenido correctamente');
