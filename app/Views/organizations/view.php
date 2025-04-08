@@ -33,6 +33,18 @@
                         <?php if (isset($organization['description']) && !empty($organization['description'])): ?>
                             <p><strong>Descripción:</strong> <?= esc($organization['description']) ?></p>
                         <?php endif; ?>
+                        <?php if ($auth->hasRole('superadmin')): ?>
+                            <p><strong>UUID:</strong> <code><?= esc($organization['uuid']) ?></code></p>
+                            <p><strong>ID:</strong> <code><?= esc($organization['id']) ?></code></p>
+                            <p>
+                                <a href="<?= site_url('debug/ligo-uuid/status?uuid=' . $organization['uuid']) ?>" target="_blank" class="btn btn-sm btn-info">
+                                    <i class="bi bi-bug"></i> Diagnosticar Ligo
+                                </a>
+                                <a href="<?= site_url('debug/ligo-uuid/enable?uuid=' . $organization['uuid']) ?>" target="_blank" class="btn btn-sm btn-warning">
+                                    <i class="bi bi-toggle-on"></i> Habilitar Ligo
+                                </a>
+                            </p>
+                        <?php endif; ?>
                     </div>
                     <div class="col-md-6">
                         <p><strong>Estado:</strong> 
