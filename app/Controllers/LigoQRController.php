@@ -20,21 +20,33 @@ class LigoQRController extends Controller
     /**
      * Generate QR code and return JSON data for AJAX requests
      *
-     * @param string $invoiceUuid UUID de la factura
+     * @param string $invoiceIdentifier UUID o ID de la factura
      * @param int|null $instalmentId ID de la cuota (opcional)
      * @return mixed
      */
-    public function ajaxQR($invoiceUuid, $instalmentId = null)
+    public function ajaxQR($invoiceIdentifier, $instalmentId = null)
     {
-        // Get invoice details
-        $invoice = $this->invoiceModel->where('uuid', $invoiceUuid)->first();
+        // Registrar información de depuración
+        log_message('debug', 'ajaxQR llamado con identificador: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null'));
+        
+        // Intentar obtener la factura por UUID primero
+        $invoice = $this->invoiceModel->where('uuid', $invoiceIdentifier)->first();
+        
+        // Si no se encuentra por UUID, intentar por ID regular
+        if (!$invoice && is_numeric($invoiceIdentifier)) {
+            log_message('debug', 'Factura no encontrada por UUID, intentando por ID: ' . $invoiceIdentifier);
+            $invoice = $this->invoiceModel->find($invoiceIdentifier);
+        }
         
         if (!$invoice) {
+            log_message('error', 'Factura no encontrada con identificador: ' . $invoiceIdentifier);
             return $this->response->setJSON([
                 'success' => false,
-                'error_message' => 'Factura no encontrada'
+                'error_message' => 'Factura no encontrada (ID/UUID: ' . $invoiceIdentifier . ')'
             ]);
         }
+        
+        log_message('debug', 'Factura encontrada: ' . json_encode($invoice));
         
         // Get organization details
         $organization = $this->organizationModel->find($invoice['organization_id']);
