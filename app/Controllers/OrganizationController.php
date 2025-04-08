@@ -179,6 +179,44 @@ class OrganizationController extends BaseController
             $data['ligo_private_key'] = $postData['ligo_private_key'];
         }
         
+        // Si Ligo está habilitado y se proporcionan credenciales, probar la autenticación
+        if ($data['ligo_enabled'] && 
+            !empty($data['ligo_username']) && 
+            (!empty($data['ligo_password']) || !empty($organization['ligo_password'])) && 
+            !empty($data['ligo_company_id'])) {
+            
+            // Usar la contraseña existente si no se proporciona una nueva
+            if (empty($data['ligo_password']) && !empty($organization['ligo_password'])) {
+                $password = $organization['ligo_password'];
+            } else {
+                $password = $data['ligo_password'];
+            }
+            
+            // Probar la autenticación con Ligo
+            $authResult = $this->testLigoAuth(
+                $data['ligo_username'], 
+                $password, 
+                $data['ligo_company_id']
+            );
+            
+            if (isset($authResult['success']) && $authResult['success']) {
+                // Guardar el token y su fecha de expiración
+                $data['ligo_token'] = $authResult['token'];
+                $data['ligo_token_expiry'] = $authResult['expiry'];
+                $data['ligo_auth_error'] = null;
+                
+                log_message('info', 'Autenticación con Ligo exitosa. Token guardado.');
+            } else {
+                // Guardar el error de autenticación
+                $data['ligo_auth_error'] = $authResult['error'] ?? 'Error desconocido';
+                
+                log_message('warning', 'Error de autenticación con Ligo: ' . $data['ligo_auth_error']);
+                
+                // Agregar mensaje de advertencia pero continuar con la actualización
+                $this->session->setFlashdata('warning', 'Las credenciales de Ligo no son válidas. Error: ' . $data['ligo_auth_error']);
+            }
+        }
+        
         try {
             $builder = $this->organizationModel->builder();
             $updated = $builder->where('uuid', $uuid)
@@ -197,6 +235,140 @@ class OrganizationController extends BaseController
             log_message('error', 'Exception updating organization: ' . $e->getMessage());
             log_message('error', 'Stack trace: ' . $e->getTraceAsString());
             return redirect()->back()->withInput()->with('error', 'Error al actualizar la organización: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Test Ligo API authentication with provided credentials
+     *
+     * @param string $username Ligo username
+     * @param string $password Ligo password
+     * @param string $companyId Ligo company ID
+     * @return array Result with success/error information and token if successful
+     */
+    private function testLigoAuth($username, $password, $companyId)
+    {
+        log_message('debug', 'Probando autenticación con Ligo para: ' . $username);
+        
+        try {
+            // Eliminar espacios en blanco de las credenciales
+            $username = trim($username);
+            $password = trim($password);
+            $companyId = trim($companyId);
+            
+            $curl = curl_init();
+            
+            // Datos de autenticación
+            $authData = [
+                'username' => $username,
+                'password' => $password
+            ];
+            
+            // URL de autenticación
+            $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
+            $url = 'https://cce-auth-' . $prefix . '.ligocloud.tech/v1/auth/sign-in?companyId=' . $companyId;
+            
+            log_message('debug', 'URL de autenticación Ligo: ' . $url);
+            
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => json_encode($authData),
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Accept: application/json'
+                ],
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_FOLLOWLOCATION => true
+            ]);
+            
+            $response = curl_exec($curl);
+            $err = curl_error($curl);
+            $info = curl_getinfo($curl);
+            
+            curl_close($curl);
+            
+            if ($err) {
+                log_message('error', 'Error al conectar con Ligo: ' . $err);
+                return [
+                    'success' => false,
+                    'error' => 'Error de conexión: ' . $err
+                ];
+            }
+            
+            // Log de respuesta
+            log_message('debug', 'Código de respuesta HTTP: ' . $info['http_code']);
+            
+            // Verificar si la respuesta es HTML
+            if (strpos($response, '<!DOCTYPE html>') !== false || strpos($response, '<html') !== false) {
+                log_message('error', 'Ligo Auth API devolvió HTML en lugar de JSON');
+                return [
+                    'success' => false,
+                    'error' => 'Respuesta inesperada del servidor'
+                ];
+            }
+            
+            $decoded = json_decode($response, true);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                log_message('error', 'Error decodificando respuesta JSON: ' . json_last_error_msg());
+                return [
+                    'success' => false,
+                    'error' => 'Respuesta inválida: ' . json_last_error_msg()
+                ];
+            }
+            
+            // Verificar si hay token en la respuesta
+            if (!isset($decoded['data']) || !isset($decoded['data']['access_token'])) {
+                log_message('error', 'No se recibió token en la respuesta: ' . json_encode($decoded));
+                
+                // Extraer mensaje de error
+                $errorMsg = 'Autenticación fallida';
+                if (isset($decoded['message'])) {
+                    $errorMsg = $decoded['message'];
+                } elseif (isset($decoded['errors'])) {
+                    $errorMsg = is_string($decoded['errors']) ? $decoded['errors'] : json_encode($decoded['errors']);
+                } elseif (isset($decoded['error'])) {
+                    $errorMsg = is_string($decoded['error']) ? $decoded['error'] : json_encode($decoded['error']);
+                }
+                
+                return [
+                    'success' => false,
+                    'error' => $errorMsg
+                ];
+            }
+            
+            // Extraer fecha de expiración del token
+            $expiryDate = null;
+            if (isset($decoded['data']['exp'])) {
+                $expiryDate = date('Y-m-d H:i:s', $decoded['data']['exp']);
+            } else {
+                // Si no hay fecha de expiración, asumir 1 hora
+                $expiryDate = date('Y-m-d H:i:s', strtotime('+1 hour'));
+            }
+            
+            log_message('info', 'Autenticación con Ligo exitosa');
+            
+            return [
+                'success' => true,
+                'token' => $decoded['data']['access_token'],
+                'expiry' => $expiryDate,
+                'userId' => $decoded['data']['userId'] ?? null,
+                'companyId' => $decoded['data']['companyId'] ?? $companyId
+            ];
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Excepción en autenticación Ligo: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => 'Error interno: ' . $e->getMessage()
+            ];
         }
     }
     

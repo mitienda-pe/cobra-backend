@@ -430,30 +430,172 @@ class LigoQRController extends Controller
     {
         log_message('debug', 'Obteniendo token de autenticación de Ligo para organización ID: ' . $organization['id']);
 
-        // MODO DE PRUEBA: Usar token proporcionado directamente
-        // Este token fue proporcionado por el cliente y se usa para pruebas
-        $hardcodedToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxMzkwNDEsImV4cCI6MTc0NDE0MjY0MSwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.chWrhOkQXo2Yc9mOhB8kIHbSmQECtA_PxTsSCcOTCC6OJs7IkDAyj3vkISW7Sm6G88R3KXgxSWhPT4QmShw3xV9a4Jl0FTBQy2KRdTCzbTgRifs9GN0X5KR7KhfChnDSKNosnVQD9QrqTCdlqpvW75vO1rWfTRSXpMtKZRUvy6fPyESv2QxERlo-441e2EwwCly1kgLftpTcMa0qCr-OplD4Iv_YaOw-J5IPAdYqkVPqHQQZO2LCLjP-Q51KPW04VtTyf7UbO6g4OvUb6a423XauAhUFtSw0oGZS11hAYOPSIKO0w6JERLOvJr48lKaouogf0g_M18nZeSDPMZwCWw';
-
-        log_message('info', 'Usando token hardcodeado para pruebas');
-
-        // Extraer el company ID del token JWT
-        $tokenParts = explode('.', $hardcodedToken);
-        $companyId = 'e8b4a36d-6f1d-4a2a-bf3a-ce9371dde4ab'; // Valor por defecto
-
-        if (count($tokenParts) >= 2) {
-            $payload = json_decode(base64_decode(str_replace('_', '/', str_replace('-', '+', $tokenParts[1]))), true);
-            if (isset($payload['companyId'])) {
-                $companyId = $payload['companyId'];
-                log_message('debug', 'Company ID extraído del token: ' . $companyId);
+        // Verificar si hay un token almacenado y si aún es válido
+        if (!empty($organization['ligo_token']) && !empty($organization['ligo_token_expiry'])) {
+            $expiryDate = strtotime($organization['ligo_token_expiry']);
+            $now = time();
+            
+            // Si el token aún es válido (con 5 minutos de margen), usarlo
+            if ($expiryDate > ($now + 300)) {
+                log_message('info', 'Usando token almacenado válido hasta: ' . $organization['ligo_token_expiry']);
+                
+                // Extraer el company ID del token JWT
+                $companyId = $organization['ligo_company_id'];
+                
+                // Verificar si podemos extraer el company ID del token
+                $tokenParts = explode('.', $organization['ligo_token']);
+                if (count($tokenParts) >= 2) {
+                    try {
+                        $payload = json_decode(base64_decode(str_replace('_', '/', str_replace('-', '+', $tokenParts[1]))), true);
+                        if (isset($payload['companyId'])) {
+                            $companyId = $payload['companyId'];
+                        }
+                    } catch (\Exception $e) {
+                        log_message('error', 'Error al decodificar token JWT: ' . $e->getMessage());
+                    }
+                }
+                
+                return (object)[
+                    'token' => $organization['ligo_token'],
+                    'userId' => 'stored-user',
+                    'companyId' => $companyId
+                ];
+            } else {
+                log_message('info', 'Token almacenado expirado, obteniendo nuevo token');
             }
         }
-
-        // Devolver un objeto con el token en el formato esperado por el resto del código
-        return (object)[
-            'token' => $hardcodedToken,
-            'userId' => 'test-user',
-            'companyId' => $companyId
-        ];
+        
+        // Si no hay token válido almacenado, intentar obtener uno nuevo
+        if (empty($organization['ligo_username']) || empty($organization['ligo_password']) || empty($organization['ligo_company_id'])) {
+            log_message('error', 'Credenciales de Ligo incompletas para organización ID: ' . $organization['id']);
+            return (object)['error' => 'Incomplete Ligo credentials'];
+        }
+        
+        try {
+            // Eliminar espacios en blanco de las credenciales
+            $username = trim($organization['ligo_username']);
+            $password = trim($organization['ligo_password']);
+            $companyId = trim($organization['ligo_company_id']);
+            
+            $curl = curl_init();
+            
+            // Datos de autenticación
+            $authData = [
+                'username' => $username,
+                'password' => $password
+            ];
+            
+            // URL de autenticación
+            $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
+            $url = 'https://cce-auth-' . $prefix . '.ligocloud.tech/v1/auth/sign-in?companyId=' . $companyId;
+            
+            log_message('debug', 'URL de autenticación Ligo: ' . $url);
+            
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => json_encode($authData),
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Accept: application/json'
+                ],
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_FOLLOWLOCATION => true
+            ]);
+            
+            $response = curl_exec($curl);
+            $err = curl_error($curl);
+            $info = curl_getinfo($curl);
+            
+            curl_close($curl);
+            
+            if ($err) {
+                log_message('error', 'Error al conectar con Ligo: ' . $err);
+                return (object)['error' => 'Failed to connect to Ligo Auth API: ' . $err];
+            }
+            
+            // Log de respuesta
+            log_message('debug', 'Código de respuesta HTTP: ' . $info['http_code']);
+            
+            // Verificar si la respuesta es HTML
+            if (strpos($response, '<!DOCTYPE html>') !== false || strpos($response, '<html') !== false) {
+                log_message('error', 'Ligo Auth API devolvió HTML en lugar de JSON');
+                return (object)['error' => 'Auth API returned HTML response'];
+            }
+            
+            $decoded = json_decode($response);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                log_message('error', 'Error decodificando respuesta JSON: ' . json_last_error_msg());
+                return (object)['error' => 'Invalid JSON in auth response: ' . json_last_error_msg()];
+            }
+            
+            // Verificar si hay token en la respuesta
+            if (!isset($decoded->data) || !isset($decoded->data->access_token)) {
+                log_message('error', 'No se recibió token en la respuesta: ' . json_encode($decoded));
+                
+                // Extraer mensaje de error
+                $errorMsg = 'No token in auth response';
+                if (isset($decoded->message)) {
+                    $errorMsg .= ': ' . $decoded->message;
+                } elseif (isset($decoded->errors)) {
+                    $errorMsg .= ': ' . (is_string($decoded->errors) ? $decoded->errors : json_encode($decoded->errors));
+                } elseif (isset($decoded->error)) {
+                    $errorMsg .= ': ' . (is_string($decoded->error) ? $decoded->error : json_encode($decoded->error));
+                }
+                
+                return (object)['error' => $errorMsg];
+            }
+            
+            log_message('info', 'Autenticación con Ligo exitosa, token obtenido');
+            
+            // Guardar el token en la base de datos para futuros usos
+            try {
+                $organizationModel = new \App\Models\OrganizationModel();
+                
+                // Calcular fecha de expiración
+                $expiryDate = date('Y-m-d H:i:s', strtotime('+1 hour'));
+                
+                $organizationModel->update($organization['id'], [
+                    'ligo_token' => $decoded->data->access_token,
+                    'ligo_token_expiry' => $expiryDate,
+                    'ligo_auth_error' => null
+                ]);
+                
+                log_message('info', 'Token guardado en la base de datos con expiración: ' . $expiryDate);
+            } catch (\Exception $e) {
+                log_message('error', 'Error al guardar token en la base de datos: ' . $e->getMessage());
+                // Continuar aunque no se pueda guardar el token
+            }
+            
+            return (object)[
+                'token' => $decoded->data->access_token,
+                'userId' => $decoded->data->userId ?? null,
+                'companyId' => $decoded->data->companyId ?? $companyId
+            ];
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Excepción en autenticación Ligo: ' . $e->getMessage());
+            return (object)['error' => 'Authentication error: ' . $e->getMessage()];
+        }
+        
+        // Si todo falla y hay un token de respaldo, usarlo como último recurso
+        if (!empty($GLOBALS['ligo_fallback_token'])) {
+            log_message('warning', 'Usando token de respaldo como último recurso');
+            return (object)[
+                'token' => $GLOBALS['ligo_fallback_token'],
+                'userId' => 'fallback-user',
+                'companyId' => $organization['ligo_company_id'] ?? 'e8b4a36d-6f1d-4a2a-bf3a-ce9371dde4ab'
+            ];
+        }
+        
+        return (object)['error' => 'Failed to get authentication token'];
     }
 
     /**
