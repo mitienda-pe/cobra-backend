@@ -9,14 +9,14 @@ class LigoQRController extends Controller
 {
     protected $invoiceModel;
     protected $organizationModel;
-    
+
     public function __construct()
     {
         $this->invoiceModel = new \App\Models\InvoiceModel();
         $this->organizationModel = new \App\Models\OrganizationModel();
         helper(['form', 'url']);
     }
-    
+
     /**
      * Generate QR code and return JSON data for AJAX requests
      *
@@ -28,16 +28,16 @@ class LigoQRController extends Controller
     {
         // Registrar información de depuración
         log_message('debug', 'ajaxQR llamado con identificador: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null'));
-        
+
         // Intentar obtener la factura por UUID primero
         $invoice = $this->invoiceModel->where('uuid', $invoiceIdentifier)->first();
-        
+
         // Si no se encuentra por UUID, intentar por ID regular
         if (!$invoice && is_numeric($invoiceIdentifier)) {
             log_message('debug', 'Factura no encontrada por UUID, intentando por ID: ' . $invoiceIdentifier);
             $invoice = $this->invoiceModel->find($invoiceIdentifier);
         }
-        
+
         if (!$invoice) {
             log_message('error', 'Factura no encontrada con identificador: ' . $invoiceIdentifier);
             return $this->response->setJSON([
@@ -45,22 +45,22 @@ class LigoQRController extends Controller
                 'error_message' => 'Factura no encontrada (ID/UUID: ' . $invoiceIdentifier . ')'
             ]);
         }
-        
+
         log_message('debug', 'Factura encontrada: ' . json_encode($invoice));
-        
+
         // Get organization details
         $organization = $this->organizationModel->find($invoice['organization_id']);
-        
+
         if (!$organization) {
             return $this->response->setJSON([
                 'success' => false,
                 'error_message' => 'Organización no encontrada'
             ]);
         }
-        
+
         // Si se proporciona ID de cuota, obtener los detalles de la cuota
         $instalment = null;
-        
+
         // Determinar el monto de la factura, manejando diferentes estructuras de datos
         $paymentAmount = 0;
         if (isset($invoice['total_amount'])) {
@@ -73,20 +73,20 @@ class LigoQRController extends Controller
             $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
             $paymentAmount = $paymentInfo['remaining'] ?? $paymentInfo['invoice_amount'] ?? 0;
         }
-        
+
         $paymentDescription = 'Pago de factura ' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A');
-        
+
         if ($instalmentId) {
             $instalmentModel = new \App\Models\InstalmentModel();
             $instalment = $instalmentModel->find($instalmentId);
-            
+
             if (!$instalment || $instalment['invoice_id'] != $invoice['id']) {
                 return $this->response->setJSON([
                     'success' => false,
                     'error_message' => 'Cuota no encontrada o no pertenece a esta factura'
                 ]);
             }
-            
+
             // Verificar que se puedan pagar las cuotas en orden
             if (!$instalmentModel->canBePaid($instalment['id'])) {
                 return $this->response->setJSON([
@@ -94,27 +94,27 @@ class LigoQRController extends Controller
                     'error_message' => 'No se puede pagar esta cuota porque hay cuotas anteriores pendientes de pago'
                 ]);
             }
-            
+
             // Calcular el monto pendiente de la cuota
             $paymentModel = new \App\Models\PaymentModel();
             $instalmentPayments = $paymentModel->where('instalment_id', $instalment['id'])
-                                              ->where('status', 'completed')
-                                              ->findAll();
-            
+                ->where('status', 'completed')
+                ->findAll();
+
             $instalmentPaid = 0;
             foreach ($instalmentPayments as $payment) {
                 $instalmentPaid += $payment['amount'];
             }
-            
+
             $paymentAmount = $instalment['amount'] - $instalmentPaid;
             $paymentDescription = 'Pago de cuota ' . $instalment['number'] . ' de factura ' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A');
         }
-        
+
         // Check if Ligo is enabled for this organization
         if (!isset($organization['ligo_enabled']) || !$organization['ligo_enabled']) {
             // Si Ligo no está habilitado, usar un QR de demostración temporal
             log_message('info', 'Ligo no está habilitado para la organización ID: ' . $organization['id'] . '. Usando QR de demostración.');
-            
+
             // Prepare demo QR data
             return $this->response->setJSON([
                 'success' => true,
@@ -134,7 +134,7 @@ class LigoQRController extends Controller
                 'is_demo' => true
             ]);
         }
-        
+
         // Prepare response data
         $responseData = [
             'success' => true,
@@ -146,7 +146,7 @@ class LigoQRController extends Controller
             'order_id' => null,
             'expiration' => null
         ];
-        
+
         // Intentar generar QR solo si las credenciales están configuradas
         if (!empty($organization['ligo_username']) && !empty($organization['ligo_password']) && !empty($organization['ligo_company_id'])) {
             // Preparar datos para la orden
@@ -156,30 +156,30 @@ class LigoQRController extends Controller
                 'orderId' => $invoice['id'],
                 'description' => $paymentDescription
             ];
-            
+
             // Log para depuración
             log_message('debug', 'Intentando crear orden en Ligo con datos: ' . json_encode($orderData));
-            
+
             // Crear orden en Ligo
             $response = $this->createLigoOrder($orderData, $organization);
-            
+
             // Log de respuesta
             log_message('debug', 'Respuesta de Ligo: ' . json_encode($response));
-            
+
             if (!isset($response->error)) {
                 $responseData['qr_data'] = $response->qr_data ?? null;
                 $responseData['qr_image_url'] = $response->qr_image_url ?? null;
                 $responseData['order_id'] = $response->order_id ?? null;
                 $responseData['expiration'] = date('d/m/Y H:i', strtotime($response->expiration ?? '+1 hour'));
-                
+
                 // Log de éxito
                 log_message('info', 'QR generado exitosamente para factura #' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A'));
             } else {
                 log_message('error', 'Error generando QR Ligo: ' . json_encode($response));
-                
+
                 // Si hay un error, usar QR de demostración como fallback
                 log_message('info', 'Usando QR de demostración como fallback debido a error de Ligo');
-                
+
                 $responseData['success'] = true; // Cambiamos a true para mostrar el QR de demostración
                 $responseData['qr_image_url'] = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode("DEMO QR - Factura #" . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A'));
                 $responseData['order_id'] = 'DEMO-' . time();
@@ -190,7 +190,7 @@ class LigoQRController extends Controller
         } else {
             log_message('error', 'Credenciales de Ligo no configuradas para la organización ID: ' . $organization['id']);
             log_message('info', 'Usando QR de demostración como fallback debido a falta de credenciales');
-            
+
             // Usar QR de demostración como fallback
             $responseData['success'] = true;
             $responseData['qr_image_url'] = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode("DEMO QR - Factura #" . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A'));
@@ -199,10 +199,10 @@ class LigoQRController extends Controller
             $responseData['is_demo'] = true;
             $responseData['error_message'] = 'Usando QR de demostración. Credenciales de Ligo no configuradas correctamente.';
         }
-        
+
         return $this->response->setJSON($responseData);
     }
-    
+
     /**
      * Display QR code page for invoice payment
      *
@@ -214,21 +214,21 @@ class LigoQRController extends Controller
     {
         // Get invoice details
         $invoice = $this->invoiceModel->where('uuid', $invoiceUuid)->first();
-        
+
         if (!$invoice) {
             return redirect()->to('/invoices')->with('error', 'Factura no encontrada');
         }
-        
+
         // Get organization details
         $organization = $this->organizationModel->find($invoice['organization_id']);
-        
+
         if (!$organization) {
             return redirect()->to('/invoices')->with('error', 'Organización no encontrada');
         }
-        
+
         // Si se proporciona ID de cuota, obtener los detalles de la cuota
         $instalment = null;
-        
+
         // Determinar el monto de la factura, manejando diferentes estructuras de datos
         $paymentAmount = 0;
         if (isset($invoice['total_amount'])) {
@@ -241,42 +241,42 @@ class LigoQRController extends Controller
             $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
             $paymentAmount = $paymentInfo['remaining'] ?? $paymentInfo['invoice_amount'] ?? 0;
         }
-        
+
         $paymentDescription = 'Pago de factura ' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A');
-        
+
         if ($instalmentId) {
             $instalmentModel = new \App\Models\InstalmentModel();
             $instalment = $instalmentModel->find($instalmentId);
-            
+
             if (!$instalment || $instalment['invoice_id'] != $invoice['id']) {
                 return redirect()->to('/invoices/view/' . $invoiceUuid)->with('error', 'Cuota no encontrada o no pertenece a esta factura');
             }
-            
+
             // Verificar que se puedan pagar las cuotas en orden
             if (!$instalmentModel->canBePaid($instalment['id'])) {
                 return redirect()->to('/invoices/view/' . $invoiceUuid)->with('error', 'No se puede pagar esta cuota porque hay cuotas anteriores pendientes de pago');
             }
-            
+
             // Calcular el monto pendiente de la cuota
             $paymentModel = new \App\Models\PaymentModel();
             $instalmentPayments = $paymentModel->where('instalment_id', $instalment['id'])
-                                              ->where('status', 'completed')
-                                              ->findAll();
-            
+                ->where('status', 'completed')
+                ->findAll();
+
             $instalmentPaid = 0;
             foreach ($instalmentPayments as $payment) {
                 $instalmentPaid += $payment['amount'];
             }
-            
+
             $paymentAmount = $instalment['amount'] - $instalmentPaid;
             $paymentDescription = 'Pago de cuota ' . $instalment['number'] . ' de factura ' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A');
         }
-        
+
         // Check if Ligo is enabled for this organization
         if (!isset($organization['ligo_enabled']) || !$organization['ligo_enabled']) {
             // Si Ligo no está habilitado, usar un QR de demostración temporal
             log_message('info', 'Ligo no está habilitado para la organización ID: ' . $organization['id'] . '. Usando QR de demostración.');
-            
+
             // Prepare data for view with demo QR
             $data = [
                 'title' => 'Pago con QR - Ligo (Demo)',
@@ -293,10 +293,10 @@ class LigoQRController extends Controller
                 'expiration' => date('Y-m-d H:i:s', strtotime('+30 minutes')),
                 'is_demo' => true
             ];
-            
+
             return view('payments/ligo_qr', $data);
         }
-        
+
         // Prepare data for view
         $data = [
             'title' => 'Pago con QR - Ligo',
@@ -306,7 +306,7 @@ class LigoQRController extends Controller
             'order_id' => null,
             'expiration' => null
         ];
-        
+
         // Intentar generar QR solo si las credenciales están configuradas
         if (!empty($organization['ligo_username']) && !empty($organization['ligo_password']) && !empty($organization['ligo_company_id'])) {
             // Preparar datos para la orden
@@ -316,28 +316,28 @@ class LigoQRController extends Controller
                 'orderId' => $invoice['id'],
                 'description' => $paymentDescription
             ];
-            
+
             // Log para depuración
             log_message('debug', 'Intentando crear orden en Ligo con datos: ' . json_encode($orderData));
             log_message('debug', 'Organización: ' . $organization['id'] . ' - Username: ' . $organization['ligo_username']);
-            
+
             // Crear orden en Ligo
             $response = $this->createLigoOrder($orderData, $organization);
-            
+
             // Log de respuesta
             log_message('debug', 'Respuesta de Ligo: ' . json_encode($response));
-            
+
             if (!isset($response->error)) {
                 $data['qr_data'] = $response->qr_data ?? null;
                 $data['qr_image_url'] = $response->qr_image_url ?? null;
                 $data['order_id'] = $response->order_id ?? null;
                 $data['expiration'] = $response->expiration ?? null;
-                
+
                 // Log de éxito
                 log_message('info', 'QR generado exitosamente para factura #' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A'));
             } else {
                 log_message('error', 'Error generando QR Ligo: ' . json_encode($response));
-                
+
                 // Si hay un error, mostrar un mensaje en la vista
                 $data['error_message'] = 'No se pudo generar el código QR. Error: ' . (is_string($response->error) ? $response->error : json_encode($response->error));
             }
@@ -345,10 +345,10 @@ class LigoQRController extends Controller
             log_message('error', 'Credenciales de Ligo no configuradas para la organización ID: ' . $organization['id']);
             $data['error_message'] = 'Credenciales de Ligo no configuradas correctamente. Por favor, contacte al administrador.';
         }
-        
+
         return view('payments/ligo_qr', $data);
     }
-    
+
     /**
      * Create order in Ligo API
      *
@@ -360,50 +360,50 @@ class LigoQRController extends Controller
     {
         // Log para depuración
         log_message('debug', 'Iniciando generación de QR con Ligo para organización ID: ' . $organization['id']);
-        
+
         try {
             // 1. Obtener token de autenticación
             $authToken = $this->getLigoAuthToken($organization);
-            
+
             if (isset($authToken->error)) {
                 log_message('error', 'Error al obtener token de autenticación de Ligo: ' . $authToken->error);
                 return $authToken; // Devolver el error de autenticación
             }
-            
+
             // 2. Generar QR con el token obtenido
             $qrResponse = $this->generateLigoQR($data, $authToken->token, $organization);
-            
+
             if (isset($qrResponse->error)) {
                 log_message('error', 'Error al generar QR en Ligo: ' . $qrResponse->error);
                 return $qrResponse;
             }
-            
+
             // 3. Obtener el QR generado por su ID
             $qrId = $qrResponse->data->id ?? null;
-            
+
             if (!$qrId) {
                 log_message('error', 'No se recibió ID de QR en la respuesta de Ligo');
                 return (object)['error' => 'No QR ID in response'];
             }
-            
+
             $qrDetails = $this->getQRDetailsById($qrId, $authToken->token, $organization);
-            
+
             if (isset($qrDetails->error)) {
                 log_message('error', 'Error al obtener detalles del QR: ' . $qrDetails->error);
                 return $qrDetails;
             }
-            
+
             // 4. Preparar respuesta con los datos del QR
             $qrHash = $qrDetails->data->hash ?? null;
-            
+
             if (!$qrHash) {
                 log_message('error', 'No se recibió hash de QR en la respuesta de Ligo');
                 return (object)['error' => 'No QR hash in response'];
             }
-            
+
             // Generar URL de imagen QR usando una librería o servicio
             $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($qrHash);
-            
+
             // Construir respuesta
             $response = (object)[
                 'qr_data' => $qrHash,
@@ -411,16 +411,15 @@ class LigoQRController extends Controller
                 'order_id' => $qrId,
                 'expiration' => date('Y-m-d H:i:s', strtotime('+1 hour')) // Ajustar según la configuración de Ligo
             ];
-            
+
             log_message('info', 'QR generado exitosamente con ID: ' . $qrId);
             return $response;
-            
         } catch (Exception $e) {
             log_message('error', 'Error en el proceso de generación de QR: ' . $e->getMessage());
             return (object)['error' => 'QR generation error: ' . $e->getMessage()];
         }
     }
-    
+
     /**
      * Get authentication token from Ligo API
      *
@@ -430,17 +429,17 @@ class LigoQRController extends Controller
     private function getLigoAuthToken($organization)
     {
         log_message('debug', 'Obteniendo token de autenticación de Ligo para organización ID: ' . $organization['id']);
-        
+
         // MODO DE PRUEBA: Usar token proporcionado directamente
         // Este token fue proporcionado por el cliente y se usa para pruebas
-        $hardcodedToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDMyNjk1NTYsImV4cCI6MTc0MzI3MzE1NiwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.LHdAj11eZxEC1ARmtIPYZ3oA3WLQ9xCJjFj7PIBiPpGVI202YMZ0M28AdUVVu52HylkuomGDzh1RRBse4PKQrlQUCkrh4-Gg1ZzxEVn71tREFaXI_Wk09tFwv79v2slEMfXwnCaUKYzR0sjYyzbmhZ_5HWo9wyinB2AFfkH8PxBLFrEpnDvgRygsG1TEwkAG5hv7Jv6qQuvhjiTWKM2mslwkbOp4JbiC5vjNqCAMnmUYIuF6IZpj_lHuPXds1rnC4ohOKGYlQGLwcN4FzCMCtJCmKAhkkN5LG36qYpNYESu-wBUxyikUE5X_gBATrjolzdpWbPzi78hSXorJSkNsDA';
-        
+        $hardcodedToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxMzkwNDEsImV4cCI6MTc0NDE0MjY0MSwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.chWrhOkQXo2Yc9mOhB8kIHbSmQECtA_PxTsSCcOTCC6OJs7IkDAyj3vkISW7Sm6G88R3KXgxSWhPT4QmShw3xV9a4Jl0FTBQy2KRdTCzbTgRifs9GN0X5KR7KhfChnDSKNosnVQD9QrqTCdlqpvW75vO1rWfTRSXpMtKZRUvy6fPyESv2QxERlo-441e2EwwCly1kgLftpTcMa0qCr-OplD4Iv_YaOw-J5IPAdYqkVPqHQQZO2LCLjP-Q51KPW04VtTyf7UbO6g4OvUb6a423XauAhUFtSw0oGZS11hAYOPSIKO0w6JERLOvJr48lKaouogf0g_M18nZeSDPMZwCWw';
+
         log_message('info', 'Usando token hardcodeado para pruebas');
-        
+
         // Extraer el company ID del token JWT
         $tokenParts = explode('.', $hardcodedToken);
         $companyId = 'e8b4a36d-6f1d-4a2a-bf3a-ce9371dde4ab'; // Valor por defecto
-        
+
         if (count($tokenParts) >= 2) {
             $payload = json_decode(base64_decode(str_replace('_', '/', str_replace('-', '+', $tokenParts[1]))), true);
             if (isset($payload['companyId'])) {
@@ -448,7 +447,7 @@ class LigoQRController extends Controller
                 log_message('debug', 'Company ID extraído del token: ' . $companyId);
             }
         }
-        
+
         // Devolver un objeto con el token en el formato esperado por el resto del código
         return (object)[
             'token' => $hardcodedToken,
@@ -456,7 +455,7 @@ class LigoQRController extends Controller
             'companyId' => $companyId
         ];
     }
-    
+
     /**
      * Generate QR in Ligo API
      *
@@ -468,10 +467,10 @@ class LigoQRController extends Controller
     private function generateLigoQR($data, $token, $organization)
     {
         log_message('debug', 'Generando QR en Ligo para factura: ' . $data['orderId']);
-        
+
         try {
             $curl = curl_init();
-            
+
             // Preparar datos para la generación de QR según la documentación
             $qrData = [
                 'header' => [
@@ -492,14 +491,14 @@ class LigoQRController extends Controller
                 ],
                 'type' => 'TEXT'
             ];
-            
+
             // URL para generar QR según la documentación
             $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
             $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/createQr';
-            
+
             log_message('debug', 'URL para generar QR: ' . $url);
             log_message('debug', 'Datos para generar QR: ' . json_encode($qrData));
-            
+
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
                 CURLOPT_RETURNTRANSFER => true,
@@ -517,41 +516,40 @@ class LigoQRController extends Controller
                 CURLOPT_SSL_VERIFYHOST => 0,
                 CURLOPT_SSL_VERIFYPEER => false
             ]);
-            
+
             $response = curl_exec($curl);
             $err = curl_error($curl);
             $info = curl_getinfo($curl);
-            
+
             curl_close($curl);
-            
+
             if ($err) {
                 log_message('error', 'Error al generar QR en Ligo: ' . $err);
                 return (object)['error' => 'Failed to connect to Ligo API: ' . $err];
             }
-            
+
             log_message('debug', 'Respuesta de generación de QR: ' . $response);
-            
+
             $decoded = json_decode($response);
-            
+
             if (json_last_error() !== JSON_ERROR_NONE) {
                 log_message('error', 'Error decodificando respuesta de generación de QR: ' . json_last_error_msg());
                 return (object)['error' => 'Invalid JSON in QR generation response: ' . json_last_error_msg()];
             }
-            
+
             // Verificar si hay errores en la respuesta
             if (!isset($decoded->data) || !isset($decoded->data->id)) {
                 log_message('error', 'Error en la respuesta de generación de QR: ' . json_encode($decoded));
                 return (object)['error' => 'Error in QR generation response: ' . json_encode($decoded)];
             }
-            
+
             return $decoded;
-            
         } catch (Exception $e) {
             log_message('error', 'Error en el proceso de generación de QR: ' . $e->getMessage());
             return (object)['error' => 'QR generation error: ' . $e->getMessage()];
         }
     }
-    
+
     /**
      * Get QR details by ID from Ligo API
      *
@@ -563,16 +561,16 @@ class LigoQRController extends Controller
     private function getQRDetailsById($qrId, $token, $organization)
     {
         log_message('debug', 'Obteniendo detalles de QR con ID: ' . $qrId);
-        
+
         try {
             $curl = curl_init();
-            
+
             // URL para obtener detalles del QR según la documentación
             $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
             $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
-            
+
             log_message('debug', 'URL para obtener detalles de QR: ' . $url);
-            
+
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
                 CURLOPT_RETURNTRANSFER => true,
@@ -588,34 +586,33 @@ class LigoQRController extends Controller
                 CURLOPT_SSL_VERIFYHOST => 0,
                 CURLOPT_SSL_VERIFYPEER => false
             ]);
-            
+
             $response = curl_exec($curl);
             $err = curl_error($curl);
-            
+
             curl_close($curl);
-            
+
             if ($err) {
                 log_message('error', 'Error al obtener detalles de QR: ' . $err);
                 return (object)['error' => 'Failed to connect to Ligo API: ' . $err];
             }
-            
+
             log_message('debug', 'Respuesta de detalles de QR: ' . $response);
-            
+
             $decoded = json_decode($response);
-            
+
             if (json_last_error() !== JSON_ERROR_NONE) {
                 log_message('error', 'Error decodificando respuesta de detalles de QR: ' . json_last_error_msg());
                 return (object)['error' => 'Invalid JSON in QR details response: ' . json_last_error_msg()];
             }
-            
+
             // Verificar si hay errores en la respuesta
             if (!isset($decoded->data) || !isset($decoded->data->hash)) {
                 log_message('error', 'Error en la respuesta de detalles de QR: ' . json_encode($decoded));
                 return (object)['error' => 'Error in QR details response: ' . json_encode($decoded)];
             }
-            
+
             return $decoded;
-            
         } catch (Exception $e) {
             log_message('error', 'Error al obtener detalles de QR: ' . $e->getMessage());
             return (object)['error' => 'QR details error: ' . $e->getMessage()];
