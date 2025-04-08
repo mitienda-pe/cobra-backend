@@ -639,12 +639,16 @@ class LigoQRController extends Controller
             
             // URL de autenticación
             $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
-            $url = 'https://cce-auth-' . $prefix . '.ligocloud.tech/v1/auth/sign-in?companyId=' . $companyId;
+            $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/auth';
             
             log_message('debug', 'URL de autenticación Ligo: ' . $url);
             
-            // Token de autorización requerido por Ligo
-            $authorizationToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxMzkwNDEsImV4cCI6MTc0NDE0MjY0MSwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.chWrhOkQXo2Yc9mOhB8kIHbSmQECtA_PxTsSCcOTCC6OJs7IkDAyj3vkISW7Sm6G88R3KXgxSWhPT4QmShw3xV9a4Jl0FTBQy2KRdTCzbTgRifs9GN0X5KR7KhfChnDSKNosnVQD9QrqTCdlqpvW75vO1rWfTRSXpMtKZRUvy6fPyESv2QxERlo-441e2EwwCly1kgLftpTcMa0qCr-OplD4Iv_YaOw-J5IPAdYqkVPqHQQZO2LCLjP-Q51KPW04VtTyf7UbO6g4OvUb6a423XauAhUFtSw0oGZS11hAYOPSIKO0w6JERLOvJr48lKaouogf0g_M18nZeSDPMZwCWw';
+            // Datos de autenticación completos según la documentación
+            $authData = [
+                'username' => $username,
+                'password' => $password,
+                'companyId' => $companyId
+            ];
             
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
@@ -657,12 +661,10 @@ class LigoQRController extends Controller
                 CURLOPT_POSTFIELDS => json_encode($authData),
                 CURLOPT_HTTPHEADER => [
                     'Content-Type: application/json',
-                    'Accept: application/json',
-                    'Authorization: Bearer ' . $authorizationToken
+                    'Accept: application/json'
                 ],
                 CURLOPT_SSL_VERIFYHOST => 0,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_FOLLOWLOCATION => true
+                CURLOPT_SSL_VERIFYPEER => false
             ]);
             
             $response = curl_exec($curl);
@@ -693,7 +695,7 @@ class LigoQRController extends Controller
             }
             
             // Verificar si hay token en la respuesta
-            if (!isset($decoded->data) || !isset($decoded->data->access_token)) {
+            if (!isset($decoded->data) || !isset($decoded->data->token)) {
                 log_message('error', 'No se recibió token en la respuesta: ' . json_encode($decoded));
                 
                 // Extraer mensaje de error
@@ -719,7 +721,7 @@ class LigoQRController extends Controller
                 $expiryDate = date('Y-m-d H:i:s', strtotime('+1 hour'));
                 
                 $organizationModel->update($organization['id'], [
-                    'ligo_token' => $decoded->data->access_token,
+                    'ligo_token' => $decoded->data->token,
                     'ligo_token_expiry' => $expiryDate,
                     'ligo_auth_error' => null
                 ]);
@@ -731,7 +733,7 @@ class LigoQRController extends Controller
             }
             
             return (object)[
-                'token' => $decoded->data->access_token,
+                'token' => $decoded->data->token,
                 'userId' => $decoded->data->userId ?? null,
                 'companyId' => $decoded->data->companyId ?? $companyId
             ];
