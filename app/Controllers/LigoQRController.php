@@ -655,7 +655,20 @@ class LigoQRController extends Controller
                     'codigoComerciante' => $codigoComerciante, // Aseguramos que no esté vacío
                     'nombreComerciante' => $organization['name'],
                     'ciudadComerciante' => $organization['city'] ?? 'Lima',
-                    'info' => [$data['orderId']] // Debe ser un array de valores, no un objeto
+                    'info' => [
+                        [
+                            'codigo' => 'invoice_id',
+                            'valor' => $data['orderId']
+                        ],
+                        [
+                            'codigo' => 'nombreCliente',
+                            'valor' => $organization['name'] ?? 'Cliente'
+                        ],
+                        [
+                            'codigo' => 'documentoIdentidad',
+                            'valor' => $organization['tax_id'] ?? '00000000'
+                        ]
+                    ] // Formato correcto según la API de Ligo
                 ],
                 'type' => 'TEXT'
             ];
