@@ -1358,6 +1358,62 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+                
+  /payments/generate-instalment-qr/{id}:
+    get:
+      summary: Generar código QR para pago de cuota
+      description: Genera un código QR para realizar un pago de una cuota específica mediante Ligo
+      tags:
+        - Pagos
+        - Ligo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID de la cuota
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Código QR generado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  qr_data:
+                    type: string
+                    example: "00020101021226580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426655440000"
+                  qr_image_url:
+                    type: string
+                    format: uri
+                    example: "https://api.ligo.pe/v1/qr/123456789"
+                  order_id:
+                    type: string
+                    example: "ORD-123456"
+                  instalment_id:
+                    type: integer
+                    example: 42
+                  invoice_id:
+                    type: integer
+                    example: 123
+        '400':
+          description: Error al generar código QR
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Cuota no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           description: No autorizado
           content:
