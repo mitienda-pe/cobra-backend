@@ -164,27 +164,148 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para mostrar el QR de Ligo -->
+<div class="modal fade" id="ligoQrModal" tabindex="-1" aria-labelledby="ligoQrModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="ligoQrModalLabel">Pago con QR - Ligo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center" id="ligoQrModalBody">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p>Generando código QR...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="regenerateQrBtn">Regenerar QR</button>
+            </div>
+        </div>
+    </div>
+</div>
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
-    // Manejar cambio en el método de pago para redireccionar a QR si se selecciona
+    // Manejar cambio en el método de pago para mostrar el modal de QR si se selecciona
     $('#payment_method').on('change', function() {
         if ($(this).val() === 'ligo_qr') {
-            // Si hay una factura seleccionada, enviar el formulario para redirigir al controlador de QR
-            if ($('input[name="invoice_id"]').val()) {
-                $('#payment-form').submit();
+            // Verificar si hay una factura seleccionada
+            let invoiceId = $('input[name="invoice_id"]').val();
+            let instalmentId = $('select[name="instalment_id"]').val();
+            
+            if (invoiceId) {
+                // Mostrar el modal con spinner
+                $('#ligoQrModal').modal('show');
+                
+                // Cargar el QR via AJAX
+                loadLigoQR(invoiceId, instalmentId);
             } else if ($('#invoice_search').val()) {
                 // Si estamos en la vista de búsqueda y hay una factura seleccionada
-                $('#payment-form').submit();
+                invoiceId = $('#invoice_search').val();
+                $('#ligoQrModal').modal('show');
+                loadLigoQR(invoiceId, null);
             } else {
                 alert('Por favor, seleccione una factura antes de elegir el método de pago QR.');
                 $(this).val(''); // Resetear la selección
             }
         }
     });
+    
+    // Función para cargar el QR de Ligo via AJAX
+    function loadLigoQR(invoiceId, instalmentId) {
+        let url = '<?= site_url('payment/ligo/ajax-qr') ?>/' + invoiceId;
+        if (instalmentId) {
+            url += '/' + instalmentId;
+        }
+        
+        $.ajax({
+            url: url,
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Actualizar el contenido del modal con el QR
+                    let modalContent = `
+                        <h5 class="card-title">Factura #${response.invoice_number}</h5>
+                        <p class="card-text">Monto a pagar: ${response.currency} ${response.amount}</p>
+                    `;
+                    
+                    if (response.qr_image_url) {
+                        modalContent += `
+                            <div class="my-4">
+                                <img src="${response.qr_image_url}" alt="QR Code" class="img-fluid" style="max-width: 250px;">
+                            </div>
+                            <p class="text-muted">Escanea el código QR con tu aplicación de Ligo para realizar el pago</p>
+                        `;
+                        
+                        if (response.is_demo) {
+                            modalContent += `
+                                <div class="alert alert-warning">
+                                    <p><strong>Modo Demostración</strong></p>
+                                    <p class="mb-0">Este es un QR de demostración. Para habilitar pagos reales con Ligo, configure las credenciales en la sección de configuración de la organización.</p>
+                                </div>
+                            `;
+                        }
+                        
+                        if (response.expiration) {
+                            modalContent += `
+                                <p class="text-muted">
+                                    <small>Este código QR expira el: ${response.expiration}</small>
+                                </p>
+                            `;
+                        }
+                    } else {
+                        modalContent += `
+                            <div class="alert alert-danger">
+                                <h5><i class="bi bi-exclamation-triangle-fill"></i> Error</h5>
+                                <p>${response.error_message || 'No se pudo generar el código QR.'}</p>
+                                <p class="mb-0 small">Si el problema persiste, por favor contacte al administrador del sistema.</p>
+                            </div>
+                        `;
+                    }
+                    
+                    $('#ligoQrModalBody').html(modalContent);
+                    
+                    // Configurar el botón de regenerar QR
+                    $('#regenerateQrBtn').off('click').on('click', function() {
+                        $('#ligoQrModalBody').html(`
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p>Regenerando código QR...</p>
+                        `);
+                        loadLigoQR(invoiceId, instalmentId);
+                    });
+                    
+                } else {
+                    // Mostrar error
+                    $('#ligoQrModalBody').html(`
+                        <div class="alert alert-danger">
+                            <h5><i class="bi bi-exclamation-triangle-fill"></i> Error</h5>
+                            <p>${response.error_message || 'No se pudo generar el código QR.'}</p>
+                            <p class="mb-0 small">Si el problema persiste, por favor contacte al administrador del sistema.</p>
+                        </div>
+                    `);
+                }
+            },
+            error: function(xhr, status, error) {
+                // Mostrar error
+                $('#ligoQrModalBody').html(`
+                    <div class="alert alert-danger">
+                        <h5><i class="bi bi-exclamation-triangle-fill"></i> Error</h5>
+                        <p>Error al comunicarse con el servidor: ${error}</p>
+                        <p class="mb-0 small">Si el problema persiste, por favor contacte al administrador del sistema.</p>
+                    </div>
+                `);
+            }
+        });
+    }
     
     // Inicializar Select2 para la búsqueda de facturas
     $('#invoice_search').select2({
