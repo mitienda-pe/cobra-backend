@@ -98,11 +98,11 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     $routes->match(['get', 'options'], 'portfolio/(:segment)/instalments', 'InstalmentController::portfolioInstalments/$1');
     $routes->match(['get', 'options'], 'payments/search-invoices', 'PaymentController::searchInvoices');
     $routes->match(['post', 'options'], 'payments/register', 'PaymentController::registerMobilePayment');
-
-    // Mobile App QR Routes - ÚNICO punto de entrada para generación de QR
-    $routes->match(['get', 'options'], 'payments/generate-qr/invoice/(:num)', 'LigoPaymentController::generateQR/$1');
-    $routes->match(['get', 'options'], 'payments/generate-qr/instalment/(:num)', 'LigoPaymentController::generateInstalmentQR/$1');
-    $routes->match(['get', 'options'], 'payments/generate-qr/static/(:segment)', 'LigoPaymentController::generateStaticQR/$1');
+    $routes->match(['get', 'options'], 'payments/generate-qr/(:num)', 'PaymentController::generateQR/$1');
+    
+    // Ligo Payment Routes
+    $routes->match(['get', 'options'], 'ligo/generate-qr/(:num)', 'LigoPaymentController::generateQR/$1');
+    $routes->match(['get', 'options'], 'ligo/generate-static-qr/(:segment)', 'LigoPaymentController::generateStaticQR/$1');
 
     // Invoice Routes
     $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index');
@@ -115,7 +115,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     $routes->match(['get', 'options'], 'payments', 'PaymentController::index');
     $routes->match(['get', 'options'], 'payments/(:segment)', 'PaymentController::show/$1');
     $routes->match(['get', 'options'], 'payments/external/(:segment)', 'PaymentController::findByExternalId');
-
+    
     // Instalment Routes
     $routes->match(['get', 'options'], 'instalments/invoice/(:segment)', 'InstalmentController::getByInvoice/$1');
     $routes->match(['get', 'options'], 'instalments/(:num)', 'InstalmentController::show/$1');
@@ -210,7 +210,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->post('instalments/store', 'InstalmentController::store');
         $routes->post('(:segment)/instalments/delete', 'InstalmentController::delete/$1');
     });
-
+    
     // Nueva ruta para listar todas las cuotas
     $routes->get('instalments', 'InstalmentController::list');
 
