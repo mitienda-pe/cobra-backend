@@ -512,13 +512,18 @@ class LigoPaymentController extends ResourceController
         
         // URL para autenticación según la documentación
         $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
-        $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/auth";
+        $url = "https://cce-auth-{$prefix}.ligocloud.tech/v1/auth/sign-in?companyId={$organization['ligo_company_id']}";
         
+        // Datos de autenticación
         $authData = [
             'username' => $organization['ligo_username'],
-            'password' => $organization['ligo_password'],
-            'companyId' => $organization['ligo_company_id']
+            'password' => $organization['ligo_password']
         ];
+        
+        // Token de autorización actualizado para Ligo
+        $authorizationToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiI5MjEwMDE3ODc5NDc0NDc4MTA0NCIsImlhdCI6MTcxMjYyNzc4MSwiZXhwIjoxNzEyNjMxMzgxLCJhdWQiOiJsaWdvLWNhbGlkYWQuY29tIiwiaXNzIjoibGlnbyIsInN1YiI6ImxpZ29AZ21haWwuY29tIn0.aCOtbeMWvfVkxGKJq8LOWs_SRsRN1VOvRkQJLvmJ_Zs';
+        
+        log_message('debug', 'URL de autenticación Ligo API: ' . $url);
         
         curl_setopt_array($curl, [
             CURLOPT_URL => $url,
@@ -530,10 +535,13 @@ class LigoPaymentController extends ResourceController
             CURLOPT_CUSTOMREQUEST => 'POST',
             CURLOPT_POSTFIELDS => json_encode($authData),
             CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json'
+                'Content-Type: application/json',
+                'Accept: application/json',
+                'Authorization: Bearer ' . $authorizationToken
             ],
             CURLOPT_SSL_VERIFYHOST => 0,
             CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_FOLLOWLOCATION => true
         ]);
         
         $response = curl_exec($curl);
@@ -548,14 +556,23 @@ class LigoPaymentController extends ResourceController
         
         $decoded = json_decode($response);
         
-        if (!$decoded || !isset($decoded->data) || !isset($decoded->data->token)) {
+        if (!$decoded || !isset($decoded->data) || !isset($decoded->data->access_token)) {
             log_message('error', 'Invalid auth response from Ligo API: ' . $response);
-            return (object)['error' => 'Invalid authentication response from Ligo API'];
+            
+            // Extraer mensaje de error
+            $errorMsg = 'Invalid authentication response from Ligo API';
+            if (isset($decoded->message)) {
+                $errorMsg = $decoded->message;
+            } elseif (isset($decoded->error)) {
+                $errorMsg = $decoded->error;
+            }
+            
+            return (object)['error' => $errorMsg];
         }
         
         // Create token object
         $token = new \stdClass();
-        $token->token = $decoded->data->token;
+        $token->token = $decoded->data->access_token;
         
         // Calculate expiry (usually 1 hour)
         $expiry = time() + 3600; // 1 hour from now
