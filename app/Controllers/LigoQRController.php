@@ -628,6 +628,13 @@ class LigoQRController extends Controller
         try {
             $curl = curl_init();
 
+            // Asegurar que tenemos valores válidos para los campos requeridos
+            $idCuenta = !empty($organization['ligo_account_id']) ? $organization['ligo_account_id'] : '92100178794744781044';
+            $codigoComerciante = !empty($organization['ligo_merchant_code']) ? $organization['ligo_merchant_code'] : '4829';
+            
+            // Registrar los valores para depuración
+            log_message('debug', 'Valores para generación de QR - idCuenta: ' . $idCuenta . ', codigoComerciante: ' . $codigoComerciante);
+            
             // Preparar datos para la generación de QR según la documentación
             $qrData = [
                 'header' => [
@@ -635,13 +642,13 @@ class LigoQRController extends Controller
                 ],
                 'data' => [
                     'qrTipo' => '12', // QR dinámico con monto
-                    'idCuenta' => $organization['ligo_account_id'] ?? '92100178794744781044', // Valor del archivo de Postman: idCuentaQr
+                    'idCuenta' => $idCuenta, // Aseguramos que no esté vacío
                     'moneda' => $data['currency'] == 'PEN' ? '604' : '840', // 604 = Soles, 840 = Dólares
                     'importe' => (int)($data['amount'] * 100), // Convertir a centavos
                     'fechaVencimiento' => null,
                     'cantidadPagos' => null,
                     'glosa' => $data['description'],
-                    'codigoComerciante' => $organization['ligo_merchant_code'] ?? '4829', // Valor del archivo de Postman: merchantCode
+                    'codigoComerciante' => $codigoComerciante, // Aseguramos que no esté vacío
                     'nombreComerciante' => $organization['name'],
                     'ciudadComerciante' => $organization['city'] ?? 'Lima',
                     'info' => [$data['orderId']] // Debe ser un array de valores, no un objeto
