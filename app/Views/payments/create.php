@@ -122,6 +122,7 @@
                             <option value="deposit" <?= old('payment_method') == 'deposit' ? 'selected' : '' ?>>Depósito</option>
                             <option value="check" <?= old('payment_method') == 'check' ? 'selected' : '' ?>>Cheque</option>
                             <option value="card" <?= old('payment_method') == 'card' ? 'selected' : '' ?>>Tarjeta</option>
+                            <option value="ligo_qr" <?= old('payment_method') == 'ligo_qr' ? 'selected' : '' ?>>QR - Ligo</option>
                         </select>
                     </div>
                     
@@ -169,6 +170,22 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
+    // Manejar cambio en el método de pago para redireccionar a QR si se selecciona
+    $('#payment_method').on('change', function() {
+        if ($(this).val() === 'ligo_qr') {
+            // Si hay una factura seleccionada, enviar el formulario para redirigir al controlador de QR
+            if ($('input[name="invoice_id"]').val()) {
+                $('#payment-form').submit();
+            } else if ($('#invoice_search').val()) {
+                // Si estamos en la vista de búsqueda y hay una factura seleccionada
+                $('#payment-form').submit();
+            } else {
+                alert('Por favor, seleccione una factura antes de elegir el método de pago QR.');
+                $(this).val(''); // Resetear la selección
+            }
+        }
+    });
+    
     // Inicializar Select2 para la búsqueda de facturas
     $('#invoice_search').select2({
         theme: 'bootstrap-5',

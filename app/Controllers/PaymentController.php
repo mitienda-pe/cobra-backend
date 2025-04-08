@@ -97,6 +97,32 @@ class PaymentController extends BaseController
                 'longitude'      => 'permit_empty|decimal',
             ];
             
+            // Check if payment method is Ligo QR
+            if ($this->request->getPost('payment_method') === 'ligo_qr') {
+                // Get invoice information
+                $invoiceModel = new InvoiceModel();
+                $invoice = $invoiceModel->find($this->request->getPost('invoice_id'));
+                
+                if (!$invoice) {
+                    return redirect()->back()->withInput()
+                        ->with('error', 'Factura no encontrada.');
+                }
+                
+                // Check if user has access to this invoice
+                if (!$this->hasAccessToInvoice($invoice)) {
+                    return redirect()->back()->withInput()
+                        ->with('error', 'No tiene permisos para registrar pagos para esta factura.');
+                }
+                
+                // Redirect to Ligo QR controller
+                $instalmentId = $this->request->getPost('instalment_id') ?: null;
+                if ($instalmentId) {
+                    return redirect()->to('/payment/ligo/qr/' . $invoice['uuid'] . '/' . $instalmentId);
+                } else {
+                    return redirect()->to('/payment/ligo/qr/' . $invoice['uuid']);
+                }
+            }
+            
             if ($this->validate($rules)) {
                 $paymentModel = new PaymentModel();
                 
