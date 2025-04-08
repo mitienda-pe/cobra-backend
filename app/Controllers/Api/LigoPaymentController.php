@@ -58,7 +58,7 @@ class LigoPaymentController extends ResourceController
         }
         
         // Check if Ligo credentials are configured
-        if (empty($organization['ligo_api_key']) || empty($organization['ligo_api_secret'])) {
+        if (empty($organization['ligo_username']) || empty($organization['ligo_password']) || empty($organization['ligo_company_id'])) {
             return $this->fail('Ligo API credentials not configured', 400);
         }
         
@@ -177,6 +177,8 @@ class LigoPaymentController extends ResourceController
         return false;
     }
     
+
+    
     /**
      * Create order in Ligo API
      *
@@ -188,17 +190,76 @@ class LigoPaymentController extends ResourceController
     {
         $curl = curl_init();
         
+        // Obtener token de autenticación si no existe o está vencido
+        $authToken = $this->getAuthToken($organization);
+        
+        if (isset($authToken->error)) {
+            return (object)['error' => $authToken->error];
+        }
+        
+        // URL para generar QR según la documentación
+        $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
+        $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
+        
+        // Asegurar que tenemos valores válidos para los campos requeridos
+        $idCuenta = !empty($organization['ligo_account_id']) ? $organization['ligo_account_id'] : '92100178794744781044';
+        $codigoComerciante = !empty($organization['ligo_merchant_code']) ? $organization['ligo_merchant_code'] : '4829';
+        
+        // Determinar el tipo de QR a generar (estático o dinámico)
+        $qrTipo = isset($data['qr_type']) && $data['qr_type'] === 'static' ? '11' : '12';
+        
+        // Preparar datos para la generación de QR según la documentación
+        $qrData = [
+            'header' => [
+                'sisOrigen' => '0921'
+            ],
+            'data' => [
+                'qrTipo' => $qrTipo, // 11 = Estático, 12 = Dinámico con monto
+                'idCuenta' => $idCuenta,
+                'moneda' => $data['currency'] == 'PEN' ? '604' : '840', // 604 = Soles, 840 = Dólares
+                'codigoComerciante' => $codigoComerciante,
+                'nombreComerciante' => $organization['name'],
+                'ciudadComerciante' => $organization['city'] ?? 'Lima'
+            ],
+            'type' => 'TEXT'
+        ];
+        
+        // Agregar campos adicionales para QR dinámico
+        if ($qrTipo === '12') {
+            $qrData['data']['importe'] = (int)($data['amount'] * 100); // Convertir a centavos
+            $qrData['data']['glosa'] = $data['description'];
+            $qrData['data']['info'] = [
+                [
+                    'codigo' => 'invoice_id',
+                    'valor' => $data['orderId']
+                ],
+                [
+                    'codigo' => 'nombreCliente',
+                    'valor' => $organization['name'] ?? 'Cliente'
+                ],
+                [
+                    'codigo' => 'documentoIdentidad',
+                    'valor' => $organization['tax_id'] ?? '00000000'
+                ]
+            ];
+        } else {
+            // Para QR estático estos campos son null
+            $qrData['data']['importe'] = null;
+            $qrData['data']['glosa'] = null;
+            $qrData['data']['info'] = null;
+        }
+        
         curl_setopt_array($curl, [
-            CURLOPT_URL => 'https://api.ligo.pe/v1/orders',
+            CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_TIMEOUT => 30,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_POSTFIELDS => json_encode($qrData),
             CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $organization['ligo_api_key'],
+                'Authorization: Bearer ' . $authToken->token,
                 'Content-Type: application/json'
             ],
             CURLOPT_SSL_VERIFYHOST => 0, // Deshabilitar verificación de host SSL
@@ -207,27 +268,148 @@ class LigoPaymentController extends ResourceController
         
         $response = curl_exec($curl);
         $err = curl_error($curl);
+        $info = curl_getinfo($curl);
+        
+        // Registrar información detallada de la solicitud y respuesta
+        log_message('debug', 'Solicitud a Ligo - URL: ' . $url);
+        log_message('debug', 'Solicitud a Ligo - Datos: ' . json_encode($qrData));
+        log_message('debug', 'Solicitud a Ligo - Headers: Authorization Bearer ' . substr($authToken->token, 0, 20) . '...');
+        log_message('debug', 'Respuesta de Ligo - HTTP Code: ' . $info['http_code']);
         
         curl_close($curl);
         
         if ($err) {
             log_message('error', 'Ligo API Error: ' . $err);
-            return (object)['error' => 'Failed to connect to Ligo API'];
+            return (object)['error' => 'Failed to connect to Ligo API: ' . $err];
         }
         
-        return json_decode($response);
+        $decoded = json_decode($response);
+        
+        if (!$decoded || !isset($decoded->data) || !isset($decoded->data->id)) {
+            log_message('error', 'Invalid response from Ligo API: ' . $response);
+            return (object)['error' => 'Invalid response from Ligo API'];
+        }
+        
+        // Crear objeto de respuesta con formato estandarizado
+        $result = new \stdClass();
+        $result->qr_data = json_encode([
+            'id' => $decoded->data->id,
+            'amount' => $qrTipo === '12' ? $data['amount'] : null,
+            'currency' => $data['currency'] ?? 'PEN',
+            'description' => $data['description'] ?? null,
+            'merchant' => $organization['name'],
+            'timestamp' => time(),
+            'hash' => 'LIGO-' . $decoded->data->id
+        ]);
+        $result->qr_image_url = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($result->qr_data);
+        $result->order_id = $decoded->data->id;
+        
+        return $result;
+    }
+    
+    /**
+     * Get authentication token for Ligo API
+     * 
+     * @param array $organization Organization with Ligo credentials
+     * @return object Token object with token and expiry or error
+     */
+    private function getAuthToken($organization)
+    {
+        // Check if token exists and is not expired
+        if (!empty($organization['ligo_token']) && !empty($organization['ligo_token_expiry'])) {
+            $tokenExpiry = strtotime($organization['ligo_token_expiry']);
+            if ($tokenExpiry > time()) {
+                // Token is still valid
+                $token = new \stdClass();
+                $token->token = $organization['ligo_token'];
+                $token->expiry = $organization['ligo_token_expiry'];
+                return $token;
+            }
+        }
+        
+        // Token doesn't exist or is expired, get a new one
+        $curl = curl_init();
+        
+        // URL para autenticación según la documentación
+        $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
+        $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/auth";
+        
+        $authData = [
+            'username' => $organization['ligo_username'],
+            'password' => $organization['ligo_password'],
+            'companyId' => $organization['ligo_company_id']
+        ];
+        
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode($authData),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json'
+            ],
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+        
+        curl_close($curl);
+        
+        if ($err) {
+            log_message('error', 'Ligo Auth Error: ' . $err);
+            return (object)['error' => 'Failed to authenticate with Ligo API: ' . $err];
+        }
+        
+        $decoded = json_decode($response);
+        
+        if (!$decoded || !isset($decoded->data) || !isset($decoded->data->token)) {
+            log_message('error', 'Invalid auth response from Ligo API: ' . $response);
+            return (object)['error' => 'Invalid authentication response from Ligo API'];
+        }
+        
+        // Create token object
+        $token = new \stdClass();
+        $token->token = $decoded->data->token;
+        
+        // Calculate expiry (usually 1 hour)
+        $expiry = time() + 3600; // 1 hour from now
+        $token->expiry = date('Y-m-d H:i:s', $expiry);
+        
+        // Update organization with new token
+        $this->organizationModel->update($organization['id'], [
+            'ligo_token' => $token->token,
+            'ligo_token_expiry' => $token->expiry
+        ]);
+        
+        return $token;
     }
     
     /**
      * Check if user can access an invoice
+     * 
+     * @param array $invoice
+     * @return bool
      */
     private function canAccessInvoice($invoice)
     {
-        if ($this->user['role'] === 'superadmin' || $this->user['role'] === 'admin') {
-            // Admins and superadmins can access any invoice in their organization
-            return $invoice['organization_id'] == $this->user['organization_id'];
-        } else {
-            // For regular users, check if they have access to the client through portfolios
+        // Superadmin can access any invoice
+        if ($this->user['role'] === 'superadmin') {
+            return true;
+        }
+        
+        // Admin can access invoices from their organization
+        if ($this->user['role'] === 'admin' && $this->user['organization_id'] == $invoice['organization_id']) {
+            return true;
+        }
+        
+        // For regular users, check if they have access to the client through portfolios
+        if ($this->user['role'] === 'user') {
             $portfolioModel = new \App\Models\PortfolioModel();
             $portfolios = $portfolioModel->getByUser($this->user['id']);
             
@@ -242,5 +424,7 @@ class LigoPaymentController extends ResourceController
             
             return in_array($invoice['client_id'], $clientIds);
         }
+        
+        return false;
     }
 }
