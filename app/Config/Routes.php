@@ -217,6 +217,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('ajax-qr/(:segment)', 'LigoQRController::ajaxQR/$1');
         $routes->get('ajax-qr/(:segment)/(:num)', 'LigoQRController::ajaxQR/$1/$2');
         $routes->get('generate-qr/(:num)', 'PaymentController::generateQR/$1');
+        $routes->get('static-qr/(:segment)', 'LigoQRController::staticQR/$1');
     });
 
     // Webhook Routes

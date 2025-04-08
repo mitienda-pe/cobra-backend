@@ -16,6 +16,111 @@ class LigoQRController extends Controller
         $this->organizationModel = new \App\Models\OrganizationModel();
         helper(['form', 'url']);
     }
+    
+    /**
+     * Generate static QR code for an organization
+     *
+     * @param string $organizationUuid UUID de la organización
+     * @return mixed
+     */
+    public function staticQR($organizationUuid)
+    {
+        // Registrar información de depuración
+        log_message('debug', 'staticQR llamado para organización UUID: ' . $organizationUuid);
+
+        // Obtener detalles de la organización
+        $organization = $this->organizationModel->where('uuid', $organizationUuid)->first();
+
+        if (!$organization) {
+            log_message('error', 'Organización no encontrada con UUID: ' . $organizationUuid);
+            return $this->response->setJSON([
+                'success' => false,
+                'error_message' => 'Organización no encontrada'
+            ]);
+        }
+
+        log_message('debug', 'Organización encontrada: ' . $organization['name']);
+
+        // Check if Ligo is enabled for this organization and has valid credentials
+        $ligoEnabled = isset($organization['ligo_enabled']) && $organization['ligo_enabled'];
+        $hasValidCredentials = !empty($organization['ligo_username']) && 
+                              !empty($organization['ligo_password']) && 
+                              !empty($organization['ligo_company_id']);
+        $hasValidToken = !empty($organization['ligo_token']) && 
+                         !empty($organization['ligo_token_expiry']) && 
+                         strtotime($organization['ligo_token_expiry']) > time();
+        
+        if (!$ligoEnabled || (!$hasValidCredentials && !$hasValidToken)) {
+            // Si Ligo no está habilitado o no hay credenciales válidas, usar un QR de demostración temporal
+            log_message('info', 'Ligo no está configurado correctamente para la organización ID: ' . $organization['id'] . '. Usando QR de demostración.');
+            log_message('debug', 'Estado Ligo: habilitado=' . ($ligoEnabled ? 'Sí' : 'No') . 
+                                ', credenciales=' . ($hasValidCredentials ? 'Sí' : 'No') . 
+                                ', token=' . ($hasValidToken ? 'Sí' : 'No'));
+
+            // Prepare demo QR data
+            return $this->response->setJSON([
+                'success' => true,
+                'organization_name' => $organization['name'],
+                'qr_data' => json_encode([
+                    'organization_id' => $organization['id'],
+                    'name' => $organization['name'],
+                    'demo' => true
+                ]),
+                'qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode("DEMO QR - " . $organization['name']),
+                'order_id' => 'DEMO-' . time(),
+                'is_demo' => true
+            ]);
+        }
+
+        // Prepare response data
+        $responseData = [
+            'success' => true,
+            'organization_name' => $organization['name'],
+            'qr_data' => null,
+            'qr_image_url' => null,
+            'order_id' => null
+        ];
+
+        // Preparar datos para la orden estática
+        $orderData = [
+            'amount' => null, // No amount for static QR
+            'currency' => 'PEN',
+            'orderId' => 'static-' . $organization['id'] . '-' . time(),
+            'description' => 'QR Estático para ' . $organization['name'],
+            'qr_type' => 'static'
+        ];
+
+        // Log para depuración
+        log_message('debug', 'Intentando crear QR estático en Ligo con datos: ' . json_encode($orderData));
+
+        // Crear orden en Ligo
+        $response = $this->createLigoOrder($orderData, $organization);
+
+        // Log de respuesta
+        log_message('debug', 'Respuesta de Ligo: ' . json_encode($response));
+
+        if (!isset($response->error)) {
+            $responseData['qr_data'] = $response->qr_data ?? null;
+            $responseData['qr_image_url'] = $response->qr_image_url ?? null;
+            $responseData['order_id'] = $response->order_id ?? null;
+
+            // Log de éxito
+            log_message('info', 'QR estático generado exitosamente para organización: ' . $organization['name']);
+        } else {
+            log_message('error', 'Error generando QR estático Ligo: ' . json_encode($response));
+
+            // Si hay un error, usar QR de demostración como fallback
+            log_message('info', 'Usando QR de demostración como fallback debido a error de Ligo');
+
+            $responseData['success'] = true; // Cambiamos a true para mostrar el QR de demostración
+            $responseData['qr_image_url'] = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode("DEMO QR - " . $organization['name']);
+            $responseData['order_id'] = 'DEMO-' . time();
+            $responseData['is_demo'] = true;
+            $responseData['error_message'] = 'Usando QR de demostración. Error original: ' . (is_string($response->error) ? $response->error : json_encode($response->error));
+        }
+
+        return $this->response->setJSON($responseData);
+    }
 
     /**
      * Generate QR code and return JSON data for AJAX requests
@@ -24,10 +129,10 @@ class LigoQRController extends Controller
      * @param int|null $instalmentId ID de la cuota (opcional)
      * @return mixed
      */
-    public function ajaxQR($invoiceIdentifier, $instalmentId = null)
+    public function ajaxQR($invoiceIdentifier, $instalmentId = null, $qrType = 'dynamic')
     {
         // Registrar información de depuración
-        log_message('debug', 'ajaxQR llamado con identificador: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null'));
+        log_message('debug', 'ajaxQR llamado con identificador: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null') . ', qrType: ' . $qrType);
 
         // Intentar obtener la factura por UUID primero
         $invoice = $this->invoiceModel->where('uuid', $invoiceIdentifier)->first();
@@ -671,39 +776,50 @@ class LigoQRController extends Controller
             // Registrar los valores para depuración
             log_message('debug', 'Valores para generación de QR - idCuenta: ' . $idCuenta . ', codigoComerciante: ' . $codigoComerciante);
             
+            // Determinar el tipo de QR a generar (estático o dinámico)
+            $qrTipo = isset($data['qr_type']) && $data['qr_type'] === 'static' ? '11' : '12';
+            log_message('debug', 'Tipo de QR a generar: ' . ($qrTipo === '11' ? 'Estático' : 'Dinámico'));
+            
             // Preparar datos para la generación de QR según la documentación
             $qrData = [
                 'header' => [
                     'sisOrigen' => '0921' // Valor del archivo de Postman: debtorParticipantCode
                 ],
                 'data' => [
-                    'qrTipo' => '12', // QR dinámico con monto
+                    'qrTipo' => $qrTipo, // 11 = Estático, 12 = Dinámico con monto
                     'idCuenta' => $idCuenta, // Aseguramos que no esté vacío
                     'moneda' => $data['currency'] == 'PEN' ? '604' : '840', // 604 = Soles, 840 = Dólares
-                    'importe' => (int)($data['amount'] * 100), // Convertir a centavos
-                    'fechaVencimiento' => null,
-                    'cantidadPagos' => null,
-                    'glosa' => $data['description'],
                     'codigoComerciante' => $codigoComerciante, // Aseguramos que no esté vacío
                     'nombreComerciante' => $organization['name'],
-                    'ciudadComerciante' => $organization['city'] ?? 'Lima',
-                    'info' => [
-                        [
-                            'codigo' => 'invoice_id',
-                            'valor' => $data['orderId']
-                        ],
-                        [
-                            'codigo' => 'nombreCliente',
-                            'valor' => $organization['name'] ?? 'Cliente'
-                        ],
-                        [
-                            'codigo' => 'documentoIdentidad',
-                            'valor' => $organization['tax_id'] ?? '00000000'
-                        ]
-                    ] // Formato correcto según la API de Ligo
+                    'ciudadComerciante' => $organization['city'] ?? 'Lima'
                 ],
                 'type' => 'TEXT'
             ];
+            
+            // Agregar campos adicionales para QR dinámico
+            if ($qrTipo === '12') {
+                $qrData['data']['importe'] = (int)($data['amount'] * 100); // Convertir a centavos
+                $qrData['data']['glosa'] = $data['description'];
+                $qrData['data']['info'] = [
+                    [
+                        'codigo' => 'invoice_id',
+                        'valor' => $data['orderId']
+                    ],
+                    [
+                        'codigo' => 'nombreCliente',
+                        'valor' => $organization['name'] ?? 'Cliente'
+                    ],
+                    [
+                        'codigo' => 'documentoIdentidad',
+                        'valor' => $organization['tax_id'] ?? '00000000'
+                    ]
+                ];
+            } else {
+                // Para QR estático estos campos son null
+                $qrData['data']['importe'] = null;
+                $qrData['data']['glosa'] = null;
+                $qrData['data']['info'] = null;
+            }
 
             // URL para generar QR según la documentación
             $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
