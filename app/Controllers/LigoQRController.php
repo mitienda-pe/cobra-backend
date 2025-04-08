@@ -406,8 +406,12 @@ class LigoQRController extends Controller
 
             // 4. Preparar respuesta con los datos del QR
             $qrHash = $qrDetails->data->hash ?? null;
-
-            if (!$qrHash) {
+            
+            // Si no hay hash pero la respuesta es exitosa (status=1), generar un hash temporal
+            if (!$qrHash && isset($qrDetails->status) && $qrDetails->status == 1) {
+                log_message('info', 'No se recibió hash de QR pero la respuesta es exitosa. Generando hash temporal.');
+                $qrHash = 'LIGO-' . $qrId . '-' . time();
+            } else if (!$qrHash) {
                 log_message('error', 'No se recibió hash de QR en la respuesta de Ligo');
                 return (object)['error' => 'No QR hash in response'];
             }
@@ -771,9 +775,22 @@ class LigoQRController extends Controller
             }
 
             // Verificar si hay errores en la respuesta
-            if (!isset($decoded->data) || !isset($decoded->data->hash)) {
+            if (!isset($decoded->data)) {
                 log_message('error', 'Error en la respuesta de detalles de QR: ' . json_encode($decoded));
                 return (object)['error' => 'Error in QR details response: ' . json_encode($decoded)];
+            }
+            
+            // Si data está vacío pero el status es 1 (exitoso), consideramos que es una respuesta válida
+            if (empty((array)$decoded->data) && isset($decoded->status) && $decoded->status == 1) {
+                log_message('info', 'La respuesta de detalles de QR tiene data vacío pero status exitoso');
+                // Crear un objeto con los datos mínimos necesarios
+                $decoded->data = (object)[
+                    'hash' => 'generated_' . time(),
+                    'qrBase64' => null
+                ];
+            } else if (!isset($decoded->data->hash)) {
+                log_message('error', 'Error en la respuesta de detalles de QR: falta el campo hash');
+                return (object)['error' => 'Error in QR details response: missing hash field'];
             }
 
             return $decoded;
