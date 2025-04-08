@@ -644,7 +644,7 @@ class LigoQRController extends Controller
                     'codigoComerciante' => $organization['ligo_merchant_code'] ?? '4829', // Valor del archivo de Postman: merchantCode
                     'nombreComerciante' => $organization['name'],
                     'ciudadComerciante' => $organization['city'] ?? 'Lima',
-                    'info' => json_encode(['invoice_id' => $data['orderId']])
+                    'info' => [$data['orderId']] // Debe ser un array de valores, no un objeto
                 ],
                 'type' => 'TEXT'
             ];
