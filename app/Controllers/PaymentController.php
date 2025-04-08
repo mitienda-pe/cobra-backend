@@ -97,9 +97,10 @@ class PaymentController extends BaseController
                 'longitude'      => 'permit_empty|decimal',
             ];
             
-            // Check if payment method is Ligo QR
-            if ($this->request->getPost('payment_method') === 'ligo_qr') {
-                // Get invoice information
+            // Check if payment method is Ligo QR - handled by JavaScript now
+            // We don't need server-side redirection anymore since we're using a modal
+            if ($this->request->getPost('payment_method') === 'ligo_qr' && !$this->request->isAJAX()) {
+                // For non-AJAX requests or fallback, we'll still validate
                 $invoiceModel = new InvoiceModel();
                 $invoice = $invoiceModel->find($this->request->getPost('invoice_id'));
                 
@@ -114,13 +115,9 @@ class PaymentController extends BaseController
                         ->with('error', 'No tiene permisos para registrar pagos para esta factura.');
                 }
                 
-                // Redirect to Ligo QR controller
-                $instalmentId = $this->request->getPost('instalment_id') ?: null;
-                if ($instalmentId) {
-                    return redirect()->to('/payment/ligo/qr/' . $invoice['uuid'] . '/' . $instalmentId);
-                } else {
-                    return redirect()->to('/payment/ligo/qr/' . $invoice['uuid']);
-                }
+                // Return to the form with a message to use the modal
+                return redirect()->back()->withInput()
+                    ->with('info', 'Por favor, utilice el modal para generar el código QR de Ligo.');
             }
             
             if ($this->validate($rules)) {
