@@ -382,7 +382,27 @@ class LigoQRController extends Controller
             }
 
             // 2. Generar QR con el token obtenido
+            log_message('debug', 'Iniciando generación de QR con token: ' . substr($authToken->token, 0, 20) . '...');
             $qrResponse = $this->generateLigoQR($data, $authToken->token, $organization);
+            
+            // Guardar la respuesta completa en la base de datos o en un archivo de log
+            log_message('info', 'Respuesta completa de generación de QR: ' . json_encode($qrResponse));
+            
+            // Guardar la respuesta en una tabla de la base de datos para referencia futura
+            try {
+                $db = \Config\Database::connect();
+                $db->table('ligo_responses')->insert([
+                    'organization_id' => $organization['id'],
+                    'request_type' => 'create_qr',
+                    'request_data' => json_encode($data),
+                    'response_data' => json_encode($qrResponse),
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+                log_message('info', 'Respuesta de QR guardada en la base de datos');
+            } catch (\Exception $e) {
+                log_message('error', 'Error al guardar respuesta de QR en la base de datos: ' . $e->getMessage());
+                // Continuar a pesar del error
+            }
 
             if (isset($qrResponse->error)) {
                 log_message('error', 'Error al generar QR en Ligo: ' . $qrResponse->error);
@@ -713,6 +733,14 @@ class LigoQRController extends Controller
             $response = curl_exec($curl);
             $err = curl_error($curl);
             $info = curl_getinfo($curl);
+            
+            // Registrar información detallada de la solicitud y respuesta
+            log_message('debug', 'Solicitud a Ligo - URL: ' . $url);
+            log_message('debug', 'Solicitud a Ligo - Datos: ' . json_encode($qrData));
+            log_message('debug', 'Solicitud a Ligo - Headers: Authorization Bearer ' . substr($token, 0, 20) . '...');
+            log_message('debug', 'Respuesta de Ligo - HTTP Code: ' . $info['http_code']);
+            log_message('debug', 'Respuesta de Ligo - Content Type: ' . $info['content_type']);
+            log_message('debug', 'Respuesta de Ligo - Total Time: ' . $info['total_time'] . ' segundos');
 
             curl_close($curl);
 
@@ -722,6 +750,21 @@ class LigoQRController extends Controller
             }
 
             log_message('debug', 'Respuesta de generación de QR: ' . $response);
+            
+            // Guardar la solicitud y respuesta completas en un archivo de log
+            $logData = [
+                'timestamp' => date('Y-m-d H:i:s'),
+                'organization_id' => $organization['id'],
+                'request_url' => $url,
+                'request_data' => $qrData,
+                'response_code' => $info['http_code'],
+                'response_data' => $response
+            ];
+            
+            // Guardar en un archivo de log
+            $logFile = WRITEPATH . 'logs/ligo_qr_' . date('Y-m-d') . '.log';
+            file_put_contents($logFile, json_encode($logData) . "\n", FILE_APPEND);
+            log_message('info', 'Detalles de QR guardados en: ' . $logFile);
 
             $decoded = json_decode($response);
 
