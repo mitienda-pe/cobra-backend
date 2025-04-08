@@ -42,7 +42,20 @@ class LigoQRController extends Controller
         
         // Si se proporciona ID de cuota, obtener los detalles de la cuota
         $instalment = null;
-        $paymentAmount = $invoice['amount']; // Por defecto, el monto total de la factura
+        
+        // Determinar el monto de la factura, manejando diferentes estructuras de datos
+        $paymentAmount = 0;
+        if (isset($invoice['total_amount'])) {
+            $paymentAmount = $invoice['total_amount'];
+        } elseif (isset($invoice['amount'])) {
+            $paymentAmount = $invoice['amount'];
+        } else {
+            // Si no hay monto directo, calcular el monto pendiente
+            $invoiceModel = new \App\Models\InvoiceModel();
+            $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
+            $paymentAmount = $paymentInfo['remaining'] ?? $paymentInfo['invoice_amount'] ?? 0;
+        }
+        
         $paymentDescription = 'Pago de factura ' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A');
         
         if ($instalmentId) {

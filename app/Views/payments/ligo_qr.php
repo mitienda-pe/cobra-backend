@@ -12,7 +12,7 @@
                 </div>
                 <div class="card-body text-center">
                     <h5 class="card-title">Factura #<?= $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A' ?></h5>
-                    <p class="card-text">Monto a pagar: <?= $invoice['currency'] ?> <?= number_format($invoice['amount'], 2) ?></p>
+                    <p class="card-text">Monto a pagar: <?= $invoice['currency'] ?? 'PEN' ?> <?= number_format($invoice['total_amount'] ?? $invoice['amount'] ?? 0, 2) ?></p>
                     
                     <?php if (isset($error_message) && !empty($error_message)): ?>
                         <div class="alert alert-danger">
