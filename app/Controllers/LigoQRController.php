@@ -643,8 +643,8 @@ class LigoQRController extends Controller
             
             log_message('debug', 'URL de autenticación Ligo: ' . $url);
             
-            // Token de autorización actualizado para Ligo
-            $authorizationToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiI5MjEwMDE3ODc5NDc0NDc4MTA0NCIsImlhdCI6MTcxMjYyNzc4MSwiZXhwIjoxNzEyNjMxMzgxLCJhdWQiOiJsaWdvLWNhbGlkYWQuY29tIiwiaXNzIjoibGlnbyIsInN1YiI6ImxpZ29AZ21haWwuY29tIn0.aCOtbeMWvfVkxGKJq8LOWs_SRsRN1VOvRkQJLvmJ_Zs';
+            // Token de autorización requerido por Ligo
+            $authorizationToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxMzkwNDEsImV4cCI6MTc0NDE0MjY0MSwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.chWrhOkQXo2Yc9mOhB8kIHbSmQECtA_PxTsSCcOTCC6OJs7IkDAyj3vkISW7Sm6G88R3KXgxSWhPT4QmShw3xV9a4Jl0FTBQy2KRdTCzbTgRifs9GN0X5KR7KhfChnDSKNosnVQD9QrqTCdlqpvW75vO1rWfTRSXpMtKZRUvy6fPyESv2QxERlo-441e2EwwCly1kgLftpTcMa0qCr-OplD4Iv_YaOw-J5IPAdYqkVPqHQQZO2LCLjP-Q51KPW04VtTyf7UbO6g4OvUb6a423XauAhUFtSw0oGZS11hAYOPSIKO0w6JERLOvJr48lKaouogf0g_M18nZeSDPMZwCWw';
             
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
