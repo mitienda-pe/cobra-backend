@@ -643,11 +643,11 @@ class LigoQRController extends Controller
             
             log_message('debug', 'URL de autenticación Ligo: ' . $url);
             
-            // Agregar token de autorización como respaldo
-            $authorizationToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxMzkwNDEsImV4cCI6MTc0NDE0MjY0MSwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.aCOtbeMWvfVkxGKJq8LOWs_SRsRN1VOvRkQJLvmJ_Zs';
+            // Token de autorización para la API de Ligo (actualizado con el ejemplo de Postman)
+            $authorizationToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxNTM2NzgsImV4cCI6MTc0NDE1NzI3OCwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.gxQvQyF47C274j9Wo8tQVEGwpKmg34l6CbtQVRJbvCd3svjsZSS3JeSDKHPRSFNqdf6GpTvtGr66sXPVWYYhJifPUHgmuu40Gm4dbCra0PSriWCyScouF2efoGPthnGcrwAK-m43wQ3mHR_umXi8E0rkRFTgvz7GQN3Fzrt09AZL1cpqnUoXAl1QIxgj96FkWhPF-TsEw-HG48WBkYcGS9mCTwJjgYUChEh3hegE02La4PYjf2zevck_jwg6mNpPrzZRFe2cXAX76vdPnVFe0hN1hqEW4-gM8Xii9MAhNmU7ovGflXc5hWj5sXUpq0GHvnFmKGkKtonIYfTzGMYMXg';
             
             // Definir token de respaldo global para uso en caso de fallo
-            $GLOBALS['ligo_fallback_token'] = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxMzkwNDEsImV4cCI6MTc0NDE0MjY0MSwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.aCOtbeMWvfVkxGKJq8LOWs_SRsRN1VOvRkQJLvmJ_Zs';
+            $GLOBALS['ligo_fallback_token'] = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQxNDA0MDQwLTk5ZWUtNDcwMy1hOTI4LTNiMmZhZWM0Y2RhZSIsInVzZXJJZCI6ImVjYWNjMTBhLTc5MTItNGNiOS1hMjk5LWJhYjQ1NjI2YzFiYiIsImNvbXBhbnlJZCI6ImU4YjRhMzZkLTZmMWQtNGEyYS1iZjNhLWNlOTM3MWRkZTRhYiIsImlhdCI6MTc0NDE1MzY5OCwiZXhwIjoxNzQ0MTU3Mjk4fQ.Opy6jwLrp27VMlOqw865u-i8qZ_jRwCV3nRLwbhNPfN2HElYsloF-lzK0kK2WT0lCDKGRWJ3gD4Y7JME-5hfG0TD6Q9f8qtSJXAciX2fhRnYdS7gzSOPjfj0zM_RL11v08o_W8xSRRb1VNc5JznwUm2aHKMg5gMS4aWyrbOp2zwvaE6vx3SlSELl9JLCYmzZIQ1vKrWTjR4JRVdQ9GOjwxdMDSpylXNJMUX30hezfhcHznmgin_SZJwTzUaJpE4DQLVOwjXjYh1GCkS-SPuEW90XUMkP8wU2LeVG4S_9DG0p8l9-zDj2NsiNBfuNm1KYCPoBRP208dbfsQFa2qRmuA';
             
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
@@ -747,8 +747,8 @@ class LigoQRController extends Controller
         // Si todo falla, usar un token de respaldo como último recurso
         log_message('warning', 'Usando token de respaldo como último recurso');
         
-        // Token de respaldo fijo para emergencias
-        $fallbackToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxMzkwNDEsImV4cCI6MTc0NDE0MjY0MSwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.aCOtbeMWvfVkxGKJq8LOWs_SRsRN1VOvRkQJLvmJ_Zs';
+        // Token de respaldo fijo para emergencias (actualizado con el ejemplo de Postman)
+        $fallbackToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQxNDA0MDQwLTk5ZWUtNDcwMy1hOTI4LTNiMmZhZWM0Y2RhZSIsInVzZXJJZCI6ImVjYWNjMTBhLTc5MTItNGNiOS1hMjk5LWJhYjQ1NjI2YzFiYiIsImNvbXBhbnlJZCI6ImU4YjRhMzZkLTZmMWQtNGEyYS1iZjNhLWNlOTM3MWRkZTRhYiIsImlhdCI6MTc0NDE1MzY5OCwiZXhwIjoxNzQ0MTU3Mjk4fQ.Opy6jwLrp27VMlOqw865u-i8qZ_jRwCV3nRLwbhNPfN2HElYsloF-lzK0kK2WT0lCDKGRWJ3gD4Y7JME-5hfG0TD6Q9f8qtSJXAciX2fhRnYdS7gzSOPjfj0zM_RL11v08o_W8xSRRb1VNc5JznwUm2aHKMg5gMS4aWyrbOp2zwvaE6vx3SlSELl9JLCYmzZIQ1vKrWTjR4JRVdQ9GOjwxdMDSpylXNJMUX30hezfhcHznmgin_SZJwTzUaJpE4DQLVOwjXjYh1GCkS-SPuEW90XUMkP8wU2LeVG4S_9DG0p8l9-zDj2NsiNBfuNm1KYCPoBRP208dbfsQFa2qRmuA';
         
         // Guardar el token en la base de datos para futuros usos
         try {
@@ -940,28 +940,71 @@ class LigoQRController extends Controller
         log_message('debug', 'Obteniendo detalles de QR con ID: ' . $qrId);
 
         try {
-            // En lugar de hacer una llamada adicional a la API, vamos a generar el QR directamente
-            // usando la información que ya tenemos
-            log_message('info', 'Generando información de QR para ID: ' . $qrId);
+            $curl = curl_init();
             
-            // Crear un objeto con los datos necesarios para el QR
-            $qrData = (object)[
-                'status' => 1,
-                'code' => 200,
-                'data' => (object)[
-                    'id' => $qrId,
-                    'hash' => 'LIGO-' . $qrId,
-                    'qrBase64' => null, // No necesitamos el QR en base64, generaremos uno con un servicio externo
-                    'createdAt' => date('Y-m-d H:i:s'),
-                    'expiresAt' => date('Y-m-d H:i:s', strtotime('+1 hour'))
-                ]
+            // URL para obtener detalles del QR según Postman
+            $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
+            $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
+            
+            log_message('debug', 'URL para obtener detalles del QR: ' . $url);
+            
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Accept: application/json',
+                    'Authorization: Bearer ' . $token
+                ],
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => false
+            ]);
+            
+            $response = curl_exec($curl);
+            $info = curl_getinfo($curl);
+            $err = curl_error($curl);
+            
+            curl_close($curl);
+            
+            if ($err) {
+                log_message('error', 'Error de cURL al obtener detalles del QR: ' . $err);
+                return (object)['error' => 'cURL Error: ' . $err];
+            }
+            
+            // Registrar la respuesta para depuración
+            $logData = [
+                'timestamp' => date('Y-m-d H:i:s'),
+                'qr_id' => $qrId,
+                'response_code' => $info['http_code'],
+                'response_data' => $response
             ];
             
-            log_message('debug', 'Datos de QR generados: ' . json_encode($qrData));
+            // Guardar en un archivo de log
+            $logFile = WRITEPATH . 'logs/ligo_qr_details_' . date('Y-m-d') . '.log';
+            file_put_contents($logFile, json_encode($logData) . "\n", FILE_APPEND);
+            log_message('info', 'Detalles de QR guardados en: ' . $logFile);
             
-            return $qrData;
-        } catch (Exception $e) {
-            log_message('error', 'Error al obtener detalles de QR: ' . $e->getMessage());
+            $decoded = json_decode($response);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                log_message('error', 'Error decodificando respuesta de detalles de QR: ' . json_last_error_msg());
+                return (object)['error' => 'Invalid JSON in QR details response: ' . json_last_error_msg()];
+            }
+            
+            // Verificar si hay errores en la respuesta
+            if (!isset($decoded->data) || !isset($decoded->data->hash)) {
+                log_message('error', 'Error en la respuesta de detalles de QR: ' . json_encode($decoded));
+                return (object)['error' => 'Error in QR details response: ' . json_encode($decoded)];
+            }
+            
+            return $decoded;
+        } catch (\Exception $e) {
+            log_message('error', 'Error al obtener detalles del QR: ' . $e->getMessage());
             return (object)['error' => 'QR details error: ' . $e->getMessage()];
         }
     }
