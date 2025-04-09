@@ -664,6 +664,9 @@ class LigoQRController extends Controller
         
         $curl = curl_init();
         
+        // Cuerpo vacío para la solicitud POST
+        $emptyBody = json_encode([]);
+        
         curl_setopt_array($curl, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
@@ -672,9 +675,11 @@ class LigoQRController extends Controller
             CURLOPT_TIMEOUT => 30,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => $emptyBody,  // Agregar cuerpo vacío
             CURLOPT_HTTPHEADER => [
                 'Authorization: Bearer ' . $authorizationToken,
-                'Content-Type: application/json'
+                'Content-Type: application/json',
+                'Content-Length: ' . strlen($emptyBody)  // Agregar Content-Length
             ],
             CURLOPT_SSL_VERIFYHOST => 0,
             CURLOPT_SSL_VERIFYPEER => false
