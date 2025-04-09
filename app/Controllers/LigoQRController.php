@@ -644,28 +644,40 @@ class LigoQRController extends Controller
         
         log_message('debug', 'URL de autenticación Ligo: ' . $url);
         
-        // Usar el token de autorización almacenado en la organización
-        if (empty($organization['ligo_auth_token'])) {
-            // Si no hay token en la organización, usar un token predeterminado
-            $authorizationToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxNjA2ODUsImV4cCI6MTc0NDE2NDI4NSwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.FDEMXiaDZsAMC7yZo_jpwS7QBAbEUz6qpy8mmnxed17HQO2nkrBAqfD51OLn2tsnFuYJQrJs4kMxyyr3-omOYxWGR1-U3Eyt4qUVEZZy6wdlMlGfxwd4CIjtSHwrNQoZc4Kcp4br7Y6MYIuIwC7Mb0H5Ul_QZ3WyYIYX9RKHFfplI1KJorD8dL2_piv3AifcdFmjyIMrK--UuXxfoeh4i_z3Wgt2DH0kkb8w8GSfYaKZKk10Ra8Yl16zqgVvjHy6PtBOEODXupPFzdz4aotZSE7d-FPuQSxKfwjH_Hemy1D6DFQZeEiOfMDC7PPw-9JQLUs99YmCy8cBYnY5_9VSfw';
-            log_message('warning', 'Usando token de autorización predeterminado para Ligo. Considere agregar un token personalizado en la tabla de organizaciones.');
-        } else {
-            $authorizationToken = $organization['ligo_auth_token'];
-            
-            // Verificar si el token ha expirado
-            $tokenParts = explode('.', $authorizationToken);
-            if (count($tokenParts) === 3) {
-                try {
-                    $payload = json_decode(base64_decode(str_replace('_', '/', str_replace('-', '+', $tokenParts[1]))), true);
-                    if (isset($payload['exp']) && $payload['exp'] < time()) {
-                        log_message('error', 'Token de autorización Ligo expirado para la organización ID: ' . $organization['id'] . '. Por favor, genere uno nuevo.');
-                        // Usar el token predeterminado si el personalizado ha expirado
-                        $authorizationToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxNjA2ODUsImV4cCI6MTc0NDE2NDI4NSwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.FDEMXiaDZsAMC7yZo_jpwS7QBAbEUz6qpy8mmnxed17HQO2nkrBAqfD51OLn2tsnFuYJQrJs4kMxyyr3-omOYxWGR1-U3Eyt4qUVEZZy6wdlMlGfxwd4CIjtSHwrNQoZc4Kcp4br7Y6MYIuIwC7Mb0H5Ul_QZ3WyYIYX9RKHFfplI1KJorD8dL2_piv3AifcdFmjyIMrK--UuXxfoeh4i_z3Wgt2DH0kkb8w8GSfYaKZKk10Ra8Yl16zqgVvjHy6PtBOEODXupPFzdz4aotZSE7d-FPuQSxKfwjH_Hemy1D6DFQZeEiOfMDC7PPw-9JQLUs99YmCy8cBYnY5_9VSfw';
-                    }
-                } catch (\Exception $e) {
-                    log_message('error', 'Error al decodificar token JWT: ' . $e->getMessage());
-                }
+        // Generar el token de autorización usando la llave privada almacenada en la organización
+        if (!empty($organization['ligo_private_key'])) {
+            try {
+                // Usar la biblioteca Firebase JWT para generar el token
+                require_once APPPATH . '../vendor/autoload.php';
+                
+                // Definir los datos del payload
+                $companyId = trim($organization['ligo_company_id']);
+                $now = time();
+                $payload = [
+                    'companyId' => $companyId,
+                    'iat' => $now,
+                    'exp' => $now + 3600, // Expira en 1 hora
+                    'aud' => 'ligo-calidad.com',
+                    'iss' => 'ligo',
+                    'sub' => 'ligo@gmail.com'
+                ];
+                
+                // Opciones de firma
+                $privateKey = trim($organization['ligo_private_key']);
+                
+                // Generar el token
+                $authorizationToken = \Firebase\JWT\JWT::encode($payload, $privateKey, 'RS256');
+                
+                log_message('info', 'Token de autorización Ligo generado correctamente para la organización ID: ' . $organization['id']);
+            } catch (\Exception $e) {
+                log_message('error', 'Error al generar token JWT: ' . $e->getMessage());
+                // Usar un token predeterminado si hay error al generar el token
+                $authorizationToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxNjA2ODUsImV4cCI6MTc0NDE2NDI4NSwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.FDEMXiaDZsAMC7yZo_jpwS7QBAbEUz6qpy8mmnxed17HQO2nkrBAqfD51OLn2tsnFuYJQrJs4kMxyyr3-omOYxWGR1-U3Eyt4qUVEZZy6wdlMlGfxwd4CIjtSHwrNQoZc4Kcp4br7Y6MYIuIwC7Mb0H5Ul_QZ3WyYIYX9RKHFfplI1KJorD8dL2_piv3AifcdFmjyIMrK--UuXxfoeh4i_z3Wgt2DH0kkb8w8GSfYaKZKk10Ra8Yl16zqgVvjHy6PtBOEODXupPFzdz4aotZSE7d-FPuQSxKfwjH_Hemy1D6DFQZeEiOfMDC7PPw-9JQLUs99YmCy8cBYnY5_9VSfw';
             }
+        } else {
+            // Si no hay llave privada en la organización, usar un token predeterminado
+            $authorizationToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxNjA2ODUsImV4cCI6MTc0NDE2NDI4NSwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.FDEMXiaDZsAMC7yZo_jpwS7QBAbEUz6qpy8mmnxed17HQO2nkrBAqfD51OLn2tsnFuYJQrJs4kMxyyr3-omOYxWGR1-U3Eyt4qUVEZZy6wdlMlGfxwd4CIjtSHwrNQoZc4Kcp4br7Y6MYIuIwC7Mb0H5Ul_QZ3WyYIYX9RKHFfplI1KJorD8dL2_piv3AifcdFmjyIMrK--UuXxfoeh4i_z3Wgt2DH0kkb8w8GSfYaKZKk10Ra8Yl16zqgVvjHy6PtBOEODXupPFzdz4aotZSE7d-FPuQSxKfwjH_Hemy1D6DFQZeEiOfMDC7PPw-9JQLUs99YmCy8cBYnY5_9VSfw';
+            log_message('warning', 'No se encontró llave privada para generar el token de autorización Ligo. Usando token predeterminado.');
         }
             
             curl_setopt_array($curl, [
