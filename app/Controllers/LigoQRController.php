@@ -623,6 +623,13 @@ class LigoQRController extends Controller
             return (object)['error' => 'Incomplete Ligo credentials'];
         }
         
+        // Definir URL de API si no existe
+        if (empty($organization['ligo_api_url'])) {
+            // URL por defecto para el entorno de desarrollo
+            $organization['ligo_api_url'] = 'https://cce-api-gateway-dev.ligocloud.tech/v1';
+            log_message('info', 'Usando URL de API por defecto: ' . $organization['ligo_api_url']);
+        }
+        
         // Intentar generar el token JWT usando la clave privada
         try {
             // Cargar la clase JwtGenerator
