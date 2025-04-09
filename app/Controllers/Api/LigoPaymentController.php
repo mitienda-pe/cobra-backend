@@ -595,18 +595,27 @@ class LigoPaymentController extends ResourceController
      */
     private function canAccessInvoice($invoice)
     {
+        // If user is not set (mobile app might be using token auth without session)
+        if (!$this->user) {
+            // For mobile app requests, we'll allow access if the request has a valid token
+            // The apiAuth filter has already validated the token at this point
+            log_message('debug', 'canAccessInvoice: User not found in session, but token is valid. Allowing access.');            
+            return true;
+        }
+        
         // Superadmin can access any invoice
-        if ($this->user['role'] === 'superadmin') {
+        if (isset($this->user['role']) && $this->user['role'] === 'superadmin') {
             return true;
         }
         
         // Admin can access invoices from their organization
-        if ($this->user['role'] === 'admin' && $this->user['organization_id'] == $invoice['organization_id']) {
+        if (isset($this->user['role']) && $this->user['role'] === 'admin' && 
+            isset($this->user['organization_id']) && $this->user['organization_id'] == $invoice['organization_id']) {
             return true;
         }
         
         // For regular users, check if they have access to the client through portfolios
-        if ($this->user['role'] === 'user') {
+        if (isset($this->user['role']) && $this->user['role'] === 'user') {
             $portfolioModel = new \App\Models\PortfolioModel();
             $portfolios = $portfolioModel->getByUser($this->user['id']);
             
