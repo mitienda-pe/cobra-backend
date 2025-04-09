@@ -19,9 +19,9 @@ info:
   contact:
     email: soporte@sistemacobranzas.com
 servers:
-  - url: https://api.sistemacobranzas.com/v1
+  - url: https://cobra.mitienda.host/api
     description: Servidor de producción
-  - url: https://sandbox.sistemacobranzas.com/v1
+  - url: https://sandbox.cobra.mitienda.host/api
     description: Servidor de pruebas
 paths:
   /auth/otp/request:
@@ -1202,19 +1202,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /payments/generate-qr/{id}:
+  /ligo/generate-qr/{instalment_id}:
     get:
-      summary: Generar código QR para pago Ligo
-      description: Genera un código QR para realizar un pago mediante Ligo
+      summary: Generar código QR para pago de cuota con Ligo
+      description: Genera un código QR para realizar un pago de una cuota específica mediante Ligo
       tags:
         - Pagos
         - Ligo
       security:
         - BearerAuth: []
       parameters:
-        - name: id
+        - name: instalment_id
           in: path
-          description: ID de la factura
+          description: ID numérico de la cuota para la cual se genera el QR
           required: true
           schema:
             type: integer
@@ -1261,10 +1261,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /payments/generate-instalment-qr/{id}:
+  /payments/generate-qr/{instalment_id}:
     get:
-      summary: Generar código QR para pago de cuota
-      description: Genera un código QR dinámico para realizar un pago de una cuota específica mediante Ligo
+      summary: Generar código QR genérico para pago de cuota
+      description: Genera un código QR genérico (no específico de Ligo) para realizar un pago de una cuota específica
       tags:
         - Pagos
         - Ligo
@@ -1327,7 +1327,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
                 
-  /ligo/generate-static-qr/{id}:
+  /ligo/generate-static-qr/{organization_uuid}:
     get:
       summary: Generar código QR estático para pago Ligo
       description: |
@@ -1339,12 +1339,13 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: id
+        - name: organization_uuid
           in: path
-          description: ID o UUID de la organización
+          description: UUID de la organización para la cual se genera el QR estático
           required: true
           schema:
             type: string
+            format: uuid
       responses:
         '200':
           description: Código QR estático generado correctamente
@@ -1455,7 +1456,7 @@ paths:
   /auth/ligo/token:
     get:
       summary: Obtener token de autenticación Ligo
-      description: Obtiene un token de autenticación para la API de Ligo
+      description: Obtiene un token de autenticación para la API de Ligo. Esta ruta no requiere autenticación API.
       tags:
         - Autenticación
         - Ligo
