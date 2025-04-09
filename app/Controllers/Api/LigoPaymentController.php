@@ -550,8 +550,18 @@ class LigoPaymentController extends ResourceController
                 // Opciones de firma
                 $privateKey = trim($organization['ligo_private_key']);
                 
+                // Verificar si la clave privada está en formato PEM
+                if (strpos($privateKey, '-----BEGIN') === false) {
+                    // Si no está en formato PEM, intentamos formatearlo
+                    $privateKey = "-----BEGIN PRIVATE KEY-----\n" . 
+                                 chunk_split($privateKey, 64, "\n") . 
+                                 "-----END PRIVATE KEY-----";
+                }
+                
+                log_message('debug', 'API: Formato de clave privada: ' . substr($privateKey, 0, 30) . '...');
+                
                 // Generar el token
-                $authorizationToken = \Firebase\JWT\JWT::encode($payload, $privateKey, 'RS256');
+                $authorizationToken = \Firebase\JWT\JWT::encode($payload, $privateKey, 'HS256'); // Cambiamos a HS256 que es más flexible con el formato de la clave
                 
                 log_message('info', 'API: Token de autorización Ligo generado correctamente para la organización ID: ' . $organization['id']);
             } catch (\Exception $e) {
