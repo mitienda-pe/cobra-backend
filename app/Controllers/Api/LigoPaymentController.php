@@ -138,16 +138,21 @@ class LigoPaymentController extends ResourceController
             return $this->fail('Ligo API credentials not configured', 400);
         }
         
+        // Get the invoice number from the appropriate field
+        $invoiceNumber = $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A';
+        
         // Prepare order data for Ligo
         $orderData = [
             'amount' => $instalment['amount'],
             'currency' => $invoice['currency'] ?? 'PEN',
             'orderId' => $instalment['id'],
-            'description' => "Pago cuota #{$instalment['number']} de factura #{$invoice['invoice_number']}",
+            'description' => "Pago cuota #{$instalment['number']} de factura #{$invoiceNumber}",
             'qr_type' => 'dynamic'
         ];
         
-        // Log the order data for debugging
+        // Log the invoice and instalment data for debugging
+        log_message('debug', 'Invoice data: ' . json_encode($invoice));
+        log_message('debug', 'Instalment data: ' . json_encode($instalment));
         log_message('debug', 'Order data for QR generation: ' . json_encode($orderData));
         
         // Get auth token
