@@ -104,6 +104,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     // Ligo Payment Routes
     $routes->match(['get', 'options'], 'ligo/generate-qr/(:num)', 'LigoPaymentController::generateQR/$1');
     $routes->match(['get', 'options'], 'ligo/generate-static-qr/(:segment)', 'LigoPaymentController::generateStaticQR/$1');
+    
+    // Instalment QR code generation route for mobile app
+    $routes->match(['get', 'options'], 'payments/generate-instalment-qr/(:num)', 'LigoPaymentController::generateInstalmentQR/$1');
 
     // Invoice Routes
     $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index');
