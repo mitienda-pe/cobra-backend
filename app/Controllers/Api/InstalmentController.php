@@ -284,6 +284,7 @@ class InstalmentController extends BaseController
                 'inv.concept as invoice_concept',
                 'inv.due_date as invoice_due_date',
                 'inv.issue_date as invoice_issue_date',
+                'inv.currency as invoice_currency',
                 'c.business_name as client_business_name',
                 'c.document_number as client_document',
                 'c.contact_name as client_contact_name',
@@ -428,7 +429,7 @@ class InstalmentController extends BaseController
             
             // Consulta simple como fallback
             $builder = $db->table('instalments i');
-            $builder->select('i.*, inv.uuid as invoice_uuid, c.business_name as client_business_name, c.uuid as client_uuid');
+            $builder->select('i.*, inv.uuid as invoice_uuid, inv.currency as invoice_currency, inv.concept as invoice_concept, inv.due_date as invoice_due_date, inv.issue_date as invoice_issue_date, c.business_name as client_business_name, c.document_number as client_document, c.contact_name as client_contact_name, c.uuid as client_uuid');
             $builder->join('invoices inv', 'i.invoice_id = inv.id');
             $builder->join('clients c', 'inv.client_id = c.id');
             $builder->where('i.status', 'pending');
@@ -505,7 +506,8 @@ class InstalmentController extends BaseController
                 'concept' => 'invoice_concept',
                 'due_date' => 'invoice_due_date',
                 'issue_date' => 'invoice_issue_date',
-                'status' => 'invoice_status'
+                'status' => 'invoice_status',
+                'currency' => 'invoice_currency'
             ];
             
             // Añadir amount solo si existe
