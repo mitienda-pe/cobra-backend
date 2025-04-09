@@ -536,6 +536,12 @@ class LigoPaymentController extends ResourceController
             
             // Intentar generar el token JWT usando la clave privada
             try {
+                // Verificar que la clave privada exista
+                if (empty($organization['ligo_private_key'])) {
+                    log_message('error', 'API: Clave privada de Ligo no configurada para la organización ID: ' . $organization['id']);
+                    return (object)['error' => 'Ligo private key not configured'];
+                }
+                
                 // Cargar la clase JwtGenerator
                 $privateKey = $organization['ligo_private_key'];
                 $formattedKey = \App\Libraries\JwtGenerator::formatPrivateKey($privateKey);
@@ -557,10 +563,7 @@ class LigoPaymentController extends ResourceController
                 log_message('debug', 'API: Token JWT: ' . substr($authorizationToken, 0, 30) . '...');
             } catch (\Exception $e) {
                 log_message('error', 'API: Error al generar token JWT: ' . $e->getMessage());
-                
-                // Usar token hardcodeado como fallback
-                $authorizationToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiI2NDI4YTJiZGM1MWRkNDAwMDEzNTgwMzMiLCJpYXQiOjE3MTI1OTQ2ODQsImV4cCI6MTcxMjU5ODI4NCwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.JnvfZVBHsYMFvUYGNnSCmXdwWZJGZZTgRbDJLTaQGfkdZbTFmcYgwOgZRvDPZZWRmLMJvLPXBPKZPjOKYJFpfVCnHgNMEUlKvmwO-Yv-FJcbNcQxX_Ej8xRvXYEMvtXvVcQlbpGQrJHi-f5yJnCRcH8ksJvYCIgM-XmvYXwQxTNVvhOvNs9_UYGNvXOKQvGJVpvwxGgMlBF6Nf-cBl_kcnQyDYEYZDiAGDYvmwXtQ";
-                log_message('info', 'API: Usando token JWT hardcodeado como fallback');
+                return (object)['error' => 'Error al generar token JWT: ' . $e->getMessage()];
             }
             
             $companyId = $organization['ligo_company_id'];
