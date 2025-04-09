@@ -143,9 +143,12 @@ class LigoPaymentController extends ResourceController
             'amount' => $instalment['amount'],
             'currency' => $invoice['currency'] ?? 'PEN',
             'orderId' => $instalment['id'],
-            'description' => "Pago cuota #{$instalment['instalment_number']} de factura #{$invoice['invoice_number']}",
+            'description' => "Pago cuota #{$instalment['number']} de factura #{$invoice['invoice_number']}",
             'qr_type' => 'dynamic'
         ];
+        
+        // Log the order data for debugging
+        log_message('debug', 'Order data for QR generation: ' . json_encode($orderData));
         
         // Get auth token
         $authToken = $this->getAuthToken($organization);
