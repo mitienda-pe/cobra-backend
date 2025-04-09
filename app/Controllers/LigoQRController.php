@@ -630,6 +630,11 @@ class LigoQRController extends Controller
             log_message('info', 'Usando URL de API por defecto: ' . $organization['ligo_api_url']);
         }
         
+        // URL específica para autenticación
+        $authUrl = 'https://cce-auth-dev.ligocloud.tech/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
+        log_message('info', 'Usando URL de autenticación: ' . $authUrl);
+        log_message('debug', 'URL de autenticación completa: ' . $authUrl);
+        
         // Intentar generar el token JWT usando la clave privada
         try {
             // Verificar que la clave privada exista
@@ -663,12 +668,20 @@ class LigoQRController extends Controller
         }
         
         $companyId = $organization['ligo_company_id'];
-        $url = $organization['ligo_api_url'] . '/auth';
+        // Usar la URL específica para autenticación
+        $url = $authUrl;
         
         $curl = curl_init();
         
-        // Cuerpo vacío para la solicitud POST
-        $emptyBody = json_encode([]);
+        // Datos de autenticación para la solicitud POST
+        $authData = [
+            'username' => $organization['ligo_username'],
+            'password' => $organization['ligo_password']
+        ];
+        $requestBody = json_encode($authData);
+        
+        log_message('debug', 'Enviando solicitud de autenticación a: ' . $url);
+        log_message('debug', 'Datos de autenticación: ' . json_encode(['username' => $authData['username'], 'password' => '********']));
         
         curl_setopt_array($curl, [
             CURLOPT_URL => $url,
@@ -678,11 +691,12 @@ class LigoQRController extends Controller
             CURLOPT_TIMEOUT => 30,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => $emptyBody,  // Agregar cuerpo vacío
+            CURLOPT_POSTFIELDS => $requestBody,  // Agregar datos de autenticación
             CURLOPT_HTTPHEADER => [
                 'Authorization: Bearer ' . $authorizationToken,
                 'Content-Type: application/json',
-                'Content-Length: ' . strlen($emptyBody)  // Agregar Content-Length
+                'Content-Length: ' . strlen($requestBody),  // Agregar Content-Length
+                'Accept: application/json'
             ],
             CURLOPT_SSL_VERIFYHOST => 0,
             CURLOPT_SSL_VERIFYPEER => false
