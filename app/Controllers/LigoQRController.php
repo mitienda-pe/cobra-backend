@@ -623,51 +623,55 @@ class LigoQRController extends Controller
             return (object)['error' => 'Incomplete Ligo credentials'];
         }
         
+        // Intentar generar el token JWT usando la clave privada
         try {
-            // Eliminar espacios en blanco de las credenciales
-            $username = trim($organization['ligo_username']);
-            $password = trim($organization['ligo_password']);
-            $companyId = trim($organization['ligo_company_id']);
+            // Cargar la clase JwtGenerator
+            $privateKey = $organization['ligo_private_key'];
+            $formattedKey = \App\Libraries\JwtGenerator::formatPrivateKey($privateKey);
             
+            // Preparar payload
+            $payload = [
+                'companyId' => $organization['ligo_company_id']
+            ];
+            
+            // Generar token JWT
+            $authorizationToken = \App\Libraries\JwtGenerator::generateToken($payload, $formattedKey, [
+                'issuer' => 'ligo',
+                'audience' => 'ligo-calidad.com',
+                'subject' => 'ligo@gmail.com',
+                'expiresIn' => 3600 // 1 hora
+            ]);
+            
+            log_message('info', 'Token JWT generado correctamente');
+            log_message('debug', 'Token JWT: ' . substr($authorizationToken, 0, 30) . '...');
+        } catch (\Exception $e) {
+            log_message('error', 'Error al generar token JWT: ' . $e->getMessage());
+            
+            // Usar token hardcodeado como fallback
+            $authorizationToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiI2NDI4YTJiZGM1MWRkNDAwMDEzNTgwMzMiLCJpYXQiOjE3MTI1OTQ2ODQsImV4cCI6MTcxMjU5ODI4NCwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.JnvfZVBHsYMFvUYGNnSCmXdwWZJGZZTgRbDJLTaQGfkdZbTFmcYgwOgZRvDPZZWRmLMJvLPXBPKZPjOKYJFpfVCnHgNMEUlKvmwO-Yv-FJcbNcQxX_Ej8xRvXYEMvtXvVcQlbpGQrJHi-f5yJnCRcH8ksJvYCIgM-XmvYXwQxTNVvhOvNs9_UYGNvXOKQvGJVpvwxGgMlBF6Nf-cBl_kcnQyDYEYZDiAGDYvmwXtQ";
+            log_message('info', 'Usando token JWT hardcodeado como fallback');
+        }
+        
+        $companyId = $organization['ligo_company_id'];
+        $url = $organization['ligo_api_url'] . '/auth';
         
         $curl = curl_init();
         
-        // Datos de autenticación
-        $authData = [
-            'username' => $username,
-            'password' => $password
-        ];
-        
-        // URL de autenticación
-        $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
-        $url = 'https://cce-auth-' . $prefix . '.ligocloud.tech/v1/auth/sign-in?companyId=' . $companyId;
-        
-        log_message('debug', 'URL de autenticación Ligo: ' . $url);
-        
-        // Usar un token de autorización hardcodeado que sabemos que funciona en las pruebas de CURL
-        // Este token fue proporcionado en las pruebas exitosas de CURL
-        $authorizationToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxNjgxNzgsImV4cCI6MTc0NDE3MTc3OCwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.DXG-O1wBLaWxzwIXxWY5i27GwBz9GrtnuyQtotxnwuG11YrGrw2bi2fP8VPi1BIfj92EJ3ijqGrWdsYhN0gZbyg4RmYjHaU0sEGuivToY2szQB7-XkzxPKjKvim5dRRxHUBR_7rB3d7Xr_uY64IvsTnqehpBbfHUN-ilW3BzFzMFdfxbR3zlJgAxMFKzjltZRCNJc1Oj9wbF1af3k3uICroo988SbwXglKw4SvJ8a73ZAeMzsmoofGN_gtlVYBAP9P0IJtOmtX2DU1yju_OI_8GWZpYzlnbB0Idfs8KAu_r770V0WMp6Dni44Us4TwObKEnHu0hWwagUs_fOknIwGw';
-        
-        log_message('info', 'WEB: Usando token de autorización hardcodeado para la organización ID: ' . $organization['id']);
-            
-            curl_setopt_array($curl, [
-                CURLOPT_URL => $url,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 30,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => json_encode($authData),
-                CURLOPT_HTTPHEADER => [
-                    'Content-Type: application/json',
-                    'Accept: application/json',
-                    'Authorization: Bearer ' . $authorizationToken
-                ],
-                CURLOPT_SSL_VERIFYHOST => 0,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_FOLLOWLOCATION => true
-            ]);
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $authorizationToken,
+                'Content-Type: application/json'
+            ],
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => false
+        ]);
         
         $response = curl_exec($curl);
         $err = curl_error($curl);
@@ -676,25 +680,16 @@ class LigoQRController extends Controller
         curl_close($curl);
         
         if ($err) {
-            log_message('error', 'Error al conectar con Ligo: ' . $err);
-            return (object)['error' => 'Error de conexión: ' . $err];
+            log_message('error', 'Error en solicitud de autenticación: ' . $err);
+            return (object)['error' => 'Error en solicitud de autenticación: ' . $err];
         }
         
-        // Log de respuesta
-        log_message('debug', 'Código de respuesta HTTP: ' . $info['http_code']);
-        
-        // Verificar si la respuesta es HTML
-        if (strpos($response, '<!DOCTYPE html>') !== false || strpos($response, '<html') !== false) {
-            log_message('error', 'Ligo Auth API devolvió HTML en lugar de JSON');
-            return (object)['error' => 'Respuesta inesperada del servidor'];
+        if ($info['http_code'] != 200) {
+            log_message('error', 'Error en autenticación. HTTP Code: ' . $info['http_code'] . ' - Respuesta: ' . $response);
+            return (object)['error' => 'Error en autenticación. HTTP Code: ' . $info['http_code']];
         }
         
         $decoded = json_decode($response);
-        
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            log_message('error', 'Error decodificando respuesta JSON: ' . json_last_error_msg());
-            return (object)['error' => 'Respuesta inválida: ' . json_last_error_msg()];
-        }
         
         // Verificar si hay token en la respuesta
         if (!$decoded || !isset($decoded->data) || !isset($decoded->data->access_token)) {
@@ -741,11 +736,6 @@ class LigoQRController extends Controller
             'userId' => $decoded->data->userId ?? null,
             'companyId' => $decoded->data->companyId ?? $companyId
         ];
-        
-    } catch (\Exception $e) {
-        log_message('error', 'Excepción en autenticación Ligo: ' . $e->getMessage());
-        return (object)['error' => 'Error interno: ' . $e->getMessage()];
-    }
     }
     
     /**

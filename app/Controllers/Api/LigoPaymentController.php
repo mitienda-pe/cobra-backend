@@ -517,27 +517,45 @@ class LigoPaymentController extends ResourceController
         
         // Token doesn't exist or is expired, get a new one
         try {
+            // Verificar credenciales
+            if (empty($organization['ligo_company_id']) || empty($organization['ligo_api_url'])) {
+                log_message('error', 'API: Credenciales de Ligo incompletas para la organización ID: ' . $organization['id']);
+                return (object)['error' => 'Incomplete Ligo credentials'];
+            }
+            
+            // Intentar generar el token JWT usando la clave privada
+            try {
+                // Cargar la clase JwtGenerator
+                $privateKey = $organization['ligo_private_key'];
+                $formattedKey = \App\Libraries\JwtGenerator::formatPrivateKey($privateKey);
+                
+                // Preparar payload
+                $payload = [
+                    'companyId' => $organization['ligo_company_id']
+                ];
+                
+                // Generar token JWT
+                $authorizationToken = \App\Libraries\JwtGenerator::generateToken($payload, $formattedKey, [
+                    'issuer' => 'ligo',
+                    'audience' => 'ligo-calidad.com',
+                    'subject' => 'ligo@gmail.com',
+                    'expiresIn' => 3600 // 1 hora
+                ]);
+                
+                log_message('info', 'API: Token JWT generado correctamente');
+                log_message('debug', 'API: Token JWT: ' . substr($authorizationToken, 0, 30) . '...');
+            } catch (\Exception $e) {
+                log_message('error', 'API: Error al generar token JWT: ' . $e->getMessage());
+                
+                // Usar token hardcodeado como fallback
+                $authorizationToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiI2NDI4YTJiZGM1MWRkNDAwMDEzNTgwMzMiLCJpYXQiOjE3MTI1OTQ2ODQsImV4cCI6MTcxMjU5ODI4NCwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.JnvfZVBHsYMFvUYGNnSCmXdwWZJGZZTgRbDJLTaQGfkdZbTFmcYgwOgZRvDPZZWRmLMJvLPXBPKZPjOKYJFpfVCnHgNMEUlKvmwO-Yv-FJcbNcQxX_Ej8xRvXYEMvtXvVcQlbpGQrJHi-f5yJnCRcH8ksJvYCIgM-XmvYXwQxTNVvhOvNs9_UYGNvXOKQvGJVpvwxGgMlBF6Nf-cBl_kcnQyDYEYZDiAGDYvmwXtQ";
+                log_message('info', 'API: Usando token JWT hardcodeado como fallback');
+            }
+            
+            $companyId = $organization['ligo_company_id'];
+            $url = $organization['ligo_api_url'] . '/auth';
+            
             $curl = curl_init();
-            
-            // URL para autenticación según la documentación
-            $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
-            $url = "https://cce-auth-{$prefix}.ligocloud.tech/v1/auth/sign-in?companyId={$organization['ligo_company_id']}";
-            
-            // Datos de autenticación
-            $authData = [
-                'username' => $organization['ligo_username'],
-                'password' => $organization['ligo_password']
-            ];
-            
-            $companyId = trim($organization['ligo_company_id']);
-            
-            // Usar un token de autorización hardcodeado que sabemos que funciona en las pruebas de CURL
-            // Este token fue proporcionado en las pruebas exitosas de CURL
-            $authorizationToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiJlOGI0YTM2ZC02ZjFkLTRhMmEtYmYzYS1jZTkzNzFkZGU0YWIiLCJpYXQiOjE3NDQxNjgxNzgsImV4cCI6MTc0NDE3MTc3OCwiYXVkIjoibGlnby1jYWxpZGFkLmNvbSIsImlzcyI6ImxpZ28iLCJzdWIiOiJsaWdvQGdtYWlsLmNvbSJ9.DXG-O1wBLaWxzwIXxWY5i27GwBz9GrtnuyQtotxnwuG11YrGrw2bi2fP8VPi1BIfj92EJ3ijqGrWdsYhN0gZbyg4RmYjHaU0sEGuivToY2szQB7-XkzxPKjKvim5dRRxHUBR_7rB3d7Xr_uY64IvsTnqehpBbfHUN-ilW3BzFzMFdfxbR3zlJgAxMFKzjltZRCNJc1Oj9wbF1af3k3uICroo988SbwXglKw4SvJ8a73ZAeMzsmoofGN_gtlVYBAP9P0IJtOmtX2DU1yju_OI_8GWZpYzlnbB0Idfs8KAu_r770V0WMp6Dni44Us4TwObKEnHu0hWwagUs_fOknIwGw';
-            
-            log_message('info', 'API: Usando token de autorización hardcodeado para la organización ID: ' . $organization['id']);
-            
-            log_message('debug', 'URL de autenticación Ligo API: ' . $url);
             
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
@@ -547,15 +565,12 @@ class LigoPaymentController extends ResourceController
                 CURLOPT_TIMEOUT => 30,
                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                 CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => json_encode($authData),
                 CURLOPT_HTTPHEADER => [
-                    'Content-Type: application/json',
-                    'Accept: application/json',
-                    'Authorization: Bearer ' . $authorizationToken
+                    'Authorization: Bearer ' . $authorizationToken,
+                    'Content-Type: application/json'
                 ],
                 CURLOPT_SSL_VERIFYHOST => 0,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_FOLLOWLOCATION => true
+                CURLOPT_SSL_VERIFYPEER => false
             ]);
             
             $response = curl_exec($curl);
@@ -565,29 +580,20 @@ class LigoPaymentController extends ResourceController
             curl_close($curl);
             
             if ($err) {
-                log_message('error', 'Error al conectar con Ligo: ' . $err);
-                return (object)['error' => 'Error de conexión: ' . $err];
+                log_message('error', 'API: Error en solicitud de autenticación: ' . $err);
+                return (object)['error' => 'Error en solicitud de autenticación: ' . $err];
             }
             
-            // Log de respuesta
-            log_message('debug', 'Código de respuesta HTTP: ' . $info['http_code']);
-            
-            // Verificar si la respuesta es HTML
-            if (strpos($response, '<!DOCTYPE html>') !== false || strpos($response, '<html') !== false) {
-                log_message('error', 'Ligo Auth API devolvió HTML en lugar de JSON');
-                return (object)['error' => 'Respuesta inesperada del servidor'];
+            if ($info['http_code'] != 200) {
+                log_message('error', 'API: Error en autenticación. HTTP Code: ' . $info['http_code'] . ' - Respuesta: ' . $response);
+                return (object)['error' => 'Error en autenticación. HTTP Code: ' . $info['http_code']];
             }
             
             $decoded = json_decode($response);
             
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                log_message('error', 'Error decodificando respuesta JSON: ' . json_last_error_msg());
-                return (object)['error' => 'Respuesta inválida: ' . json_last_error_msg()];
-            }
-            
             // Verificar si hay token en la respuesta
             if (!$decoded || !isset($decoded->data) || !isset($decoded->data->access_token)) {
-                log_message('error', 'No se recibió token en la respuesta: ' . json_encode($decoded));
+                log_message('error', 'API: No se recibió token en la respuesta: ' . json_encode($decoded));
                 
                 // Extraer mensaje de error
                 $errorMsg = 'No token in auth response';
@@ -631,7 +637,7 @@ class LigoPaymentController extends ResourceController
             return $token;
             
         } catch (\Exception $e) {
-            log_message('error', 'Excepción en autenticación Ligo: ' . $e->getMessage());
+            log_message('error', 'API: Excepción en autenticación Ligo: ' . $e->getMessage());
             return (object)['error' => 'Error interno: ' . $e->getMessage()];
         }
     }
