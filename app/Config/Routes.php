@@ -43,6 +43,7 @@ $routes->get('debug/ligo/enable', 'DebugController::enableLigo');
 // Ligo Debug Routes (con UUID)
 $routes->get('debug/ligo-uuid/status', 'LigoDebugController::status');
 $routes->get('debug/ligo-uuid/enable', 'LigoDebugController::enable');
+$routes->get('debug/ligo-uuid/update-auth-token', 'LigoDebugController::updateAuthToken');
 
 // API Routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {

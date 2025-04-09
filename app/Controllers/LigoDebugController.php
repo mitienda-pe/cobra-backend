@@ -136,6 +136,52 @@ class LigoDebugController extends BaseController
     }
     
     /**
+     * Update Ligo authorization token for an organization using UUID
+     * 
+     * @return mixed
+     */
+    public function updateAuthToken()
+    {
+        // Only allow superadmin to access this page
+        if (!$this->auth->hasRole('superadmin')) {
+            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para acceder a esta página.');
+        }
+        
+        $organizationUuid = $this->request->getGet('uuid');
+        $authToken = $this->request->getGet('token');
+        
+        if (!$organizationUuid) {
+            return $this->response->setJSON([
+                'error' => 'Debe proporcionar el UUID de la organización'
+            ]);
+        }
+        
+        if (!$authToken) {
+            return $this->response->setJSON([
+                'error' => 'Debe proporcionar el token de autorización'
+            ]);
+        }
+        
+        $organization = $this->organizationModel->where('uuid', $organizationUuid)->first();
+        
+        if (!$organization) {
+            return $this->response->setJSON([
+                'error' => 'Organización no encontrada'
+            ]);
+        }
+        
+        // Actualizar el token de autorización
+        $this->organizationModel->update($organization['id'], [
+            'ligo_auth_token' => $authToken
+        ]);
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Token de autorización actualizado para la organización ' . $organization['name']
+        ]);
+    }
+    
+    /**
      * Test Ligo API authentication with provided credentials
      *
      * @param array $organization Organization with Ligo credentials
