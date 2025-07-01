@@ -70,10 +70,16 @@ class LigoAuthController extends ResourceController
      */
     private function authenticateWithLigo($apiKey, $apiSecret)
     {
+        $endpoint = 'https://api.ligo.pe/v1/auth/token';
+        log_message('info', '[LigoAuth] Iniciando autenticación con Ligo. Endpoint: ' . $endpoint);
+        // Enmascara apiKey y apiSecret para evitar exponerlos completos
+        $maskedApiKey = substr($apiKey, 0, 4) . str_repeat('*', max(strlen($apiKey) - 8, 0)) . substr($apiKey, -4);
+        $maskedApiSecret = substr($apiSecret, 0, 4) . str_repeat('*', max(strlen($apiSecret) - 8, 0)) . substr($apiSecret, -4);
+        log_message('debug', '[LigoAuth] Usando apiKey: ' . $maskedApiKey . ', apiSecret: ' . $maskedApiSecret);
+
         $curl = curl_init();
-        
         curl_setopt_array($curl, [
-            CURLOPT_URL => 'https://api.ligo.pe/v1/auth/token',
+            CURLOPT_URL => $endpoint,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
@@ -90,9 +96,27 @@ class LigoAuthController extends ResourceController
             CURLOPT_SSL_VERIFYHOST => 0, // Deshabilitar verificación de host SSL
             CURLOPT_SSL_VERIFYPEER => false, // Deshabilitar verificación de certificado SSL
         ]);
-        
+
         $response = curl_exec($curl);
         $err = curl_error($curl);
+
+        log_message('debug', '[LigoAuth] Respuesta cruda de Ligo: ' . $response);
+        if ($err) {
+            log_message('error', '[LigoAuth] Error cURL al autenticar con Ligo: ' . $err);
+        }
+
+        $decoded = json_decode($response, true);
+        if (!$decoded || !isset($decoded['status'])) {
+            log_message('error', '[LigoAuth] Respuesta inválida de Ligo (no es JSON o falta status): ' . $response);
+        }
+        if (isset($decoded['status']) && $decoded['status'] == 0) {
+            log_message('error', '[LigoAuth] Error de autenticación Ligo: ' . ($decoded['errors'] ?? 'Error desconocido') . ' | Código: ' . ($decoded['code'] ?? 'N/A'));
+        }
+        if (!isset($decoded['data']['token']) || empty($decoded['data']['token'])) {
+            log_message('error', '[LigoAuth] No se recibió token en la respuesta de Ligo. Respuesta: ' . $response);
+        } else {
+            log_message('info', '[LigoAuth] Token recibido correctamente de Ligo.');
+        }
         
         curl_close($curl);
         
