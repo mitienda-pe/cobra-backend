@@ -77,6 +77,21 @@ class LigoPaymentController extends ResourceController
             return $this->fail($response->error, 400);
         }
         
+        // Guardar hash en la base de datos
+        if (isset($response->qr_data)) {
+            $qrDecoded = json_decode($response->qr_data, true);
+            if (isset($qrDecoded['hash'])) {
+                $hashModel = new \App\Models\LigoQRHashModel();
+                $hashModel->insert([
+                    'hash' => $qrDecoded['hash'],
+                    'order_id' => $qrDecoded['id'] ?? null,
+                    'invoice_id' => $invoice['id'],
+                    'amount' => $qrDecoded['amount'] ?? 0,
+                    'currency' => $qrDecoded['currency'] ?? 'PEN',
+                    'description' => $qrDecoded['description'] ?? null,
+                ]);
+            }
+        }
         return $this->respond([
             'success' => true,
             'qr_data' => $response->qr_data ?? null,
