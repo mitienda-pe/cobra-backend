@@ -36,6 +36,7 @@ class Filters extends BaseConfig
                 'clients/import*',
                 'invoices/import*',
                 'payment/ligo/*',
+                'ligo/hashes',
                 'login*',
                 'logout'
             ]],
