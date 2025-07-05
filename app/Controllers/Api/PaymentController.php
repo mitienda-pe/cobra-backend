@@ -39,6 +39,196 @@ class PaymentController extends ResourceController
     
     // Los métodos de generación de QR se han movido a LigoPaymentController
     // para evitar redundancia y mantener un único punto de entrada
+
+    /**
+     * Generate QR code for instalment payment via mobile app (for mobile compatibility)
+     * Mirrors LigoPaymentController::generateInstalmentQR but saves hash here as well
+     * @param string $instalmentId
+     * @return mixed
+     */
+    public function generateInstalmentQR($instalmentId = null)
+    {
+        log_message('info', 'PaymentController::generateInstalmentQR called with instalmentId: ' . $instalmentId);
+        if (!$instalmentId) {
+            return $this->fail('Instalment ID is required', 400);
+        }
+        $instalmentModel = new \App\Models\InstalmentModel();
+        $instalment = $instalmentModel->find($instalmentId);
+        if (!$instalment) {
+            return $this->fail('Instalment not found', 404);
+        }
+        $invoiceModel = new \App\Models\InvoiceModel();
+        $invoice = $invoiceModel->find($instalment['invoice_id']);
+        if (!$invoice) {
+            return $this->fail('Invoice not found for this instalment', 404);
+        }
+        // Access control, same logic as canAccessInvoice
+        if (method_exists($this, 'canAccessInvoice') && !$this->canAccessInvoice($invoice)) {
+            return $this->failForbidden('You do not have access to this invoice');
+        }
+        $organizationModel = new \App\Models\OrganizationModel();
+        $organization = $organizationModel->find($invoice['organization_id']);
+        if (!$organization) {
+            return $this->fail('Organization not found', 404);
+        }
+        if (!isset($organization['ligo_enabled']) || !$organization['ligo_enabled']) {
+            return $this->fail('Ligo payments not enabled for this organization', 400);
+        }
+        if (empty($organization['ligo_username']) || empty($organization['ligo_password']) || empty($organization['ligo_company_id'])) {
+            return $this->fail('Ligo API credentials not configured', 400);
+        }
+        $invoiceNumber = $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A';
+        $orderData = [
+            'amount' => $instalment['amount'],
+            'currency' => $invoice['currency'] ?? 'PEN',
+            'orderId' => $instalment['id'],
+            'description' => "Pago cuota #{$instalment['number']} de factura #{$invoiceNumber}",
+            'qr_type' => 'dynamic'
+        ];
+        log_message('debug', 'Invoice data: ' . json_encode($invoice));
+        log_message('debug', 'Instalment data: ' . json_encode($instalment));
+        log_message('debug', 'Order data for QR generation: ' . json_encode($orderData));
+        // Get auth token (reuse logic from LigoPaymentController)
+        $authToken = $this->getLigoAuthToken($organization);
+        if (isset($authToken['error'])) {
+            return $this->fail($authToken['error'], 400);
+        }
+        $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
+        $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
+        $idCuenta = !empty($organization['ligo_account_id']) ? $organization['ligo_account_id'] : '92100178794744781044';
+        $codigoComerciante = !empty($organization['ligo_merchant_code']) ? $organization['ligo_merchant_code'] : '4829';
+        $qrData = [
+            'header' => [ 'sisOrigen' => '0921' ],
+            'data' => [
+                'qrTipo' => '12',
+                'idCuenta' => $idCuenta,
+                'moneda' => $orderData['currency'] == 'PEN' ? '604' : '840',
+                'importe' => (int)($orderData['amount'] * 100),
+                'codigoComerciante' => $codigoComerciante,
+                'nombreComerciante' => $organization['name'],
+                'ciudadComerciante' => $organization['city'] ?? 'Lima',
+                'glosa' => $orderData['description'],
+                'info' => [
+                    [ 'codigo' => 'instalment_id', 'valor' => $instalment['id'] ],
+                    [ 'codigo' => 'invoice_id', 'valor' => $invoice['id'] ],
+                    [ 'codigo' => 'nombreCliente', 'valor' => $organization['name'] ?? 'Cliente' ],
+                    [ 'codigo' => 'documentoIdentidad', 'valor' => $organization['tax_id'] ?? '00000000' ]
+                ]
+            ],
+            'type' => 'TEXT'
+        ];
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode($qrData),
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $authToken['token'],
+                'Content-Type: application/json'
+            ],
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+        $info = curl_getinfo($curl);
+        log_message('debug', 'Solicitud a Ligo - URL: ' . $url);
+        log_message('debug', 'Solicitud a Ligo - Datos: ' . json_encode($qrData));
+        log_message('debug', 'Solicitud a Ligo - Headers: Authorization Bearer ' . substr($authToken['token'], 0, 20) . '...');
+        log_message('debug', 'Respuesta de Ligo - HTTP Code: ' . $info['http_code']);
+        curl_close($curl);
+        if ($err) {
+            log_message('error', 'Ligo API Error: ' . $err);
+            return $this->fail('Failed to connect to Ligo API: ' . $err, 400);
+        }
+        $decoded = json_decode($response);
+        if (!$decoded || !isset($decoded->data) || !isset($decoded->data->id)) {
+            log_message('error', 'Invalid response from Ligo API: ' . $response);
+            return $this->fail('Invalid response from Ligo API', 400);
+        }
+        $qrDataArr = [
+            'id' => $decoded->data->id,
+            'amount' => $orderData['amount'],
+            'currency' => $orderData['currency'],
+            'description' => $orderData['description'],
+            'merchant' => $organization['name'],
+            'timestamp' => time(),
+            'hash' => 'LIGO-' . $decoded->data->id,
+            'instalment_id' => $instalment['id'],
+            'invoice_id' => $invoice['id']
+        ];
+        $qrDataJson = json_encode($qrDataArr);
+        $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($qrDataJson);
+        // Guardar hash en la base de datos
+        log_message('debug', '[LIGO] Respuesta de createLigoOrder: ' . json_encode($qrDataArr));
+        if (isset($qrDataArr['hash'])) {
+            $hashModel = new \App\Models\LigoQRHashModel();
+            $dataInsert = [
+                'hash' => $qrDataArr['hash'],
+                'order_id' => $qrDataArr['id'],
+                'invoice_id' => $invoice['id'],
+                'instalment_id' => $instalment['id'],
+                'amount' => $qrDataArr['amount'],
+                'currency' => $qrDataArr['currency'],
+                'description' => $qrDataArr['description']
+            ];
+            $insertResult = $hashModel->insert($dataInsert);
+            log_message('info', '[LIGO] Hash insertado en ligo_qr_hashes: ' . json_encode($dataInsert) . ' | Resultado: ' . json_encode($insertResult));
+        } else {
+            log_message('warning', '[LIGO] No se encontró el campo hash en qrDataArr: ' . json_encode($qrDataArr));
+        }
+        return $this->respond([
+            'success' => true,
+            'qr_data' => $qrDataJson,
+            'qr_image_url' => $qrImageUrl,
+            'order_id' => $decoded->data->id,
+            'instalment_id' => $instalment['id'],
+            'invoice_id' => $invoice['id']
+        ]);
+    }
+
+    /**
+     * Get Ligo API Auth Token (utility for PaymentController)
+     * @param array $organization
+     * @return array [token => string] or [error => string]
+     */
+    private function getLigoAuthToken($organization)
+    {
+        // Simulate the logic from LigoPaymentController::getAuthToken
+        $prefix = 'dev';
+        $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/auth";
+        $postData = [
+            'username' => $organization['ligo_username'],
+            'password' => $organization['ligo_password'],
+            'company_id' => $organization['ligo_company_id']
+        ];
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($postData),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+        curl_close($curl);
+        if ($err) {
+            return ['error' => 'Failed to connect to Ligo Auth API: ' . $err];
+        }
+        $decoded = json_decode($response, true);
+        if (!$decoded || !isset($decoded['data']['token'])) {
+            return ['error' => 'Invalid response from Ligo Auth API'];
+        }
+        return ['token' => $decoded['data']['token']];
+    }
     
     /**
      * List payments based on user role and filters
