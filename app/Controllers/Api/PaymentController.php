@@ -48,6 +48,11 @@ class PaymentController extends ResourceController
      */
     public function generateInstalmentQR($instalmentId = null)
     {
+        log_message('debug', 'DEBUG NUEVO ENDPOINT: instalmentId=' . json_encode($instalmentId)
+            . ' user=' . (isset($this->user) ? json_encode($this->user) : 'N/A')
+            . ' DB=' . (defined('DATABASE') ? DATABASE : 'NO_CONSTANT')
+            . ' ENV=' . (defined('ENVIRONMENT') ? ENVIRONMENT : 'NO_CONSTANT')
+        );
         log_message('info', 'PaymentController::generateInstalmentQR called with instalmentId: ' . $instalmentId);
         if (!$instalmentId) {
             return $this->fail('Instalment ID is required', 400);

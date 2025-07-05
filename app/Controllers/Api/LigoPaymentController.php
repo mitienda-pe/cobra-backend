@@ -117,6 +117,11 @@ class LigoPaymentController extends ResourceController
      */
     public function generateInstalmentQR($instalmentId = null)
     {
+        log_message('debug', 'DEBUG ENDPOINT FUNCIONANDO: instalmentId=' . json_encode($instalmentId)
+            . ' user=' . (isset($this->user) ? json_encode($this->user) : 'N/A')
+            . ' org=' . (isset($this->organizationModel) && isset($invoice['organization_id']) ? json_encode($this->organizationModel->find($invoice['organization_id'])) : 'N/A')
+            . ' ENV=' . (defined('ENVIRONMENT') ? ENVIRONMENT : 'NO_CONSTANT')
+        );
         log_message('info', 'LigoPaymentController::generateInstalmentQR called with instalmentId: ' . $instalmentId);
         
         if (!$instalmentId) {
