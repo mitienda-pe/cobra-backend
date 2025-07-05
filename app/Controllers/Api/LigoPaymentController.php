@@ -15,6 +15,7 @@ class LigoPaymentController extends ResourceController
     
     public function __construct()
     {
+        log_message('error', 'LigoPaymentController CONSTRUCTOR instanciado');
         $this->invoiceModel = new \App\Models\InvoiceModel();
         $this->organizationModel = new \App\Models\OrganizationModel();
         // User will be set by the auth filter
