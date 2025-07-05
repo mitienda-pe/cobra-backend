@@ -82,31 +82,38 @@ class PaymentController extends ResourceController
         );
         log_message('info', 'PaymentController::generateInstalmentQR called with instalmentId: ' . $instalmentId);
         if (!$instalmentId) {
+            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Instalment ID is required');
             return $this->fail('Instalment ID is required', 400);
         }
         $instalmentModel = new \App\Models\InstalmentModel();
         $instalment = $instalmentModel->find($instalmentId);
         if (!$instalment) {
+            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Instalment not found');
             return $this->fail('Instalment not found', 404);
         }
         $invoiceModel = new \App\Models\InvoiceModel();
         $invoice = $invoiceModel->find($instalment['invoice_id']);
         if (!$invoice) {
+            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Invoice not found for this instalment');
             return $this->fail('Invoice not found for this instalment', 404);
         }
         // Access control, same logic as canAccessInvoice
         if (method_exists($this, 'canAccessInvoice') && !$this->canAccessInvoice($invoice)) {
+            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - No access to invoice');
             return $this->failForbidden('You do not have access to this invoice');
         }
         $organizationModel = new \App\Models\OrganizationModel();
         $organization = $organizationModel->find($invoice['organization_id']);
         if (!$organization) {
+            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Organization not found');
             return $this->fail('Organization not found', 404);
         }
         if (!isset($organization['ligo_enabled']) || !$organization['ligo_enabled']) {
+            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Ligo payments not enabled');
             return $this->fail('Ligo payments not enabled for this organization', 400);
         }
         if (empty($organization['ligo_username']) || empty($organization['ligo_password']) || empty($organization['ligo_company_id'])) {
+            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Ligo API credentials not configured');
             return $this->fail('Ligo API credentials not configured', 400);
         }
         $invoiceNumber = $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A';
@@ -123,6 +130,7 @@ class PaymentController extends ResourceController
         // Get auth token (reuse logic from LigoPaymentController)
         $authToken = $this->getLigoAuthToken($organization);
         if (isset($authToken['error'])) {
+            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Auth token error: ' . $authToken['error']);
             return $this->fail($authToken['error'], 400);
         }
         $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
@@ -149,6 +157,7 @@ class PaymentController extends ResourceController
             ],
             'type' => 'TEXT'
         ];
+        log_message('error', 'SECRETO: ANTES DE LA LLAMADA CURL A LIGO');
         $curl = curl_init();
         // LOG DE DEPURACIÓN: payload y token
         log_message('debug', 'LIGO DEBUG qrData: ' . json_encode($qrData));
@@ -172,6 +181,7 @@ class PaymentController extends ResourceController
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
         $response = curl_exec($curl);
+        log_message('error', 'SECRETO: DESPUES DE LA LLAMADA CURL A LIGO');
         // Log de respuesta cruda de Ligo
         log_message('error', 'PaymentController LIGO RESPONSE: ' . $response);
         $err = curl_error($curl);
