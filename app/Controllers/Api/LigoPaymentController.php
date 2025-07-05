@@ -143,7 +143,20 @@ class LigoPaymentController extends ResourceController
         if (!$invoice) {
             return $this->fail('Invoice not found for this instalment', 404);
         }
-        
+
+        // LOG exhaustivo aquí, ya tienes instalment, invoice y puedes obtener organización
+        $org = null;
+        if (isset($this->organizationModel) && isset($invoice['organization_id'])) {
+            $org = $this->organizationModel->find($invoice['organization_id']);
+        }
+        log_message(
+            'debug',
+            'DEBUG ENDPOINT FUNCIONANDO: instalmentId=' . json_encode($instalmentId)
+            . ' user=' . (isset($this->user) ? json_encode($this->user) : 'N/A')
+            . ' org=' . json_encode($org)
+            . ' ENV=' . (defined('ENVIRONMENT') ? ENVIRONMENT : 'NO_CONSTANT')
+        );
+
         // Check if user has access to this invoice
         if (!$this->canAccessInvoice($invoice)) {
             return $this->failForbidden('You do not have access to this invoice');
