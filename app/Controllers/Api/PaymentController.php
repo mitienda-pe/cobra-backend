@@ -248,35 +248,91 @@ class PaymentController extends ResourceController
      */
     private function getLigoAuthToken($organization)
     {
-        // Simulate the logic from LigoPaymentController::getAuthToken
-        $prefix = 'dev';
-        $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/auth";
-        $postData = [
-            'username' => $organization['ligo_username'],
-            'password' => $organization['ligo_password'],
-            'company_id' => $organization['ligo_company_id']
-        ];
-        $curl = curl_init();
-        curl_setopt_array($curl, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($postData),
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_SSL_VERIFYHOST => 0,
-            CURLOPT_SSL_VERIFYPEER => false,
-        ]);
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-        curl_close($curl);
-        if ($err) {
-            return ['error' => 'Failed to connect to Ligo Auth API: ' . $err];
+        // Basado en getAuthToken de LigoPaymentController, pero retorna array para compatibilidad
+        if (!empty($organization['ligo_token']) && !empty($organization['ligo_token_expiry'])) {
+            $tokenExpiry = strtotime($organization['ligo_token_expiry']);
+            if ($tokenExpiry > time()) {
+                return ['token' => $organization['ligo_token'], 'expiry' => $organization['ligo_token_expiry']];
+            }
         }
-        $decoded = json_decode($response, true);
-        if (!$decoded || !isset($decoded['data']['token'])) {
-            return ['error' => 'Invalid response from Ligo Auth API'];
+        try {
+            if (empty($organization['ligo_company_id'])) {
+                return ['error' => 'Incomplete Ligo credentials'];
+            }
+            $authUrl = 'https://cce-auth-dev.ligocloud.tech/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
+            if (empty($organization['ligo_private_key'])) {
+                return ['error' => 'Ligo private key not configured'];
+            }
+            $privateKey = $organization['ligo_private_key'];
+            $formattedKey = \App\Libraries\JwtGenerator::formatPrivateKey($privateKey);
+            $payload = [ 'companyId' => $organization['ligo_company_id'] ];
+            $authorizationToken = \App\Libraries\JwtGenerator::generateToken($payload, $formattedKey, [
+                'issuer' => 'ligo',
+                'audience' => 'ligo-calidad.com',
+                'subject' => 'ligo@gmail.com',
+                'expiresIn' => 3600
+            ]);
+            $authData = [
+                'username' => $organization['ligo_username'] ?? '',
+                'password' => $organization['ligo_password'] ?? ''
+            ];
+            $requestBody = json_encode($authData);
+            $curl = curl_init();
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $authUrl,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => $requestBody,
+                CURLOPT_HTTPHEADER => [
+                    'Authorization: Bearer ' . $authorizationToken,
+                    'Content-Type: application/json',
+                    'Content-Length: ' . strlen($requestBody)
+                ],
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => false
+            ]);
+            $response = curl_exec($curl);
+            $err = curl_error($curl);
+            $info = curl_getinfo($curl);
+            curl_close($curl);
+            if ($err) {
+                return ['error' => 'Error en solicitud de autenticación: ' . $err];
+            }
+            if ($info['http_code'] != 200) {
+                return ['error' => 'Error en autenticación. HTTP Code: ' . $info['http_code']];
+            }
+            $decoded = json_decode($response, true);
+            if (!$decoded || !isset($decoded['data']['access_token'])) {
+                $errorMsg = 'No token in auth response';
+                if (isset($decoded['message'])) {
+                    $errorMsg .= ': ' . $decoded['message'];
+                } elseif (isset($decoded['errors'])) {
+                    $errorMsg .= ': ' . (is_string($decoded['errors']) ? $decoded['errors'] : json_encode($decoded['errors']));
+                } elseif (isset($decoded['error'])) {
+                    $errorMsg .= ': ' . (is_string($decoded['error']) ? $decoded['error'] : json_encode($decoded['error']));
+                }
+                return ['error' => $errorMsg];
+            }
+            // Guardar el token en la base de datos para futuros usos
+            try {
+                $expiryDate = date('Y-m-d H:i:s', strtotime('+1 hour'));
+                $this->organizationModel->update($organization['id'], [
+                    'ligo_token' => $decoded['data']['access_token'],
+                    'ligo_token_expiry' => $expiryDate,
+                    'ligo_auth_error' => null,
+                    'ligo_enabled' => 1
+                ]);
+            } catch (\Exception $e) {
+                // Ignorar error de guardado
+            }
+            return ['token' => $decoded['data']['access_token'], 'expiry' => $expiryDate];
+        } catch (\Exception $e) {
+            return ['error' => 'Exception: ' . $e->getMessage()];
         }
-        return ['token' => $decoded['data']['token']];
     }
     
     /**
