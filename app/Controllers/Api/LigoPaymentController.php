@@ -119,11 +119,20 @@ class LigoPaymentController extends ResourceController
     public function generateInstalmentQR($instalmentId = null)
     {
         log_message('error', 'LigoPaymentController generateInstalmentQR INICIADO instalmentId=' . json_encode($instalmentId));
-        log_message('debug', 'DEBUG ENDPOINT FUNCIONANDO: instalmentId=' . json_encode($instalmentId)
-            . ' user=' . (isset($this->user) ? json_encode($this->user) : 'N/A')
-            . ' org=' . (isset($this->organizationModel) && isset($invoice['organization_id']) ? json_encode($this->organizationModel->find($invoice['organization_id'])) : 'N/A')
-            . ' ENV=' . (defined('ENVIRONMENT') ? ENVIRONMENT : 'NO_CONSTANT')
-        );
+        // Log de contexto detallado
+        $instalmentModel = new \App\Models\InstalmentModel();
+        $instalment = $instalmentModel->find($instalmentId);
+        $invoice = null;
+        if ($instalment) {
+            $invoiceModel = new \App\Models\InvoiceModel();
+            $invoice = $invoiceModel->find($instalment['invoice_id']);
+        }
+        $org = null;
+        if (isset($this->organizationModel) && $invoice && isset($invoice['organization_id'])) {
+            $org = $this->organizationModel->find($invoice['organization_id']);
+        }
+        log_message('error', 'LigoPaymentController CONTEXTO instalment=' . json_encode($instalment) . ' invoice=' . json_encode($invoice) . ' org=' . json_encode($org) . ' user=' . (isset($this->user) ? json_encode($this->user) : 'N/A'));
+
         log_message('info', 'LigoPaymentController::generateInstalmentQR called with instalmentId: ' . $instalmentId);
         
         if (!$instalmentId) {
