@@ -78,19 +78,27 @@ class LigoPaymentController extends ResourceController
         }
         
         // Guardar hash en la base de datos
+        log_message('debug', '[LIGO] Respuesta de createLigoOrder: ' . json_encode($response));
         if (isset($response->qr_data)) {
             $qrDecoded = json_decode($response->qr_data, true);
+            log_message('debug', '[LIGO] qrDecoded: ' . json_encode($qrDecoded));
             if (isset($qrDecoded['hash'])) {
                 $hashModel = new \App\Models\LigoQRHashModel();
-                $hashModel->insert([
+                $dataInsert = [
                     'hash' => $qrDecoded['hash'],
                     'order_id' => $qrDecoded['id'] ?? null,
                     'invoice_id' => $invoice['id'],
                     'amount' => $qrDecoded['amount'] ?? 0,
                     'currency' => $qrDecoded['currency'] ?? 'PEN',
                     'description' => $qrDecoded['description'] ?? null,
-                ]);
+                ];
+                $insertResult = $hashModel->insert($dataInsert);
+                log_message('info', '[LIGO] Hash insertado en ligo_qr_hashes: ' . json_encode($dataInsert) . ' | Resultado: ' . json_encode($insertResult));
+            } else {
+                log_message('warning', '[LIGO] No se encontró el campo hash en qrDecoded: ' . json_encode($qrDecoded));
             }
+        } else {
+            log_message('warning', '[LIGO] No se encontró qr_data en la respuesta de createLigoOrder.');
         }
         return $this->respond([
             'success' => true,
