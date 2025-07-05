@@ -118,6 +118,9 @@ class PaymentController extends ResourceController
             'type' => 'TEXT'
         ];
         $curl = curl_init();
+        // LOG DE DEPURACIÓN: payload y token
+        log_message('debug', 'LIGO DEBUG qrData: ' . json_encode($qrData));
+        log_message('debug', 'LIGO DEBUG token: ' . $authToken['token']);
         curl_setopt_array($curl, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
