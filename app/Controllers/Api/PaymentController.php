@@ -17,6 +17,7 @@ class PaymentController extends ResourceController
     
     public function __construct()
     {
+        log_message('error', 'PaymentController CONSTRUCTOR instanciado');
         // User will be set by the auth filter
         $this->user = session()->get('api_user');
         
@@ -48,6 +49,7 @@ class PaymentController extends ResourceController
      */
     public function generateInstalmentQR($instalmentId = null)
     {
+        log_message('error', 'PaymentController generateInstalmentQR INICIADO instalmentId=' . json_encode($instalmentId));
         log_message('debug', 'DEBUG NUEVO ENDPOINT: instalmentId=' . json_encode($instalmentId)
             . ' user=' . (isset($this->user) ? json_encode($this->user) : 'N/A')
             . ' DB=' . (defined('DATABASE') ? DATABASE : 'NO_CONSTANT')
