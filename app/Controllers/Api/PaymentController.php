@@ -153,6 +153,8 @@ class PaymentController extends ResourceController
         // LOG DE DEPURACIÓN: payload y token
         log_message('debug', 'LIGO DEBUG qrData: ' . json_encode($qrData));
         log_message('debug', 'LIGO DEBUG token: ' . $authToken['token']);
+        // Log de payload real enviado a Ligo
+        log_message('error', 'PaymentController LIGO PAYLOAD: ' . json_encode($qrData));
         curl_setopt_array($curl, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
@@ -170,6 +172,8 @@ class PaymentController extends ResourceController
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
         $response = curl_exec($curl);
+        // Log de respuesta cruda de Ligo
+        log_message('error', 'PaymentController LIGO RESPONSE: ' . $response);
         $err = curl_error($curl);
         $info = curl_getinfo($curl);
         log_message('debug', 'Solicitud a Ligo - URL: ' . $url);
