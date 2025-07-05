@@ -109,9 +109,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     $routes->match(['get', 'options'], 'ligo/generate-static-qr/(:segment)', 'LigoPaymentController::generateStaticQR/$1');
     
     // Instalment QR code generation route for mobile app
-    $routes->get('payments/generate-instalment-qr/(:num)', 'LigoPaymentController::generateInstalmentQR/$1', ['namespace' => 'App\Controllers\Api']);
-    // Ruta alternativa para pruebas manuales
-    $routes->get('payments/generate-instalment-qr-alt/(:num)', 'PaymentController::generateInstalmentQR/$1', ['namespace' => 'App\Controllers\Api']);
+    // NUEVO: endpoint principal apunta al PaymentController
+    $routes->get('payments/generate-instalment-qr/(:num)', 'PaymentController::generateInstalmentQR/$1', ['namespace' => 'App\Controllers\Api']);
+    // Backup: endpoint antiguo
+    $routes->get('payments/generate-instalment-qr-backup/(:num)', 'LigoPaymentController::generateInstalmentQR/$1', ['namespace' => 'App\Controllers\Api']);
 
     // Invoice Routes
     $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index');

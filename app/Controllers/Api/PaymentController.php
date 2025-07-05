@@ -50,54 +50,84 @@ class PaymentController extends ResourceController
      */
     public function generateInstalmentQR($instalmentId = null)
     {
-        log_message('error', 'PaymentController generateInstalmentQR INICIADO instalmentId=' . json_encode($instalmentId));
-        // Log de contexto detallado
-        $instalmentModel = new \App\Models\InstalmentModel();
-        $instalment = $instalmentModel->find($instalmentId);
-        $invoice = null;
-        if ($instalment) {
-            $invoiceModel = new \App\Models\InvoiceModel();
-            $invoice = $invoiceModel->find($instalment['invoice_id']);
-        }
-        $org = null;
-        if (isset($this->organizationModel) && $invoice && isset($invoice['organization_id'])) {
-            $org = $this->organizationModel->find($invoice['organization_id']);
-        }
-        log_message('error', 'PaymentController CONTEXTO instalment=' . json_encode($instalment) . ' invoice=' . json_encode($invoice) . ' org=' . json_encode($org) . ' user=' . (isset($this->user) ? json_encode($this->user) : 'N/A'));
-        // Guardar payload y respuesta Ligo
-        // ... (preparación del payload, antes de la llamada a Ligo)
-        // Ejemplo: $payload = [...];
-        if (isset($payload)) {
-            log_message('error', 'PaymentController LIGO PAYLOAD: ' . json_encode($payload));
-        }
-        // ... (cURL a Ligo)
-        // Ejemplo: $response = ...;
-        if (isset($response)) {
-            log_message('error', 'PaymentController LIGO RESPONSE: ' . $response);
-        }
-        log_message('debug', 'DEBUG NUEVO ENDPOINT: instalmentId=' . json_encode($instalmentId)
-            . ' user=' . (isset($this->user) ? json_encode($this->user) : 'N/A')
-            . ' DB=' . (defined('DATABASE') ? DATABASE : 'NO_CONSTANT')
-            . ' ENV=' . (defined('ENVIRONMENT') ? ENVIRONMENT : 'NO_CONSTANT')
-        );
-        log_message('info', 'PaymentController::generateInstalmentQR called with instalmentId: ' . $instalmentId);
         if (!$instalmentId) {
-            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Instalment ID is required');
             return $this->fail('Instalment ID is required', 400);
         }
         $instalmentModel = new \App\Models\InstalmentModel();
         $instalment = $instalmentModel->find($instalmentId);
         if (!$instalment) {
-            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Instalment not found');
             return $this->fail('Instalment not found', 404);
         }
         $invoiceModel = new \App\Models\InvoiceModel();
         $invoice = $invoiceModel->find($instalment['invoice_id']);
         if (!$invoice) {
-            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Invoice not found for this instalment');
             return $this->fail('Invoice not found for this instalment', 404);
         }
         // Access control, same logic as canAccessInvoice
+        if (method_exists($this, 'canAccessInvoice') && !$this->canAccessInvoice($invoice)) {
+            return $this->failForbidden('You do not have access to this invoice');
+        }
+        $organization = $this->organizationModel->find($invoice['organization_id']);
+        if (!$organization) {
+            return $this->fail('Organization not found', 404);
+        }
+        if (!isset($organization['ligo_enabled']) || !$organization['ligo_enabled']) {
+            return $this->fail('Ligo payments not enabled for this organization', 400);
+        }
+        if (empty($organization['ligo_username']) || empty($organization['ligo_password']) || empty($organization['ligo_company_id'])) {
+            return $this->fail('Ligo API credentials not configured', 400);
+        }
+        // --- NUEVO: Revisar si ya existe un hash para este instalment ---
+        $qrHashModel = new \App\Models\LigoQRHashModel();
+        $existingQR = $qrHashModel->where('instalment_id', $instalmentId)->orderBy('created_at', 'desc')->first();
+        if ($existingQR && !empty($existingQR['hash'])) {
+            // Devolver el QR guardado (mismo formato que respuesta normal)
+            return $this->respond([
+                'success' => true,
+                'qr_data' => json_encode([
+                    'id' => $existingQR['order_id'] ?? null,
+                    'amount' => $existingQR['amount'] ?? $instalment['amount'],
+                    'currency' => $existingQR['currency'] ?? $invoice['currency'],
+                    'description' => $existingQR['description'] ?? '',
+                    'merchant' => $organization['name'],
+                    'timestamp' => strtotime($existingQR['created_at']),
+                    'hash' => $existingQR['hash'],
+                    'instalment_id' => $instalmentId,
+                    'invoice_id' => $invoice['id']
+                ]),
+                'qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode(json_encode([
+                    'id' => $existingQR['order_id'] ?? null,
+                    'amount' => $existingQR['amount'] ?? $instalment['amount'],
+                    'currency' => $existingQR['currency'] ?? $invoice['currency'],
+                    'description' => $existingQR['description'] ?? '',
+                    'merchant' => $organization['name'],
+                    'timestamp' => strtotime($existingQR['created_at']),
+                    'hash' => $existingQR['hash'],
+                    'instalment_id' => $instalmentId,
+                    'invoice_id' => $invoice['id']
+                ])),
+                'order_id' => $existingQR['order_id'] ?? null,
+                'instalment_id' => $instalmentId,
+                'invoice_id' => $invoice['id']
+            ]);
+        }
+        // --- FIN NUEVO ---
+        // Obtener token de Ligo
+        $authToken = $this->getLigoAuthToken($organization);
+        if (isset($authToken['error'])) {
+            return $this->fail($authToken['error'], 400);
+        }
+        // Preparar datos para Ligo (igual que antes)
+        $orderData = [
+            'amount' => $instalment['amount'],
+            'currency' => $invoice['currency'] ?? 'PEN',
+            'orderId' => $instalment['id'],
+            'description' => "Pago cuota #{$instalment['number']} de factura #{$invoice['number']}"
+        ];
+        // Aquí iría la llamada a Ligo y el guardado del hash, igual que antes
+        // ...
+        // (El resto del método sigue igual)
+
         if (method_exists($this, 'canAccessInvoice') && !$this->canAccessInvoice($invoice)) {
             log_message('error', 'SECRETO: RETURN ANTES DE LIGO - No access to invoice');
             return $this->failForbidden('You do not have access to this invoice');
