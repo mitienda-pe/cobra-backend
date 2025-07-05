@@ -65,8 +65,16 @@ class PaymentController extends ResourceController
         }
         log_message('error', 'PaymentController CONTEXTO instalment=' . json_encode($instalment) . ' invoice=' . json_encode($invoice) . ' org=' . json_encode($org) . ' user=' . (isset($this->user) ? json_encode($this->user) : 'N/A'));
         // Guardar payload y respuesta Ligo
-        $ligoPayload = null;
-        $ligoResponse = null;
+        // ... (preparación del payload, antes de la llamada a Ligo)
+        // Ejemplo: $payload = [...];
+        if (isset($payload)) {
+            log_message('error', 'PaymentController LIGO PAYLOAD: ' . json_encode($payload));
+        }
+        // ... (cURL a Ligo)
+        // Ejemplo: $response = ...;
+        if (isset($response)) {
+            log_message('error', 'PaymentController LIGO RESPONSE: ' . $response);
+        }
         log_message('debug', 'DEBUG NUEVO ENDPOINT: instalmentId=' . json_encode($instalmentId)
             . ' user=' . (isset($this->user) ? json_encode($this->user) : 'N/A')
             . ' DB=' . (defined('DATABASE') ? DATABASE : 'NO_CONSTANT')
