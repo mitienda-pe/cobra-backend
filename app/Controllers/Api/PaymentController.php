@@ -18,6 +18,7 @@ class PaymentController extends ResourceController
     public function __construct()
     {
         log_message('error', 'PaymentController CONSTRUCTOR instanciado');
+        $this->organizationModel = new \App\Models\OrganizationModel();
         // User will be set by the auth filter
         $this->user = session()->get('api_user');
         
