@@ -477,34 +477,22 @@ class PaymentController extends BaseController
         if (!$uuid) {
             return redirect()->to('/payments')->with('error', 'ID de pago no especificado');
         }
-        
         $payment = $this->paymentModel->where('uuid', $uuid)->first();
-        
         if (!$payment) {
             return redirect()->to('/payments')->with('error', 'Pago no encontrado');
         }
-        
         // Get invoice information
         $invoiceModel = new InvoiceModel();
         $invoice = $invoiceModel->find($payment['invoice_id']);
-        
         if (!$invoice) {
             return redirect()->to('/payments')->with('error', 'Factura asociada no encontrada');
         }
-        
-        // Calculate remaining amount and ensure amount field exists
-        $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
-        $invoice['amount'] = floatval($invoice['total_amount'] ?? $paymentInfo['invoice_amount']);
-        
         // Get client information
         $clientModel = new ClientModel();
         $client = $clientModel->find($invoice['client_id']);
-        
         // Get user (collector) information
         $userModel = new \App\Models\UserModel();
         $collector = $userModel->find($payment['user_id']);
-        
-        // Si el cobrador no existe, crear un array con valores por defecto
         if (!$collector) {
             $collector = [
                 'name' => 'Usuario no disponible',
@@ -513,14 +501,42 @@ class PaymentController extends BaseController
             ];
             log_message('warning', 'Cobrador no encontrado para el pago: ' . $uuid . ', ID de usuario: ' . ($payment['user_id'] ?? 'no definido'));
         }
-        
         // Get instalment information if available
         $instalment = null;
         if (!empty($payment['instalment_id'])) {
             $instalmentModel = new InstalmentModel();
             $instalment = $instalmentModel->find($payment['instalment_id']);
         }
-        
+        // --- Buscar hash y QR solo para pagos Ligo pendientes/confirmados ---
+        $qr_hash = null;
+        $qr_url = null;
+        $show_ligo_qr = false;
+        if (
+            isset($payment['payment_method']) && $payment['payment_method'] === 'ligo_qr' &&
+            in_array($payment['status'], ['pendiente', 'confirmado'])
+        ) {
+            $qrModel = new \App\Models\LigoQRHashModel();
+            if (!empty($payment['instalment_id'])) {
+                $qr_hash = $qrModel->where('instalment_id', $payment['instalment_id'])->orderBy('created_at', 'desc')->first();
+            } else {
+                $qr_hash = $qrModel->where('invoice_id', $payment['invoice_id'])->orderBy('created_at', 'desc')->first();
+            }
+            if ($qr_hash && !empty($qr_hash['hash'])) {
+                $qr_data = [
+                    'id' => $qr_hash['order_id'] ?? null,
+                    'amount' => $qr_hash['amount'] ?? $payment['amount'],
+                    'currency' => $qr_hash['currency'] ?? $invoice['currency'],
+                    'description' => $qr_hash['description'] ?? '',
+                    'merchant' => $invoice['merchant'] ?? ($client['business_name'] ?? ''),
+                    'timestamp' => strtotime($qr_hash['created_at']),
+                    'hash' => $qr_hash['hash'],
+                    'instalment_id' => $payment['instalment_id'] ?? null,
+                    'invoice_id' => $payment['invoice_id']
+                ];
+                $qr_url = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode(json_encode($qr_data));
+                $show_ligo_qr = true;
+            }
+        }
         $data = [
             'payment' => $payment,
             'invoice' => $invoice,
@@ -528,8 +544,10 @@ class PaymentController extends BaseController
             'collector' => $collector,
             'instalment' => $instalment,
             'auth' => $this->auth,
+            'qr_hash' => $qr_hash,
+            'qr_url' => $qr_url,
+            'show_ligo_qr' => $show_ligo_qr
         ];
-        
         return view('payments/view', $data);
     }
     

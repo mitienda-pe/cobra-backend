@@ -126,7 +126,7 @@
     </div>
     
     <div class="col-md-4">
-        <div class="card">
+        <div class="card mb-3">
             <div class="card-header">
                 Información de la Cuenta
             </div>
@@ -178,6 +178,22 @@
                 </div>
             </div>
         </div>
+        <?php if (!empty($show_ligo_qr)): ?>
+        <div class="card border-success mb-3">
+            <div class="card-header bg-success text-white">
+                Pago Ligo QR
+            </div>
+            <div class="card-body text-center">
+                <p class="fw-bold">Presenta este código QR para completar el pago con Ligo:</p>
+                <?php if (!empty($qr_url)): ?>
+                    <img src="<?= esc($qr_url) ?>" alt="QR Ligo" class="img-fluid mb-2" style="max-width: 220px;" />
+                <?php endif; ?>
+                <?php if (!empty($qr_hash['hash'])): ?>
+                    <div class="mt-2 small text-muted">Hash QR: <span class="fw-bold"><?= esc($qr_hash['hash']) ?></span></div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 

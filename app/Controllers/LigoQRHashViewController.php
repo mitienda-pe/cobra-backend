@@ -10,6 +10,6 @@ class LigoQRHashViewController extends Controller
     {
         $model = new LigoQRHashModel();
         $hashes = $model->orderBy('created_at', 'DESC')->findAll(100);
-        return view('ligo_qr_hashes', ['hashes' => $hashes]);
+        return view('hashes/ligo_hashes', ['hashes' => $hashes]);
     }
 }
