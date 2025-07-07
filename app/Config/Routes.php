@@ -237,6 +237,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     // Webhook Routes
     $routes->group('webhooks', function ($routes) {
         $routes->get('/', 'WebhookController::index');
+        $routes->get('ligo-logs', 'WebhookController::ligoLogs');
         $routes->get('(:num)', 'WebhookController::view/$1');
         $routes->get('(:num)/test', 'WebhookController::test/$1');
         $routes->get('(:num)/retry', 'WebhookController::retry/$1');

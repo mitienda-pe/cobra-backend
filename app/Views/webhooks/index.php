@@ -8,9 +8,32 @@
         <h1>Webhooks</h1>
     </div>
     <div class="col-md-6 text-end">
+        <a href="<?= site_url('webhooks/ligo-logs') ?>" class="btn btn-info me-2">
+            <i class="bi bi-receipt"></i> Notificaciones de Ligo
+        </a>
         <a href="<?= site_url('webhooks/create') ?>" class="btn btn-primary">
             <i class="bi bi-plus"></i> Nuevo Webhook
         </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-receipt"></i> Notificaciones de Ligo
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>Monitoreo de Pagos:</strong> Vea las notificaciones de confirmación de pagos que llegan desde Ligo cuando se completan transacciones.
+                </p>
+                <p class="mb-0">
+                    <strong>Endpoint:</strong> <code>/api/webhooks/ligo</code> - Recibe automáticamente notificaciones de pagos procesados.
+                </p>
+            </div>
+        </div>
     </div>
 </div>
 

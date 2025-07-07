@@ -248,6 +248,38 @@ class WebhookController extends BaseController
         return view('webhooks/logs', $data);
     }
     
+    public function ligoLogs()
+    {
+        // Only superadmins and admins can view webhook logs
+        if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
+            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para ver los logs de webhooks.');
+        }
+        
+        $webhookModel = new WebhookModel();
+        $webhookLogModel = new WebhookLogModel();
+        
+        // Get the Ligo webhook record for this organization
+        $webhook = $webhookModel->where('organization_id', $this->auth->organizationId())
+                              ->where('name', 'Ligo Incoming Webhooks')
+                              ->first();
+        
+        $logs = [];
+        if ($webhook) {
+            // Get webhook logs
+            $logs = $webhookLogModel->where('webhook_id', $webhook['id'])
+                                   ->orderBy('created_at', 'DESC')
+                                   ->findAll();
+        }
+        
+        $data = [
+            'webhook' => $webhook,
+            'logs' => $logs,
+            'auth' => $this->auth,
+        ];
+        
+        return view('webhooks/ligo_logs', $data);
+    }
+    
     public function test($id = null)
     {
         // Only superadmins and admins can test webhooks

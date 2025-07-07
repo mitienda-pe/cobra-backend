@@ -2,7 +2,12 @@
 <?= $this->section('title') ?>Hashes QR Ligo<?= $this->endSection() ?>
 <?= $this->section('content') ?>
 <div class="container-fluid py-4">
-    <h2 class="mb-4">Hashes QR generados por Ligo</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Hashes QR generados por Ligo</h2>
+        <a href="<?= site_url('webhooks/ligo-logs') ?>" class="btn btn-info">
+            <i class="bi bi-bell"></i> Ver Notificaciones de Ligo
+        </a>
+    </div>
     <div class="card">
         <div class="card-body p-0">
             <table class="table table-striped table-bordered mb-0">

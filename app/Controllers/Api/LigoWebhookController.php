@@ -12,12 +12,16 @@ class LigoWebhookController extends ResourceController
     protected $invoiceModel;
     protected $organizationModel;
     protected $paymentModel;
+    protected $webhookModel;
+    protected $webhookLogModel;
 
     public function __construct()
     {
         $this->invoiceModel = new \App\Models\InvoiceModel();
         $this->organizationModel = new \App\Models\OrganizationModel();
         $this->paymentModel = new \App\Models\PaymentModel();
+        $this->webhookModel = new \App\Models\WebhookModel();
+        $this->webhookLogModel = new \App\Models\WebhookLogModel();
     }
 
     /**
@@ -29,10 +33,20 @@ class LigoWebhookController extends ResourceController
     {
         // Get request payload
         $payload = $this->request->getJSON();
+        $rawPayload = $this->request->getBody();
+        
+        // Log the incoming webhook (we'll get or create webhook record later)
+        $webhookId = null;
+        $success = false;
+        $responseCode = 200;
+        $responseMessage = 'OK';
         
         // Validate payload
         if (!$payload || !isset($payload->type) || !isset($payload->data)) {
             log_message('error', 'Invalid Ligo webhook payload: ' . json_encode($payload));
+            $responseCode = 400;
+            $responseMessage = 'Invalid webhook payload';
+            $this->logWebhookAttempt($webhookId, $payload->type ?? 'unknown', $rawPayload, $responseCode, $responseMessage, $success);
             return $this->fail('Invalid webhook payload', 400);
         }
         
@@ -42,6 +56,9 @@ class LigoWebhookController extends ResourceController
         
         if (!$invoice) {
             log_message('error', 'Ligo webhook: Invoice not found for instructionId/order_id: ' . $invoiceId);
+            $responseCode = 404;
+            $responseMessage = 'Invoice not found';
+            $this->logWebhookAttempt($webhookId, $payload->type, $rawPayload, $responseCode, $responseMessage, $success);
             return $this->fail('Invoice not found', 404);
         }
         
@@ -50,14 +67,23 @@ class LigoWebhookController extends ResourceController
         
         if (!$organization) {
             log_message('error', 'Ligo webhook: Organization not found for invoice: ' . $invoiceId);
+            $responseCode = 404;
+            $responseMessage = 'Organization not found';
+            $this->logWebhookAttempt($webhookId, $payload->type, $rawPayload, $responseCode, $responseMessage, $success);
             return $this->fail('Organization not found', 404);
         }
+        
+        // Get or create webhook record for this organization
+        $webhookId = $this->getOrCreateLigoWebhook($organization['id']);
         
         // Verify webhook signature
         $signature = $this->request->getHeaderLine('Ligo-Signature');
         
         if (!$this->verifySignature($signature, $this->request->getBody(), $organization['ligo_webhook_secret'])) {
             log_message('error', 'Ligo webhook: Invalid signature for invoice: ' . $invoiceId);
+            $responseCode = 401;
+            $responseMessage = 'Invalid signature';
+            $this->logWebhookAttempt($webhookId, $payload->type, $rawPayload, $responseCode, $responseMessage, $success);
             return $this->fail('Invalid signature', 401);
         }
         
@@ -109,11 +135,23 @@ class LigoWebhookController extends ResourceController
                     log_message('info', '[LigoWebhook] Invoice ' . $invoiceId . ' marked as PARTIALLY PAID (paidSum: ' . $paidSum . ', total: ' . $invoiceTotal . ')');
                 }
             }
+            
+            // Log successful webhook processing
+            $success = true;
+            $responseMessage = 'Payment processed successfully';
+            $this->logWebhookAttempt($webhookId, $payload->type, $rawPayload, $responseCode, $responseMessage, $success);
+            
             return $this->respond(['message' => 'Payment processed successfully', 'invoice_id' => $invoiceId, 'payment_id' => $payload->data->payment_id ?? null]);
         }
         
         // Handle other event types if needed
         log_message('info', 'Ligo webhook: Unhandled event type: ' . $payload->type . ' for invoice: ' . $invoiceId);
+        
+        // Log unhandled event type
+        $success = true; // Still successful response even if we don't process the event
+        $responseMessage = 'Event received but not processed';
+        $this->logWebhookAttempt($webhookId, $payload->type, $rawPayload, $responseCode, $responseMessage, $success);
+        
         return $this->respond(['message' => 'Event received but not processed']);
     }
     
@@ -133,5 +171,66 @@ class LigoWebhookController extends ResourceController
         
         $computedSignature = hash_hmac('sha256', $payload, $secret);
         return hash_equals($signature, $computedSignature);
+    }
+    
+    /**
+     * Get or create webhook record for Ligo incoming webhooks
+     *
+     * @param int $organizationId
+     * @return int|null
+     */
+    private function getOrCreateLigoWebhook($organizationId)
+    {
+        // Look for existing Ligo webhook record for this organization
+        $webhook = $this->webhookModel->where('organization_id', $organizationId)
+                                    ->where('name', 'Ligo Incoming Webhooks')
+                                    ->first();
+        
+        if ($webhook) {
+            return $webhook['id'];
+        }
+        
+        // Create new webhook record for logging purposes
+        $webhookData = [
+            'organization_id' => $organizationId,
+            'name' => 'Ligo Incoming Webhooks',
+            'url' => 'https://api.ligo.com/webhooks (incoming)',
+            'secret' => null, // No secret needed for incoming webhooks
+            'events' => 'payment.succeeded,payment.failed,payment.cancelled',
+            'is_active' => true,
+        ];
+        
+        $webhookId = $this->webhookModel->insert($webhookData);
+        return $webhookId;
+    }
+    
+    /**
+     * Log webhook attempt
+     *
+     * @param int|null $webhookId
+     * @param string $event
+     * @param string $payload
+     * @param int $responseCode
+     * @param string $responseMessage
+     * @param bool $success
+     */
+    private function logWebhookAttempt($webhookId, $event, $payload, $responseCode, $responseMessage, $success)
+    {
+        // If we don't have a webhook ID, we can't log (this shouldn't happen in normal flow)
+        if (!$webhookId) {
+            return;
+        }
+        
+        $logData = [
+            'webhook_id' => $webhookId,
+            'event' => $event,
+            'payload' => $payload,
+            'response_code' => $responseCode,
+            'response_body' => $responseMessage,
+            'attempts' => 1,
+            'success' => $success,
+        ];
+        
+        $this->webhookLogModel->insert($logData);
     }
 }
