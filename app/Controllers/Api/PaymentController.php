@@ -232,7 +232,9 @@ class PaymentController extends ResourceController
         }
         // Obtener el hash real usando getCreateQRByID
         $qrId = $decoded->data->id;
+        log_message('debug', 'PaymentController - Llamando getQRDetailsById con ID: ' . $qrId);
         $qrDetails = $this->getQRDetailsById($qrId, $authToken['token'], $organization);
+        log_message('debug', 'PaymentController - Respuesta de getQRDetailsById: ' . json_encode($qrDetails));
         
         if (isset($qrDetails['error'])) {
             log_message('error', 'Error al obtener detalles del QR para instalment en PaymentController: ' . $qrDetails['error']);
@@ -250,7 +252,7 @@ class PaymentController extends ResourceController
         } else {
             // Usar el ID como fallback
             $qrHash = $qrId;
-            log_message('warning', 'No se encontró hash en getCreateQRByID para instalment en PaymentController, usando ID como fallback');
+            log_message('warning', 'No se encontró hash en getCreateQRByID para instalment en PaymentController, usando ID como fallback. Response: ' . json_encode($qrDetails));
         }
         
         $qrDataArr = [
@@ -272,7 +274,7 @@ class PaymentController extends ResourceController
             $hashModel = new \App\Models\LigoQRHashModel();
             
             // Determinar si es el hash real de LIGO o un hash temporal
-            $isRealHash = !str_starts_with($qrDataArr['hash'], 'LIGO-');
+            $isRealHash = strpos($qrDataArr['hash'], 'LIGO-') !== 0;
             
             $dataInsert = [
                 'hash' => $qrDataArr['hash'], // Mantener por compatibilidad

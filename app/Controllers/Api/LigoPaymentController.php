@@ -87,7 +87,7 @@ class LigoPaymentController extends ResourceController
                 $hashModel = new \App\Models\LigoQRHashModel();
                 
                 // Determinar si es el hash real de LIGO o un hash temporal
-                $isRealHash = !str_starts_with($qrDecoded['hash'], 'LIGO-');
+                $isRealHash = strpos($qrDecoded['hash'], 'LIGO-') !== 0;
                 
                 $dataInsert = [
                     'hash' => $qrDecoded['hash'], // Mantener por compatibilidad
