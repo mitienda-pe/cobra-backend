@@ -1,0 +1,626 @@
+openapi: 3.0.3
+info:
+  title: Ligo Payments API
+  description: API para servicios de transferencias, QR y recargas de Ligo Payments
+  version: 1.7.0
+  contact:
+    name: Ligo Payments
+    url: https://ligocloud.tech
+
+servers:
+  - url: https://cce-auth-{prefix}.ligocloud.tech
+    description: Servidor de autenticación
+    variables:
+      prefix:
+        default: dev
+        enum:
+          - dev
+          - prod
+  - url: https://cce-api-gateway-{prefix}.ligocloud.tech
+    description: Servidor API Gateway
+    variables:
+      prefix:
+        default: dev
+        enum:
+          - dev
+          - prod
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtenido del endpoint de autenticación
+
+  schemas:
+    AuthRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          maxLength: 100
+          description: Nombre de usuario asignado por el sistema
+          example: "jsoncco"
+        password:
+          type: string
+          maxLength: 100
+          description: Contraseña asignada por el sistema
+          example: "Admin123"
+
+    AuthResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 1
+        errors:
+          type: string
+          nullable: true
+          example: null
+        code:
+          type: integer
+          example: 200
+        data:
+          type: object
+          properties:
+            userId:
+              type: string
+              maxLength: 20
+              description: Código de identificación única de usuario
+              example: "7fabade9-c3a9-4a98-9383-33f04540c832"
+            companyId:
+              type: string
+              maxLength: 20
+              description: Código de identificación única de la empresa
+              example: "ef395d58-0582-42ec-b032-318a0ba6c0cc"
+            access_token:
+              type: string
+              description: Token firmado desde lado del servidor para el acceso a las peticiones futuras
+              example: "eyJhbGciOiJSUzI1NiIXVCJ9.eyJ1c2VySWQiOiI3ZmFiY..."
+        date:
+          type: string
+          format: date-time
+          example: "2024-09-23 09:08:40"
+
+    CreateQRRequest:
+      type: object
+      required:
+        - header
+        - data
+        - type
+      properties:
+        header:
+          type: object
+          required:
+            - sisOrigen
+          properties:
+            sisOrigen:
+              type: string
+              maxLength: 4
+              description: Código de sistema origen (asignado previamente)
+              example: "0921"
+        data:
+          type: object
+          required:
+            - qrTipo
+            - idCuenta
+            - moneda
+            - nombreComerciante
+          properties:
+            qrTipo:
+              type: string
+              maxLength: 2
+              enum: ["11", "12"]
+              description: "Tipo de QR: 11 = QR ESTÁTICO, 12 = QR DINÁMICO"
+              example: "11"
+            idCuenta:
+              type: string
+              maxLength: 100
+              description: Identificador de la cuenta desencriptada
+              example: "92100144571260631044"
+            moneda:
+              type: string
+              maxLength: 3
+              enum: ["604", "840"]
+              description: "Código de Moneda: 604=Soles, 840=Dólares"
+              example: "604"
+            importe:
+              type: integer
+              nullable: true
+              description: "El Importe se ingresa solo cuando qrTipo es dinámico (12). Valor en centavos sin separadores (ej: S/.10 = 1000)"
+              example: null
+            fechaVencimiento:
+              type: string
+              pattern: '^[0-9]{8}$'
+              nullable: true
+              description: "Formato: yyyyMMdd - Fecha en el que expira el QR"
+              example: null
+            cantidadPagos:
+              type: integer
+              nullable: true
+              description: "Cantidad de pagos permitidos por QR"
+              example: null
+            glosa:
+              type: string
+              maxLength: 100
+              nullable: true
+              description: "Concepto de cobro"
+              example: null
+            codigoComerciante:
+              type: string
+              maxLength: 4
+              nullable: true
+              description: "Código de categoría del comercio según ISO 18245 (Valor por defecto 4829)"
+              example: "4829"
+            nombreComerciante:
+              type: string
+              maxLength: 100
+              description: "Nombre del comercio"
+              example: "BLADIMIR VASQUEZ RAMIREZ"
+            ciudadComerciante:
+              type: string
+              maxLength: 20
+              nullable: true
+              description: "Ciudad del comercio"
+              example: "Lima"
+            info:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  codigo:
+                    type: string
+                    maxLength: 90
+                  valor:
+                    type: string
+                    maxLength: 90
+        type:
+          type: string
+          enum: ["TEXT"]
+          description: "Tipo de generación del QR: TEXT (genera la cadena EMV)"
+          example: "TEXT"
+
+    CreateQRResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 1
+        errors:
+          type: string
+          nullable: true
+          example: null
+        code:
+          type: integer
+          example: 200
+        data:
+          type: object
+          properties:
+            code:
+              type: integer
+              example: 200
+            msg:
+              type: string
+              example: "Ok"
+            id:
+              type: string
+              maxLength: 20
+              description: "Código de identificación única de registro"
+              example: "6dbe97c6-a4ad-48a2-a9fa-da6da08db321"
+        date:
+          type: string
+          format: date-time
+          example: "2024-11-25 09:46:16"
+
+    QRInfoResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 1
+        errors:
+          type: string
+          nullable: true
+          example: null
+        code:
+          type: integer
+          example: 200
+        data:
+          type: object
+          properties:
+            header:
+              type: object
+              properties:
+                codReturn:
+                  type: string
+                  maxLength: 4
+                  description: "= 0 (cero) es éxito en la recepción, != 0 es cualquier tipo de error/rechazo"
+                  example: "0"
+                txtReturn:
+                  type: string
+                  maxLength: 100
+                  description: "Texto explicativo del código de retorno"
+                  example: "SUCCESS"
+            hash:
+              type: string
+              maxLength: 1024
+              description: "Cadena o Imagen en BASE64 del QR generado"
+              example: "000201010211263700028001039030220241122092119919762965204482953036045802PE..."
+            idQr:
+              type: string
+              maxLength: 30
+              description: "Identificador único del QR generado en el sistema QR-PAYMENTS"
+              example: "24112209211991976296"
+            errorMessage:
+              type: string
+              nullable: true
+              description: "Mensaje del error en caso de que el servicio falle"
+              example: null
+        date:
+          type: string
+          format: date-time
+          example: "2024-11-25 10:04:37"
+
+    RechargeNotificationRequest:
+      type: object
+      required:
+        - instructionId
+        - transferDetails
+        - originDetails
+        - destinationDetails
+        - channel
+        - rechargeDate
+        - rechargeTime
+      properties:
+        instructionId:
+          type: string
+          description: "Código único de identificación de la operación"
+          example: "INST121312213213123213"
+        unstructuredInformation:
+          type: string
+          nullable: true
+          description: "Glosa de la transacción. En caso de Interoperabilidad con lectura de QR CCE, se debe incluir el idQr correspondiente"
+        transferDetails:
+          type: object
+          required:
+            - amount
+            - currency
+            - transferDate
+          properties:
+            amount:
+              type: number
+              description: "Monto recargado. Los dos últimos dígitos indican la parte decimal (ej: 2500 = 25.00)"
+              example: 100
+            currency:
+              type: string
+              enum: ["PEN", "USD"]
+              description: "Tipo de moneda"
+              example: "PEN"
+            transferDate:
+              type: string
+              format: date-time
+              description: "Fecha en la que se realizó la Transferencia. Formato YYYY-MM-DD HH:mm:ss"
+              example: "2024-12-27 10:25:10"
+        originDetails:
+          type: object
+          required:
+            - cci
+            - name
+            - documentType
+            - documentNumber
+          properties:
+            cci:
+              type: string
+              description: "Código de cuenta interbancaria del cliente originante"
+              example: "12345678901234567890"
+            name:
+              type: string
+              description: "Nombre del cliente originante"
+              example: "John Doe"
+            documentType:
+              type: string
+              description: "Tipo de documento del cliente originante"
+              example: "DNI"
+            documentNumber:
+              type: string
+              description: "Número de documento del cliente originante"
+              example: "74369185"
+        destinationDetails:
+          type: object
+          required:
+            - cci
+            - name
+            - documentType
+            - documentNumber
+          properties:
+            cci:
+              type: string
+              description: "Código de cuenta interbancaria del cliente destino"
+              example: "92100123859535942040"
+            name:
+              type: string
+              description: "Nombre del cliente destino"
+              example: "MILAGROS ERNESTINA VARGAS MATTO"
+            documentType:
+              type: string
+              description: "Tipo de documento del cliente destino"
+              example: "DNI"
+            documentNumber:
+              type: string
+              description: "Número de documento del cliente destino"
+              example: "08050521"
+        channel:
+          type: string
+          description: "Canal de entrada de la recarga. Ver Código de Canales"
+          example: "51"
+        rechargeDate:
+          type: string
+          format: date
+          description: "Fecha de recarga. Formato YYYY-MM-DD"
+          example: "2025-01-14"
+        rechargeTime:
+          type: string
+          pattern: '^[0-9]{2}:[0-9]{2}:[0-9]{2}$'
+          description: "Hora de ingreso. Formato HH:mm:ss"
+          example: "10:09:48"
+
+    RechargeNotificationResponse:
+      type: object
+      required:
+        - status
+        - code
+        - message
+        - date
+      properties:
+        status:
+          type: boolean
+          description: "Estado de validación para una petición procesada"
+          example: true
+        code:
+          type: integer
+          description: "Código de respuesta válido. Se validará el código de respuesta con estado 200"
+          example: 200
+        message:
+          type: string
+          description: "Descripción del código de respuesta"
+          example: "Envío de notificación exitosa"
+        date:
+          type: string
+          format: date-time
+          description: "Fecha de finalización del proceso"
+          example: "2024-11-11 19:17:21"
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 0
+        errors:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Credenciales inválidas"
+            code:
+              type: integer
+              example: 401
+        code:
+          type: integer
+          example: 401
+        date:
+          type: string
+          format: date-time
+          example: "2024-09-20 17:51:54"
+
+paths:
+  /v1/auth/sign-in:
+    post:
+      summary: Inicio de Sesión
+      description: |
+        Método para obtener un token que servirá para consumir los demás servicios.
+        El usuario del sistema se identificará con nombre de usuario, contraseña y un token
+        firmado con la llave privada previamente enviada. El servidor generará un nuevo token
+        que será usado en peticiones HTTP posteriores.
+        El token caducará después de 1 hora.
+      parameters:
+        - name: companyId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Identificador único de empresa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+            example:
+              username: "jsoncco"
+              password: "Admin123"
+      responses:
+        '200':
+          description: Inicio de sesión exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      headers:
+        Authorization:
+          required: true
+          schema:
+            type: string
+            maxLength: 100
+          description: Token firmado por el cliente utilizando la llave privada previamente enviada
+
+  /v1/createQr:
+    post:
+      summary: Envío de creación de QR
+      description: |
+        Este endpoint enviará una petición para generar un QR.
+        Permite crear códigos QR estáticos (11) o dinámicos (12).
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQRRequest'
+            example:
+              header:
+                sisOrigen: "0921"
+              data:
+                qrTipo: "11"
+                idCuenta: "92100144571260631044"
+                moneda: "604"
+                importe: null
+                fechaVencimiento: null
+                cantidadPagos: null
+                glosa: null
+                codigoComerciante: "4829"
+                nombreComerciante: "BLADIMIR VASQUEZ RAMIREZ"
+                ciudadComerciante: "Lima"
+                info: null
+              type: "TEXT"
+      responses:
+        '200':
+          description: Envío de creación de QR exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateQRResponse'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/getCreateQRById/{id}:
+    get:
+      summary: Obtener información de envío de creación de QR
+      description: |
+        Este endpoint devuelve la información del envío de creación de QR
+        incluyendo la cadena EMV generada y el identificador único del QR.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 20
+          description: Código único del envío de creación de QR
+          example: "6dbe97c6-a4ad-48a2-a9fa-da6da08db321"
+      responses:
+        '200':
+          description: Información de creación de QR obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QRInfoResponse'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/send-recharge-notification:
+    post:
+      summary: Notificación de recargas
+      description: |
+        Este endpoint permitirá recepcionar las notificaciones de las recargas 
+        que se realicen a las cuentas de sus clientes afiliados.
+        
+        **Nota**: Este es un webhook que el cliente debe implementar en su sistema.
+        La URL debe ser proporcionada a Ligo Payments para configurar las notificaciones.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RechargeNotificationRequest'
+            example:
+              instructionId: "INST121312213213123213"
+              transferDetails:
+                amount: 100
+                currency: "PEN"
+                transferDate: "2024-12-27 10:25:10"
+              originDetails:
+                cci: "12345678901234567890"
+                name: "John Doe"
+                documentType: "DNI"
+                documentNumber: "74369185"
+              destinationDetails:
+                cci: "92100123859535942040"
+                name: "MILAGROS ERNESTINA VARGAS MATTO"
+                documentType: "DNI"
+                documentNumber: "08050521"
+              channel: "51"
+              rechargeDate: "2025-01-14"
+              rechargeTime: "10:09:48"
+      responses:
+        '200':
+          description: Notificación procesada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RechargeNotificationResponse'
+        '400':
+          description: Solicitud malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+# Códigos de referencia del manual
+x-reference-codes:
+  channels:
+    "02": "ATM"
+    "04": "BOX - Electronic Cash Register"
+    "07": "IVR - Interactive Voice Response"
+    "14": "POS"
+    "15": "WEB"
+    "18": "Terminal Administrativo"
+    "51": "Banca Móvil"
+    "52": "NET"
+    "54": "Kiosco"
+    "56": "Entidad Financiera"
+    "90": "Ventanilla"
+    "91": "Banca Móvil"
+    "99": "Masivo"
+  
+  currencies:
+    "604": "Soles (PEN)"
+    "840": "Dólares (USD)"
+  
+  document_types:
+    "1": "LE"
+    "2": "DNI"
+    "3": "LM"
+    "4": "Pasaporte"
+    "5": "Carnet de Extranjería"
+    "6": "RUC"
+  
+  person_types:
+    "N": "Natural"
+    "J": "Jurídico"
+  
+  qr_types:
+    "11": "QR ESTÁTICO"
+    "12": "QR DINÁMICO"
