@@ -530,14 +530,37 @@ class LigoQRController extends Controller
             }
 
             // 4. Preparar respuesta con los datos del QR
-            $qrHash = $qrDetails->data->hash ?? null;
+            log_message('info', 'Respuesta completa de getCreateQRByID: ' . json_encode($qrDetails));
             
-            // Si no hay hash pero la respuesta es exitosa (status=1), generar un hash temporal
+            // Intentar extraer el hash de diferentes ubicaciones en la respuesta
+            $qrHash = null;
+            
+            // Verificar primero en data.hash
+            if (isset($qrDetails->data->hash)) {
+                $qrHash = $qrDetails->data->hash;
+                log_message('info', 'Hash encontrado en data.hash: ' . $qrHash);
+            }
+            // Verificar en data.qr o data.qrString
+            else if (isset($qrDetails->data->qr)) {
+                $qrHash = $qrDetails->data->qr;
+                log_message('info', 'Hash encontrado en data.qr: ' . $qrHash);
+            }
+            else if (isset($qrDetails->data->qrString)) {
+                $qrHash = $qrDetails->data->qrString;
+                log_message('info', 'Hash encontrado en data.qrString: ' . $qrHash);
+            }
+            // Verificar directamente en el nivel superior
+            else if (isset($qrDetails->hash)) {
+                $qrHash = $qrDetails->hash;
+                log_message('info', 'Hash encontrado en hash: ' . $qrHash);
+            }
+            
+            // Si no hay hash pero la respuesta es exitosa (status=1), usar el ID como hash temporal
             if (!$qrHash && isset($qrDetails->status) && $qrDetails->status == 1) {
-                log_message('info', 'No se recibió hash de QR pero la respuesta es exitosa. Generando hash temporal.');
-                $qrHash = 'LIGO-' . $qrId . '-' . time();
+                log_message('warning', 'No se recibió hash de QR pero la respuesta es exitosa. Usando ID como hash temporal.');
+                $qrHash = $qrId;
             } else if (!$qrHash) {
-                log_message('error', 'No se recibió hash de QR en la respuesta de Ligo');
+                log_message('error', 'No se recibió hash de QR en la respuesta de Ligo. Estructura completa: ' . json_encode($qrDetails));
                 return (object)['error' => 'No QR hash in response'];
             }
 

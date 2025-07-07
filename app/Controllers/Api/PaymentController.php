@@ -230,25 +230,53 @@ class PaymentController extends ResourceController
             log_message('error', 'Invalid response from Ligo API: ' . $response);
             return $this->fail('Invalid response from Ligo API', 400);
         }
+        // Obtener el hash real usando getCreateQRByID
+        $qrId = $decoded->data->id;
+        $qrDetails = $this->getQRDetailsById($qrId, $authToken['token'], $organization);
+        
+        if (isset($qrDetails['error'])) {
+            log_message('error', 'Error al obtener detalles del QR para instalment en PaymentController: ' . $qrDetails['error']);
+            return $this->fail('Error obtaining QR details: ' . $qrDetails['error'], 400);
+        }
+        
+        // Extraer el hash real de la respuesta
+        $qrHash = null;
+        if (isset($qrDetails['data']['hash'])) {
+            $qrHash = $qrDetails['data']['hash'];
+        } else if (isset($qrDetails['data']['qr'])) {
+            $qrHash = $qrDetails['data']['qr'];
+        } else if (isset($qrDetails['data']['qrString'])) {
+            $qrHash = $qrDetails['data']['qrString'];
+        } else {
+            // Usar el ID como fallback
+            $qrHash = $qrId;
+            log_message('warning', 'No se encontró hash en getCreateQRByID para instalment en PaymentController, usando ID como fallback');
+        }
+        
         $qrDataArr = [
-            'id' => $decoded->data->id,
+            'id' => $qrId,
             'amount' => $orderData['amount'],
             'currency' => $orderData['currency'],
             'description' => $orderData['description'],
             'merchant' => $organization['name'],
             'timestamp' => time(),
-            'hash' => 'LIGO-' . $decoded->data->id,
+            'hash' => $qrHash,
             'instalment_id' => $instalment['id'],
             'invoice_id' => $invoice['id']
         ];
         $qrDataJson = json_encode($qrDataArr);
         $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($qrDataJson);
-        // Guardar hash en la base de datos
+        // Guardar hash en la base de datos con las nuevas columnas
         log_message('debug', '[LIGO] Respuesta de createLigoOrder: ' . json_encode($qrDataArr));
         if (isset($qrDataArr['hash'])) {
             $hashModel = new \App\Models\LigoQRHashModel();
+            
+            // Determinar si es el hash real de LIGO o un hash temporal
+            $isRealHash = !str_starts_with($qrDataArr['hash'], 'LIGO-');
+            
             $dataInsert = [
-                'hash' => $qrDataArr['hash'],
+                'hash' => $qrDataArr['hash'], // Mantener por compatibilidad
+                'real_hash' => $isRealHash ? $qrDataArr['hash'] : null,
                 'order_id' => $qrDataArr['id'],
                 'invoice_id' => $invoice['id'],
                 'instalment_id' => $instalment['id'],
@@ -256,6 +284,7 @@ class PaymentController extends ResourceController
                 'currency' => $qrDataArr['currency'],
                 'description' => $qrDataArr['description']
             ];
+            
             $insertResult = $hashModel->insert($dataInsert);
             log_message('info', '[LIGO] Hash insertado en ligo_qr_hashes: ' . json_encode($dataInsert) . ' | Resultado: ' . json_encode($insertResult));
         } else {
@@ -898,5 +927,76 @@ class PaymentController extends ResourceController
         log_message('debug', 'Portfolio UUIDs: ' . json_encode($portfolioUuids));
         
         return $clientInPortfolio > 0;
+    }
+    
+    /**
+     * Get QR details by ID from Ligo API
+     *
+     * @param string $qrId QR ID
+     * @param string $token Authentication token
+     * @param array $organization Organization data
+     * @return array Response from Ligo API
+     */
+    private function getQRDetailsById($qrId, $token, $organization)
+    {
+        log_message('debug', 'PaymentController - Obteniendo detalles de QR con ID: ' . $qrId);
+
+        try {
+            $curl = curl_init();
+            
+            // URL para obtener detalles del QR según Postman
+            $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
+            $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
+            
+            log_message('debug', 'PaymentController - URL para obtener detalles del QR: ' . $url);
+            
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Accept: application/json',
+                    'Authorization: Bearer ' . $token
+                ],
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => false
+            ]);
+            
+            $response = curl_exec($curl);
+            $info = curl_getinfo($curl);
+            $err = curl_error($curl);
+            
+            curl_close($curl);
+            
+            if ($err) {
+                log_message('error', 'PaymentController - Error de cURL al obtener detalles del QR: ' . $err);
+                return ['error' => 'cURL Error: ' . $err];
+            }
+            
+            log_message('info', 'PaymentController - Respuesta de getCreateQRByID: ' . $response);
+            
+            $decoded = json_decode($response, true);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                log_message('error', 'PaymentController - Error decodificando respuesta de detalles de QR: ' . json_last_error_msg());
+                return ['error' => 'Invalid JSON in QR details response: ' . json_last_error_msg()];
+            }
+            
+            // Verificar si hay errores en la respuesta
+            if (!isset($decoded['data'])) {
+                log_message('error', 'PaymentController - Error en la respuesta de detalles de QR: ' . json_encode($decoded));
+                return ['error' => 'Error in QR details response: ' . json_encode($decoded)];
+            }
+            
+            return $decoded;
+        } catch (\Exception $e) {
+            log_message('error', 'PaymentController - Error al obtener detalles del QR: ' . $e->getMessage());
+            return ['error' => 'QR details error: ' . $e->getMessage()];
+        }
     }
 }

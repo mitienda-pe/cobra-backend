@@ -8,7 +8,7 @@ class LigoQRHashModel extends Model
     protected $table = 'ligo_qr_hashes';
     protected $primaryKey = 'id';
     protected $allowedFields = [
-        'hash', 'order_id', 'invoice_id', 'instalment_id', 'amount', 'currency', 'description', 'created_at', 'updated_at'
+        'hash', 'real_hash', 'hash_error', 'order_id', 'invoice_id', 'instalment_id', 'amount', 'currency', 'description', 'created_at', 'updated_at'
     ];
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';

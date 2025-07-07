@@ -48,8 +48,10 @@ $routes->get('debug/ligo-uuid/update-auth-token', 'LigoDebugController::updateAu
 
 // API Routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
-    // Ligo QR Hashes API
+    // Ligo QR Hashes API (Public)
     $routes->get('ligo/hashes', 'LigoQRHashController::index');
+    $routes->get('ligo-hashes/details/(:num)', 'LigoQRHashController::details/$1');
+    $routes->post('ligo-hashes/request-real-hash/(:num)', 'LigoQRHashController::requestRealHash/$1');
     // Auth Public Routes
     $routes->post('auth/request-otp', 'AuthController::requestOtp');
     $routes->post('auth/verify-otp', 'AuthController::verifyOtp');
