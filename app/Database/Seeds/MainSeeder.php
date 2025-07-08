@@ -28,8 +28,6 @@ class MainSeeder extends Seeder
         $this->call('InvoiceSeeder');
         $this->call('InstalmentSeeder');
         
-        // Seeder específico para Carlos con datos realistas
-        $this->call('CarlosSeeder');
         
         // Seeders adicionales (solo los que no duplican datos)
         $this->call('InitialSetupSeeder');
