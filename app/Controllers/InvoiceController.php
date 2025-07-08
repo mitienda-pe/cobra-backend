@@ -761,7 +761,9 @@ class InvoiceController extends Controller
                                     'status' => 'pending'
                                 ];
                                 
-                                $instalmentModel->insert($instalmentData);
+                                if (!$instalmentModel->insert($instalmentData)) {
+                                    log_message('error', 'No se pudo crear la cuota: ' . json_encode($instalmentData) . ' - Errores: ' . json_encode($instalmentModel->errors()));
+                                }
                             }
                             
                             $importedCount++;
