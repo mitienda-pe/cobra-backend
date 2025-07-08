@@ -89,14 +89,10 @@ class InvoiceSeeder extends Seeder
                 $invoice = [
                     'organization_id' => $organization->id,
                     'client_id'      => $client->id,
-                    'client_uuid'    => $client_uuid,
-                    'uuid'           => generate_uuid(),
                     'external_id'    => 'EXT-' . strtoupper(bin2hex(random_bytes(4))),
-                    'number'         => 'F001-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT),
+                    'invoice_number' => $invoiceNumber,
                     'concept'        => $concept,
-                    'total_amount'   => $amount,
-                    'currency'       => 'PEN',
-                    'issue_date'     => $issueDate->format('Y-m-d'),
+                    'amount'         => $amount,
                     'due_date'       => $dueDate->format('Y-m-d'),
                     'status'         => $status,
                     'notes'          => 'Factura de prueba generada por seeder',
@@ -107,7 +103,7 @@ class InvoiceSeeder extends Seeder
                 try {
                     $this->db->table('invoices')->insert($invoice);
                     $invoicesCreated++;
-                    echo "Created invoice {$invoice['number']} for client {$client->id}\n";
+                    echo "Created invoice {$invoice['invoice_number']} for client {$client->id}\n";
                 } catch (\Exception $e) {
                     echo "Error creating invoice for client {$client->id}: " . $e->getMessage() . "\n";
                 }
