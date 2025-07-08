@@ -29,9 +29,6 @@ class MainSeeder extends Seeder
         $this->call('InstalmentSeeder');
         
         // Seeders adicionales (solo los que no duplican datos)
-        $this->call('InitialSeeder');
-        $this->call('SafeInitialSeeder');
-        $this->call('SimpleSeeder');
         $this->call('InitialSetupSeeder');
     }
 }
