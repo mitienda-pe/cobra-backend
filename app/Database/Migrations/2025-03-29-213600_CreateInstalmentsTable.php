@@ -44,8 +44,8 @@ class CreateInstalmentsTable extends Migration
                 'comment' => 'Fecha de vencimiento',
             ],
             'status' => [
-                'type'       => 'ENUM',
-                'constraint' => ['pending', 'paid', 'cancelled'],
+                'type'       => 'VARCHAR',
+                'constraint' => 20,
                 'default'    => 'pending',
                 'null'       => false,
             ],
