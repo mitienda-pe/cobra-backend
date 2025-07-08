@@ -249,6 +249,10 @@ class PaymentController extends ResourceController
         $qrId = $decoded->data->id;
         log_message('error', 'CHECKPOINT 1: Extracted QR ID: ' . $qrId);
         log_message('error', 'CHECKPOINT 2: About to call getQRDetailsById');
+        
+        // Agregar un pequeño delay para que LIGO procese el QR
+        sleep(2);
+        
         $qrDetails = $this->getQRDetailsById($qrId, $authToken['token'], $organization);
         log_message('error', 'CHECKPOINT 3: getQRDetailsById returned: ' . json_encode($qrDetails));
         
@@ -257,22 +261,31 @@ class PaymentController extends ResourceController
             return $this->fail('Error obtaining QR details: ' . $qrDetails->error, 400);
         }
         
-        // Extraer el hash real de la respuesta
-        $qrHash = null;
-        if (isset($qrDetails->data->hash)) {
-            $qrHash = $qrDetails->data->hash;
-        } else if (isset($qrDetails->data->qr)) {
-            $qrHash = $qrDetails->data->qr;
-        } else if (isset($qrDetails->data->qrString)) {
-            $qrHash = $qrDetails->data->qrString;
+        // Verificar si data está vacío
+        if (empty($qrDetails->data) || !is_object($qrDetails->data)) {
+            log_message('warning', 'getCreateQRByID returned empty data. QR may not be ready yet. Using ID as fallback.');
+            $qrHash = $qrId; // Usar el ID como fallback temporal
         } else {
-            // Usar el ID como fallback
-            $qrHash = $qrId;
-            log_message('warning', 'No se encontró hash en getCreateQRByID para instalment en PaymentController, usando ID como fallback. Response: ' . json_encode($qrDetails));
+            // Extraer el hash real de la respuesta
+            $qrHash = null;
+            if (isset($qrDetails->data->hash)) {
+                $qrHash = $qrDetails->data->hash;
+                log_message('info', 'Found hash in data.hash: ' . substr($qrHash, 0, 50) . '...');
+            } else if (isset($qrDetails->data->qr)) {
+                $qrHash = $qrDetails->data->qr;
+                log_message('info', 'Found hash in data.qr: ' . substr($qrHash, 0, 50) . '...');
+            } else if (isset($qrDetails->data->qrString)) {
+                $qrHash = $qrDetails->data->qrString;
+                log_message('info', 'Found hash in data.qrString: ' . substr($qrHash, 0, 50) . '...');
+            } else {
+                // Usar el ID como fallback
+                $qrHash = $qrId;
+                log_message('warning', 'No hash found in getCreateQRByID response data. Available fields: ' . json_encode(array_keys((array)$qrDetails->data)));
+            }
         }
         
         // Determinar si es hash real de LIGO o temporal
-        $isRealHash = strpos($qrHash, 'LIGO-') !== 0;
+        $isRealHash = ($qrHash !== $qrId) && (strpos($qrHash, 'LIGO-') !== 0) && (strlen($qrHash) > 50);
         
         $qrDataArr = [
             'id' => $qrId,
@@ -289,16 +302,25 @@ class PaymentController extends ResourceController
         $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($qrDataJson);
         
         // Guardar hash en la base de datos con las nuevas columnas
-        log_message('debug', '[LIGO] QR ID obtenido: ' . $qrId);
-        log_message('debug', '[LIGO] Hash obtenido de getCreateQRByID: ' . $qrHash);
-        log_message('debug', '[LIGO] Es hash real (no temporal): ' . ($isRealHash ? 'Sí' : 'No'));
+        log_message('error', '[LIGO] QR ID obtenido: ' . $qrId);
+        log_message('error', '[LIGO] Hash obtenido de getCreateQRByID: ' . $qrHash);
+        log_message('error', '[LIGO] Es hash real (no temporal): ' . ($isRealHash ? 'Sí' : 'No'));
         
         $hashModel = new \App\Models\LigoQRHashModel();
         
+        $errorMessage = null;
+        if (!$isRealHash) {
+            if ($qrHash === $qrId) {
+                $errorMessage = 'getCreateQRByID returned empty data - QR may not be ready yet';
+            } else {
+                $errorMessage = 'Hash temporal generado, necesita solicitar hash real';
+            }
+        }
+        
         $dataInsert = [
-            'hash' => $qrId, // Hash ID (order_id) para compatibilidad
+            'hash' => $qrId, // Hash ID (order_id) para la columna "Hash ID (Order)"
             'real_hash' => $isRealHash ? $qrHash : null, // Hash real solo si no es temporal
-            'hash_error' => !$isRealHash ? 'Hash temporal generado, necesita solicitar hash real' : null,
+            'hash_error' => $errorMessage,
             'order_id' => $qrId,
             'invoice_id' => $invoice['id'],
             'instalment_id' => $instalment['id'],
