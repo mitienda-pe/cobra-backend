@@ -308,6 +308,9 @@ class InvoiceController extends Controller
         // Categorizar las cuotas para mostrar información adicional en la vista
         $today = date('Y-m-d');
         foreach ($instalments as &$instalment) {
+            if (!is_array($instalment) || !isset($instalment['status']) || !isset($instalment['due_date'])) {
+                continue;
+            }
             // Determinar si es una cuota vencida
             $instalment['is_overdue'] = ($instalment['status'] !== 'paid' && $instalment['due_date'] < $today);
             
