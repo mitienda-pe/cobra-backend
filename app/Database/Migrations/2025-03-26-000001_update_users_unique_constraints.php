@@ -16,7 +16,13 @@ class UpdateUsersUniqueConstraints extends Migration
         if ($this->db->DBDriver == 'SQLite3') {
             // En SQLite, necesitamos recrear la tabla para agregar una restricción única compuesta
             $this->db->query('CREATE UNIQUE INDEX users_email_deleted_at_unique ON users(email) WHERE deleted_at IS NULL');
-            $this->db->query('CREATE UNIQUE INDEX users_phone_deleted_at_unique ON users(phone) WHERE deleted_at IS NULL');
+            
+            // Solo crear índice de phone si la columna existe
+            try {
+                $this->db->query('CREATE UNIQUE INDEX users_phone_deleted_at_unique ON users(phone) WHERE deleted_at IS NULL');
+            } catch (\Exception $e) {
+                // Si la columna phone no existe aún, continuar sin crear el índice
+            }
         } else {
             // Para otros motores de base de datos como MySQL
             $this->forge->addKey(['email', 'deleted_at'], true);
