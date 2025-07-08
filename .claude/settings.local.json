@@ -22,7 +22,8 @@
       "Bash(ssh:*)",
       "Bash(sudo tail:*)",
       "Bash(tail -50 writable/logs/log-*.php)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }
