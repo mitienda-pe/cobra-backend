@@ -225,20 +225,32 @@ class PaymentController extends ResourceController
             log_message('error', 'Ligo API Error: ' . $err);
             return $this->fail('Failed to connect to Ligo API: ' . $err, 400);
         }
+        
+        log_message('debug', 'PaymentController - Raw response from createQr: ' . $response);
         $decoded = json_decode($response);
         log_message('debug', 'PaymentController - Decoded response: ' . json_encode($decoded));
         
-        if (!$decoded || !isset($decoded->data) || !isset($decoded->data->id)) {
-            log_message('error', 'Invalid response from Ligo API: ' . $response);
-            return $this->fail('Invalid response from Ligo API', 400);
+        if (!$decoded) {
+            log_message('error', 'Failed to decode JSON response: ' . json_last_error_msg());
+            return $this->fail('Failed to decode JSON response', 400);
+        }
+        
+        if (!isset($decoded->data)) {
+            log_message('error', 'No data field in response: ' . json_encode($decoded));
+            return $this->fail('No data field in response', 400);
+        }
+        
+        if (!isset($decoded->data->id)) {
+            log_message('error', 'No ID field in data: ' . json_encode($decoded->data));
+            return $this->fail('No ID field in response data', 400);
         }
         
         // Obtener el hash real usando getCreateQRByID
         $qrId = $decoded->data->id;
-        log_message('debug', 'PaymentController - Extracted QR ID: ' . $qrId);
-        log_message('debug', 'PaymentController - Llamando getQRDetailsById con ID: ' . $qrId);
+        log_message('error', 'CHECKPOINT 1: Extracted QR ID: ' . $qrId);
+        log_message('error', 'CHECKPOINT 2: About to call getQRDetailsById');
         $qrDetails = $this->getQRDetailsById($qrId, $authToken['token'], $organization);
-        log_message('debug', 'PaymentController - Respuesta de getQRDetailsById: ' . json_encode($qrDetails));
+        log_message('error', 'CHECKPOINT 3: getQRDetailsById returned: ' . json_encode($qrDetails));
         
         if (isset($qrDetails->error)) {
             log_message('error', 'Error al obtener detalles del QR para instalment en PaymentController: ' . $qrDetails->error);
