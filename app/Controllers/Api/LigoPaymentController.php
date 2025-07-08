@@ -83,16 +83,20 @@ class LigoPaymentController extends ResourceController
         if (isset($response->qr_data)) {
             $qrDecoded = json_decode($response->qr_data, true);
             log_message('debug', '[LIGO] qrDecoded: ' . json_encode($qrDecoded));
-            if (isset($qrDecoded['hash'])) {
+            if (isset($qrDecoded['hash']) && isset($qrDecoded['id'])) {
                 $hashModel = new \App\Models\LigoQRHashModel();
                 
                 // Determinar si es el hash real de LIGO o un hash temporal
                 $isRealHash = strpos($qrDecoded['hash'], 'LIGO-') !== 0;
                 
+                log_message('debug', '[LIGO] Hash obtenido: ' . $qrDecoded['hash']);
+                log_message('debug', '[LIGO] Es hash real: ' . ($isRealHash ? 'Sí' : 'No'));
+                
                 $dataInsert = [
-                    'hash' => $qrDecoded['hash'], // Mantener por compatibilidad
+                    'hash' => $qrDecoded['id'], // Hash ID (order_id) para compatibilidad
                     'real_hash' => $isRealHash ? $qrDecoded['hash'] : null,
-                    'order_id' => $qrDecoded['id'] ?? null,
+                    'hash_error' => !$isRealHash ? 'Hash temporal generado, necesita solicitar hash real' : null,
+                    'order_id' => $qrDecoded['id'],
                     'invoice_id' => $invoice['id'],
                     'amount' => $qrDecoded['amount'] ?? 0,
                     'currency' => $qrDecoded['currency'] ?? 'PEN',
@@ -102,7 +106,7 @@ class LigoPaymentController extends ResourceController
                 $insertResult = $hashModel->insert($dataInsert);
                 log_message('info', '[LIGO] Hash insertado en ligo_qr_hashes: ' . json_encode($dataInsert) . ' | Resultado: ' . json_encode($insertResult));
             } else {
-                log_message('warning', '[LIGO] No se encontró el campo hash en qrDecoded: ' . json_encode($qrDecoded));
+                log_message('warning', '[LIGO] No se encontraron los campos hash/id en qrDecoded: ' . json_encode($qrDecoded));
             }
         } else {
             log_message('warning', '[LIGO] No se encontró qr_data en la respuesta de createLigoOrder.');
