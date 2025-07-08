@@ -835,6 +835,7 @@ class LigoQRController extends Controller
             // Agregar campos adicionales para QR dinámico
             if ($qrTipo === '12') {
                 $qrData['data']['importe'] = (int)($data['amount'] * 100); // Convertir a centavos
+                $qrData['data']['cantidadPagos'] = 1; // Cantidad de pagos permitidos por QR
                 $qrData['data']['glosa'] = $data['description'];
                 $qrData['data']['info'] = [
                     [
@@ -853,6 +854,7 @@ class LigoQRController extends Controller
             } else {
                 // Para QR estático estos campos son null
                 $qrData['data']['importe'] = null;
+                $qrData['data']['cantidadPagos'] = 1; // Cantidad de pagos permitidos por QR (siempre 1)
                 $qrData['data']['glosa'] = null;
                 $qrData['data']['info'] = null;
             }

@@ -178,6 +178,7 @@ class PaymentController extends ResourceController
                 'moneda' => $orderData['currency'] == 'PEN' ? '604' : '840',
                 'importe' => (int)($orderData['amount'] * 100),
                 'fechaVencimiento' => $fechaVencimiento,
+                'cantidadPagos' => 1, // Cantidad de pagos permitidos por QR
                 'codigoComerciante' => $codigoComerciante,
                 'nombreComerciante' => $organization['name'],
                 'ciudadComerciante' => $organization['city'] ?? 'Lima',

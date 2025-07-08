@@ -508,6 +508,7 @@ class LigoPaymentController extends ResourceController
         if ($qrTipo === '12') {
             $qrData['data']['importe'] = (int)($data['amount'] * 100); // Convertir a centavos
             $qrData['data']['fechaVencimiento'] = $fechaVencimiento;
+            $qrData['data']['cantidadPagos'] = 1; // Cantidad de pagos permitidos por QR
             $qrData['data']['glosa'] = $data['description'];
             $qrData['data']['info'] = [
                 [
@@ -527,6 +528,7 @@ class LigoPaymentController extends ResourceController
             // Para QR estático estos campos son null
             $qrData['data']['importe'] = null;
             $qrData['data']['fechaVencimiento'] = null;
+            $qrData['data']['cantidadPagos'] = 1; // Cantidad de pagos permitidos por QR (siempre 1)
             $qrData['data']['glosa'] = null;
             $qrData['data']['info'] = null;
         }
