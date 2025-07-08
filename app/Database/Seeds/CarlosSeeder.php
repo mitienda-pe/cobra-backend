@@ -202,6 +202,7 @@ class CarlosSeeder extends Seeder
                     }
                     
                     $instalmentData = [
+                        'uuid' => generate_uuid(),
                         'invoice_id' => $invoiceId,
                         'number' => $j + 1,
                         'amount' => $instalmentAmount,

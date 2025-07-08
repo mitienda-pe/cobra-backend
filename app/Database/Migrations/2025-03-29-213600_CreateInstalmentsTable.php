@@ -68,24 +68,15 @@ class CreateInstalmentsTable extends Migration
         ]);
 
         $this->forge->addKey('id', true);
-        $this->forge->addKey('invoice_id', false, false, 'idx_invoice_id');
+        $this->forge->addKey('invoice_id');
         
-        // SQLite no soporta nombres de claves foráneas, así que las omitimos
-        if ($this->db->DBDriver != 'SQLite3') {
-            $this->forge->addForeignKey('invoice_id', 'invoices', 'id', 'CASCADE', 'CASCADE', 'fk_instalments_invoice');
-        }
-        
-        $this->forge->createTable('instalments');
-        
-        // Para SQLite, agregamos la clave foránea sin nombre específico
+        // Enable foreign key constraints for SQLite
         if ($this->db->DBDriver == 'SQLite3') {
             $this->db->query('PRAGMA foreign_keys = ON');
-            $this->db->query('CREATE TRIGGER fk_instalments_invoice
-                BEFORE DELETE ON invoices
-                FOR EACH ROW BEGIN
-                    DELETE FROM instalments WHERE invoice_id = OLD.id;
-                END');
         }
+        
+        $this->forge->addForeignKey('invoice_id', 'invoices', 'id', 'CASCADE', 'CASCADE');
+        $this->forge->createTable('instalments');
     }
 
     public function down()
