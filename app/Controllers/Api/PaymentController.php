@@ -167,6 +167,9 @@ class PaymentController extends ResourceController
         $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
         $idCuenta = !empty($organization['ligo_account_id']) ? $organization['ligo_account_id'] : '92100178794744781044';
         $codigoComerciante = !empty($organization['ligo_merchant_code']) ? $organization['ligo_merchant_code'] : '4829';
+        // Calcular fecha de vencimiento: 2 días posteriores a hoy
+        $fechaVencimiento = date('Ymd', strtotime('+2 days'));
+        
         $qrData = [
             'header' => [ 'sisOrigen' => '0921' ],
             'data' => [
@@ -174,6 +177,7 @@ class PaymentController extends ResourceController
                 'idCuenta' => $idCuenta,
                 'moneda' => $orderData['currency'] == 'PEN' ? '604' : '840',
                 'importe' => (int)($orderData['amount'] * 100),
+                'fechaVencimiento' => $fechaVencimiento,
                 'codigoComerciante' => $codigoComerciante,
                 'nombreComerciante' => $organization['name'],
                 'ciudadComerciante' => $organization['city'] ?? 'Lima',

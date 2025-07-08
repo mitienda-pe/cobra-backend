@@ -232,6 +232,9 @@ class LigoPaymentController extends ResourceController
         $idCuenta = !empty($organization['ligo_account_id']) ? $organization['ligo_account_id'] : '92100178794744781044';
         $codigoComerciante = !empty($organization['ligo_merchant_code']) ? $organization['ligo_merchant_code'] : '4829';
         
+        // Calcular fecha de vencimiento: 2 días posteriores a hoy
+        $fechaVencimiento = date('Ymd', strtotime('+2 days'));
+        
         // Preparar datos para la generación de QR según la documentación
         $qrData = [
             'header' => [
@@ -242,6 +245,7 @@ class LigoPaymentController extends ResourceController
                 'idCuenta' => $idCuenta,
                 'moneda' => $orderData['currency'] == 'PEN' ? '604' : '840', // 604 = Soles, 840 = Dólares
                 'importe' => (int)($orderData['amount'] * 100), // Convertir a centavos
+                'fechaVencimiento' => $fechaVencimiento,
                 'codigoComerciante' => $codigoComerciante,
                 'nombreComerciante' => $organization['name'],
                 'ciudadComerciante' => $organization['city'] ?? 'Lima',
@@ -497,9 +501,13 @@ class LigoPaymentController extends ResourceController
             'type' => 'TEXT'
         ];
         
+        // Calcular fecha de vencimiento: 2 días posteriores a hoy
+        $fechaVencimiento = date('Ymd', strtotime('+2 days'));
+        
         // Agregar campos adicionales para QR dinámico
         if ($qrTipo === '12') {
             $qrData['data']['importe'] = (int)($data['amount'] * 100); // Convertir a centavos
+            $qrData['data']['fechaVencimiento'] = $fechaVencimiento;
             $qrData['data']['glosa'] = $data['description'];
             $qrData['data']['info'] = [
                 [
@@ -518,6 +526,7 @@ class LigoPaymentController extends ResourceController
         } else {
             // Para QR estático estos campos son null
             $qrData['data']['importe'] = null;
+            $qrData['data']['fechaVencimiento'] = null;
             $qrData['data']['glosa'] = null;
             $qrData['data']['info'] = null;
         }
