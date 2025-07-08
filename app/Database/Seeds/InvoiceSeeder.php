@@ -56,8 +56,8 @@ class InvoiceSeeder extends Seeder
             $numInvoices = rand(1, 3);
 
             for ($i = 0; $i < $numInvoices; $i++) {
-                // Random amount between 1000 and 5000
-                $amount = rand(1000, 5000) + (rand(0, 99) / 100);
+                // Random amount between 15 and 45 soles
+                $amount = rand(15, 45) + (rand(0, 99) / 100);
 
                 // Random due date between -15 and 45 days from now
                 $daysToAdd = rand(-15, 45);
