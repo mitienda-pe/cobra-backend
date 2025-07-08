@@ -8,8 +8,13 @@ class FixUsersTable extends Migration
 {
     public function up()
     {
-        // Guardar los datos existentes
-        $users = $this->db->table('users')->get()->getResultArray();
+        // Guardar los datos existentes (solo si la tabla tiene datos)
+        $users = [];
+        try {
+            $users = $this->db->table('users')->get()->getResultArray();
+        } catch (\Exception $e) {
+            // Si hay error, continuar sin datos
+        }
         
         // Eliminar la tabla actual
         $this->forge->dropTable('users', true);
