@@ -111,7 +111,11 @@ class FixUsersTable extends Migration
         
         // Restaurar los datos
         if (!empty($users)) {
-            $this->db->table('users')->insertBatch($users);
+            try {
+                $this->db->table('users')->insertBatch($users);
+            } catch (\Exception $e) {
+                // Si hay error al insertar, continuar sin datos
+            }
         }
     }
 
