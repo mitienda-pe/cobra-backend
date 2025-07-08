@@ -24,7 +24,8 @@
       "Bash(tail -50 writable/logs/log-*.php)",
       "Bash(touch:*)",
       "Bash(rg:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }
