@@ -157,8 +157,8 @@
                                 <label for="amount" class="form-label">Importe Total *</label>
                                 <div class="input-group">
                                     <span class="input-group-text currency-symbol">S/</span>
-                                    <input type="number" class="form-control" id="amount" name="amount" 
-                                           value="<?= old('amount') ?>" required step="0.01" min="0">
+                                    <input type="number" class="form-control" id="amount" name="total_amount" 
+                                           value="<?= old('total_amount') ?>" required step="0.01" min="0">
                                 </div>
                             </div>
                         </div>
