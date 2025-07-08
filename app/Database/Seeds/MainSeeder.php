@@ -8,16 +8,16 @@ class MainSeeder extends Seeder
 {
     public function run()
     {
-        // Limpiar datos existentes para evitar duplicados
-        $this->db->table('payments')->truncate();
-        $this->db->table('instalments')->truncate();
-        $this->db->table('invoices')->truncate();
-        $this->db->table('portfolio_clients')->truncate();
-        $this->db->table('clients')->truncate();
-        $this->db->table('portfolios')->truncate();
-        $this->db->table('user_api_tokens')->truncate();
-        $this->db->table('users')->truncate();
-        $this->db->table('organizations')->truncate();
+        // Verificar si las tablas existen antes de limpiarlas
+        $tables = ['payments', 'instalments', 'invoices', 'portfolio_clients', 'clients', 'portfolios', 'user_api_tokens', 'users', 'organizations'];
+        
+        foreach ($tables as $table) {
+            try {
+                $this->db->table($table)->truncate();
+            } catch (\Exception $e) {
+                // Si la tabla no existe, continuar
+            }
+        }
         
         // Ejecutar seeders en el orden correcto
         $this->call('OrganizationSeeder');
@@ -27,9 +27,5 @@ class MainSeeder extends Seeder
         $this->call('PortfolioSeeder');
         $this->call('InvoiceSeeder');
         $this->call('InstalmentSeeder');
-        
-        
-        // Seeders adicionales (solo los que no duplican datos)
-        $this->call('InitialSetupSeeder');
     }
 }

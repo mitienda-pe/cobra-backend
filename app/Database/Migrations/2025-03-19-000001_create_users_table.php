@@ -4,17 +4,15 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class CleanUsersTable extends Migration
+class CreateUsersTable extends Migration
 {
     public function up()
     {
-        // Eliminar tabla users si existe
-        $this->forge->dropTable('users', true);
-        
-        // Crear tabla users limpia con todas las columnas necesarias
         $this->forge->addField([
             'id' => [
-                'type' => 'INTEGER',
+                'type' => 'INT',
+                'constraint' => 11,
+                'unsigned' => true,
                 'auto_increment' => true,
             ],
             'organization_id' => [
@@ -38,7 +36,7 @@ class CleanUsersTable extends Migration
             ],
             'phone' => [
                 'type' => 'VARCHAR',
-                'constraint' => 100,
+                'constraint' => 20,
                 'null' => true,
             ],
             'password' => [
@@ -85,21 +83,13 @@ class CleanUsersTable extends Migration
         
         $this->forge->addKey('id', true);
         
-        // Habilitar foreign keys para SQLite
+        // Enable foreign key constraints for SQLite
         if ($this->db->DBDriver == 'SQLite3') {
             $this->db->query('PRAGMA foreign_keys = ON');
         }
         
-        // Agregar foreign key
-        $this->forge->addForeignKey('organization_id', 'organizations', 'id', 'SET NULL', 'CASCADE');
-        
-        // Crear la tabla
+        $this->forge->addForeignKey('organization_id', 'organizations', 'id', 'CASCADE', 'SET NULL');
         $this->forge->createTable('users');
-        
-        // Crear índices
-        $this->db->query('CREATE INDEX idx_users_uuid ON users(uuid)');
-        $this->db->query('CREATE UNIQUE INDEX users_email_deleted_at_unique ON users(email) WHERE deleted_at IS NULL');
-        $this->db->query('CREATE UNIQUE INDEX users_phone_deleted_at_unique ON users(phone) WHERE deleted_at IS NULL');
     }
 
     public function down()
