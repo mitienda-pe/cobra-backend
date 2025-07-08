@@ -4,22 +4,14 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class FixUsersTable extends Migration
+class CleanUsersTable extends Migration
 {
     public function up()
     {
-        // Guardar los datos existentes (solo si la tabla tiene datos)
-        $users = [];
-        try {
-            $users = $this->db->table('users')->get()->getResultArray();
-        } catch (\Exception $e) {
-            // Si hay error, continuar sin datos
-        }
-        
-        // Eliminar la tabla actual
+        // Eliminar tabla users si existe
         $this->forge->dropTable('users', true);
         
-        // Recrear la tabla sin la restricción UNIQUE en email
+        // Crear tabla users limpia con todas las columnas necesarias
         $this->forge->addField([
             'id' => [
                 'type' => 'INTEGER',
@@ -104,23 +96,14 @@ class FixUsersTable extends Migration
         // Crear la tabla
         $this->forge->createTable('users');
         
-        // Crear índices parciales para email y phone
+        // Crear índices
         $this->db->query('CREATE INDEX idx_users_uuid ON users(uuid)');
         $this->db->query('CREATE UNIQUE INDEX users_email_deleted_at_unique ON users(email) WHERE deleted_at IS NULL');
         $this->db->query('CREATE UNIQUE INDEX users_phone_deleted_at_unique ON users(phone) WHERE deleted_at IS NULL');
-        
-        // Restaurar los datos
-        if (!empty($users)) {
-            try {
-                $this->db->table('users')->insertBatch($users);
-            } catch (\Exception $e) {
-                // Si hay error al insertar, continuar sin datos
-            }
-        }
     }
 
     public function down()
     {
-        // No necesitamos down() ya que esto es una corrección
+        $this->forge->dropTable('users');
     }
 }
