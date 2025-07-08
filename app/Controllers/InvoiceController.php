@@ -143,7 +143,7 @@ class InvoiceController extends Controller
                     'client_id'      => $this->request->getPost('client_id'),
                     'number' => $invoiceNumber,
                     'concept'        => $this->request->getPost('concept'),
-                    'total_amount'         => $this->request->getPost('total_amount'),
+                    'total_amount'         => floatval(str_replace(',', '.', $this->request->getPost('total_amount'))),
                     'issue_date'     => $this->request->getPost('issue_date'),
                     'due_date'       => $this->request->getPost('due_date'),
                     'external_id'    => $this->request->getPost('external_id') ?: null,
