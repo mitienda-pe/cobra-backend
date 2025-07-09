@@ -20,7 +20,7 @@ class AuthController extends ResourceController
     protected $twilioService;
     protected $developmentMode = false;
     protected $developmentOtp = '123456';
-    protected $developmentPhone = '+51999309748';
+    protected $developmentPhone = '+51 9993097498';
 
     public function __construct()
     {
@@ -133,10 +133,10 @@ class AuthController extends ResourceController
                 }
             }
 
-            // Generate OTP - Use hardcoded OTP in development mode for specific phone
-            if ($this->developmentMode && $phone === $this->developmentPhone) {
+            // Generate OTP - Use hardcoded OTP for specific test phone (works in any mode)
+            if ($phone === $this->developmentPhone) {
                 $otp = $this->developmentOtp;
-                log_message('info', "Development mode: Using hardcoded OTP {$otp} for phone {$phone}");
+                log_message('info', "Test mode: Using hardcoded OTP {$otp} for phone {$phone}");
             } else {
                 $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             }
@@ -154,8 +154,8 @@ class AuthController extends ResourceController
             
             $this->userOtpModel->insert($otpData);
             
-            // Send OTP via SMS if phone is provided
-            if (!empty($phone)) {
+            // Send OTP via SMS if phone is provided (skip for test phone)
+            if (!empty($phone) && $phone !== $this->developmentPhone) {
                 try {
                     $message = "Your verification code is: {$otp}. Valid for 5 minutes.";
                     $result = $this->twilioService->sendSms($phone, $message);
