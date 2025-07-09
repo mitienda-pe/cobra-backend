@@ -30,18 +30,15 @@ class CreateInstalmentsTable extends Migration
                 'type'       => 'INT',
                 'constraint' => 11,
                 'null'       => false,
-                'comment'    => 'Número de cuota (1, 2, 3...)',
             ],
             'amount' => [
                 'type'       => 'DECIMAL',
                 'constraint' => '10,2',
                 'null'       => false,
-                'comment'    => 'Monto de la cuota',
             ],
             'due_date' => [
                 'type'    => 'DATE',
                 'null'    => false,
-                'comment' => 'Fecha de vencimiento',
             ],
             'status' => [
                 'type'       => 'VARCHAR',
