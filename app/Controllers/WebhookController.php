@@ -282,53 +282,54 @@ class WebhookController extends BaseController
     
     public function test($id = null)
     {
-        log_message('info', '=== WEBHOOK TEST START ===');
-        log_message('info', "Testing webhook ID: {$id}");
-        log_message('info', "User organization ID: " . $this->auth->organizationId());
+        $webhookHash = substr(md5(uniqid()), 0, 8);
+        log_message('info', "[{$webhookHash}] === WEBHOOK TEST START ===");
+        log_message('info', "[{$webhookHash}] Testing webhook ID: {$id}");
+        log_message('info', "[{$webhookHash}] User organization ID: " . $this->auth->organizationId());
         
         // Only superadmins and admins can test webhooks
         if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
-            log_message('error', 'User does not have permission to test webhooks');
+            log_message('error', "[{$webhookHash}] User does not have permission to test webhooks");
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para probar webhooks.');
         }
         
         if (!$id) {
-            log_message('error', 'No webhook ID provided');
+            log_message('error', "[{$webhookHash}] No webhook ID provided");
             return redirect()->to('/webhooks')->with('error', 'ID de webhook no proporcionado.');
         }
         
         $webhookModel = new WebhookModel();
         $webhook = $webhookModel->find($id);
         
-        log_message('info', 'Webhook found: ' . json_encode($webhook));
+        log_message('info', "[{$webhookHash}] Webhook found: " . json_encode($webhook));
         
         if (!$webhook) {
-            log_message('error', "Webhook not found with ID: {$id}");
+            log_message('error', "[{$webhookHash}] Webhook not found with ID: {$id}");
             return redirect()->to('/webhooks')->with('error', 'Webhook no encontrado.');
         }
         
         // Check if webhook belongs to user's organization
         if ($webhook['organization_id'] != $this->auth->organizationId()) {
-            log_message('error', "Webhook organization ({$webhook['organization_id']}) does not match user organization ({$this->auth->organizationId()})");
+            log_message('error', "[{$webhookHash}] Webhook organization ({$webhook['organization_id']}) does not match user organization ({$this->auth->organizationId()})");
             return redirect()->to('/webhooks')->with('error', 'No tiene permisos para probar este webhook.');
         }
         
         // Send test event
         try {
-            log_message('info', 'Sending test event to webhook: ' . $webhook['url']);
-            $result = $webhookModel->testWebhook($id);
-            log_message('info', 'Test webhook result: ' . json_encode($result));
+            log_message('info', "[{$webhookHash}] Sending test event to webhook: " . $webhook['url']);
+            $result = $webhookModel->testWebhook($id, $webhookHash);
+            log_message('info', "[{$webhookHash}] Test webhook result: " . json_encode($result));
             
             if ($result['success']) {
-                log_message('info', 'Test event sent successfully');
+                log_message('info', "[{$webhookHash}] Test event sent successfully");
                 return redirect()->to('/webhooks/logs/' . $id)->with('message', 'Evento de prueba enviado exitosamente.');
             } else {
-                log_message('error', 'Test event failed: ' . $result['message']);
+                log_message('error', "[{$webhookHash}] Test event failed: " . $result['message']);
                 return redirect()->to('/webhooks/logs/' . $id)->with('error', 'Error al enviar evento de prueba: ' . $result['message']);
             }
         } catch (\Exception $e) {
-            log_message('error', 'Error sending test event: ' . $e->getMessage());
-            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            log_message('error', "[{$webhookHash}] Error sending test event: " . $e->getMessage());
+            log_message('error', "[{$webhookHash}] Stack trace: " . $e->getTraceAsString());
             return redirect()->to('/webhooks/logs/' . $id)->with('error', 'Error al enviar evento de prueba: ' . $e->getMessage());
         }
     }

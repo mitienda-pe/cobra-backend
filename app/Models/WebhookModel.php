@@ -67,32 +67,34 @@ class WebhookModel extends Model
     /**
      * Test webhook by sending a ping event
      */
-    public function testWebhook($webhookId)
+    public function testWebhook($webhookId, $webhookHash = null)
     {
-        log_message('info', '=== WEBHOOK MODEL TEST START ===');
-        log_message('info', "Testing webhook ID: {$webhookId}");
+        $webhookHash = $webhookHash ?: substr(md5(uniqid()), 0, 8);
+        log_message('info', "[{$webhookHash}] === WEBHOOK MODEL TEST START ===");
+        log_message('info', "[{$webhookHash}] Testing webhook ID: {$webhookId}");
         
         $webhook = $this->find($webhookId);
         
         if (!$webhook) {
-            log_message('error', "Webhook not found with ID: {$webhookId}");
+            log_message('error', "[{$webhookHash}] Webhook not found with ID: {$webhookId}");
             return [
                 'success' => false,
                 'message' => 'Webhook not found'
             ];
         }
         
-        log_message('info', "Webhook found: " . json_encode($webhook));
+        log_message('info', "[{$webhookHash}] Webhook found: " . json_encode($webhook));
         
         $payload = [
             'event'     => 'ping',
             'timestamp' => time(),
             'data'      => [
-                'message' => 'This is a test ping from the webhook system'
+                'message' => 'This is a test ping from the webhook system',
+                'test_hash' => $webhookHash
             ]
         ];
         
-        log_message('info', "Payload to send: " . json_encode($payload));
+        log_message('info', "[{$webhookHash}] Payload to send: " . json_encode($payload));
         
         // Use curl to send the notification
         $ch = curl_init($webhook['url']);
@@ -105,16 +107,16 @@ class WebhookModel extends Model
         ]);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         
-        log_message('info', "Sending POST request to: " . $webhook['url']);
+        log_message('info', "[{$webhookHash}] Sending POST request to: " . $webhook['url']);
         
         $response = curl_exec($ch);
         $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
         curl_close($ch);
         
-        log_message('info', "Response code: {$statusCode}");
-        log_message('info', "Response body: " . ($response ?: 'No response'));
-        log_message('info', "Curl error: " . ($error ?: 'No error'));
+        log_message('info', "[{$webhookHash}] Response code: {$statusCode}");
+        log_message('info', "[{$webhookHash}] Response body: " . ($response ?: 'No response'));
+        log_message('info', "[{$webhookHash}] Curl error: " . ($error ?: 'No error'));
         
         $success = ($statusCode >= 200 && $statusCode < 300);
         
@@ -130,7 +132,7 @@ class WebhookModel extends Model
             'attempts'      => 1
         ];
         
-        log_message('info', "Logging webhook test: " . json_encode($logData));
+        log_message('info', "[{$webhookHash}] Logging webhook test: " . json_encode($logData));
         $webhookLogModel->insert($logData);
         
         $result = [
@@ -138,10 +140,11 @@ class WebhookModel extends Model
             'status_code'  => $statusCode,
             'response'     => $response,
             'error'        => $error,
-            'message'      => $success ? 'Webhook test successful' : 'Webhook test failed'
+            'message'      => $success ? 'Webhook test successful' : 'Webhook test failed',
+            'test_hash'    => $webhookHash
         ];
         
-        log_message('info', "Webhook test result: " . json_encode($result));
+        log_message('info', "[{$webhookHash}] Webhook test result: " . json_encode($result));
         
         return $result;
     }

@@ -67,16 +67,17 @@ class AuthController extends ResourceController
      */
     public function requestOtp()
     {
-        log_message('info', '=== REQUEST OTP START ===');
+        $requestHash = substr(md5(uniqid()), 0, 8);
+        log_message('info', "[{$requestHash}] === REQUEST OTP START ===");
         
         try {
             // Get request data
             $rawBody = file_get_contents('php://input');
             $jsonData = json_decode($rawBody, true);
             
-            log_message('info', 'Raw request body: ' . $rawBody);
-            log_message('info', 'JSON data: ' . json_encode($jsonData));
-            log_message('info', 'POST data: ' . json_encode($_POST));
+            log_message('info', "[{$requestHash}] Raw request body: " . $rawBody);
+            log_message('info', "[{$requestHash}] JSON data: " . json_encode($jsonData));
+            log_message('info', "[{$requestHash}] POST data: " . json_encode($_POST));
             
             $email = $_POST['email'] ?? $jsonData['email'] ?? null;
             $phone = $_POST['phone'] ?? $jsonData['phone'] ?? null;
@@ -92,7 +93,7 @@ class AuthController extends ResourceController
                 }
             }
             
-            log_message('info', "Parsed - Phone: {$phone}, Email: {$email}, OrgCode: {$organizationCode}");
+            log_message('info', "[{$requestHash}] Parsed - Phone: {$phone}, Email: {$email}, OrgCode: {$organizationCode}");
             
             // Validate required fields
             if (empty($phone) && empty($email)) {
@@ -104,13 +105,13 @@ class AuthController extends ResourceController
 
             // If phone is provided, check if user exists and get organizations
             if (!empty($phone)) {
-                log_message('info', "Searching for user with phone: {$phone}");
+                log_message('info', "[{$requestHash}] Searching for user with phone: {$phone}");
                 $users = $this->userModel->getOrganizationsByPhone($phone);
                 
-                log_message('info', 'Found users: ' . json_encode($users));
+                log_message('info', "[{$requestHash}] Found users: " . json_encode($users));
                 
                 if (empty($users)) {
-                    log_message('error', "No user found with phone: {$phone}");
+                    log_message('error', "[{$requestHash}] No user found with phone: {$phone}");
                     return $this->response->setStatusCode(404)->setJSON([
                         'status' => 'error',
                         'message' => 'No user found with this phone number'
@@ -155,13 +156,13 @@ class AuthController extends ResourceController
             }
 
             // Generate OTP - Use hardcoded OTP for specific test phone (works in any mode)
-            log_message('info', "Comparing phone '{$phone}' with development phone '{$this->developmentPhone}'");
+            log_message('info', "[{$requestHash}] Comparing phone '{$phone}' with development phone '{$this->developmentPhone}'");
             if ($phone === $this->developmentPhone || $phone === str_replace(' ', '', $this->developmentPhone)) {
                 $otp = $this->developmentOtp;
-                log_message('info', "Test mode: Using hardcoded OTP {$otp} for phone {$phone}");
+                log_message('info', "[{$requestHash}] Test mode: Using hardcoded OTP {$otp} for phone {$phone}");
             } else {
                 $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-                log_message('info', "Generated random OTP: {$otp} for phone {$phone}");
+                log_message('info', "[{$requestHash}] Generated random OTP: {$otp} for phone {$phone}");
             }
             
             // Store OTP in database
@@ -175,12 +176,12 @@ class AuthController extends ResourceController
                 'created_at' => date('Y-m-d H:i:s')
             ];
             
-            log_message('info', 'Storing OTP data: ' . json_encode($otpData));
+            log_message('info', "[{$requestHash}] Storing OTP data: " . json_encode($otpData));
             $insertResult = $this->userOtpModel->insert($otpData);
-            log_message('info', 'OTP insert result: ' . ($insertResult ? 'SUCCESS' : 'FAILED'));
+            log_message('info', "[{$requestHash}] OTP insert result: " . ($insertResult ? 'SUCCESS' : 'FAILED'));
             
             if (!$insertResult) {
-                log_message('error', 'Failed to insert OTP data');
+                log_message('error', "[{$requestHash}] Failed to insert OTP data");
                 return $this->response->setStatusCode(500)->setJSON([
                     'status' => 'error',
                     'message' => 'Failed to store OTP'
@@ -210,15 +211,17 @@ class AuthController extends ResourceController
                         'Twilio SID: ' . ($result['sid'] ?? 'unknown')
                     );
                     
-                    log_message('info', "OTP sent successfully to {$phone}");
+                    log_message('info', "[{$requestHash}] OTP sent successfully to {$phone}");
                 } catch (\Exception $e) {
-                    log_message('error', 'Twilio error: ' . $e->getMessage());
+                    log_message('error', "[{$requestHash}] Twilio error: " . $e->getMessage());
                     return $this->response->setStatusCode(500)->setJSON([
                         'status' => 'error',
                         'message' => 'Failed to send OTP via SMS',
                         'details' => $e->getMessage()
                     ]);
                 }
+            } else {
+                log_message('info', "[{$requestHash}] Skipping SMS for test phone: {$phone}");
             }
             
             // Send OTP via email if email is provided
@@ -227,6 +230,7 @@ class AuthController extends ResourceController
                 log_message('info', "Email OTP functionality not implemented yet");
             }
             
+            log_message('info', "[{$requestHash}] === REQUEST OTP SUCCESS ===");
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => 'OTP sent successfully',
@@ -235,13 +239,14 @@ class AuthController extends ResourceController
                     'phone' => $phone,
                     'organization_code' => $organizationCode,
                     'device_info' => $deviceInfo,
-                    'expires_in' => '5 minutes'
+                    'expires_in' => '5 minutes',
+                    'request_hash' => $requestHash
                 ]
             ]);
             
         } catch (\Exception $e) {
-            log_message('error', 'Error in requestOtp: ' . $e->getMessage());
-            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            log_message('error', "[{$requestHash}] Error in requestOtp: " . $e->getMessage());
+            log_message('error', "[{$requestHash}] Stack trace: " . $e->getTraceAsString());
             
             return $this->response->setStatusCode(500)->setJSON([
                 'status' => 'error',
@@ -256,15 +261,16 @@ class AuthController extends ResourceController
      */
     public function verifyOtp()
     {
-        log_message('info', '=== VERIFY OTP START ===');
+        $verifyHash = substr(md5(uniqid()), 0, 8);
+        log_message('info', "[{$verifyHash}] === VERIFY OTP START ===");
         
         try {
             // Get request data
             $rawBody = file_get_contents('php://input');
             $jsonData = json_decode($rawBody, true);
             
-            log_message('info', 'Verify OTP raw body: ' . $rawBody);
-            log_message('info', 'Verify OTP JSON data: ' . json_encode($jsonData));
+            log_message('info', "[{$verifyHash}] Verify OTP raw body: " . $rawBody);
+            log_message('info', "[{$verifyHash}] Verify OTP JSON data: " . json_encode($jsonData));
             
             $email = $_POST['email'] ?? $jsonData['email'] ?? null;
             $phone = $_POST['phone'] ?? $jsonData['phone'] ?? null;
@@ -281,7 +287,7 @@ class AuthController extends ResourceController
                 }
             }
             
-            log_message('info', "Verify OTP - Phone: {$phone}, Email: {$email}, Code: {$code}, OrgCode: {$organizationCode}");
+            log_message('info', "[{$verifyHash}] Verify OTP - Phone: {$phone}, Email: {$email}, Code: {$code}, OrgCode: {$organizationCode}");
             
             // Validate required fields
             if (empty($code)) {
@@ -339,18 +345,18 @@ class AuthController extends ResourceController
             }
 
             // Verify OTP
-            log_message('info', "Verifying OTP with params - Phone: {$phone}, Email: {$email}, Code: {$code}, OrgCode: {$organizationCode}");
+            log_message('info', "[{$verifyHash}] Verifying OTP with params - Phone: {$phone}, Email: {$email}, Code: {$code}, OrgCode: {$organizationCode}");
             $otpData = $this->userOtpModel->verifyOTP($phone, $email, $code, $organizationCode);
             
             if (!$otpData) {
-                log_message('error', 'OTP verification failed - Invalid or expired OTP code');
+                log_message('error', "[{$verifyHash}] OTP verification failed - Invalid or expired OTP code");
                 return $this->response->setStatusCode(400)->setJSON([
                     'status' => 'error',
                     'message' => 'Invalid or expired OTP code'
                 ]);
             }
             
-            log_message('info', 'OTP verification successful');
+            log_message('info', "[{$verifyHash}] OTP verification successful");
             
             // Generate API token
             $token = bin2hex(random_bytes(32)); // 64 caracteres hexadecimales
@@ -388,13 +394,13 @@ class AuthController extends ResourceController
                 ]
             ];
             
-            log_message('info', 'OTP verification successful, returning response: ' . json_encode($response));
+            log_message('info', "[{$verifyHash}] OTP verification successful, returning response: " . json_encode($response));
             
             return $this->response->setJSON($response);
             
         } catch (\Exception $e) {
-            log_message('error', 'Error in verifyOtp: ' . $e->getMessage());
-            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            log_message('error', "[{$verifyHash}] Error in verifyOtp: " . $e->getMessage());
+            log_message('error', "[{$verifyHash}] Stack trace: " . $e->getTraceAsString());
             
             return $this->response->setStatusCode(500)->setJSON([
                 'status' => 'error',
