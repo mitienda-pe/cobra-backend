@@ -101,7 +101,7 @@
                                 ?>
                                 <tr class="<?= $rowClass ?>">
                                     <td><?= $instalment['number'] ?></td>
-                                    <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($instalment['amount'], 2) ?></td>
+                                    <td>S/ <?= number_format($instalment['amount'], 2) ?></td>
                                     <td>
                                         <?= date('d/m/Y', strtotime($instalment['due_date'])) ?>
                                         <?php if ($instalment['is_overdue']): ?>
@@ -123,7 +123,7 @@
                                                     <li>
                                                         <small>
                                                             <?= date('d/m/Y', strtotime($payment['payment_date'])) ?> - 
-                                                            <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($payment['amount'], 2) ?>
+                                                            S/ <?= number_format($payment['amount'], 2) ?>
                                                         </small>
                                                     </li>
                                                 <?php endforeach; ?>

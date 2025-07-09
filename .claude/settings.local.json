@@ -25,7 +25,9 @@
       "Bash(touch:*)",
       "Bash(rg:*)",
       "Bash(rm:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

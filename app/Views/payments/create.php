@@ -41,15 +41,15 @@
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>Concepto:</strong> <?= esc($invoice['concept']) ?></p>
-                                    <p><strong>Monto Total:</strong> <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['amount'], 2) ?></p>
+                                    <p><strong>Monto Total:</strong> S/ <?= number_format($invoice['amount'], 2) ?></p>
                                     <p><strong>Vencimiento:</strong> <?= date('d/m/Y', strtotime($invoice['due_date'])) ?></p>
                                 </div>
                             </div>
                             <hr>
                             <div class="row">
                                 <div class="col-md-12">
-                                    <p><strong>Total Pagado:</strong> <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['total_paid'], 2) ?></p>
-                                    <p><strong>Saldo Pendiente:</strong> <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['remaining_amount'], 2) ?></p>
+                                    <p><strong>Total Pagado:</strong> S/ <?= number_format($invoice['total_paid'], 2) ?></p>
+                                    <p><strong>Saldo Pendiente:</strong> S/ <?= number_format($invoice['remaining_amount'], 2) ?></p>
                                     <?php if(isset($payment_info) && !empty($payment_info['payments'])): ?>
                                     <div class="mt-2">
                                         <strong>Pagos Anteriores:</strong>
@@ -57,7 +57,7 @@
                                         <?php foreach($payment_info['payments'] as $prev_payment): ?>
                                             <li>
                                                 <?= date('d/m/Y', strtotime($prev_payment['payment_date'])) ?> - 
-                                                <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($prev_payment['amount'], 2) ?> 
+                                                S/ <?= number_format($prev_payment['amount'], 2) ?> 
                                                 (<?= esc($prev_payment['payment_method']) ?>)
                                             </li>
                                         <?php endforeach; ?>
@@ -80,7 +80,7 @@
                                             <?= (isset($_GET['instalment_id']) && $_GET['instalment_id'] == $instalment['id']) ? 'selected' : '' ?>>
                                         Cuota <?= $instalment['number'] ?> - 
                                         Vence: <?= date('d/m/Y', strtotime($instalment['due_date'])) ?> - 
-                                        Pendiente: <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($instalment['remaining_amount'], 2) ?>
+                                        Pendiente: S/ <?= number_format($instalment['remaining_amount'], 2) ?>
                                     </option>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
@@ -393,8 +393,8 @@ $(document).ready(function() {
                         <p><strong>Cliente:</strong> ${data.client_name}</p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Monto Total:</strong> ${data.currency === 'PEN' ? 'S/ ' : '$ '}${data.amount}</p>
-                        <p><strong>Saldo Pendiente:</strong> ${data.currency === 'PEN' ? 'S/ ' : '$ '}${data.remaining}</p>
+                        <p><strong>Monto Total:</strong> S/ ${data.amount}</p>
+                        <p><strong>Saldo Pendiente:</strong> S/ ${data.remaining}</p>
                     </div>
                 </div>
             </div>
@@ -406,7 +406,7 @@ $(document).ready(function() {
         $('#amount').attr('max', data.remaining);
         
         // Actualizar el símbolo de la moneda
-        $('.input-group-text').text(data.currency === 'PEN' ? 'S/' : '$');
+        $('.input-group-text').text('S/');
     });
     
     // Manejar cambio de cuota seleccionada

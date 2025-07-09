@@ -83,7 +83,7 @@
                             <td><?= esc($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A') ?></td>
                             <td><?= esc($invoice['business_name'] ?? 'N/A') ?></td>
                             <td><?= esc($invoice['concept']) ?></td>
-                            <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['total_amount'] ?? $invoice['amount'] ?? 0, 2) ?></td>
+                            <td>S/ <?= number_format($invoice['total_amount'] ?? $invoice['amount'] ?? 0, 2) ?></td>
                             <td><?= date('d/m/Y', strtotime($invoice['due_date'])) ?></td>
                             <td>
                                 <span class="badge bg-<?= $invoice['status'] === 'paid' ? 'success' : 

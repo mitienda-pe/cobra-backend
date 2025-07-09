@@ -86,7 +86,7 @@
                         <strong>Importe:</strong>
                     </div>
                     <div class="col-md-8">
-                        <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($invoice['total_amount'] ?? $invoice['amount'] ?? 0, 2) ?>
+                        S/ <?= number_format($invoice['total_amount'] ?? $invoice['amount'] ?? 0, 2) ?>
                     </div>
                 </div>
 
@@ -174,7 +174,7 @@
                             ?>
                                 <tr class="<?= $rowClass ?>">
                                     <td><?= $instalment['number'] ?></td>
-                                    <td><?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($instalment['amount'], 2) ?></td>
+                                    <td>S/ <?= number_format($instalment['amount'], 2) ?></td>
                                     <td><?= date('d/m/Y', strtotime($instalment['due_date'])) ?></td>
                                     <td>
                                         <span class="badge bg-<?= $isPaid ? 'success' : ($instalment['status'] === 'pending' ? 'warning' : ($instalment['status'] === 'cancelled' ? 'danger' : ($instalment['status'] === 'expired' ? 'secondary' : 'info'))) ?>">
@@ -184,14 +184,14 @@
                                     <td>
                                         <?php if (!empty($instalmentPayments)): ?>
                                             <span class="badge bg-success">
-                                                <?= $invoice['currency'] === 'PEN' ? 'S/ ' : '$ ' ?><?= number_format($instalmentPaidAmount, 2) ?>
+                                                S/ <?= number_format($instalmentPaidAmount, 2) ?>
                                             </span>
                                             <button type="button" class="btn btn-sm btn-link" data-bs-toggle="tooltip" data-bs-html="true" 
                                                 title="<?php 
                                                     $tooltipContent = '';
                                                     foreach ($instalmentPayments as $p) {
                                                         $tooltipContent .= date('d/m/Y', strtotime($p['payment_date'])) . ': ' . 
-                                                            ($invoice['currency'] === 'PEN' ? 'S/ ' : '$ ') . 
+                                                            'S/ ' . 
                                                             number_format($p['amount'], 2) . '<br>';
                                                     }
                                                     echo $tooltipContent;
