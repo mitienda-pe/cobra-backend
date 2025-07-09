@@ -69,7 +69,6 @@ class AuthController extends ResourceController
     {
         $requestHash = substr(md5(uniqid()), 0, 8);
         log_message('info', "[{$requestHash}] === REQUEST OTP START ===");
-        error_log("[{$requestHash}] DEBUG: Method requestOtp called at " . date('Y-m-d H:i:s'));
         
         try {
             // Get request data
@@ -176,39 +175,29 @@ class AuthController extends ResourceController
             
             // Get user ID for OTP storage
             $userId = null;
-            error_log("[{$requestHash}] DEBUG: About to search for user ID. Phone: {$phone}, Users count: " . count($users ?? []));
             if (!empty($phone) && !empty($users)) {
-                error_log("[{$requestHash}] DEBUG: Searching for user with organizationCode: {$organizationCode}");
                 // Find the user for the selected organization
                 foreach ($users as $user) {
-                    error_log("[{$requestHash}] DEBUG: Checking user: " . json_encode($user));
                     if (empty($organizationCode) || $user['org_code'] === $organizationCode) {
                         $userId = $user['id'];
-                        error_log("[{$requestHash}] DEBUG: Found user ID: {$userId} for user: {$user['name']}");
                         log_message('info', "[{$requestHash}] Using user ID: {$userId} for OTP storage (from user: {$user['name']})");
                         break;
                     }
                 }
                 
                 if (!$userId) {
-                    error_log("[{$requestHash}] DEBUG: Could not find user ID for organization: {$organizationCode}");
                     log_message('error', "[{$requestHash}] Could not find user ID for organization: {$organizationCode}");
                 }
-            } else {
-                error_log("[{$requestHash}] DEBUG: Phone empty or users empty. Phone: {$phone}, Users: " . json_encode($users));
             }
             
             // Validate user ID before storing OTP
-            error_log("[{$requestHash}] DEBUG: About to validate userId: " . ($userId ?? 'NULL'));
             if (!$userId) {
-                error_log("[{$requestHash}] DEBUG: User ID is null, returning error");
                 log_message('error', "[{$requestHash}] Cannot store OTP: user_id is null");
                 return $this->response->setStatusCode(500)->setJSON([
                     'status' => 'error',
                     'message' => 'Failed to identify user for OTP storage'
                 ]);
             }
-            error_log("[{$requestHash}] DEBUG: User ID validation passed: {$userId}");
             
             // Store OTP in database
             $otpData = [
