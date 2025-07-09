@@ -51,7 +51,7 @@ class InvoiceController extends Controller
         
         // Build the query
         $builder = $this->invoiceModel
-            ->select('invoices.*, clients.business_name')
+            ->select('invoices.id, invoices.uuid, invoices.invoice_number, invoices.concept, invoices.amount, invoices.total_amount, invoices.due_date, invoices.status, invoices.created_at, clients.business_name')
             ->join('clients', 'clients.id = invoices.client_id', 'left');
             
         if ($organizationId) {
