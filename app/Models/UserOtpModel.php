@@ -42,6 +42,8 @@ class UserOtpModel extends Model
      */
     public function verifyOTP($phone, $email, $code, $organizationCode = null)
     {
+        log_message('info', '=== VERIFY OTP MODEL START ===');
+        
         $where = [
             'code' => $code,
             'expires_at >' => date('Y-m-d H:i:s')
@@ -58,10 +60,14 @@ class UserOtpModel extends Model
         if (!empty($organizationCode)) {
             $where['organization_code'] = $organizationCode;
         }
+        
+        log_message('info', 'OTP verification WHERE conditions: ' . json_encode($where));
 
         $otp = $this->where($where)
                    ->orderBy('created_at', 'DESC')
                    ->first();
+
+        log_message('info', 'OTP verification result: ' . json_encode($otp));
 
         return $otp;
     }
