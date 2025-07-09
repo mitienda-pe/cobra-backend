@@ -101,8 +101,8 @@
             <div class="mb-3">
                 <label for="currency" class="form-label">Moneda *</label>
                 <select name="currency" id="currency" class="form-select <?= session('validation') && session('validation')->hasError('currency') ? 'is-invalid' : '' ?>" required>
-                    <option value="PEN" <?= old('currency', $invoice['currency']) === 'PEN' ? 'selected' : '' ?>>PEN - Soles</option>
-                    <option value="USD" <?= old('currency', $invoice['currency']) === 'USD' ? 'selected' : '' ?>>USD - Dólares</option>
+                    <option value="PEN" <?= old('currency', $invoice['currency'] ?? 'PEN') === 'PEN' ? 'selected' : '' ?>>PEN - Soles</option>
+                    <option value="USD" <?= old('currency', $invoice['currency'] ?? 'PEN') === 'USD' ? 'selected' : '' ?>>USD - Dólares</option>
                 </select>
                 <?php if (session('validation') && session('validation')->hasError('currency')): ?>
                     <div class="invalid-feedback">
