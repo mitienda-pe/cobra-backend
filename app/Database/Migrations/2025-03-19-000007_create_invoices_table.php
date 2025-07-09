@@ -42,6 +42,11 @@ class CreateInvoicesTable extends Migration
                 'type' => 'DECIMAL',
                 'constraint' => '10,2',
             ],
+            'total_amount' => [
+                'type' => 'DECIMAL',
+                'constraint' => '10,2',
+                'null' => true,
+            ],
             'due_date' => [
                 'type' => 'DATE',
             ],

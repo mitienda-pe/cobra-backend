@@ -20,6 +20,11 @@ class CreateClientsTable extends Migration
                 'constraint' => 11,
                 'unsigned' => true,
             ],
+            'uuid' => [
+                'type' => 'VARCHAR',
+                'constraint' => 36,
+                'null' => true,
+            ],
             'external_id' => [
                 'type' => 'VARCHAR',
                 'constraint' => 36,

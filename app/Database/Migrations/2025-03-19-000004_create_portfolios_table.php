@@ -20,6 +20,11 @@ class CreatePortfoliosTable extends Migration
                 'constraint' => 11,
                 'unsigned' => true,
             ],
+            'uuid' => [
+                'type' => 'VARCHAR',
+                'constraint' => 36,
+                'null' => true,
+            ],
             'name' => [
                 'type' => 'VARCHAR',
                 'constraint' => 100,
