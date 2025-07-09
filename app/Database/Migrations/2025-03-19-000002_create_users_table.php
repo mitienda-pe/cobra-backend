@@ -23,7 +23,7 @@ class CreateUsersTable extends Migration
             ],
             'uuid' => [
                 'type' => 'VARCHAR',
-                'constraint' => 100,
+                'constraint' => 36,
                 'null' => true,
             ],
             'name' => [

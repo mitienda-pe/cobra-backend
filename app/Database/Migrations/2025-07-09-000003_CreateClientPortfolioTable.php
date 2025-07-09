@@ -4,12 +4,12 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class FixPortfolioUserTable extends Migration
+class CreateClientPortfolioTable extends Migration
 {
     public function up()
     {
-        // Drop and recreate portfolio_user table with UUID structure
-        $this->forge->dropTable('portfolio_user', true);
+        // Drop existing table if exists
+        $this->forge->dropTable('client_portfolio', true);
         
         $this->forge->addField([
             'id' => [
@@ -23,7 +23,7 @@ class FixPortfolioUserTable extends Migration
                 'constraint' => 36,
                 'null' => false,
             ],
-            'user_uuid' => [
+            'client_uuid' => [
                 'type' => 'VARCHAR',
                 'constraint' => 36,
                 'null' => false,
@@ -39,13 +39,13 @@ class FixPortfolioUserTable extends Migration
         ]);
         
         $this->forge->addKey('id', true);
-        $this->forge->addKey(['portfolio_uuid', 'user_uuid'], false, true); // Unique key
+        $this->forge->addKey(['portfolio_uuid', 'client_uuid'], false, true); // Unique key
         
-        $this->forge->createTable('portfolio_user');
+        $this->forge->createTable('client_portfolio');
     }
 
     public function down()
     {
-        $this->forge->dropTable('portfolio_user');
+        $this->forge->dropTable('client_portfolio');
     }
 }
