@@ -115,28 +115,28 @@ class PortfolioModel extends Model
     /**
      * Assign clients to a portfolio
      */
-    public function assignClients($portfolioUuid, array $clientUuids)
+    public function assignClients($portfolioId, array $clientIds)
     {
         $db = \Config\Database::connect();
         
         // Eliminar asignaciones existentes
-        $db->table('client_portfolio')
-           ->where('portfolio_uuid', $portfolioUuid)
+        $db->table('portfolio_clients')
+           ->where('portfolio_id', $portfolioId)
            ->delete();
         
         // Insertar nuevas asignaciones
         $data = [];
-        foreach ($clientUuids as $clientUuid) {
+        foreach ($clientIds as $clientId) {
             $data[] = [
-                'portfolio_uuid' => $portfolioUuid,
-                'client_uuid' => $clientUuid,
+                'portfolio_id' => $portfolioId,
+                'client_id' => $clientId,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ];
         }
         
         if (!empty($data)) {
-            $db->table('client_portfolio')->insertBatch($data);
+            $db->table('portfolio_clients')->insertBatch($data);
         }
     }
     
@@ -158,13 +158,13 @@ class PortfolioModel extends Model
     /**
      * Get clients assigned to a portfolio
      */
-    public function getAssignedClients($portfolioUuid)
+    public function getAssignedClients($portfolioId)
     {
         $db = \Config\Database::connect();
         return $db->table('clients c')
                  ->select('c.*')
-                 ->join('client_portfolio cp', 'cp.client_uuid = c.uuid')
-                 ->where('cp.portfolio_uuid', $portfolioUuid)
+                 ->join('portfolio_clients pc', 'pc.client_id = c.id')
+                 ->where('pc.portfolio_id', $portfolioId)
                  ->where('c.deleted_at IS NULL')
                  ->get()
                  ->getResultArray();
@@ -173,14 +173,14 @@ class PortfolioModel extends Model
     /**
      * Get portfolios by client ID
      */
-    public function getByClient($clientUuid)
+    public function getByClient($clientId)
     {
         $db = \Config\Database::connect();
         
         $query = $db->table('portfolios p')
             ->select('p.*')
-            ->join('client_portfolio cp', 'cp.portfolio_uuid = p.uuid')
-            ->where('cp.client_uuid', $clientUuid)
+            ->join('portfolio_clients pc', 'pc.portfolio_id = p.id')
+            ->where('pc.client_id', $clientId)
             ->where('p.deleted_at IS NULL')
             ->get();
         
@@ -212,13 +212,13 @@ class PortfolioModel extends Model
     public function getAvailableClients($organizationId)
     {
         return $this->db->table('clients c')
-            ->select('c.uuid, c.business_name, c.document_number')
+            ->select('c.id, c.business_name, c.document_number')
             ->where('c.organization_id', $organizationId)
             ->where('c.deleted_at IS NULL')
             ->where("NOT EXISTS (
-                SELECT 1 FROM client_portfolio cp 
-                JOIN portfolios p ON p.uuid = cp.portfolio_uuid 
-                WHERE cp.client_uuid = c.uuid 
+                SELECT 1 FROM portfolio_clients pc 
+                JOIN portfolios p ON p.id = pc.portfolio_id 
+                WHERE pc.client_id = c.id 
                 AND p.deleted_at IS NULL
             )")
             ->get()
