@@ -176,8 +176,27 @@ class AuthController extends ResourceController
             // Get user ID for OTP storage
             $userId = null;
             if (!empty($phone) && !empty($users)) {
-                $userId = $users[0]['id'];
-                log_message('info', "[{$requestHash}] Using user ID: {$userId} for OTP storage");
+                // Find the user for the selected organization
+                foreach ($users as $user) {
+                    if (empty($organizationCode) || $user['org_code'] === $organizationCode) {
+                        $userId = $user['id'];
+                        log_message('info', "[{$requestHash}] Using user ID: {$userId} for OTP storage (from user: {$user['name']})");
+                        break;
+                    }
+                }
+                
+                if (!$userId) {
+                    log_message('error', "[{$requestHash}] Could not find user ID for organization: {$organizationCode}");
+                }
+            }
+            
+            // Validate user ID before storing OTP
+            if (!$userId) {
+                log_message('error', "[{$requestHash}] Cannot store OTP: user_id is null");
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Failed to identify user for OTP storage'
+                ]);
             }
             
             // Store OTP in database
