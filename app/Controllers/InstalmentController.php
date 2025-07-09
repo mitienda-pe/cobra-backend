@@ -407,9 +407,9 @@ class InstalmentController extends BaseController
         
         $builder = $db->table('instalments i');
         if ($hasSeriesColumn) {
-            $builder->select('i.*, inv.number as invoice_number, inv.series, inv.uuid as invoice_uuid, c.business_name as client_name');
+            $builder->select('i.*, inv.invoice_number as invoice_number, inv.series, inv.uuid as invoice_uuid, c.business_name as client_name');
         } else {
-            $builder->select('i.*, inv.number as invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name');
+            $builder->select('i.*, inv.invoice_number as invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name');
         }
         $builder->join('invoices inv', 'i.invoice_id = inv.id');
         $builder->join('clients c', 'inv.client_id = c.id');

@@ -122,7 +122,7 @@ class PaymentController extends ResourceController
             'amount' => $instalment['amount'],
             'currency' => $invoice['currency'] ?? 'PEN',
             'orderId' => $instalment['id'],
-            'description' => "Pago cuota #{$instalment['number']} de factura #{$invoice['number']}"
+            'description' => "Pago cuota #{$instalment['number']} de factura #{$invoice['invoice_number']}"
         ];
         // Aquí iría la llamada a Ligo y el guardado del hash, igual que antes
         // ...
@@ -146,7 +146,7 @@ class PaymentController extends ResourceController
             log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Ligo API credentials not configured');
             return $this->fail('Ligo API credentials not configured', 400);
         }
-        $invoiceNumber = $invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A';
+        $invoiceNumber = $invoice['invoice_number'] ?? 'N/A';
         $orderData = [
             'amount' => $instalment['amount'],
             'currency' => $invoice['currency'] ?? 'PEN',

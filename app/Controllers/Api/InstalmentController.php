@@ -302,7 +302,7 @@ class InstalmentController extends BaseController
             if ($hasInvoiceNumber) {
                 $selectFields[] = 'inv.invoice_number';
             } else {
-                $selectFields[] = 'inv.number as invoice_number';
+                $selectFields[] = 'inv.invoice_number as invoice_number';
             }
             
             // Construir la lista de campos para la consulta

@@ -50,7 +50,7 @@ class PaymentController extends BaseController
         }
         
         // Build base query
-        $builder = $this->paymentModel->select('payments.*, invoices.number as invoice_number, invoices.currency, clients.business_name')
+        $builder = $this->paymentModel->select('payments.*, invoices.invoice_number as invoice_number, invoices.currency, clients.business_name')
             ->join('invoices', 'invoices.id = payments.invoice_id')
             ->join('clients', 'clients.id = invoices.client_id')
             ->where('payments.deleted_at IS NULL');
@@ -443,7 +443,7 @@ class PaymentController extends BaseController
 
         // Search by invoice number or client info
         $builder->groupStart()
-            ->like('invoices.number', $term)
+            ->like('invoices.invoice_number', $term)
             ->orLike('clients.business_name', $term)
             ->orLike('clients.document_number', $term)
             ->groupEnd();
@@ -460,8 +460,8 @@ class PaymentController extends BaseController
             $results[] = [
                 'id' => $invoice['id'],
                 'uuid' => $invoice['uuid'],
-                'text' => "#{$invoice['number']} - {$invoice['business_name']} ({$invoice['document_number']}) - Pendiente: S/ " . number_format($remaining, 2),
-                'invoice_number' => $invoice['number'],
+                'text' => "#{$invoice['invoice_number']} - {$invoice['business_name']} ({$invoice['document_number']}) - Pendiente: S/ " . number_format($remaining, 2),
+                'invoice_number' => $invoice['invoice_number'],
                 'business_name' => $invoice['business_name'],
                 'document_number' => $invoice['document_number'],
                 'remaining' => $remaining,
