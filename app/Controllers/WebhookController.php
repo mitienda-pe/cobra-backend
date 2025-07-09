@@ -285,7 +285,6 @@ class WebhookController extends BaseController
         log_message('info', '=== WEBHOOK TEST START ===');
         log_message('info', "Testing webhook ID: {$id}");
         log_message('info', "User organization ID: " . $this->auth->organizationId());
-        log_message('info', "User authenticated: " . ($this->auth->isLoggedIn() ? 'Yes' : 'No'));
         
         // Only superadmins and admins can test webhooks
         if (!$this->auth->hasAnyRole(['superadmin', 'admin'])) {
