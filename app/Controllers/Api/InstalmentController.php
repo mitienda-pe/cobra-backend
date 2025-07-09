@@ -352,7 +352,6 @@ class InstalmentController extends BaseController
                 $userPortfolios = $db->table('portfolio_user')
                     ->select('portfolio_uuid')
                     ->where('user_uuid', $user['uuid'])
-                    ->where('deleted_at IS NULL')
                     ->get()
                     ->getResultArray();
                     
