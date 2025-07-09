@@ -173,8 +173,16 @@ class AuthController extends ResourceController
                 log_message('info', "[{$requestHash}] Generated random OTP: {$otp} for phone {$phone}");
             }
             
+            // Get user ID for OTP storage
+            $userId = null;
+            if (!empty($phone) && !empty($users)) {
+                $userId = $users[0]['id'];
+                log_message('info', "[{$requestHash}] Using user ID: {$userId} for OTP storage");
+            }
+            
             // Store OTP in database
             $otpData = [
+                'user_id' => $userId,
                 'phone' => $phone,
                 'email' => $email,
                 'code' => $otp,
