@@ -156,6 +156,10 @@ class AuthController extends ResourceController
                             'message' => 'Invalid organization code'
                         ]);
                     }
+                } else if (count($users) == 1) {
+                    // If user has only one organization, use it automatically
+                    $organizationCode = $users[0]['org_code'];
+                    log_message('info', "[{$requestHash}] User has single organization, using: {$organizationCode}");
                 }
             }
 
@@ -333,6 +337,10 @@ class AuthController extends ResourceController
                         'status' => 'error',
                         'message' => 'Organization code is required for users with multiple organizations'
                     ]);
+                } else if (count($users) == 1 && empty($organizationCode)) {
+                    // If user has only one organization, use it automatically
+                    $organizationCode = $users[0]['org_code'];
+                    log_message('info', "[{$verifyHash}] User has single organization, using: {$organizationCode}");
                 }
                 
                 // Get user data for the specified organization
