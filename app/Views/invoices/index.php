@@ -149,7 +149,6 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <form id="deleteForm" action="" method="post" class="d-inline">
                     <?= csrf_field() ?>
-                    <input type="hidden" name="_method" value="DELETE">
                     <button type="submit" class="btn btn-danger">Eliminar</button>
                 </form>
             </div>
