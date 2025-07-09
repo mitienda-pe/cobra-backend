@@ -72,12 +72,12 @@ class CarlosSeeder extends Seeder
         $this->db->table('portfolio_user')->insert($portfolioUserData);
         echo "Cartera asignada al usuario Carlos\n";
 
-        // Crear algunos clientes realistas con montos pequeños
+        // Crear algunos clientes realistas con montos pequeños (números únicos)
         $clients = [
             [
                 'business_name' => 'Bodega San Martín',
                 'legal_name' => 'Bodega San Martín',
-                'document_number' => '10123456789',
+                'document_number' => '10987654321',
                 'contact_name' => 'Juan Martínez',
                 'contact_phone' => '987654321',
                 'address' => 'Av. San Martín 123, Lima'
@@ -85,7 +85,7 @@ class CarlosSeeder extends Seeder
             [
                 'business_name' => 'Panadería La Esperanza',
                 'legal_name' => 'Panadería La Esperanza E.I.R.L.',
-                'document_number' => '20234567890',
+                'document_number' => '20987654322',
                 'contact_name' => 'María López',
                 'contact_phone' => '987123456',
                 'address' => 'Jr. Esperanza 456, Lima'
@@ -93,7 +93,7 @@ class CarlosSeeder extends Seeder
             [
                 'business_name' => 'Ferretería El Clavo',
                 'legal_name' => 'Ferretería El Clavo S.A.C.',
-                'document_number' => '20345678901',
+                'document_number' => '20987654323',
                 'contact_name' => 'Pedro Gómez',
                 'contact_phone' => '986543210',
                 'address' => 'Av. Industria 789, Lima'
@@ -101,7 +101,7 @@ class CarlosSeeder extends Seeder
             [
                 'business_name' => 'Restaurante Sabor Criollo',
                 'legal_name' => 'Restaurante Sabor Criollo S.R.L.',
-                'document_number' => '20456789012',
+                'document_number' => '20987654324',
                 'contact_name' => 'Rosa Pérez',
                 'contact_phone' => '985432109',
                 'address' => 'Calle Sabor 321, Lima'
@@ -109,7 +109,7 @@ class CarlosSeeder extends Seeder
             [
                 'business_name' => 'Farmacia Salud Total',
                 'legal_name' => 'Farmacia Salud Total S.A.C.',
-                'document_number' => '20567890123',
+                'document_number' => '20987654325',
                 'contact_name' => 'Carlos Díaz',
                 'contact_phone' => '984321098',
                 'address' => 'Av. Salud 654, Lima'
