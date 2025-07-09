@@ -83,6 +83,15 @@ class AuthController extends ResourceController
             $organizationCode = $_POST['organization_code'] ?? $jsonData['organization_code'] ?? null;
             $deviceInfo = $_POST['device_info'] ?? $jsonData['device_info'] ?? 'Unknown Device';
             
+            // Normalize phone number format
+            if (!empty($phone)) {
+                // Remove any spaces and add the standard format
+                $cleanPhone = str_replace(' ', '', $phone);
+                if (preg_match('/^\+51(\d{9})$/', $cleanPhone, $matches)) {
+                    $phone = '+51 ' . $matches[1];
+                }
+            }
+            
             log_message('info', "Parsed - Phone: {$phone}, Email: {$email}, OrgCode: {$organizationCode}");
             
             // Validate required fields
@@ -147,7 +156,7 @@ class AuthController extends ResourceController
 
             // Generate OTP - Use hardcoded OTP for specific test phone (works in any mode)
             log_message('info', "Comparing phone '{$phone}' with development phone '{$this->developmentPhone}'");
-            if ($phone === $this->developmentPhone) {
+            if ($phone === $this->developmentPhone || $phone === str_replace(' ', '', $this->developmentPhone)) {
                 $otp = $this->developmentOtp;
                 log_message('info', "Test mode: Using hardcoded OTP {$otp} for phone {$phone}");
             } else {
@@ -179,7 +188,7 @@ class AuthController extends ResourceController
             }
             
             // Send OTP via SMS if phone is provided (skip for test phone)
-            if (!empty($phone) && $phone !== $this->developmentPhone) {
+            if (!empty($phone) && $phone !== $this->developmentPhone && $phone !== str_replace(' ', '', $this->developmentPhone)) {
                 try {
                     $message = "Your verification code is: {$otp}. Valid for 5 minutes.";
                     $result = $this->twilioService->sendSms($phone, $message);
@@ -262,6 +271,15 @@ class AuthController extends ResourceController
             $code = $_POST['code'] ?? $jsonData['code'] ?? null;
             $organizationCode = $_POST['organization_code'] ?? $jsonData['organization_code'] ?? null;
             $deviceInfo = $_POST['device_info'] ?? $jsonData['device_info'] ?? 'Unknown Device';
+            
+            // Normalize phone number format
+            if (!empty($phone)) {
+                // Remove any spaces and add the standard format
+                $cleanPhone = str_replace(' ', '', $phone);
+                if (preg_match('/^\+51(\d{9})$/', $cleanPhone, $matches)) {
+                    $phone = '+51 ' . $matches[1];
+                }
+            }
             
             log_message('info', "Verify OTP - Phone: {$phone}, Email: {$email}, Code: {$code}, OrgCode: {$organizationCode}");
             
