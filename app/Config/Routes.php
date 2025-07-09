@@ -58,6 +58,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->post('auth/refresh-token', 'AuthController::refreshToken');
     $routes->get('auth/profile', 'AuthController::profile');
     $routes->post('auth/logout', 'AuthController::logout');
+    $routes->get('auth/debug', 'AuthController::debug');
     // OPTIONS routes for CORS preflight
     $routes->match(['options'], 'auth/request-otp', 'AuthController::requestOtp');
     $routes->match(['options'], 'auth/verify-otp', 'AuthController::verifyOtp');
