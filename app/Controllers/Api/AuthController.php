@@ -69,6 +69,7 @@ class AuthController extends ResourceController
     {
         $requestHash = substr(md5(uniqid()), 0, 8);
         log_message('info', "[{$requestHash}] === REQUEST OTP START ===");
+        error_log("[{$requestHash}] DEBUG: Method requestOtp called at " . date('Y-m-d H:i:s'));
         
         try {
             // Get request data

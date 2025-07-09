@@ -27,7 +27,8 @@
       "Bash(rm:*)",
       "Bash(mv:*)",
       "WebFetch(domain:localhost)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(ping:*)"
     ],
     "deny": []
   }
