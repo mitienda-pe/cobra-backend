@@ -492,6 +492,18 @@ class AuthController extends ResourceController
      */
     public function debug()
     {
+        $debugHash = substr(md5(uniqid()), 0, 8);
+        log_message('info', "[{$debugHash}] === DEBUG ENDPOINT CALLED ===");
+        
+        // Test phone normalization
+        $testPhone = '+51999309748';
+        $userModel = new UserModel();
+        $users = $userModel->getOrganizationsByPhone($testPhone);
+        
+        log_message('info', "[{$debugHash}] Test phone: {$testPhone}");
+        log_message('info', "[{$debugHash}] Users found: " . count($users));
+        log_message('info', "[{$debugHash}] Users data: " . json_encode($users));
+        
         return $this->response->setJSON([
             'status' => 'success',
             'message' => 'API is working correctly',
@@ -501,7 +513,12 @@ class AuthController extends ResourceController
                 'request_body' => $this->request->getBody(),
                 'server_time' => date('Y-m-d H:i:s'),
                 'php_version' => phpversion(),
-                'codeigniter_version' => \CodeIgniter\CodeIgniter::CI_VERSION
+                'codeigniter_version' => \CodeIgniter\CodeIgniter::CI_VERSION,
+                'debug_hash' => $debugHash,
+                'test_phone' => $testPhone,
+                'users_found' => count($users),
+                'users_data' => $users,
+                'development_phone' => $this->developmentPhone
             ]
         ]);
     }
