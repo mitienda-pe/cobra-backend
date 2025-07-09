@@ -45,10 +45,10 @@
                                 <td><?= date('d/m/Y', strtotime($org['created_at'])) ?></td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <a href="<?= site_url('organizations/' . $org['id']) ?>" class="btn btn-sm btn-info">
+                                        <a href="<?= site_url('organizations/' . $org['uuid']) ?>" class="btn btn-sm btn-info">
                                             <i class="bi bi-eye"></i> Ver
                                         </a>
-                                        <a href="<?= site_url('organizations/' . $org['id'] . '/edit') ?>" class="btn btn-sm btn-primary">
+                                        <a href="<?= site_url('organizations/' . $org['uuid'] . '/edit') ?>" class="btn btn-sm btn-primary">
                                             <i class="bi bi-pencil"></i> Editar
                                         </a>
                                         <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="<?= $org['id'] ?>" data-name="<?= esc($org['name']) ?>">
