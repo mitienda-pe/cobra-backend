@@ -168,9 +168,18 @@ class UserModel extends Model
      */
     public function getOrganizationsByPhone($phone)
     {
+        // Normalize phone number format
+        $normalizedPhone = $phone;
+        if (!empty($phone)) {
+            $cleanPhone = str_replace(' ', '', $phone);
+            if (preg_match('/^\+51(\d{9})$/', $cleanPhone, $matches)) {
+                $normalizedPhone = '+51 ' . $matches[1];
+            }
+        }
+        
         $users = $this->select('users.*, organizations.id as org_id, organizations.name as org_name, organizations.code as org_code')
                      ->join('organizations', 'organizations.id = users.organization_id')
-                     ->where('users.phone', $phone)
+                     ->where('users.phone', $normalizedPhone)
                      ->where('users.status', 'active')
                      ->where('organizations.status', 'active')
                      ->findAll();
