@@ -8,12 +8,12 @@ class AddUuidToOrganizations extends Migration
 {
     public function up()
     {
-        // Add uuid column to organizations table
+        // Add uuid column to organizations table (nullable first)
         $this->forge->addColumn('organizations', [
             'uuid' => [
                 'type' => 'VARCHAR',
                 'constraint' => 50,
-                'null' => false,
+                'null' => true,
                 'after' => 'id'
             ]
         ]);
@@ -30,8 +30,10 @@ class AddUuidToOrganizations extends Migration
                 ->update(['uuid' => $uuid]);
         }
         
-        // Make uuid unique
-        $this->forge->addUniqueKey('organizations', 'uuid');
+        // Now modify column to be NOT NULL and add unique constraint
+        $db->query('CREATE UNIQUE INDEX organizations_uuid ON organizations (uuid)');
+        
+        // Note: SQLite doesn't support ALTER COLUMN, so we keep it nullable but with unique constraint
     }
 
     public function down()
