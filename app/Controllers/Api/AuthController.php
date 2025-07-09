@@ -199,13 +199,16 @@ class AuthController extends ResourceController
             }
             
             // Validate user ID before storing OTP
+            error_log("[{$requestHash}] DEBUG: About to validate userId: " . ($userId ?? 'NULL'));
             if (!$userId) {
+                error_log("[{$requestHash}] DEBUG: User ID is null, returning error");
                 log_message('error', "[{$requestHash}] Cannot store OTP: user_id is null");
                 return $this->response->setStatusCode(500)->setJSON([
                     'status' => 'error',
                     'message' => 'Failed to identify user for OTP storage'
                 ]);
             }
+            error_log("[{$requestHash}] DEBUG: User ID validation passed: {$userId}");
             
             // Store OTP in database
             $otpData = [
