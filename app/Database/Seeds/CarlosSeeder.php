@@ -186,6 +186,7 @@ class CarlosSeeder extends Seeder
                     'due_date' => $dueDate->format('Y-m-d'),
                     'status' => 'pending',
                     'notes' => 'Factura de prueba para Carlos',
+                    'uuid' => strtoupper(substr(md5(uniqid()), 0, 8)),
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s')
                 ];

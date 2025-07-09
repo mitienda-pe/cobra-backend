@@ -96,6 +96,7 @@ class InvoiceSeeder extends Seeder
                     'due_date'       => $dueDate->format('Y-m-d'),
                     'status'         => $status,
                     'notes'          => 'Factura de prueba generada por seeder',
+                    'uuid'           => strtoupper(substr(md5(uniqid()), 0, 8)),
                     'created_at'     => date('Y-m-d H:i:s'),
                     'updated_at'     => date('Y-m-d H:i:s')
                 ];

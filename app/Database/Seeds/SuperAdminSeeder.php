@@ -12,6 +12,7 @@ class SuperAdminSeeder extends Seeder
         $orgData = [
             'name'        => 'Sistema Administrador',
             'description' => 'Organización principal del sistema',
+            'code'        => 'ADMIN',
             'status'      => 'active',
             'created_at'  => date('Y-m-d H:i:s'),
             'updated_at'  => date('Y-m-d H:i:s'),

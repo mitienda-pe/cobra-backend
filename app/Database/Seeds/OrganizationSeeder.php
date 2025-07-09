@@ -12,6 +12,7 @@ class OrganizationSeeder extends Seeder
             [
                 'name' => 'Organización de Ejemplo',
                 'description' => 'Esta es una organización de ejemplo para propósitos de demostración.',
+                'code' => 'ORGANIZA',
                 'status' => 'active',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
