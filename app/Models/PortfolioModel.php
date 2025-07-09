@@ -72,13 +72,13 @@ class PortfolioModel extends Model
     /**
      * Get portfolios assigned to a user
      */
-    public function getByUser($userUuid)
+    public function getByUser($userId)
     {
         $db = \Config\Database::connect();
         return $db->table('portfolios p')
                  ->select('p.*')
-                 ->join('portfolio_user pu', 'pu.portfolio_uuid = p.uuid')
-                 ->where('pu.user_uuid', $userUuid)
+                 ->join('portfolio_user pu', 'pu.portfolio_id = p.id')
+                 ->where('pu.user_id', $userId)
                  ->where('p.deleted_at IS NULL')
                  ->get()
                  ->getResultArray();
@@ -87,21 +87,21 @@ class PortfolioModel extends Model
     /**
      * Assign users to a portfolio
      */
-    public function assignUsers($portfolioUuid, array $userUuids)
+    public function assignUsers($portfolioId, array $userIds)
     {
         $db = \Config\Database::connect();
         
         // Eliminar asignaciones existentes
         $db->table('portfolio_user')
-           ->where('portfolio_uuid', $portfolioUuid)
+           ->where('portfolio_id', $portfolioId)
            ->delete();
         
         // Insertar nuevas asignaciones
         $data = [];
-        foreach ($userUuids as $userUuid) {
+        foreach ($userIds as $userId) {
             $data[] = [
-                'portfolio_uuid' => $portfolioUuid,
-                'user_uuid' => $userUuid,
+                'portfolio_id' => $portfolioId,
+                'user_id' => $userId,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ];
@@ -143,13 +143,13 @@ class PortfolioModel extends Model
     /**
      * Get users assigned to a portfolio
      */
-    public function getAssignedUsers($portfolioUuid)
+    public function getAssignedUsers($portfolioId)
     {
         $db = \Config\Database::connect();
         return $db->table('users u')
                  ->select('u.*')
-                 ->join('portfolio_user pu', 'pu.user_uuid = u.uuid')
-                 ->where('pu.portfolio_uuid', $portfolioUuid)
+                 ->join('portfolio_user pu', 'pu.user_id = u.id')
+                 ->where('pu.portfolio_id', $portfolioId)
                  ->where('u.deleted_at IS NULL')
                  ->get()
                  ->getResultArray();
@@ -193,13 +193,13 @@ class PortfolioModel extends Model
     public function getAvailableUsers($organizationId)
     {
         return $this->db->table('users u')
-            ->select('u.uuid, u.name, u.email')
+            ->select('u.id, u.name, u.email')
             ->where('u.organization_id', $organizationId)
             ->where('u.deleted_at IS NULL')
             ->where("NOT EXISTS (
                 SELECT 1 FROM portfolio_user pu 
-                JOIN portfolios p ON p.uuid = pu.portfolio_uuid 
-                WHERE pu.user_uuid = u.uuid 
+                JOIN portfolios p ON p.id = pu.portfolio_id 
+                WHERE pu.user_id = u.id 
                 AND p.deleted_at IS NULL
             )")
             ->get()
