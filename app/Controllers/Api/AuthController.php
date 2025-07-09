@@ -20,7 +20,7 @@ class AuthController extends ResourceController
     protected $twilioService;
     protected $developmentMode = false;
     protected $developmentOtp = '123456';
-    protected $developmentPhone = '+51 9993097498';
+    protected $developmentPhone = '+51 999309748';
 
     public function __construct()
     {
@@ -88,8 +88,12 @@ class AuthController extends ResourceController
             if (!empty($phone)) {
                 // Remove any spaces and add the standard format
                 $cleanPhone = str_replace(' ', '', $phone);
+                log_message('info', "[{$requestHash}] Normalizing phone: '{$phone}' -> cleaned: '{$cleanPhone}'");
                 if (preg_match('/^\+51(\d{9})$/', $cleanPhone, $matches)) {
                     $phone = '+51 ' . $matches[1];
+                    log_message('info', "[{$requestHash}] Normalized phone: '{$phone}'");
+                } else {
+                    log_message('info', "[{$requestHash}] Phone does not match normalization pattern: '{$cleanPhone}'");
                 }
             }
             
@@ -282,8 +286,12 @@ class AuthController extends ResourceController
             if (!empty($phone)) {
                 // Remove any spaces and add the standard format
                 $cleanPhone = str_replace(' ', '', $phone);
+                log_message('info', "[{$verifyHash}] Normalizing phone: '{$phone}' -> cleaned: '{$cleanPhone}'");
                 if (preg_match('/^\+51(\d{9})$/', $cleanPhone, $matches)) {
                     $phone = '+51 ' . $matches[1];
+                    log_message('info', "[{$verifyHash}] Normalized phone: '{$phone}'");
+                } else {
+                    log_message('info', "[{$verifyHash}] Phone does not match normalization pattern: '{$cleanPhone}'");
                 }
             }
             
