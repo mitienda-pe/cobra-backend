@@ -125,7 +125,7 @@ class LigoWebhookController extends ResourceController
             $paymentData = [
                 'invoice_id' => $invoiceId,
                 'amount' => $payload->data->transferDetails->amount ?? $payload->data->amount,
-                'currency' => $payload->data->transferDetails->currency ?? $payload->data->currency,
+                'currency' => $payload->data->transferDetails->currency ?? $payload->data->currency ?? 'PEN',
                 'payment_method' => 'ligo_qr',
                 'reference_code' => $payload->data->instructionId ?? $payload->data->payment_id ?? '',
                 'external_id' => $payload->data->payment_id ?? '',
