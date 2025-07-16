@@ -87,15 +87,21 @@ class LigoWebhookController extends ResourceController
         // Get or create webhook record for this organization
         $webhookId = $this->getOrCreateLigoWebhook($organization['id']);
         
-        // Verify webhook signature
+        // Verify webhook signature (TEMPORAL: opcional si no hay secret configurado)
         $signature = $this->request->getHeaderLine('Ligo-Signature');
         
-        if (!$this->verifySignature($signature, $this->request->getBody(), $organization['ligo_webhook_secret'])) {
-            log_message('error', 'Ligo webhook: Invalid signature for invoice: ' . $invoiceId);
-            $responseCode = 401;
-            $responseMessage = 'Invalid signature';
-            $this->logWebhookAttempt($webhookId, $payload->type, $rawPayload, $responseCode, $responseMessage, $success);
-            return $this->fail('Invalid signature', 401);
+        // Solo validar firma si hay secret configurado
+        if (!empty($organization['ligo_webhook_secret'])) {
+            log_message('info', '[LIGO_WEBHOOK_DEBUG] Validando firma con secret configurado');
+            if (!$this->verifySignature($signature, $this->request->getBody(), $organization['ligo_webhook_secret'])) {
+                log_message('error', 'Ligo webhook: Invalid signature for invoice: ' . $invoiceId);
+                $responseCode = 401;
+                $responseMessage = 'Invalid signature';
+                $this->logWebhookAttempt($webhookId, $payload->type, $rawPayload, $responseCode, $responseMessage, $success);
+                return $this->fail('Invalid signature', 401);
+            }
+        } else {
+            log_message('info', '[LIGO_WEBHOOK_DEBUG] Sin secret configurado - saltando validación de firma');
         }
         
         // LOG detallado del payload recibido
