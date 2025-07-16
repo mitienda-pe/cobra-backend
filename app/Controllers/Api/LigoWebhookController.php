@@ -31,6 +31,17 @@ class LigoWebhookController extends ResourceController
      */
     public function handlePaymentNotification()
     {
+        // ===== LOGS TEMPORALES PARA DEBUGGING =====
+        log_message('info', '[LIGO_WEBHOOK_DEBUG] ===== WEBHOOK RECIBIDO =====');
+        log_message('info', '[LIGO_WEBHOOK_DEBUG] Method: ' . $this->request->getMethod());
+        log_message('info', '[LIGO_WEBHOOK_DEBUG] URI: ' . $this->request->getUri());
+        log_message('info', '[LIGO_WEBHOOK_DEBUG] Headers: ' . json_encode($this->request->getHeaders()));
+        log_message('info', '[LIGO_WEBHOOK_DEBUG] Raw Body: ' . $this->request->getBody());
+        log_message('info', '[LIGO_WEBHOOK_DEBUG] Content-Type: ' . $this->request->getHeaderLine('Content-Type'));
+        log_message('info', '[LIGO_WEBHOOK_DEBUG] User-Agent: ' . $this->request->getHeaderLine('User-Agent'));
+        log_message('info', '[LIGO_WEBHOOK_DEBUG] Ligo-Signature: ' . $this->request->getHeaderLine('Ligo-Signature'));
+        log_message('info', '[LIGO_WEBHOOK_DEBUG] ================================');
+        
         // Get request payload
         $payload = $this->request->getJSON();
         $rawPayload = $this->request->getBody();
