@@ -117,14 +117,14 @@
                                 <div class="form-text">Llave privada proporcionada por Ligo para firmar tokens de autenticación</div>
                             </div>
                             
+                            <!-- Campo webhook secret comentado - Ligo no usa webhook secrets, usa IP whitelist -->
+                            <!--
                             <div class="mb-3">
                                 <label for="ligo_webhook_secret" class="form-label">Webhook Secret (Ligo)</label>
-                                <input type="password" class="form-control <?= session('errors.ligo_webhook_secret') ? 'is-invalid' : '' ?>" id="ligo_webhook_secret" name="ligo_webhook_secret" value="<?= old('ligo_webhook_secret', $organization['ligo_webhook_secret'] ?? '') ?>">
-                                <?php if (session('errors.ligo_webhook_secret')): ?>
-                                    <div class="invalid-feedback"><?= session('errors.ligo_webhook_secret') ?></div>
-                                <?php endif; ?>
+                                <input type="password" class="form-control" id="ligo_webhook_secret" name="ligo_webhook_secret" value="">
                                 <div class="form-text">Secret para validar las notificaciones de webhook de Ligo</div>
                             </div>
+                            -->
                         </div>
                     </div>
                     

@@ -91,8 +91,21 @@ class LigoWebhookController extends ResourceController
         $clientIp = $this->request->getIPAddress();
         log_message('info', '[LIGO_WEBHOOK_DEBUG] IP de origen: ' . $clientIp);
         
-        // TODO: Implementar whitelist de IPs de Ligo si es necesario
-        // Por ahora, solo logueamos la IP para monitoreo
+        // Whitelist de IPs de Ligo (actualizar según proporcione Ligo)
+        $allowedIPs = [
+            // IPs de Ligo - actualizar cuando los proporcionen
+            // '192.168.1.100',
+            // '10.0.0.0/8',
+        ];
+        
+        // Validar IP si hay whitelist configurada
+        if (!empty($allowedIPs) && !$this->isIPAllowed($clientIp, $allowedIPs)) {
+            log_message('error', '[LIGO_WEBHOOK] IP no autorizada: ' . $clientIp);
+            $responseCode = 403;
+            $responseMessage = 'IP not authorized';
+            $this->logWebhookAttempt($webhookId, $payload->type ?? 'unknown', $rawPayload, $responseCode, $responseMessage, $success);
+            return $this->fail('IP not authorized', 403);
+        }
         
         // LOG detallado del payload recibido
         log_message('info', '[LigoWebhook] Payload recibido: ' . json_encode($payload));
@@ -239,5 +252,48 @@ class LigoWebhookController extends ResourceController
         ];
         
         $this->webhookLogModel->insert($logData);
+    }
+    
+    /**
+     * Verificar si la IP está en la whitelist
+     *
+     * @param string $ip
+     * @param array $allowedIPs
+     * @return bool
+     */
+    private function isIPAllowed($ip, $allowedIPs)
+    {
+        foreach ($allowedIPs as $allowedIP) {
+            // Verificar IP exacta
+            if ($ip === $allowedIP) {
+                return true;
+            }
+            
+            // Verificar rango CIDR (ej: 192.168.1.0/24)
+            if (strpos($allowedIP, '/') !== false) {
+                if ($this->ipInRange($ip, $allowedIP)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Verificar si IP está en rango CIDR
+     *
+     * @param string $ip
+     * @param string $cidr
+     * @return bool
+     */
+    private function ipInRange($ip, $cidr)
+    {
+        list($range, $netmask) = explode('/', $cidr, 2);
+        $range_decimal = ip2long($range);
+        $ip_decimal = ip2long($ip);
+        $wildcard_decimal = pow(2, (32 - $netmask)) - 1;
+        $netmask_decimal = ~ $wildcard_decimal;
+        
+        return (($ip_decimal & $netmask_decimal) == ($range_decimal & $netmask_decimal));
     }
 }
