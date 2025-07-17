@@ -46,6 +46,10 @@ $routes->get('debug/ligo-uuid/status', 'LigoDebugController::status');
 $routes->get('debug/ligo-uuid/enable', 'LigoDebugController::enable');
 $routes->get('debug/ligo-uuid/update-auth-token', 'LigoDebugController::updateAuthToken');
 
+// Ligo Webhook Route - Public (compatibilidad con URL sin /api)
+$routes->post('webhooks/ligo', 'App\Controllers\Api\LigoWebhookController::handlePaymentNotification');
+$routes->match(['options'], 'webhooks/ligo', 'App\Controllers\Api\LigoWebhookController::handlePaymentNotification');
+
 // API Routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Ligo QR Hashes API (Public)
@@ -66,9 +70,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->match(['options'], 'auth/profile', 'AuthController::profile');
     $routes->match(['options'], 'auth/logout', 'AuthController::logout');
 
-    // Ligo Webhook Route - Public (ambas URLs para compatibilidad)
-    $routes->post('webhooks/ligo', 'Api\LigoWebhookController::handlePaymentNotification');
-    $routes->match(['options'], 'webhooks/ligo', 'Api\LigoWebhookController::handlePaymentNotification');
+    // Ligo Webhook Route - Public
+    $routes->post('webhooks/ligo', 'LigoWebhookController::handlePaymentNotification');
+    $routes->match(['options'], 'webhooks/ligo', 'LigoWebhookController::handlePaymentNotification');
 
     // Ligo Auth Route - Public
     $routes->get('auth/ligo/token', 'LigoAuthController::getToken');
