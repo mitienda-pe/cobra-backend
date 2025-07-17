@@ -74,7 +74,7 @@ class LigoWebhookController extends ResourceController
         }
         
         // Get organization
-        $organization = $this->organizationModel->find($invoice['organization_id']);
+        $organization = $this->organizationModel->find($invoice['organization_id'] ?? null);
         
         if (!$organization) {
             log_message('error', 'Ligo webhook: Organization not found for invoice: ' . $invoiceId);
