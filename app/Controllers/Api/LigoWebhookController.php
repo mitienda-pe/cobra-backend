@@ -69,7 +69,7 @@ class LigoWebhookController extends ResourceController
             log_message('error', 'Ligo webhook: Invoice not found for instructionId/order_id: ' . $invoiceId);
             $responseCode = 404;
             $responseMessage = 'Invoice not found';
-            $this->logWebhookAttempt($webhookId, $payload->type, $rawPayload, $responseCode, $responseMessage, $success);
+            // No podemos log webhook attempt sin organizacion, solo retornamos error
             return $this->fail('Invoice not found', 404);
         }
         
@@ -85,7 +85,7 @@ class LigoWebhookController extends ResourceController
         }
         
         // Get or create webhook record for this organization
-        $webhookId = $this->getOrCreateLigoWebhook($organization['id']);
+        $webhookId = $this->getOrCreateLigoWebhook($organization['id'] ?? null);
         
         // Validar IP de origen (Ligo usa whitelist de IPs, no firma)
         $clientIp = $this->request->getIPAddress();
