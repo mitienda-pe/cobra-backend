@@ -91,10 +91,10 @@ class LigoWebhookController extends ResourceController
         $clientIp = $this->request->getIPAddress();
         log_message('info', '[LIGO_WEBHOOK_DEBUG] IP de origen: ' . $clientIp);
         
-        // Whitelist de IPs de Ligo
+        // Whitelist de IPs de Ligo (temporalmente deshabilitado para pruebas)
         $allowedIPs = [
-            '35.221.25.179',   // Ligo Producción
-            '34.150.173.107',  // Ligo Desarrollo
+            // '35.221.25.179',   // Ligo Producción
+            // '34.150.173.107',  // Ligo Desarrollo
         ];
         
         // Validar IP si hay whitelist configurada
