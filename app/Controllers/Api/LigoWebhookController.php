@@ -62,7 +62,7 @@ class LigoWebhookController extends ResourceController
         }
         
         // Get invoice from instructionId or order_id
-        $invoiceId = $payload->data->instructionId ?? $payload->data->order_id;
+        $invoiceId = $payload->data->instructionId ?? $payload->data->order_id ?? null;
         $invoice = $this->invoiceModel->find($invoiceId);
         
         if (!$invoice) {
@@ -91,11 +91,10 @@ class LigoWebhookController extends ResourceController
         $clientIp = $this->request->getIPAddress();
         log_message('info', '[LIGO_WEBHOOK_DEBUG] IP de origen: ' . $clientIp);
         
-        // Whitelist de IPs de Ligo (actualizar según proporcione Ligo)
+        // Whitelist de IPs de Ligo
         $allowedIPs = [
-            // IPs de Ligo - actualizar cuando los proporcionen
-            // '192.168.1.100',
-            // '10.0.0.0/8',
+            '35.221.25.179',   // Ligo Producción
+            '34.150.173.107',  // Ligo Desarrollo
         ];
         
         // Validar IP si hay whitelist configurada

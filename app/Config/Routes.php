@@ -66,9 +66,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->match(['options'], 'auth/profile', 'AuthController::profile');
     $routes->match(['options'], 'auth/logout', 'AuthController::logout');
 
-    // Ligo Webhook Route - Public
-    $routes->post('webhooks/ligo', 'LigoWebhookController::handlePaymentNotification');
-    $routes->match(['options'], 'webhooks/ligo', 'LigoWebhookController::handlePaymentNotification');
+    // Ligo Webhook Route - Public (ambas URLs para compatibilidad)
+    $routes->post('webhooks/ligo', 'Api\LigoWebhookController::handlePaymentNotification');
+    $routes->match(['options'], 'webhooks/ligo', 'Api\LigoWebhookController::handlePaymentNotification');
 
     // Ligo Auth Route - Public
     $routes->get('auth/ligo/token', 'LigoAuthController::getToken');
