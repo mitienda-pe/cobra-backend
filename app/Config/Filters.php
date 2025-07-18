@@ -76,13 +76,11 @@ class Filters extends BaseConfig
                 'users/*',
                 'profile/*',
                 'portfolios/*',
-                'payments/*',
-                'webhooks/*'
+                'payments/*'
             ],
             'except' => [
                 'clients/import*',
-                'invoices/import*',
-                'webhooks/ligo*'
+                'invoices/import*'
             ]
         ],
     ];
