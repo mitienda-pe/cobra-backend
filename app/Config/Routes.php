@@ -47,8 +47,8 @@ $routes->get('debug/ligo-uuid/enable', 'LigoDebugController::enable');
 $routes->get('debug/ligo-uuid/update-auth-token', 'LigoDebugController::updateAuthToken');
 
 // Ligo Webhook Route - Public (compatibilidad con URL sin /api)
-$routes->post('webhooks/ligo', 'App\Controllers\Api\LigoWebhookController::handlePaymentNotification');
-$routes->match(['options'], 'webhooks/ligo', 'App\Controllers\Api\LigoWebhookController::handlePaymentNotification');
+$routes->post('webhooks/ligo', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification');
+$routes->match(['options'], 'webhooks/ligo', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification');
 
 // API Routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
