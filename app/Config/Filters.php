@@ -81,7 +81,8 @@ class Filters extends BaseConfig
             ],
             'except' => [
                 'clients/import*',
-                'invoices/import*'
+                'invoices/import*',
+                'webhooks/ligo'
             ]
         ],
     ];
