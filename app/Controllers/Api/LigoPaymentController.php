@@ -97,6 +97,7 @@ class LigoPaymentController extends ResourceController
                     'real_hash' => $isRealHash ? $qrDecoded['hash'] : null,
                     'hash_error' => !$isRealHash ? 'Hash temporal generado, necesita solicitar hash real' : null,
                     'order_id' => $qrDecoded['id'],
+                    'id_qr' => $qrDecoded['id_qr'] ?? null, // Add idQr for webhook matching
                     'invoice_id' => $invoice['id'],
                     'amount' => $qrDecoded['amount'] ?? 0,
                     'currency' => $qrDecoded['currency'] ?? 'PEN',
@@ -338,9 +339,33 @@ class LigoPaymentController extends ResourceController
             log_message('warning', 'No se encontró hash en getCreateQRByID para instalment, usando ID como fallback');
         }
         
+        // Extract idQr from Ligo response for webhook matching
+        $idQr = $qrDetails->data->idQr ?? null;
+        
+        // Save QR data to ligo_qr_hashes table for webhook matching
+        $hashModel = new \App\Models\LigoQRHashModel();
+        $isRealHash = !empty($qrHash) && strlen($qrHash) > 50; // Basic check for real hash
+        
+        $dataInsert = [
+            'hash' => $qrId, // Hash ID (order_id) para compatibilidad
+            'real_hash' => $isRealHash ? $qrHash : null,
+            'hash_error' => !$isRealHash ? 'Hash temporal generado, necesita solicitar hash real' : null,
+            'order_id' => $qrId,
+            'id_qr' => $idQr, // Add idQr for webhook matching
+            'invoice_id' => $invoice['id'],
+            'instalment_id' => $instalment['id'],
+            'amount' => $orderData['amount'],
+            'currency' => $orderData['currency'],
+            'description' => $orderData['description'],
+        ];
+        
+        $insertResult = $hashModel->insert($dataInsert);
+        log_message('info', '[LIGO] Instalment QR Hash insertado en ligo_qr_hashes: ' . json_encode($dataInsert) . ' | Resultado: ' . json_encode($insertResult));
+        
         // Crear objeto de respuesta con formato estandarizado
         $qrData = json_encode([
             'id' => $qrId,
+            'id_qr' => $idQr,
             'amount' => $orderData['amount'],
             'currency' => $orderData['currency'],
             'description' => $orderData['description'],
@@ -597,10 +622,14 @@ class LigoPaymentController extends ResourceController
             log_message('warning', 'No se encontró hash en getCreateQRByID, usando ID como fallback');
         }
         
+        // Extract idQr from Ligo response for webhook matching
+        $idQr = $qrDetails->data->idQr ?? null;
+        
         // Crear objeto de respuesta con formato estandarizado
         $result = new \stdClass();
         $result->qr_data = json_encode([
             'id' => $qrId,
+            'id_qr' => $idQr,
             'amount' => $qrTipo === '12' ? $data['amount'] : null,
             'currency' => $data['currency'] ?? 'PEN',
             'description' => $data['description'] ?? null,

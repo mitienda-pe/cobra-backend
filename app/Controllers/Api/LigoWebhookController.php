@@ -55,21 +55,22 @@ class LigoWebhookController extends ResourceController
         $responseMessage = 'OK';
         
         // Validate payload - Ligo sends direct payload structure (no type/data wrapper)
-        if (!$payload || !isset($payload->instructionId)) {
+        if (!$payload || !isset($payload->unstructuredInformation)) {
             log_message('error', 'Invalid Ligo webhook payload: ' . json_encode($payload));
             $responseCode = 400;
-            $responseMessage = 'Invalid webhook payload - missing instructionId';
+            $responseMessage = 'Invalid webhook payload - missing unstructuredInformation';
             $this->logWebhookAttempt($webhookId, 'unknown', $rawPayload, $responseCode, $responseMessage, $success);
             return $this->fail('Invalid webhook payload', 400);
         }
         
-        // Get invoice from instructionId using ligo_qr_hashes mapping table
-        $instructionId = $payload->instructionId ?? null;
+        // Get invoice from unstructuredInformation (idQr) using ligo_qr_hashes mapping table
+        $idQr = $payload->unstructuredInformation ?? null;
+        $instructionId = $payload->instructionId ?? null; // Keep for logging
         $ligoQRHashModel = new \App\Models\LigoQRHashModel();
-        $qrHash = $ligoQRHashModel->where('order_id', $instructionId)->first();
+        $qrHash = $ligoQRHashModel->where('id_qr', $idQr)->first();
         
         if (!$qrHash) {
-            log_message('error', 'Ligo webhook: QR Hash not found for instructionId: ' . $instructionId);
+            log_message('error', 'Ligo webhook: QR Hash not found for idQr: ' . $idQr . ' (instructionId: ' . $instructionId . ')');
             $responseCode = 404;
             $responseMessage = 'QR Hash not found';
             $this->logWebhookAttempt($webhookId, 'payment.notification', $rawPayload, $responseCode, $responseMessage, $success);
@@ -84,7 +85,7 @@ class LigoWebhookController extends ResourceController
         if ($instalmentId) {
             $instalment = $this->instalmentModel->find($instalmentId);
             if (!$instalment) {
-                log_message('error', 'Ligo webhook: Instalment not found for instalment_id: ' . $instalmentId . ' (instructionId: ' . $instructionId . ')');
+                log_message('error', 'Ligo webhook: Instalment not found for instalment_id: ' . $instalmentId . ' (idQr: ' . $idQr . ', instructionId: ' . $instructionId . ')');
                 $responseCode = 404;
                 $responseMessage = 'Instalment not found';
                 $this->logWebhookAttempt($webhookId, 'payment.notification', $rawPayload, $responseCode, $responseMessage, $success);
@@ -95,7 +96,7 @@ class LigoWebhookController extends ResourceController
         // Get invoice
         $invoice = $this->invoiceModel->find($invoiceId);
         if (!$invoice) {
-            log_message('error', 'Ligo webhook: Invoice not found for invoice_id: ' . $invoiceId . ' (instructionId: ' . $instructionId . ')');
+            log_message('error', 'Ligo webhook: Invoice not found for invoice_id: ' . $invoiceId . ' (idQr: ' . $idQr . ', instructionId: ' . $instructionId . ')');
             $responseCode = 404;
             $responseMessage = 'Invoice not found';
             return $this->fail('Invoice not found', 404);
@@ -150,8 +151,8 @@ class LigoWebhookController extends ResourceController
         $existingPayment = $query->first();
         if ($existingPayment) {
             $logMsg = $instalmentId ? 
-                '[LigoWebhook] Payment already processed for instalment: ' . $instalmentId . ' (instructionId: ' . $instructionId . ')' :
-                '[LigoWebhook] Payment already processed for invoice: ' . $invoiceId . ' (instructionId: ' . $instructionId . ')';
+                '[LigoWebhook] Payment already processed for instalment: ' . $instalmentId . ' (idQr: ' . $idQr . ', instructionId: ' . $instructionId . ')' :
+                '[LigoWebhook] Payment already processed for invoice: ' . $invoiceId . ' (idQr: ' . $idQr . ', instructionId: ' . $instructionId . ')';
             log_message('info', $logMsg);
             $success = true;
             $responseMessage = 'Payment already processed';
@@ -171,6 +172,8 @@ class LigoWebhookController extends ResourceController
             'payment_date' => $payload->transferDetails->transferDate ?? date('Y-m-d H:i:s'),
             'status' => 'completed',
             'notes' => json_encode([
+                'instruction_id' => $instructionId,
+                'id_qr' => $idQr,
                 'unstructured_information' => $payload->unstructuredInformation ?? '',
                 'payer_info' => $payload->originDetails ?? [],
                 'transfer_details' => $payload->transferDetails ?? [],
@@ -183,8 +186,8 @@ class LigoWebhookController extends ResourceController
         $this->paymentModel->insert($paymentData);
         
         $logMsg = $instalmentId ? 
-            '[LigoWebhook] Payment inserted for instalment: ' . $instalmentId . ' (instructionId: ' . $instructionId . ')' :
-            '[LigoWebhook] Payment inserted for invoice: ' . $invoiceId . ' (instructionId: ' . $instructionId . ')';
+            '[LigoWebhook] Payment inserted for instalment: ' . $instalmentId . ' (idQr: ' . $idQr . ', instructionId: ' . $instructionId . ')' :
+            '[LigoWebhook] Payment inserted for invoice: ' . $invoiceId . ' (idQr: ' . $idQr . ', instructionId: ' . $instructionId . ')';
         log_message('info', $logMsg);
         
         // Update instalment status if this is an instalment payment
@@ -219,7 +222,8 @@ class LigoWebhookController extends ResourceController
             'message' => 'Payment processed successfully', 
             'invoice_id' => $invoiceId, 
             'instalment_id' => $instalmentId,
-            'instruction_id' => $instructionId
+            'instruction_id' => $instructionId,
+            'id_qr' => $idQr
         ]);
     }
     
