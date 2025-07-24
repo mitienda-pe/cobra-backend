@@ -10,6 +10,7 @@ class LigoWebhookController extends ResourceController
     use ResponseTrait;
     
     protected $invoiceModel;
+    protected $instalmentModel;
     protected $organizationModel;
     protected $paymentModel;
     protected $webhookModel;
@@ -18,6 +19,7 @@ class LigoWebhookController extends ResourceController
     public function __construct()
     {
         $this->invoiceModel = new \App\Models\InvoiceModel();
+        $this->instalmentModel = new \App\Models\InstalmentModel();
         $this->organizationModel = new \App\Models\OrganizationModel();
         $this->paymentModel = new \App\Models\PaymentModel();
         $this->webhookModel = new \App\Models\WebhookModel();
@@ -61,15 +63,41 @@ class LigoWebhookController extends ResourceController
             return $this->fail('Invalid webhook payload', 400);
         }
         
-        // Get invoice from instructionId
-        $invoiceId = $payload->instructionId ?? null;
-        $invoice = $this->invoiceModel->find($invoiceId);
+        // Get invoice from instructionId using ligo_qr_hashes mapping table
+        $instructionId = $payload->instructionId ?? null;
+        $ligoQRHashModel = new \App\Models\LigoQRHashModel();
+        $qrHash = $ligoQRHashModel->where('order_id', $instructionId)->first();
         
+        if (!$qrHash) {
+            log_message('error', 'Ligo webhook: QR Hash not found for instructionId: ' . $instructionId);
+            $responseCode = 404;
+            $responseMessage = 'QR Hash not found';
+            $this->logWebhookAttempt($webhookId, 'payment.notification', $rawPayload, $responseCode, $responseMessage, $success);
+            return $this->fail('QR Hash not found', 404);
+        }
+        
+        $invoiceId = $qrHash['invoice_id'];
+        $instalmentId = $qrHash['instalment_id'] ?? null;
+        
+        // Get instalment if this is an instalment payment
+        $instalment = null;
+        if ($instalmentId) {
+            $instalment = $this->instalmentModel->find($instalmentId);
+            if (!$instalment) {
+                log_message('error', 'Ligo webhook: Instalment not found for instalment_id: ' . $instalmentId . ' (instructionId: ' . $instructionId . ')');
+                $responseCode = 404;
+                $responseMessage = 'Instalment not found';
+                $this->logWebhookAttempt($webhookId, 'payment.notification', $rawPayload, $responseCode, $responseMessage, $success);
+                return $this->fail('Instalment not found', 404);
+            }
+        }
+        
+        // Get invoice
+        $invoice = $this->invoiceModel->find($invoiceId);
         if (!$invoice) {
-            log_message('error', 'Ligo webhook: Invoice not found for instructionId/order_id: ' . $invoiceId);
+            log_message('error', 'Ligo webhook: Invoice not found for invoice_id: ' . $invoiceId . ' (instructionId: ' . $instructionId . ')');
             $responseCode = 404;
             $responseMessage = 'Invoice not found';
-            // No podemos log webhook attempt sin organizacion, solo retornamos error
             return $this->fail('Invoice not found', 404);
         }
         
@@ -111,12 +139,20 @@ class LigoWebhookController extends ResourceController
         
         // Process payment notification - Ligo webhooks are always payment confirmations
         // Check if payment already processed
-        $existingPayment = $this->paymentModel->where('invoice_id', $invoiceId)
-                                            ->where('payment_method', 'ligo_qr')
-                                            ->where('reference_code', $payload->instructionId)
-                                            ->first();
+        $query = $this->paymentModel->where('invoice_id', $invoiceId)
+                                   ->where('payment_method', 'ligo_qr')
+                                   ->where('reference_code', $instructionId);
+        
+        if ($instalmentId) {
+            $query->where('instalment_id', $instalmentId);
+        }
+        
+        $existingPayment = $query->first();
         if ($existingPayment) {
-            log_message('info', '[LigoWebhook] Payment already processed for invoice: ' . $invoiceId . ' (instructionId: ' . $payload->instructionId . ')');
+            $logMsg = $instalmentId ? 
+                '[LigoWebhook] Payment already processed for instalment: ' . $instalmentId . ' (instructionId: ' . $instructionId . ')' :
+                '[LigoWebhook] Payment already processed for invoice: ' . $invoiceId . ' (instructionId: ' . $instructionId . ')';
+            log_message('info', $logMsg);
             $success = true;
             $responseMessage = 'Payment already processed';
             $this->logWebhookAttempt($webhookId, 'payment.succeeded', $rawPayload, $responseCode, $responseMessage, $success);
@@ -126,11 +162,12 @@ class LigoWebhookController extends ResourceController
         // Crear registro de pago
         $paymentData = [
             'invoice_id' => $invoiceId,
+            'instalment_id' => $instalmentId, // Include instalment_id if it exists
             'amount' => $payload->transferDetails->amount ?? 0,
             'currency' => $payload->transferDetails->currency ?? 'PEN',
             'payment_method' => 'ligo_qr',
-            'reference_code' => $payload->instructionId,
-            'external_id' => $payload->instructionId,
+            'reference_code' => $instructionId,
+            'external_id' => $instructionId,
             'payment_date' => $payload->transferDetails->transferDate ?? date('Y-m-d H:i:s'),
             'status' => 'completed',
             'notes' => json_encode([
@@ -144,22 +181,32 @@ class LigoWebhookController extends ResourceController
             ])
         ];
         $this->paymentModel->insert($paymentData);
-        log_message('info', '[LigoWebhook] Payment inserted for invoice: ' . $invoiceId . ' (instructionId: ' . $payload->instructionId . ')');
         
-        // Actualizar estado de la factura si corresponde
+        $logMsg = $instalmentId ? 
+            '[LigoWebhook] Payment inserted for instalment: ' . $instalmentId . ' (instructionId: ' . $instructionId . ')' :
+            '[LigoWebhook] Payment inserted for invoice: ' . $invoiceId . ' (instructionId: ' . $instructionId . ')';
+        log_message('info', $logMsg);
+        
+        // Update instalment status if this is an instalment payment
+        if ($instalment && $instalment['status'] === 'pending') {
+            $this->instalmentModel->update($instalmentId, ['status' => 'paid']);
+            log_message('info', '[LigoWebhook] Instalment ' . $instalmentId . ' marked as PAID');
+        }
+        
+        // Update invoice status based on all instalments
         if (in_array($invoice['status'], ['pending', 'partially_paid'])) {
-            $invoiceTotal = floatval($invoice['total_amount'] ?? $invoice['amount']);
-            $paidSum = 0;
-            $payments = $this->paymentModel->where('invoice_id', $invoiceId)->where('status', 'completed')->findAll();
-            foreach ($payments as $p) {
-                $paidSum += floatval($p['amount']);
-            }
-            if ($paidSum >= $invoiceTotal) {
+            // Check if all instalments of this invoice are paid
+            $allInstalments = $this->instalmentModel->where('invoice_id', $invoiceId)->findAll();
+            $paidInstalments = $this->instalmentModel->where('invoice_id', $invoiceId)->where('status', 'paid')->findAll();
+            
+            if (count($allInstalments) === count($paidInstalments)) {
+                // All instalments are paid
                 $this->invoiceModel->update($invoiceId, ['status' => 'paid']);
-                log_message('info', '[LigoWebhook] Invoice ' . $invoiceId . ' marked as PAID (paidSum: ' . $paidSum . ', total: ' . $invoiceTotal . ')');
+                log_message('info', '[LigoWebhook] Invoice ' . $invoiceId . ' marked as PAID (all instalments paid)');
             } else {
+                // Some instalments are paid
                 $this->invoiceModel->update($invoiceId, ['status' => 'partially_paid']);
-                log_message('info', '[LigoWebhook] Invoice ' . $invoiceId . ' marked as PARTIALLY PAID (paidSum: ' . $paidSum . ', total: ' . $invoiceTotal . ')');
+                log_message('info', '[LigoWebhook] Invoice ' . $invoiceId . ' marked as PARTIALLY PAID (' . count($paidInstalments) . '/' . count($allInstalments) . ' instalments paid)');
             }
         }
         
@@ -168,7 +215,12 @@ class LigoWebhookController extends ResourceController
         $responseMessage = 'Payment processed successfully';
         $this->logWebhookAttempt($webhookId, 'payment.succeeded', $rawPayload, $responseCode, $responseMessage, $success);
         
-        return $this->respond(['message' => 'Payment processed successfully', 'invoice_id' => $invoiceId, 'instruction_id' => $payload->instructionId]);
+        return $this->respond([
+            'message' => 'Payment processed successfully', 
+            'invoice_id' => $invoiceId, 
+            'instalment_id' => $instalmentId,
+            'instruction_id' => $instructionId
+        ]);
     }
     
     /**
