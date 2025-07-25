@@ -193,6 +193,8 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         // Invoice import routes
         $routes->get('import', 'InvoiceController::import');
         $routes->post('import', 'InvoiceController::import');
+        // AJAX route for getting clients by organization
+        $routes->get('organization/(:segment)/clients', 'InvoiceController::getClientsByOrganization/$1');
     });
 
     // Portfolio Routes
