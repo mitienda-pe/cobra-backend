@@ -86,7 +86,7 @@
                             </div>
                         </div>
                         <?php if (empty($clients)): ?>
-                            <div class="form-text text-warning">No hay clientes disponibles para la organización seleccionada.</div>
+                            <div id="initial-client-warning" class="form-text text-warning">No hay clientes disponibles para la organización seleccionada.</div>
                         <?php endif; ?>
                         <div id="client-error" class="form-text text-danger d-none"></div>
                         <div id="client-empty" class="form-text text-warning d-none"></div>
@@ -272,12 +272,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const clientLoading = document.getElementById('client-loading');
             const clientError = document.getElementById('client-error');
             const clientEmpty = document.getElementById('client-empty');
+            const initialWarning = document.getElementById('initial-client-warning');
             
             if (!this.value) {
                 clientSelect.innerHTML = '<option value="">Seleccione un cliente</option>';
                 clientSelect.disabled = true;
                 clientError.classList.add('d-none');
                 clientEmpty.classList.add('d-none');
+                if (initialWarning) initialWarning.classList.remove('d-none');
                 return;
             }
             
@@ -285,6 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
             clientLoading.classList.remove('d-none');
             clientError.classList.add('d-none');
             clientEmpty.classList.add('d-none');
+            if (initialWarning) initialWarning.classList.add('d-none');
             
             // Obtener el UUID de la organización del atributo data-uuid
             const organizationUuid = organizationSelect.options[organizationSelect.selectedIndex].getAttribute('data-uuid');
@@ -325,6 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         clientSelect.appendChild(option);
                     });
                     clientSelect.disabled = false;
+                    if (initialWarning) initialWarning.classList.add('d-none');
                 })
                 .catch(error => {
                     console.error('Error:', error);
