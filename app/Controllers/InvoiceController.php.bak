@@ -103,7 +103,7 @@ class InvoiceController extends Controller
         if ($this->request->getMethod() === 'post') {
             $rules = [
                 'client_id'      => 'required|is_natural_no_zero',
-                'invoice_number' => 'required|max_length[50]',
+                'number' => 'required|max_length[50]',
                 'concept'        => 'required|max_length[255]',
                 'total_amount'         => 'required|numeric',
                 'issue_date'     => 'required|valid_date',
@@ -408,7 +408,7 @@ class InvoiceController extends Controller
         // Validate form
         $rules = [
             'client_id' => 'required|is_natural_no_zero',
-            'invoice_number' => 'required|max_length[50]',
+            'number' => 'required|max_length[50]',
             'concept' => 'required|max_length[255]',
             'total_amount' => 'required|numeric',
             'issue_date' => 'required|valid_date',

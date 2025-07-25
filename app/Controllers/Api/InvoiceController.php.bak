@@ -172,7 +172,7 @@ class InvoiceController extends ResourceController
         
         $rules = [
             'client_id'      => 'required|is_natural_no_zero',
-            'invoice_number' => 'required|max_length[50]',
+            'number' => 'required|max_length[50]',
             'concept'        => 'required|max_length[255]',
             'amount'         => 'required|numeric',
             'due_date'       => 'required|valid_date',
