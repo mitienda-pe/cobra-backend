@@ -14,7 +14,7 @@ class InvoiceModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'organization_id', 'client_id', 'client_uuid', 'uuid', 'external_id',
-        'number', 'concept', 'total_amount', 'currency', 'due_date', 'issue_date',
+        'invoice_number', 'concept', 'total_amount', 'currency', 'due_date', 'issue_date',
         'status', 'notes', 'document_type', 'series', 'client_document_type',
         'client_document_number', 'client_name', 'client_address', 'paid_amount'
     ];
@@ -30,7 +30,7 @@ class InvoiceModel extends Model
     protected $validationRules      = [
         'organization_id' => 'required|is_natural_no_zero',
         'client_id'      => 'required|is_natural_no_zero',
-        'number' => 'required|max_length[50]',
+        'invoice_number' => 'required|max_length[50]',
         'concept'        => 'required|max_length[255]',
         'total_amount'   => 'required|numeric',
         'issue_date'     => 'permit_empty|valid_date',
@@ -227,7 +227,7 @@ class InvoiceModel extends Model
      */
     public function isInvoiceNumberDuplicate($invoiceNumber, $organizationId, $excludeId = null)
     {
-        $builder = $this->where('number', $invoiceNumber)
+        $builder = $this->where('invoice_number', $invoiceNumber)
                        ->where('organization_id', $organizationId);
         
         // Exclude current invoice when editing
@@ -350,7 +350,7 @@ class InvoiceModel extends Model
                 'organization_id' => $organizationId,
                 'client_id'       => $clientId,
                 'external_id'     => $externalId,
-                'number'          => $invoiceNumber,
+                'invoice_number'  => $invoiceNumber,
                 'concept'         => $concept,
                 'total_amount'    => $amount,
                 'due_date'        => $dueDate,

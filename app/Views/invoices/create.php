@@ -93,9 +93,9 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="number" class="form-label">Número de Factura *</label>
-                        <input type="text" class="form-control" id="number" name="number" 
-                               value="<?= old('number') ?>" required maxlength="50">
+                        <label for="invoice_number" class="form-label">Número de Factura *</label>
+                        <input type="text" class="form-control" id="invoice_number" name="invoice_number" 
+                               value="<?= old('invoice_number') ?>" required maxlength="50">
                     </div>
 
                     <div class="mb-3">
