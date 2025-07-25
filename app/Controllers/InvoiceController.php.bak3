@@ -128,7 +128,7 @@ class InvoiceController extends Controller
                 
                 // Check if invoice number already exists in this organization
                 $existingInvoice = $this->invoiceModel->where('organization_id', $invoiceOrgId)
-                    ->where('invoice_number', $invoiceNumber)
+                    ->where('number', $invoiceNumber)
                     ->first();
                 
                 if ($existingInvoice) {
@@ -141,7 +141,7 @@ class InvoiceController extends Controller
                 $invoiceData = [
                     'organization_id' => $invoiceOrgId,
                     'client_id'      => $this->request->getPost('client_id'),
-                    'invoice_number' => $invoiceNumber,
+                    'number' => $invoiceNumber,
                     'concept'        => $this->request->getPost('concept'),
                     'total_amount'         => floatval(str_replace(',', '.', $this->request->getPost('total_amount'))),
                     'issue_date'     => $this->request->getPost('issue_date'),
@@ -197,7 +197,7 @@ class InvoiceController extends Controller
                             
                             $instalmentData = [
                                 'invoice_id' => $invoiceId,
-                                'invoice_number' => $i,
+                                'number' => $i,
                                 'amount' => $amount,
                                 'due_date' => $dueDate,
                                 'status' => 'pending',
@@ -281,7 +281,7 @@ class InvoiceController extends Controller
             $instalments[] = [
                 'id' => 0,
                 'invoice_id' => $invoice['id'],
-                'invoice_number' => 1,
+                'number' => 1,
                 'amount' => $invoice['total_amount'],
                 'due_date' => $invoice['due_date'],
                 'status' => $invoice['status'],
@@ -434,7 +434,7 @@ class InvoiceController extends Controller
         // Update invoice
         $data = [
             'client_id' => $this->request->getPost('client_id'),
-            'invoice_number' => $this->request->getPost('invoice_number'),
+            'number' => $this->request->getPost('invoice_number'),
             'concept' => $this->request->getPost('concept'),
             'total_amount' => $this->request->getPost('total_amount'),
             'issue_date' => $this->request->getPost('issue_date'),
@@ -446,7 +446,7 @@ class InvoiceController extends Controller
         ];
 
         // Check if invoice number already exists (excluding current invoice)
-        $existingInvoice = $this->invoiceModel->where('invoice_number', $data['invoice_number'])
+        $existingInvoice = $this->invoiceModel->where('number', $data['number'])
                                             ->where('id !=', $invoice['id'])
                                             ->where('organization_id', $invoice['organization_id'])
                                             ->first();
@@ -516,7 +516,7 @@ class InvoiceController extends Controller
                 
                 $instalmentData = [
                     'invoice_id' => $invoice['id'],
-                    'invoice_number' => $i,
+                    'number' => $i,
                     'amount' => $amount,
                     'due_date' => $dueDate,
                     'status' => 'pending',
@@ -700,7 +700,7 @@ class InvoiceController extends Controller
                                 'organization_id' => (int)$organizationId,
                                 'client_id'      => (int)$client['id'],
                                 'client_uuid'    => $client['uuid'],
-                                'invoice_number' => $rowData['number'] ?? $rowData['invoice_number'],
+                                'number' => $rowData['number'] ?? $rowData['invoice_number'],
                                 'concept'        => $rowData['concept'],
                                 'total_amount'         => (float)str_replace(',', '.', $rowData['total_amount']),
                                 'currency'       => strtoupper($rowData['currency']),
@@ -711,12 +711,12 @@ class InvoiceController extends Controller
                             ];
                             
                             // Check if invoice already exists
-                            $existingInvoice = $this->invoiceModel->where('invoice_number', $invoiceData['invoice_number'])
+                            $existingInvoice = $this->invoiceModel->where('number', $invoiceData['number'])
                                                                 ->where('organization_id', $organizationId)
                                                                 ->first();
                                                                 
                             if ($existingInvoice) {
-                                throw new \Exception("La factura {$invoiceData['invoice_number']} ya existe");
+                                throw new \Exception("La factura {$invoiceData['number']} ya existe");
                             }
                             
                             // Insert invoice
@@ -755,7 +755,7 @@ class InvoiceController extends Controller
                                 
                                 $instalmentData = [
                                     'invoice_id' => $invoiceId,
-                                    'invoice_number' => $i + 1,
+                                    'number' => $i + 1,
                                     'amount' => $amount,
                                     'due_date' => $instalmentDueDate,
                                     'status' => 'pending'

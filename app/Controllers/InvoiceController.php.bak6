@@ -711,12 +711,12 @@ class InvoiceController extends Controller
                             ];
                             
                             // Check if invoice already exists
-                            $existingInvoice = $this->invoiceModel->where('invoice_number', $invoiceData['invoice_number'])
+                            $existingInvoice = $this->invoiceModel->where('invoice_number', $invoiceData['number'])
                                                                 ->where('organization_id', $organizationId)
                                                                 ->first();
                                                                 
                             if ($existingInvoice) {
-                                throw new \Exception("La factura {$invoiceData['invoice_number']} ya existe");
+                                throw new \Exception("La factura {$invoiceData['number']} ya existe");
                             }
                             
                             // Insert invoice

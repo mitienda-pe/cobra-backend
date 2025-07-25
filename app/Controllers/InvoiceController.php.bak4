@@ -128,7 +128,7 @@ class InvoiceController extends Controller
                 
                 // Check if invoice number already exists in this organization
                 $existingInvoice = $this->invoiceModel->where('organization_id', $invoiceOrgId)
-                    ->where('invoice_number', $invoiceNumber)
+                    ->where('number', $invoiceNumber)
                     ->first();
                 
                 if ($existingInvoice) {
@@ -446,7 +446,7 @@ class InvoiceController extends Controller
         ];
 
         // Check if invoice number already exists (excluding current invoice)
-        $existingInvoice = $this->invoiceModel->where('invoice_number', $data['invoice_number'])
+        $existingInvoice = $this->invoiceModel->where('number', $data['number'])
                                             ->where('id !=', $invoice['id'])
                                             ->where('organization_id', $invoice['organization_id'])
                                             ->first();
@@ -711,12 +711,12 @@ class InvoiceController extends Controller
                             ];
                             
                             // Check if invoice already exists
-                            $existingInvoice = $this->invoiceModel->where('invoice_number', $invoiceData['invoice_number'])
+                            $existingInvoice = $this->invoiceModel->where('number', $invoiceData['number'])
                                                                 ->where('organization_id', $organizationId)
                                                                 ->first();
                                                                 
                             if ($existingInvoice) {
-                                throw new \Exception("La factura {$invoiceData['invoice_number']} ya existe");
+                                throw new \Exception("La factura {$invoiceData['number']} ya existe");
                             }
                             
                             // Insert invoice
