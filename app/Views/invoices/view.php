@@ -170,15 +170,15 @@
                                 }
                                 
                                 // Verificar si la cuota está completamente pagada
-                                $isPaid = $instalmentPaidAmount >= $instalment['amount'];
+                                $isPaid = $instalmentPaidAmount >= (isset($instalment['amount']) ? $instalment['amount'] : 0);
                             ?>
                                 <tr class="<?= $rowClass ?>">
-                                    <td><?= $instalment['number'] ?></td>
-                                    <td>S/ <?= number_format($instalment['amount'], 2) ?></td>
-                                    <td><?= date('d/m/Y', strtotime($instalment['due_date'])) ?></td>
+                                    <td><?= isset($instalment['number']) ? $instalment['number'] : 'N/A' ?></td>
+                                    <td>S/ <?= number_format(isset($instalment['amount']) ? $instalment['amount'] : 0, 2) ?></td>
+                                    <td><?= isset($instalment['due_date']) && $instalment['due_date'] ? date('d/m/Y', strtotime($instalment['due_date'])) : 'N/A' ?></td>
                                     <td>
-                                        <span class="badge bg-<?= $isPaid ? 'success' : ($instalment['status'] === 'pending' ? 'warning' : ($instalment['status'] === 'cancelled' ? 'danger' : ($instalment['status'] === 'expired' ? 'secondary' : 'info'))) ?>">
-                                            <?= $isPaid ? 'Paid' : ucfirst($instalment['status']) ?>
+                                        <span class="badge bg-<?= $isPaid ? 'success' : (isset($instalment['status']) && $instalment['status'] === 'pending' ? 'warning' : (isset($instalment['status']) && $instalment['status'] === 'cancelled' ? 'danger' : (isset($instalment['status']) && $instalment['status'] === 'expired' ? 'secondary' : 'info'))) ?>">
+                                            <?= $isPaid ? 'Paid' : (isset($instalment['status']) ? ucfirst($instalment['status']) : 'Unknown') ?>
                                         </span>
                                     </td>
                                     <td>

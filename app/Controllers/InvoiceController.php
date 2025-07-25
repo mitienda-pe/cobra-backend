@@ -198,7 +198,7 @@ class InvoiceController extends Controller
                             
                             $instalmentData = [
                                 'invoice_id' => $invoiceId,
-                                'invoice_number' => $i,
+                                'number' => $i,
                                 'amount' => $amount,
                                 'due_date' => $dueDate,
                                 'status' => 'pending',
@@ -518,7 +518,7 @@ class InvoiceController extends Controller
                 
                 $instalmentData = [
                     'invoice_id' => $invoice['id'],
-                    'invoice_number' => $i,
+                    'number' => $i,
                     'amount' => $amount,
                     'due_date' => $dueDate,
                     'status' => 'pending',
@@ -758,7 +758,7 @@ class InvoiceController extends Controller
                                 
                                 $instalmentData = [
                                     'invoice_id' => $invoiceId,
-                                    'invoice_number' => $i + 1,
+                                    'number' => $i + 1,
                                     'amount' => $amount,
                                     'due_date' => $instalmentDueDate,
                                     'status' => 'pending'
