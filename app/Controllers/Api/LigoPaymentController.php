@@ -341,6 +341,7 @@ class LigoPaymentController extends ResourceController
         
         // Extract idQr from Ligo response for webhook matching
         $idQr = $qrDetails->data->idQr ?? null;
+        log_message('error', '[LIGO_DEBUG] generateInstalmentQR - Extracted idQr: ' . json_encode($idQr) . ' from qrDetails: ' . json_encode($qrDetails));
         
         // Save QR data to ligo_qr_hashes table for webhook matching
         $hashModel = new \App\Models\LigoQRHashModel();
@@ -624,6 +625,7 @@ class LigoPaymentController extends ResourceController
         
         // Extract idQr from Ligo response for webhook matching
         $idQr = $qrDetails->data->idQr ?? null;
+        log_message('error', '[LIGO_DEBUG] generateQR - Extracted idQr: ' . json_encode($idQr) . ' from qrDetails: ' . json_encode($qrDetails));
         
         // Crear objeto de respuesta con formato estandarizado
         $result = new \stdClass();
