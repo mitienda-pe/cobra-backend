@@ -14,7 +14,7 @@ class InvoiceModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'organization_id', 'client_id', 'client_uuid', 'uuid', 'external_id',
-        'invoice_number', 'concept', 'amount', 'total_amount', 'currency', 'due_date', 'issue_date',
+        'invoice_number', 'concept', 'total_amount', 'currency', 'due_date', 'issue_date',
         'status', 'notes', 'document_type', 'series', 'client_document_type',
         'client_document_number', 'client_name', 'client_address', 'paid_amount'
     ];

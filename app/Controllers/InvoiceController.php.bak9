@@ -437,7 +437,6 @@ class InvoiceController extends Controller
             'client_id' => $this->request->getPost('client_id'),
             'invoice_number' => $this->request->getPost('invoice_number'),
             'concept' => $this->request->getPost('concept'),
-            'amount' => $this->request->getPost('total_amount'),
             'total_amount' => $this->request->getPost('total_amount'),
             'issue_date' => $this->request->getPost('issue_date'),
             'due_date' => $this->request->getPost('due_date'),
