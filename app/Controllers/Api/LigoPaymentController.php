@@ -97,7 +97,7 @@ class LigoPaymentController extends ResourceController
                     'real_hash' => $isRealHash ? $qrDecoded['hash'] : null,
                     'hash_error' => !$isRealHash ? 'Hash temporal generado, necesita solicitar hash real' : null,
                     'order_id' => $qrDecoded['id'],
-                    'id_qr' => $qrDecoded['id_qr'] ?? null, // Add idQr for webhook matching
+                    'id_qr' => $qrDecoded['id_qr'] ?? $qrDecoded['id'] ?? null, // Add idQr for webhook matching
                     'invoice_id' => $invoice['id'],
                     'amount' => $qrDecoded['amount'] ?? 0,
                     'currency' => $qrDecoded['currency'] ?? 'PEN',
@@ -340,7 +340,7 @@ class LigoPaymentController extends ResourceController
         }
         
         // Extract idQr from Ligo response for webhook matching
-        $idQr = $qrDetails->data->idQr ?? null;
+        $idQr = $qrDetails->data->idQr ?? $qrDetails->data->id ?? $qrId ?? null;
         log_message('error', '[LIGO_DEBUG] generateInstalmentQR - Extracted idQr: ' . json_encode($idQr) . ' from qrDetails: ' . json_encode($qrDetails));
         
         // Save QR data to ligo_qr_hashes table for webhook matching
