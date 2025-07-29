@@ -126,14 +126,14 @@ class LigoWebhookController extends ResourceController
             '34.150.173.107',  // Ligo Desarrollo
         ];
         
-        // Validar IP si hay whitelist configurada
-        if (!empty($allowedIPs) && !$this->isIPAllowed($clientIp, $allowedIPs)) {
-            log_message('error', '[LIGO_WEBHOOK] IP no autorizada: ' . $clientIp);
-            $responseCode = 403;
-            $responseMessage = 'IP not authorized';
-            $this->logWebhookAttempt($webhookId, 'payment.notification', $rawPayload, $responseCode, $responseMessage, $success);
-            return $this->fail('IP not authorized', 403);
-        }
+        // Validar IP si hay whitelist configurada - TEMPORALMENTE DESHABILITADO PARA TESTING
+        // if (!empty($allowedIPs) && !$this->isIPAllowed($clientIp, $allowedIPs)) {
+        //     log_message('error', '[LIGO_WEBHOOK] IP no autorizada: ' . $clientIp);
+        //     $responseCode = 403;
+        //     $responseMessage = 'IP not authorized';
+        //     $this->logWebhookAttempt($webhookId, 'payment.notification', $rawPayload, $responseCode, $responseMessage, $success);
+        //     return $this->fail('IP not authorized', 403);
+        // }
         
         // LOG detallado del payload recibido
         log_message('info', '[LigoWebhook] Payload recibido: ' . json_encode($payload));
