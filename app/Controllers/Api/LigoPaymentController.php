@@ -340,8 +340,22 @@ class LigoPaymentController extends ResourceController
         }
         
         // Extract idQr from Ligo response for webhook matching
-        $idQr = $qrDetails->data->idQr ?? $qrDetails->data->id ?? $qrId ?? null;
-        log_message('error', '[LIGO_DEBUG] generateInstalmentQR - Extracted idQr: ' . json_encode($idQr) . ' from qrDetails: ' . json_encode($qrDetails));
+        // Log complete response structure for debugging
+        log_message('error', '[LIGO_DEBUG] generateInstalmentQR - Complete qrDetails structure: ' . json_encode($qrDetails, JSON_PRETTY_PRINT));
+        
+        // Try multiple possible field names based on API documentation
+        $idQr = null;
+        if (isset($qrDetails->data)) {
+            $idQr = $qrDetails->data->idQr ?? 
+                    $qrDetails->data->idqr ?? 
+                    $qrDetails->data->id_qr ?? 
+                    $qrDetails->data->qr_id ?? 
+                    $qrDetails->data->id ?? 
+                    $qrId ?? 
+                    null;
+        }
+        
+        log_message('error', '[LIGO_DEBUG] generateInstalmentQR - Extracted idQr: ' . json_encode($idQr) . ' using fallback chain');
         
         // Save QR data to ligo_qr_hashes table for webhook matching
         $hashModel = new \App\Models\LigoQRHashModel();
@@ -624,8 +638,22 @@ class LigoPaymentController extends ResourceController
         }
         
         // Extract idQr from Ligo response for webhook matching
-        $idQr = $qrDetails->data->idQr ?? null;
-        log_message('error', '[LIGO_DEBUG] generateQR - Extracted idQr: ' . json_encode($idQr) . ' from qrDetails: ' . json_encode($qrDetails));
+        // Log complete response structure for debugging
+        log_message('error', '[LIGO_DEBUG] generateQR - Complete qrDetails structure: ' . json_encode($qrDetails, JSON_PRETTY_PRINT));
+        
+        // Try multiple possible field names based on API documentation
+        $idQr = null;
+        if (isset($qrDetails->data)) {
+            $idQr = $qrDetails->data->idQr ?? 
+                    $qrDetails->data->idqr ?? 
+                    $qrDetails->data->id_qr ?? 
+                    $qrDetails->data->qr_id ?? 
+                    $qrDetails->data->id ?? 
+                    $qrId ?? 
+                    null;
+        }
+        
+        log_message('error', '[LIGO_DEBUG] generateQR - Extracted idQr: ' . json_encode($idQr) . ' using fallback chain');
         
         // Crear objeto de respuesta con formato estandarizado
         $result = new \stdClass();
