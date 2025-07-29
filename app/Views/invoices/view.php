@@ -190,9 +190,23 @@
                                                 title="<?php 
                                                     $tooltipContent = '';
                                                     foreach ($instalmentPayments as $p) {
+                                                        $paymentMethod = '';
+                                                        switch($p['payment_method']) {
+                                                            case 'ligo_qr': $paymentMethod = 'QR-Ligo'; break;
+                                                            case 'cash': $paymentMethod = 'Efectivo'; break;
+                                                            case 'transfer': $paymentMethod = 'Transferencia'; break;
+                                                            case 'deposit': $paymentMethod = 'Depósito'; break;
+                                                            case 'check': $paymentMethod = 'Cheque'; break;
+                                                            case 'card': $paymentMethod = 'Tarjeta'; break;
+                                                            default: $paymentMethod = ucfirst($p['payment_method']); break;
+                                                        }
                                                         $tooltipContent .= date('d/m/Y', strtotime($p['payment_date'])) . ': ' . 
-                                                            'S/ ' . 
-                                                            number_format($p['amount'], 2) . '<br>';
+                                                            'S/ ' . number_format($p['amount'], 2) . 
+                                                            ' (' . $paymentMethod;
+                                                        if (!empty($p['reference_code'])) {
+                                                            $tooltipContent .= ' - Ref: ' . $p['reference_code'];
+                                                        }
+                                                        $tooltipContent .= ')<br>';
                                                     }
                                                     echo $tooltipContent;
                                                 ?>">

@@ -192,8 +192,13 @@ class LigoWebhookController extends ResourceController
         
         // Update instalment status if this is an instalment payment
         if ($instalment && $instalment['status'] === 'pending') {
-            $this->instalmentModel->update($instalmentId, ['status' => 'paid']);
-            log_message('info', '[LigoWebhook] Instalment ' . $instalmentId . ' marked as PAID');
+            $this->instalmentModel->update($instalmentId, [
+                'status' => 'paid',
+                'payment_method' => 'ligo_qr',
+                'ligo_qr_id' => $idQr,
+                'payment_reference' => $instructionId
+            ]);
+            log_message('info', '[LigoWebhook] Instalment ' . $instalmentId . ' marked as PAID with Ligo QR tracking');
         }
         
         // Update invoice status based on all instalments

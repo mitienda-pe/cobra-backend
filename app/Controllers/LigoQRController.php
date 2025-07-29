@@ -131,6 +131,12 @@ class LigoQRController extends Controller
      */
     public function ajaxQR($invoiceIdentifier, $instalmentId = null, $qrType = 'dynamic')
     {
+        // Use the same proven logic from PaymentController API
+        if ($instalmentId) {
+            return $this->generateInstalmentQRInternal($instalmentId);
+        }
+        
+        // Fallback to old logic for invoice-level QRs
         // Registrar información de depuración
         log_message('debug', 'ajaxQR llamado con identificador: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null') . ', qrType: ' . $qrType);
 
@@ -317,6 +323,86 @@ class LigoQRController extends Controller
         }
 
         return $this->response->setJSON($responseData);
+    }
+    
+    /**
+     * Generate QR for instalment using the same proven logic from PaymentController API
+     * This ensures DRY principle and consistency
+     */
+    private function generateInstalmentQRInternal($instalmentId)
+    {
+        // Simply redirect to use the same API endpoint that works
+        try {
+            // Create a PaymentController API instance
+            $apiController = new \App\Controllers\Api\PaymentController();
+            
+            // Set a mock user for the API call (since web doesn't have auth)
+            // We'll get the organization from the instalment instead
+            $instalmentModel = new \App\Models\InstalmentModel();
+            $instalment = $instalmentModel->find($instalmentId);
+            
+            if (!$instalment) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'error_message' => 'Instalment not found'
+                ]);
+            }
+            
+            $invoiceModel = new \App\Models\InvoiceModel();
+            $invoice = $invoiceModel->find($instalment['invoice_id']);
+            
+            if (!$invoice) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'error_message' => 'Invoice not found'
+                ]);
+            }
+            
+            // Simulate API user session for this request
+            $mockUser = [
+                'id' => 1,
+                'organization_id' => $invoice['organization_id'],
+                'role' => 'admin'
+            ];
+            session()->set('api_user', $mockUser);
+            
+            // Call the API method directly
+            $response = $apiController->generateInstalmentQR($instalmentId);
+            
+            // Clean up session
+            session()->remove('api_user');
+            
+            // Convert API response to web format
+            $responseBody = $response->getBody();
+            $apiData = json_decode($responseBody, true);
+            
+            if ($apiData && isset($apiData['success']) && $apiData['success']) {
+                $qrData = json_decode($apiData['qr_data'], true);
+                
+                return $this->response->setJSON([
+                    'success' => true,
+                    'invoice_number' => $invoice['invoice_number'] ?? $invoice['number'] ?? 'N/A',
+                    'amount' => number_format($instalment['amount'], 2),
+                    'currency' => $invoice['currency'] ?? 'PEN',
+                    'qr_data' => $apiData['qr_data'],
+                    'qr_image_url' => $apiData['qr_image_url'],
+                    'order_id' => $apiData['order_id'],
+                    'expiration' => date('d/m/Y H:i', strtotime('+1 hour'))
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'error_message' => $apiData['message'] ?? 'Error generating QR'
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Error in generateInstalmentQRInternal: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'error_message' => 'Internal error generating QR'
+            ]);
+        }
     }
 
     /**
