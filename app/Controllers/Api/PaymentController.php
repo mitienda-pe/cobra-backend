@@ -322,11 +322,25 @@ class PaymentController extends ResourceController
             }
         }
         
+        // Extract idQr from Ligo response for webhook matching
+        $idQr = null;
+        if (isset($qrDetails->data)) {
+            $idQr = $qrDetails->data->idQr ?? 
+                    $qrDetails->data->idqr ?? 
+                    $qrDetails->data->id_qr ?? 
+                    $qrDetails->data->qr_id ?? 
+                    $qrDetails->data->id ?? 
+                    $qrId ?? 
+                    null;
+        }
+        log_message('error', '[LIGO_DEBUG] PaymentController - Extracted idQr: ' . json_encode($idQr) . ' from qrDetails');
+
         $dataInsert = [
             'hash' => $qrId, // Hash ID (order_id) para la columna "Hash ID (Order)"
             'real_hash' => $isRealHash ? $qrHash : null, // Hash real solo si no es temporal
             'hash_error' => $errorMessage,
             'order_id' => $qrId,
+            'id_qr' => $idQr, // Add idQr for webhook matching
             'invoice_id' => $invoice['id'],
             'instalment_id' => $instalment['id'],
             'amount' => $qrDataArr['amount'],
