@@ -354,6 +354,12 @@ class PaymentController extends BaseController
             $instalmentModel = new InstalmentModel();
             $instalments = $instalmentModel->getByInvoice($invoice['id']);
             
+            // Debug: Log raw instalments from database
+            log_message('error', 'RAW INSTALMENTS FROM DB - Invoice ID: ' . $invoice['id'] . ', Count: ' . count($instalments));
+            foreach ($instalments as $i => $inst) {
+                log_message('error', "RAW INSTALMENT $i: ID={$inst['id']}, Number={$inst['number']}, Status={$inst['status']}, Amount={$inst['amount']}");
+            }
+            
             if (!empty($instalments)) {
                 // Categorizar las cuotas para mostrar información adicional en la vista
                 $today = date('Y-m-d');
@@ -386,6 +392,12 @@ class PaymentController extends BaseController
                     
                     // Determinar si es una cuota futura (no se puede pagar aún)
                     $instalment['is_future'] = !$instalment['can_be_paid'] && $instalment['status'] !== 'paid';
+                }
+                
+                // Debug: Log processed instalments before deduplication
+                log_message('error', 'PROCESSED INSTALMENTS BEFORE DEDUP - Count: ' . count($instalments));
+                foreach ($instalments as $i => $inst) {
+                    log_message('error', "PROCESSED INSTALMENT $i: ID={$inst['id']}, Number={$inst['number']}, Status={$inst['status']}, Paid={$inst['paid_amount']}, Remaining={$inst['remaining_amount']}, CanBePaid=" . ($inst['can_be_paid'] ? 'Yes' : 'No'));
                 }
                 
                 // Remove duplicates based on instalment ID to prevent duplicate options in select
