@@ -322,6 +322,20 @@ class InvoiceController extends Controller
             $instalment['is_future'] = !$instalment['can_be_paid'] && $instalment['status'] !== 'paid';
         }
 
+        // Cargar QR hashes asociados a la factura
+        $ligoQRHashModel = new \App\Models\LigoQRHashModel();
+        $qrHashes = $ligoQRHashModel->where('invoice_id', $invoice['id'])
+                                   ->orderBy('created_at', 'DESC')
+                                   ->findAll();
+        
+        // Crear un array indexado por instalment_id para acceso rápido
+        $qrHashesByInstalment = [];
+        foreach ($qrHashes as $qrHash) {
+            if ($qrHash['instalment_id']) {
+                $qrHashesByInstalment[$qrHash['instalment_id']] = $qrHash;
+            }
+        }
+
         $data = [
             'auth' => $this->auth,
             'invoice' => $invoice,
@@ -330,7 +344,9 @@ class InvoiceController extends Controller
             'total_paid' => $total_paid,
             'remaining_amount' => $remaining_amount,
             'instalments' => $instalments,
-            'has_instalments' => $has_instalments
+            'has_instalments' => $has_instalments,
+            'qrHashes' => $qrHashes,
+            'qrHashesByInstalment' => $qrHashesByInstalment
         ];
 
         return view('invoices/view', $data);

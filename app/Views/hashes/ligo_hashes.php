@@ -15,13 +15,12 @@
                     <tr>
                         <th>ID</th>
                         <th>Hash ID (Order)</th>
-                        <th>Hash Real de LIGO</th>
-                        <th>Invoice ID</th>
-                        <th>Instalment ID</th>
+                        <th>ID QR</th>
+                        <th>Invoice</th>
+                        <th>Cuota</th>
                         <th>Monto</th>
-                        <th>Moneda</th>
-                        <th>Descripción</th>
-                        <th>Estado</th>
+                        <th>Estado QR</th>
+                        <th>Estado Pago</th>
                         <th>Creado</th>
                         <th>Acciones</th>
                     </tr>
@@ -29,52 +28,104 @@
                 <tbody>
                     <?php if (empty($hashes)): ?>
                         <tr>
-                            <td colspan="11" class="text-center">No hay hashes generados.</td>
+                            <td colspan="10" class="text-center">No hay hashes generados.</td>
                         </tr>
-                        <?php else: foreach ($hashes as $h): ?>
+                        <?php else: foreach ($hashes as $h): 
+                            // Calcular el monto correcto
+                            $displayAmount = $h['amount'] ?? 0;
+                            if ($displayAmount >= 100) {
+                                $displayAmount = $displayAmount / 100; // Convertir centavos a soles
+                            }
+                            
+                            // Buscar información de pago para esta cuota
+                            $paymentStatus = 'No pagado';
+                            $paymentBadgeClass = 'bg-warning';
+                            if (isset($h['instalment_id']) && $h['instalment_id']) {
+                                // Verificar si hay pagos para esta cuota (esto requiere que el controlador pase la información)
+                                $instalmentStatus = $h['instalment_status'] ?? 'unknown';
+                                if ($instalmentStatus === 'paid') {
+                                    $paymentStatus = 'Pagado';
+                                    $paymentBadgeClass = 'bg-success';
+                                } elseif ($instalmentStatus === 'pending') {
+                                    $paymentStatus = 'Pendiente';
+                                    $paymentBadgeClass = 'bg-warning';
+                                }
+                            }
+                        ?>
                             <tr>
                                 <td><?= esc($h['id']) ?></td>
                                 <td class="hash-id">
-                                    <code><?= esc($h['order_id']) ?></code>
+                                    <code class="small"><?= esc($h['order_id']) ?></code>
                                 </td>
-                                <td class="real-hash">
-                                    <?php if (!empty($h['real_hash'])): ?>
-                                        <code class="text-success"><?= esc(substr($h['real_hash'], 0, 50)) ?><?= strlen($h['real_hash']) > 50 ? '...' : '' ?></code>
-                                        <?php if (strlen($h['real_hash']) > 50): ?>
-                                            <br><small class="text-muted">Ver completo en acciones</small>
-                                        <?php endif; ?>
-                                    <?php elseif (!empty($h['hash_error'])): ?>
-                                        <span class="text-danger">Error</span>
-                                        <br><small class="text-muted"><?= esc(substr($h['hash_error'], 0, 30)) ?>...</small>
+                                <td>
+                                    <?php if (!empty($h['id_qr'])): ?>
+                                        <code class="small text-info"><?= esc($h['id_qr']) ?></code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-1" onclick="copyToClipboard('<?= esc($h['id_qr']) ?>')" title="Copiar ID QR">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
                                     <?php else: ?>
-                                        <span class="text-warning">Pendiente</span>
+                                        <span class="text-muted">-</span>
                                     <?php endif; ?>
                                 </td>
-                                <td><?= esc($h['invoice_id']) ?></td>
-                                <td><?= esc($h['instalment_id'] ?? '-') ?></td>
-                                <td><?= esc($h['amount']) ?></td>
-                                <td><?= esc($h['currency']) ?></td>
-                                <td><?= esc($h['description']) ?></td>
+                                <td>
+                                    <?php if ($h['invoice_id']): ?>
+                                        <div>
+                                            <strong>#<?= esc($h['invoice_id']) ?></strong>
+                                            <?php if (isset($h['invoice_number'])): ?>
+                                                <br><small class="text-muted"><?= esc($h['invoice_number']) ?></small>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if ($h['instalment_id']): ?>
+                                        <div>
+                                            <strong>Cuota <?= esc($h['instalment_number'] ?? '#' . $h['instalment_id']) ?></strong>
+                                            <br><small class="text-muted">ID: <?= esc($h['instalment_id']) ?></small>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <strong>S/ <?= number_format($displayAmount, 2) ?></strong>
+                                    <?php if ($h['currency'] && $h['currency'] !== 'PEN'): ?>
+                                        <br><small class="text-muted"><?= esc($h['currency']) ?></small>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <?php if (!empty($h['real_hash'])): ?>
-                                        <span class="badge bg-success">Completo</span>
+                                        <span class="badge bg-success">QR Generado</span>
                                     <?php elseif (!empty($h['hash_error'])): ?>
                                         <span class="badge bg-danger">Error</span>
+                                        <br><small class="text-muted"><?= esc(substr($h['hash_error'], 0, 30)) ?>...</small>
                                     <?php else: ?>
                                         <span class="badge bg-warning">Pendiente</span>
                                     <?php endif; ?>
                                 </td>
-                                <td><?= esc($h['created_at']) ?></td>
+                                <td>
+                                    <span class="badge <?= $paymentBadgeClass ?>"><?= $paymentStatus ?></span>
+                                </td>
+                                <td>
+                                    <?= date('d/m/Y H:i', strtotime($h['created_at'])) ?>
+                                </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <?php if (empty($h['real_hash']) && empty($h['hash_error'])): ?>
-                                            <button class="btn btn-warning btn-sm" onclick="requestHash('<?= esc($h['id']) ?>', '<?= esc($h['order_id']) ?>')">
-                                                <i class="bi bi-arrow-clockwise"></i> Solicitar Hash
+                                            <button class="btn btn-warning btn-sm" onclick="requestHash('<?= esc($h['id']) ?>', '<?= esc($h['order_id']) ?>')" title="Solicitar Hash">
+                                                <i class="bi bi-arrow-clockwise"></i>
                                             </button>
                                         <?php endif; ?>
-                                        <button class="btn btn-info btn-sm" onclick="viewDetails('<?= esc($h['id']) ?>')">
-                                            <i class="bi bi-eye"></i> Ver
+                                        <button class="btn btn-info btn-sm" onclick="viewDetails('<?= esc($h['id']) ?>')" title="Ver detalles">
+                                            <i class="bi bi-eye"></i>
                                         </button>
+                                        <?php if ($h['invoice_id']): ?>
+                                            <a href="<?= site_url('invoices/view/' . ($h['invoice_uuid'] ?? $h['invoice_id'])) ?>" class="btn btn-outline-primary btn-sm" title="Ver factura" target="_blank">
+                                                <i class="bi bi-receipt"></i>
+                                            </a>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -130,6 +181,32 @@
 <script>
     let currentHashId = null;
     let currentOrderId = null;
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            // Mostrar notificación de éxito
+            const toast = document.createElement('div');
+            toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ID QR copiado al portapapeles
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }, function(err) {
+            console.error('Error al copiar: ', err);
+        });
+    }
 
     function requestHash(hashId, orderId) {
         currentHashId = hashId;

@@ -142,6 +142,7 @@
                                 <th>Vencimiento</th>
                                 <th>Estado</th>
                                 <th>Pagos</th>
+                                <th>QR</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -165,7 +166,13 @@
                                 foreach ($payments as $payment) {
                                     if (isset($payment['instalment_id']) && $payment['instalment_id'] == $instalment['id']) {
                                         $instalmentPayments[] = $payment;
-                                        $instalmentPaidAmount += $payment['amount'];
+                                        // Convertir centavos a soles para pagos de Ligo QR
+                                        $paymentAmount = $payment['amount'];
+                                        if ($payment['payment_method'] === 'ligo_qr' && $paymentAmount >= 100) {
+                                            // Si es pago Ligo y el monto es >= 100, probablemente está en centavos
+                                            $paymentAmount = $paymentAmount / 100;
+                                        }
+                                        $instalmentPaidAmount += $paymentAmount;
                                     }
                                 }
                                 
@@ -200,11 +207,18 @@
                                                             case 'card': $paymentMethod = 'Tarjeta'; break;
                                                             default: $paymentMethod = ucfirst($p['payment_method']); break;
                                                         }
+                                                        
+                                                        // Convertir centavos a soles para mostrar en tooltip
+                                                        $displayAmount = $p['amount'];
+                                                        if ($p['payment_method'] === 'ligo_qr' && $displayAmount >= 100) {
+                                                            $displayAmount = $displayAmount / 100;
+                                                        }
+                                                        
                                                         $tooltipContent .= date('d/m/Y', strtotime($p['payment_date'])) . ': ' . 
-                                                            'S/ ' . number_format($p['amount'], 2) . 
+                                                            'S/ ' . number_format($displayAmount, 2) . 
                                                             ' (' . $paymentMethod;
                                                         if (!empty($p['reference_code'])) {
-                                                            $tooltipContent .= ' - Ref: ' . $p['reference_code'];
+                                                            $tooltipContent .= ' - Ref: ' . substr($p['reference_code'], 0, 10) . '..';
                                                         }
                                                         $tooltipContent .= ')<br>';
                                                     }
@@ -212,6 +226,24 @@
                                                 ?>">
                                                 <i class="bi bi-info-circle"></i>
                                             </button>
+                                        <?php else: ?>
+                                            <span class="text-muted">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if (isset($qrHashesByInstalment[$instalment['id']])): 
+                                            $qrHash = $qrHashesByInstalment[$instalment['id']]; ?>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-info me-2">QR</span>
+                                                <small class="text-muted" title="ID QR: <?= esc($qrHash['id_qr'] ?? 'N/A') ?>">
+                                                    <?= substr($qrHash['id_qr'] ?? 'N/A', -8) ?>
+                                                </small>
+                                            </div>
+                                            <div class="mt-1">
+                                                <a href="<?= site_url('ligo/hashes') ?>" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                                    <i class="bi bi-eye"></i> Ver
+                                                </a>
+                                            </div>
                                         <?php else: ?>
                                             <span class="text-muted">-</span>
                                         <?php endif; ?>
