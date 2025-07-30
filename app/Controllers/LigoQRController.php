@@ -490,7 +490,7 @@ class LigoQRController extends Controller
         try {
             $curl = curl_init();
             
-            $prefix = 'prod'; // Cambiado a prod para producción
+            $prefix = 'dev'; // Temporalmente de vuelta a dev para test
             $url = 'https://cce-auth-' . $prefix . '.ligocloud.tech/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
             
             log_message('info', 'LIGO AUTH REQUEST - URL: ' . $url);
@@ -556,7 +556,7 @@ class LigoQRController extends Controller
         try {
             // Step 1: Create QR (same as PaymentController)
             $curl = curl_init();
-            $prefix = 'prod';
+            $prefix = 'dev';
             $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
             
             $idCuenta = !empty($organization['ligo_account_id']) ? $organization['ligo_account_id'] : '92100178794744781044';
@@ -1234,7 +1234,7 @@ class LigoQRController extends Controller
             }
 
             // URL para generar QR según la documentación
-            $prefix = 'prod'; // Cambiado a prod para producción
+            $prefix = 'dev'; // Temporalmente de vuelta a dev para test
             $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/createQr';
 
             log_message('debug', 'URL para generar QR: ' . $url);
@@ -1330,7 +1330,7 @@ class LigoQRController extends Controller
             $curl = curl_init();
             
             // URL para obtener detalles del QR según Postman
-            $prefix = 'prod'; // Cambiado a prod para producción
+            $prefix = 'dev'; // Temporalmente de vuelta a dev para test
             $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
             
             log_message('debug', 'URL para obtener detalles del QR: ' . $url);
