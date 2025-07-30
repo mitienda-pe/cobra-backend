@@ -74,6 +74,7 @@
                             <select class="form-select" id="instalment_id" name="instalment_id">
                                 <option value="">Pago general (sin asociar a cuota específica)</option>
                                 <?php foreach($instalments as $instalment): ?>
+                                    <!-- DEBUG: Cuota <?= $instalment['number'] ?> - Status: <?= $instalment['status'] ?> - Remaining: <?= $instalment['remaining_amount'] ?> - Paid: <?= $instalment['paid_amount'] ?? 'N/A' ?> -->
                                     <?php if($instalment['status'] !== 'paid' && $instalment['remaining_amount'] > 0): ?>
                                     <option value="<?= $instalment['id'] ?>" 
                                             data-amount="<?= $instalment['remaining_amount'] ?>"

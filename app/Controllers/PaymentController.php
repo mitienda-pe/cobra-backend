@@ -401,6 +401,12 @@ class PaymentController extends BaseController
                     }
                 }
                 
+                // Debug: Log all instalments details
+                log_message('error', 'PAYMENT CREATE DEBUG - Total instalments found: ' . count($uniqueInstalments));
+                foreach ($uniqueInstalments as $i => $inst) {
+                    log_message('error', "INSTALMENT $i: ID={$inst['id']}, Number={$inst['number']}, Status={$inst['status']}, Amount={$inst['amount']}, Paid={$inst['paid_amount']}, Remaining={$inst['remaining_amount']}");
+                }
+                
                 $data['instalments'] = $uniqueInstalments;
                 
                 // Si se proporciona un ID de cuota, verificar que sea válido y preseleccionarlo
