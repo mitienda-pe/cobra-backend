@@ -124,6 +124,7 @@ class LigoWebhookController extends ResourceController
         $allowedIPs = [
             '35.221.25.179',   // Ligo Producción
             '34.150.173.107',  // Ligo Desarrollo
+            '190.237.15.74',   // TEMPORAL: IP para testing - REMOVER DESPUÉS
         ];
         
         // Validar IP si hay whitelist configurada
