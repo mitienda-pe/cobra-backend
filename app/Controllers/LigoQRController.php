@@ -1230,6 +1230,10 @@ class LigoQRController extends Controller
 
             $decoded = json_decode($response);
 
+            log_message('error', 'LIGO QR CREATE DEBUG - Raw response: ' . $response);
+            log_message('error', 'LIGO QR CREATE DEBUG - Decoded: ' . json_encode($decoded));
+            log_message('error', 'LIGO QR CREATE DEBUG - HTTP Code: ' . $info['http_code']);
+
             if (json_last_error() !== JSON_ERROR_NONE) {
                 log_message('error', 'Error decodificando respuesta de generación de QR: ' . json_last_error_msg());
                 return (object)['error' => 'Invalid JSON in QR generation response: ' . json_last_error_msg()];
@@ -1238,7 +1242,8 @@ class LigoQRController extends Controller
             // Verificar si hay errores en la respuesta
             if (!isset($decoded->data) || !isset($decoded->data->id)) {
                 log_message('error', 'Error en la respuesta de generación de QR: ' . json_encode($decoded));
-                return (object)['error' => 'Error in QR generation response: ' . json_encode($decoded)];
+                log_message('error', 'LIGO QR CREATE ERROR - Response structure: data=' . (isset($decoded->data) ? 'exists' : 'missing') . ', id=' . (isset($decoded->data->id) ? 'exists' : 'missing'));
+                return (object)['error' => 'Invalid response from Ligo API: ' . json_encode($decoded)];
             }
 
             return $decoded;
