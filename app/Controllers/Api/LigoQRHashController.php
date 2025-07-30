@@ -150,7 +150,7 @@ class LigoQRHashController extends ResourceController
                     'hash' => $realHash
                 ]);
             } else {
-                $errorMsg = 'No hash found in LIGO response';
+                $errorMsg = 'QR hash not available from Ligo (QR may have expired or been consumed)';
                 $this->ligoQRHashModel->update($id, [
                     'hash_error' => $errorMsg . '. Response: ' . json_encode($qrDetails)
                 ]);
@@ -342,6 +342,11 @@ class LigoQRHashController extends ResourceController
             
             if (!isset($decoded->data)) {
                 return (object)['error' => 'No data in response: ' . $response];
+            }
+            
+            // Check if data is empty object (QR expired or not found)
+            if (is_object($decoded->data) && empty((array)$decoded->data)) {
+                return (object)['error' => 'QR not found in Ligo (may have expired)'];
             }
             
             return $decoded;

@@ -125,9 +125,18 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <?php if (empty($h['real_hash']) && empty($h['hash_error'])): ?>
+                                        <?php 
+                                        // Don't show request button if QR is older than 24 hours (likely expired)
+                                        $qrAge = time() - strtotime($h['created_at']);
+                                        $isOldQR = $qrAge > (24 * 60 * 60); // 24 hours
+                                        ?>
+                                        <?php if (empty($h['real_hash']) && empty($h['hash_error']) && !$isOldQR): ?>
                                             <button class="btn btn-warning btn-sm" onclick="requestHash('<?= esc($h['id']) ?>', '<?= esc($h['order_id']) ?>')" title="Solicitar Hash">
                                                 <i class="bi bi-arrow-clockwise"></i>
+                                            </button>
+                                        <?php elseif (empty($h['real_hash']) && empty($h['hash_error']) && $isOldQR): ?>
+                                            <button class="btn btn-secondary btn-sm" disabled title="QR muy antiguo (>24h), probablemente expirado">
+                                                <i class="bi bi-clock"></i>
                                             </button>
                                         <?php endif; ?>
                                         <button class="btn btn-info btn-sm" onclick="viewDetails('<?= esc($h['id']) ?>')" title="Ver detalles">
