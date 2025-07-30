@@ -151,6 +151,7 @@ class LigoQRController extends Controller
     public function ajaxQR($invoiceIdentifier, $instalmentId = null, $qrType = 'dynamic')
     {
         // Registrar información de depuración
+        log_message('error', '[WEB QR] ajaxQR llamado con identificador: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null') . ', qrType: ' . $qrType);
         log_message('debug', 'ajaxQR llamado con identificador: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null') . ', qrType: ' . $qrType);
 
         // Intentar obtener la factura por UUID primero
@@ -545,7 +546,9 @@ class LigoQRController extends Controller
             
             $decoded = json_decode($response);
             if (!$decoded || !isset($decoded->data) || !isset($decoded->data->id)) {
-                return ['error' => 'Invalid response from Ligo API'];
+                log_message('error', 'LIGO QR DETAILS ERROR - Raw response: ' . $response);
+                log_message('error', 'LIGO QR DETAILS ERROR - Decoded: ' . json_encode($decoded));
+                return ['error' => 'Invalid response from Ligo API (QR Details)'];
             }
             
             // Step 2: Get QR details (same as PaymentController)
