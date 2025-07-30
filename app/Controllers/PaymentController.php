@@ -390,6 +390,9 @@ class PaymentController extends BaseController
                     // Determinar si es una cuota que se puede pagar (todas las anteriores están pagadas)
                     $instalment['can_be_paid'] = $instalmentModel->canBePaid($instalment['id']);
                     
+                    // TEMPORAL: Permitir pagar cualquier cuota pendiente para diagnóstico
+                    $instalment['can_be_paid'] = ($instalment['status'] !== 'paid');
+                    
                     // Determinar si es una cuota futura (no se puede pagar aún)
                     $instalment['is_future'] = !$instalment['can_be_paid'] && $instalment['status'] !== 'paid';
                 }
@@ -405,9 +408,11 @@ class PaymentController extends BaseController
                 $seenIds = [];
                 
                 foreach ($instalments as $instalment) {
+                    log_message('error', "DEDUP PROCESSING: ID={$instalment['id']}, Number={$instalment['number']}, InSeenIds=" . (in_array($instalment['id'], $seenIds) ? 'Yes' : 'No'));
                     if (!in_array($instalment['id'], $seenIds)) {
                         $uniqueInstalments[] = $instalment;
                         $seenIds[] = $instalment['id'];
+                        log_message('error', "DEDUP ADDED: ID={$instalment['id']}, Number={$instalment['number']}");
                     } else {
                         log_message('warning', 'Duplicate instalment found and removed: ID ' . $instalment['id'] . ', Number ' . $instalment['number']);
                     }
