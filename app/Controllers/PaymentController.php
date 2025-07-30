@@ -273,6 +273,17 @@ class PaymentController extends BaseController
                     // Si no queda saldo pendiente, marcar la factura como pagada
                     if ($remainingAfterPayment <= 0) {
                         $invoiceModel->update($invoice['id'], ['status' => 'paid']);
+                        
+                        // También marcar todas las cuotas pendientes como pagadas cuando la factura esté 100% pagada
+                        $instalmentModel = new InstalmentModel();
+                        $pendingInstalments = $instalmentModel->where('invoice_id', $invoice['id'])
+                                                            ->where('status', 'pending')
+                                                            ->findAll();
+                        
+                        foreach ($pendingInstalments as $pendingInstalment) {
+                            $instalmentModel->update($pendingInstalment['id'], ['status' => 'paid']);
+                            log_message('info', 'Marked instalment ' . $pendingInstalment['id'] . ' as paid due to invoice completion');
+                        }
                     }
                     
                     $db->transComplete();
