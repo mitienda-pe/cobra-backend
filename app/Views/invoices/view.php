@@ -148,13 +148,15 @@
                         </thead>
                         <tbody>
                             <?php 
-                            // Función para convertir pagos a soles consistentemente
-                            function normalizePaymentAmount($amount, $paymentMethod) {
-                                // Para pagos Ligo QR, convertir de centavos a soles si el monto parece estar en centavos
-                                if ($paymentMethod === 'ligo_qr' && $amount >= 100) {
-                                    return $amount / 100;
+                            // Función para convertir pagos a soles consistentemente (fuera del bucle)
+                            if (!function_exists('normalizePaymentAmount')) {
+                                function normalizePaymentAmount($amount, $paymentMethod) {
+                                    // Para pagos Ligo QR, convertir de centavos a soles si el monto parece estar en centavos
+                                    if ($paymentMethod === 'ligo_qr' && $amount >= 100) {
+                                        return $amount / 100;
+                                    }
+                                    return $amount;
                                 }
-                                return $amount;
                             }
                             
                             // Mostrar todas las cuotas en esta vista

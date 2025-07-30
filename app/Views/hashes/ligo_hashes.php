@@ -26,20 +26,23 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($hashes)): ?>
+                    <?php 
+                    // Función para normalizar montos consistentemente (fuera del bucle)
+                    if (!function_exists('normalizeAmount')) {
+                        function normalizeAmount($amount) {
+                            // Convertir centavos a soles si el monto parece estar en centavos
+                            if ($amount >= 100) {
+                                return $amount / 100;
+                            }
+                            return $amount;
+                        }
+                    }
+                    
+                    if (empty($hashes)): ?>
                         <tr>
                             <td colspan="10" class="text-center">No hay hashes generados.</td>
                         </tr>
                         <?php else: foreach ($hashes as $h): 
-                            // Función para normalizar montos consistentemente
-                            function normalizeAmount($amount) {
-                                // Convertir centavos a soles si el monto parece estar en centavos
-                                if ($amount >= 100) {
-                                    return $amount / 100;
-                                }
-                                return $amount;
-                            }
-                            
                             // Calcular el monto correcto
                             $displayAmount = normalizeAmount($h['amount'] ?? 0);
                             
