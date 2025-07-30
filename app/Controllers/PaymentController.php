@@ -367,7 +367,12 @@ class PaymentController extends BaseController
                         
                     $instalmentPaid = 0;
                     foreach ($instalmentPayments as $payment) {
-                        $instalmentPaid += $payment['amount'];
+                        $paymentAmount = $payment['amount'];
+                        // Convertir centavos a soles para pagos de Ligo QR
+                        if ($payment['payment_method'] === 'ligo_qr' && $paymentAmount >= 100) {
+                            $paymentAmount = $paymentAmount / 100;
+                        }
+                        $instalmentPaid += $paymentAmount;
                     }
                     
                     $instalment['paid_amount'] = $instalmentPaid;
