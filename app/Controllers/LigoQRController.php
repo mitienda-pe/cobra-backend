@@ -1239,10 +1239,10 @@ class LigoQRController extends Controller
                 return (object)['error' => 'Invalid JSON in QR generation response: ' . json_last_error_msg()];
             }
 
-            // Verificar si hay errores en la respuesta
-            if (!isset($decoded->data) || !isset($decoded->data->id)) {
+            // Verificar si hay errores en la respuesta - La API devuelve status=1 para éxito
+            if (!isset($decoded->status) || $decoded->status != 1 || !isset($decoded->data) || !isset($decoded->data->id)) {
                 log_message('error', 'Error en la respuesta de generación de QR: ' . json_encode($decoded));
-                log_message('error', 'LIGO QR CREATE ERROR - Response structure: data=' . (isset($decoded->data) ? 'exists' : 'missing') . ', id=' . (isset($decoded->data->id) ? 'exists' : 'missing'));
+                log_message('error', 'LIGO QR CREATE ERROR - Response structure: status=' . (isset($decoded->status) ? $decoded->status : 'missing') . ', data=' . (isset($decoded->data) ? 'exists' : 'missing') . ', id=' . (isset($decoded->data->id) ? 'exists' : 'missing'));
                 return (object)['error' => 'Invalid response from Ligo API: ' . json_encode($decoded)];
             }
 
