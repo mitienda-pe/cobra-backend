@@ -30,7 +30,6 @@ class LigoQRController extends Controller
             'methods_available' => [
                 'ajaxQR',
                 'generateInstalmentQRInternal', 
-                'getAuthTokenForWeb',
                 'generateQRUsingPaymentControllerLogic',
                 'getQRDetailsById'
             ]
@@ -444,16 +443,16 @@ class LigoQRController extends Controller
         
         try {
             // Get auth token (same as PaymentController)
-            $authToken = $this->getAuthTokenForWeb($organization);
-            if (isset($authToken['error'])) {
+            $authToken = $this->getLigoAuthToken($organization);
+            if (isset($authToken->error)) {
                 return $this->response->setJSON([
                     'success' => false,
-                    'error_message' => $authToken['error']
+                    'error_message' => $authToken->error
                 ]);
             }
             
             // Generate QR using the same logic
-            $result = $this->generateQRUsingPaymentControllerLogic($orderData, $authToken, $organization, $invoice, $instalment);
+            $result = $this->generateQRUsingPaymentControllerLogic($orderData, ['token' => $authToken->token], $organization, $invoice, $instalment);
             
             if (isset($result['error'])) {
                 return $this->response->setJSON([
@@ -482,71 +481,6 @@ class LigoQRController extends Controller
         }
     }
 
-    /**
-     * Get auth token using same logic as PaymentController
-     */
-    private function getAuthTokenForWeb($organization)
-    {
-        try {
-            $curl = curl_init();
-            
-            $prefix = 'dev'; // Temporalmente de vuelta a dev para test
-            $url = 'https://cce-auth-' . $prefix . '.ligocloud.tech/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
-            
-            log_message('info', 'LIGO AUTH REQUEST - URL: ' . $url);
-            log_message('info', 'LIGO AUTH REQUEST - Username: ' . $organization['ligo_username']);
-            log_message('info', 'LIGO AUTH REQUEST - Company ID: ' . $organization['ligo_company_id']);
-            
-            curl_setopt_array($curl, [
-                CURLOPT_URL => $url,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 30,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => json_encode([
-                    'username' => $organization['ligo_username'],
-                    'password' => $organization['ligo_password']
-                ]),
-                CURLOPT_HTTPHEADER => [
-                    'Content-Type: application/json'
-                ],
-                CURLOPT_SSL_VERIFYHOST => 0,
-                CURLOPT_SSL_VERIFYPEER => false,
-            ]);
-            
-            $response = curl_exec($curl);
-            $err = curl_error($curl);
-            curl_close($curl);
-            
-            if ($err) {
-                return ['error' => 'cURL Error: ' . $err];
-            }
-            
-            $decoded = json_decode($response, true);
-            
-            log_message('error', 'LIGO AUTH DEBUG - Raw response: ' . $response);
-            log_message('error', 'LIGO AUTH DEBUG - Decoded: ' . json_encode($decoded));
-            log_message('error', 'LIGO AUTH DEBUG - HTTP Code: ' . $info['http_code'] ?? 'unknown');
-            
-            if (!$decoded || !isset($decoded['data']['access_token'])) {
-                $errorDetails = [
-                    'decoded_exists' => !empty($decoded),
-                    'data_exists' => isset($decoded['data']),
-                    'token_exists' => isset($decoded['data']['access_token']),
-                    'response_keys' => $decoded ? array_keys($decoded) : 'none',
-                    'data_keys' => isset($decoded['data']) ? array_keys($decoded['data']) : 'none'
-                ];
-                log_message('error', 'LIGO AUTH ERROR - Details: ' . json_encode($errorDetails));
-                return ['error' => 'Invalid response from Ligo Auth API - ' . json_encode($errorDetails)];
-            }
-            
-            return ['token' => $decoded['data']['access_token']];
-        } catch (\Exception $e) {
-            return ['error' => 'Exception: ' . $e->getMessage()];
-        }
-    }
     
     /**
      * Generate QR using the exact same logic as PaymentController
