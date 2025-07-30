@@ -388,7 +388,20 @@ class PaymentController extends BaseController
                     $instalment['is_future'] = !$instalment['can_be_paid'] && $instalment['status'] !== 'paid';
                 }
                 
-                $data['instalments'] = $instalments;
+                // Remove duplicates based on instalment ID to prevent duplicate options in select
+                $uniqueInstalments = [];
+                $seenIds = [];
+                
+                foreach ($instalments as $instalment) {
+                    if (!in_array($instalment['id'], $seenIds)) {
+                        $uniqueInstalments[] = $instalment;
+                        $seenIds[] = $instalment['id'];
+                    } else {
+                        log_message('warning', 'Duplicate instalment found and removed: ID ' . $instalment['id'] . ', Number ' . $instalment['number']);
+                    }
+                }
+                
+                $data['instalments'] = $uniqueInstalments;
                 
                 // Si se proporciona un ID de cuota, verificar que sea válido y preseleccionarlo
                 if ($instalmentId) {
