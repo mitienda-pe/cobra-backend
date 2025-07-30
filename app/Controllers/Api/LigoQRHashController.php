@@ -56,13 +56,18 @@ class LigoQRHashController extends ResourceController
      */
     public function requestRealHash($id = null)
     {
+        log_message('info', '[requestRealHash] Called with ID: ' . ($id ?? 'null'));
+        
         if (!$id) {
+            log_message('error', '[requestRealHash] No ID provided');
             return $this->failValidationErrors('Hash ID is required');
         }
         
         $hash = $this->ligoQRHashModel->find($id);
+        log_message('info', '[requestRealHash] Hash found: ' . ($hash ? 'Yes' : 'No'));
         
         if (!$hash) {
+            log_message('error', '[requestRealHash] Hash not found for ID: ' . $id);
             return $this->failNotFound('Hash not found');
         }
         
