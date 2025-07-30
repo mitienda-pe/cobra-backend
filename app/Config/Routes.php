@@ -235,6 +235,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
 
     // Ligo Payment Routes
     $routes->group('payment/ligo', function ($routes) {
+        $routes->get('debug', 'LigoQRController::debug');
         $routes->get('qr/(:segment)', 'LigoQRController::index/$1');
         $routes->get('qr/(:segment)/(:num)', 'LigoQRController::index/$1/$2');
         $routes->get('ajax-qr/(:segment)', 'LigoQRController::ajaxQR/$1');
