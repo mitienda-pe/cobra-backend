@@ -148,17 +148,19 @@
                         </thead>
                         <tbody>
                             <?php 
+                            // Función para convertir pagos a soles consistentemente
+                            function normalizePaymentAmount($amount, $paymentMethod) {
+                                // Para pagos Ligo QR, convertir de centavos a soles si el monto parece estar en centavos
+                                if ($paymentMethod === 'ligo_qr' && $amount >= 100) {
+                                    return $amount / 100;
+                                }
+                                return $amount;
+                            }
+                            
                             // Mostrar todas las cuotas en esta vista
                             foreach ($instalments as $instalment): 
                                 // Calcular clase CSS para la fila
                                 $rowClass = '';
-                                if (isset($instalment['status'])) {
-                                    if ($instalment['status'] === 'paid') {
-                                        $rowClass = 'table-success';
-                                    } elseif (isset($instalment['is_overdue']) && $instalment['is_overdue']) {
-                                        $rowClass = 'table-danger';
-                                    }
-                                }
                                 
                                 // Buscar pagos asociados a esta cuota
                                 $instalmentPayments = [];
@@ -166,18 +168,23 @@
                                 foreach ($payments as $payment) {
                                     if (isset($payment['instalment_id']) && $payment['instalment_id'] == $instalment['id']) {
                                         $instalmentPayments[] = $payment;
-                                        // Convertir centavos a soles para pagos de Ligo QR
-                                        $paymentAmount = $payment['amount'];
-                                        if ($payment['payment_method'] === 'ligo_qr' && $paymentAmount >= 100) {
-                                            // Si es pago Ligo y el monto es >= 100, probablemente está en centavos
-                                            $paymentAmount = $paymentAmount / 100;
-                                        }
+                                        $paymentAmount = normalizePaymentAmount($payment['amount'], $payment['payment_method']);
                                         $instalmentPaidAmount += $paymentAmount;
                                     }
                                 }
                                 
-                                // Verificar si la cuota está completamente pagada
-                                $isPaid = $instalmentPaidAmount >= (isset($instalment['amount']) ? $instalment['amount'] : 0);
+                                // Verificar si la cuota está completamente pagada basándose en los pagos reales
+                                $instalmentAmount = isset($instalment['amount']) ? $instalment['amount'] : 0;
+                                $isPaid = $instalmentPaidAmount >= $instalmentAmount;
+                                
+                                // Actualizar la clase CSS basándose en el estado real de pagos
+                                if ($isPaid) {
+                                    $rowClass = 'table-success';
+                                } elseif (isset($instalment['is_overdue']) && $instalment['is_overdue']) {
+                                    $rowClass = 'table-danger';
+                                } elseif (isset($instalment['status']) && $instalment['status'] === 'pending') {
+                                    $rowClass = '';
+                                }
                             ?>
                                 <tr class="<?= $rowClass ?>">
                                     <td><?= isset($instalment['number']) ? $instalment['number'] : 'N/A' ?></td>
@@ -209,10 +216,7 @@
                                                         }
                                                         
                                                         // Convertir centavos a soles para mostrar en tooltip
-                                                        $displayAmount = $p['amount'];
-                                                        if ($p['payment_method'] === 'ligo_qr' && $displayAmount >= 100) {
-                                                            $displayAmount = $displayAmount / 100;
-                                                        }
+                                                        $displayAmount = normalizePaymentAmount($p['amount'], $p['payment_method']);
                                                         
                                                         $tooltipContent .= date('d/m/Y', strtotime($p['payment_date'])) . ': ' . 
                                                             'S/ ' . number_format($displayAmount, 2) . 

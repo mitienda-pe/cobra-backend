@@ -31,24 +31,33 @@
                             <td colspan="10" class="text-center">No hay hashes generados.</td>
                         </tr>
                         <?php else: foreach ($hashes as $h): 
-                            // Calcular el monto correcto
-                            $displayAmount = $h['amount'] ?? 0;
-                            if ($displayAmount >= 100) {
-                                $displayAmount = $displayAmount / 100; // Convertir centavos a soles
+                            // Función para normalizar montos consistentemente
+                            function normalizeAmount($amount) {
+                                // Convertir centavos a soles si el monto parece estar en centavos
+                                if ($amount >= 100) {
+                                    return $amount / 100;
+                                }
+                                return $amount;
                             }
                             
-                            // Buscar información de pago para esta cuota
+                            // Calcular el monto correcto
+                            $displayAmount = normalizeAmount($h['amount'] ?? 0);
+                            
+                            // Usar el estado real calculado en el controlador
                             $paymentStatus = 'No pagado';
                             $paymentBadgeClass = 'bg-warning';
                             if (isset($h['instalment_id']) && $h['instalment_id']) {
-                                // Verificar si hay pagos para esta cuota (esto requiere que el controlador pase la información)
-                                $instalmentStatus = $h['instalment_status'] ?? 'unknown';
-                                if ($instalmentStatus === 'paid') {
+                                if (isset($h['is_actually_paid']) && $h['is_actually_paid']) {
                                     $paymentStatus = 'Pagado';
                                     $paymentBadgeClass = 'bg-success';
-                                } elseif ($instalmentStatus === 'pending') {
+                                } else {
                                     $paymentStatus = 'Pendiente';
                                     $paymentBadgeClass = 'bg-warning';
+                                }
+                                
+                                // Mostrar el monto total pagado si existe
+                                if (isset($h['total_paid']) && $h['total_paid'] > 0) {
+                                    $paymentStatus .= '<br><small>S/ ' . number_format($h['total_paid'], 2) . '</small>';
                                 }
                             }
                         ?>
