@@ -619,56 +619,6 @@ class LigoQRController extends Controller
             return ['error' => 'Exception: ' . $e->getMessage()];
         }
     }
-    
-    /**
-     * Get QR details by ID (copied from PaymentController)
-     */
-    private function getQRDetailsById($qrId, $token, $organization)
-    {
-        try {
-            $curl = curl_init();
-            $prefix = 'dev';
-            $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
-            
-            curl_setopt_array($curl, [
-                CURLOPT_URL => $url,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 30,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'GET',
-                CURLOPT_HTTPHEADER => [
-                    'Content-Type: application/json',
-                    'Authorization: Bearer ' . $token
-                ],
-                CURLOPT_SSL_VERIFYHOST => 0,
-                CURLOPT_SSL_VERIFYPEER => false,
-            ]);
-            
-            $response = curl_exec($curl);
-            $err = curl_error($curl);
-            curl_close($curl);
-            
-            if ($err) {
-                return (object)['error' => 'cURL Error: ' . $err];
-            }
-            
-            $decoded = json_decode($response);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return (object)['error' => 'Invalid JSON in QR details response: ' . json_last_error_msg()];
-            }
-            
-            if (!isset($decoded->data)) {
-                return (object)['error' => 'No data in QR details response'];
-            }
-            
-            return $decoded;
-            
-        } catch (\Exception $e) {
-            return (object)['error' => 'Exception getting QR details: ' . $e->getMessage()];
-        }
-    }
 
     /**
      * Display QR code page for invoice payment
