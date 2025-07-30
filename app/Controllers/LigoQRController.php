@@ -18,6 +18,26 @@ class LigoQRController extends Controller
     }
     
     /**
+     * Debug endpoint to verify deployment
+     */
+    public function debug()
+    {
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'LigoQRController loaded successfully',
+            'timestamp' => date('Y-m-d H:i:s'),
+            'version' => 'v2.0-fixed-duplicate-method',
+            'methods_available' => [
+                'ajaxQR',
+                'generateInstalmentQRInternal', 
+                'getAuthTokenForWeb',
+                'generateQRUsingPaymentControllerLogic',
+                'getQRDetailsById'
+            ]
+        ]);
+    }
+    
+    /**
      * Generate static QR code for an organization
      *
      * @param string $organizationUuid UUID de la organización
