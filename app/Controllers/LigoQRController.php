@@ -285,6 +285,13 @@ class LigoQRController extends Controller
 
         // Intentar generar QR solo si las credenciales están configuradas
         if (!empty($organization['ligo_username']) && !empty($organization['ligo_password']) && !empty($organization['ligo_company_id'])) {
+            // Si hay un instalmentId, usar el método que obtiene hash real
+            if ($instalmentId) {
+                log_message('info', '[ajaxQR] Using generateInstalmentQRInternal for instalment ' . $instalmentId);
+                return $this->generateInstalmentQRInternal($instalmentId);
+            }
+            
+            // Para pagos de factura completa, usar el método original
             // Preparar datos para la orden
             $orderData = [
                 'amount' => $paymentAmount,
