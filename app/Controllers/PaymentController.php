@@ -354,18 +354,13 @@ class PaymentController extends BaseController
             $instalmentModel = new InstalmentModel();
             $instalments = $instalmentModel->getByInvoice($invoice['id']);
             
-            // Debug: Log raw instalments from database
-            log_message('error', 'RAW INSTALMENTS FROM DB - Invoice ID: ' . $invoice['id'] . ', Count: ' . count($instalments));
-            foreach ($instalments as $i => $inst) {
-                log_message('error', "RAW INSTALMENT $i: ID={$inst['id']}, Number={$inst['number']}, Status={$inst['status']}, Amount={$inst['amount']}");
-            }
             
             if (!empty($instalments)) {
                 // Categorizar las cuotas para mostrar información adicional en la vista
                 $today = date('Y-m-d');
                 
                 // Calculate remaining amount for each instalment
-                foreach ($instalments as &$instalment) {
+                foreach ($instalments as $key => $instalment) {
                     $instalmentPayments = $this->paymentModel
                         ->where('instalment_id', $instalment['id'])
                         ->where('status', 'completed')
@@ -381,48 +376,34 @@ class PaymentController extends BaseController
                         $instalmentPaid += $paymentAmount;
                     }
                     
-                    $instalment['paid_amount'] = $instalmentPaid;
-                    $instalment['remaining_amount'] = $instalment['amount'] - $instalmentPaid;
+                    $instalments[$key]['paid_amount'] = $instalmentPaid;
+                    $instalments[$key]['remaining_amount'] = $instalment['amount'] - $instalmentPaid;
                     
                     // Determinar si es una cuota vencida
-                    $instalment['is_overdue'] = ($instalment['status'] !== 'paid' && $instalment['due_date'] < $today);
+                    $instalments[$key]['is_overdue'] = ($instalment['status'] !== 'paid' && $instalment['due_date'] < $today);
                     
                     // Determinar si es una cuota que se puede pagar (todas las anteriores están pagadas)
-                    $instalment['can_be_paid'] = $instalmentModel->canBePaid($instalment['id']);
+                    $instalments[$key]['can_be_paid'] = $instalmentModel->canBePaid($instalment['id']);
                     
                     // TEMPORAL: Permitir pagar cualquier cuota pendiente para diagnóstico
-                    $instalment['can_be_paid'] = ($instalment['status'] !== 'paid');
+                    $instalments[$key]['can_be_paid'] = ($instalment['status'] !== 'paid');
                     
                     // Determinar si es una cuota futura (no se puede pagar aún)
-                    $instalment['is_future'] = !$instalment['can_be_paid'] && $instalment['status'] !== 'paid';
+                    $instalments[$key]['is_future'] = !$instalments[$key]['can_be_paid'] && $instalment['status'] !== 'paid';
                 }
                 
-                // Debug: Log processed instalments before deduplication
-                log_message('error', 'PROCESSED INSTALMENTS BEFORE DEDUP - Count: ' . count($instalments));
-                foreach ($instalments as $i => $inst) {
-                    log_message('error', "PROCESSED INSTALMENT $i: ID={$inst['id']}, Number={$inst['number']}, Status={$inst['status']}, Paid={$inst['paid_amount']}, Remaining={$inst['remaining_amount']}, CanBePaid=" . ($inst['can_be_paid'] ? 'Yes' : 'No'));
-                }
                 
                 // Remove duplicates based on instalment ID to prevent duplicate options in select
                 $uniqueInstalments = [];
                 $seenIds = [];
                 
                 foreach ($instalments as $instalment) {
-                    log_message('error', "DEDUP PROCESSING: ID={$instalment['id']}, Number={$instalment['number']}, InSeenIds=" . (in_array($instalment['id'], $seenIds) ? 'Yes' : 'No'));
                     if (!in_array($instalment['id'], $seenIds)) {
                         $uniqueInstalments[] = $instalment;
                         $seenIds[] = $instalment['id'];
-                        log_message('error', "DEDUP ADDED: ID={$instalment['id']}, Number={$instalment['number']}");
-                    } else {
-                        log_message('warning', 'Duplicate instalment found and removed: ID ' . $instalment['id'] . ', Number ' . $instalment['number']);
                     }
                 }
                 
-                // Debug: Log all instalments details
-                log_message('error', 'PAYMENT CREATE DEBUG - Total instalments found: ' . count($uniqueInstalments));
-                foreach ($uniqueInstalments as $i => $inst) {
-                    log_message('error', "INSTALMENT $i: ID={$inst['id']}, Number={$inst['number']}, Status={$inst['status']}, Amount={$inst['amount']}, Paid={$inst['paid_amount']}, Remaining={$inst['remaining_amount']}");
-                }
                 
                 $data['instalments'] = $uniqueInstalments;
                 
