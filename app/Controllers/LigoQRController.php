@@ -151,12 +151,6 @@ class LigoQRController extends Controller
      */
     public function ajaxQR($invoiceIdentifier, $instalmentId = null, $qrType = 'dynamic')
     {
-        // Use the same proven logic from PaymentController API
-        if ($instalmentId) {
-            return $this->generateInstalmentQRInternal($instalmentId);
-        }
-        
-        // Fallback to old logic for invoice-level QRs
         // Registrar información de depuración
         log_message('debug', 'ajaxQR llamado con identificador: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null') . ', qrType: ' . $qrType);
 
@@ -302,8 +296,44 @@ class LigoQRController extends Controller
             // Log para depuración
             log_message('debug', 'Intentando crear orden en Ligo con datos: ' . json_encode($orderData));
 
-            // Crear orden en Ligo
+            // Crear orden en Ligo (usar método original que funciona)
             $response = $this->createLigoOrder($orderData, $organization);
+            
+            // Si QR se generó exitosamente, guardar en base de datos para webhook matching
+            if (!isset($response->error) && isset($response->order_id)) {
+                try {
+                    $hashModel = new \App\Models\LigoQRHashModel();
+                    
+                    // Extraer idQr de la respuesta (misma lógica que PaymentController)
+                    $idQr = null;
+                    if (isset($response->qr_id)) {
+                        $idQr = $response->qr_id;
+                    } elseif (isset($response->data) && isset($response->data->id)) {
+                        $idQr = $response->data->id;
+                    } elseif (isset($response->order_id)) {
+                        $idQr = $response->order_id;
+                    }
+                    
+                    if ($idQr) {
+                        $hashData = [
+                            'invoice_id' => $invoice['id'],
+                            'instalment_id' => $instalmentId,
+                            'id_qr' => $idQr,
+                            'hash' => $response->qr_data ?? $idQr,
+                            'amount' => $paymentAmount,
+                            'currency' => $invoice['currency'] ?? 'PEN',
+                            'is_real_hash' => !empty($response->qr_data) ? 1 : 0,
+                            'created_at' => date('Y-m-d H:i:s')
+                        ];
+                        
+                        $hashModel->insert($hashData);
+                        log_message('info', '[ajaxQR] QR hash saved for webhook matching with id_qr: ' . $idQr);
+                    }
+                } catch (\Exception $e) {
+                    log_message('error', '[ajaxQR] Error saving QR hash to database: ' . $e->getMessage());
+                    // Continue execution even if database save fails
+                }
+            }
 
             // Log de respuesta
             log_message('debug', 'Respuesta de Ligo: ' . json_encode($response));
