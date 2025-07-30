@@ -493,6 +493,10 @@ class LigoQRController extends Controller
             $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
             $url = 'https://cce-auth-' . $prefix . '.ligocloud.tech/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
             
+            log_message('info', 'LIGO AUTH REQUEST - URL: ' . $url);
+            log_message('info', 'LIGO AUTH REQUEST - Username: ' . $organization['ligo_username']);
+            log_message('info', 'LIGO AUTH REQUEST - Company ID: ' . $organization['ligo_company_id']);
+            
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
                 CURLOPT_RETURNTRANSFER => true,
@@ -522,8 +526,20 @@ class LigoQRController extends Controller
             
             $decoded = json_decode($response, true);
             
+            log_message('error', 'LIGO AUTH DEBUG - Raw response: ' . $response);
+            log_message('error', 'LIGO AUTH DEBUG - Decoded: ' . json_encode($decoded));
+            log_message('error', 'LIGO AUTH DEBUG - HTTP Code: ' . $info['http_code'] ?? 'unknown');
+            
             if (!$decoded || !isset($decoded['data']['access_token'])) {
-                return ['error' => 'Invalid response from Ligo Auth API'];
+                $errorDetails = [
+                    'decoded_exists' => !empty($decoded),
+                    'data_exists' => isset($decoded['data']),
+                    'token_exists' => isset($decoded['data']['access_token']),
+                    'response_keys' => $decoded ? array_keys($decoded) : 'none',
+                    'data_keys' => isset($decoded['data']) ? array_keys($decoded['data']) : 'none'
+                ];
+                log_message('error', 'LIGO AUTH ERROR - Details: ' . json_encode($errorDetails));
+                return ['error' => 'Invalid response from Ligo Auth API - ' . json_encode($errorDetails)];
             }
             
             return ['token' => $decoded['data']['access_token']];
