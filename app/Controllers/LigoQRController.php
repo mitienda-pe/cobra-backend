@@ -555,7 +555,13 @@ class LigoQRController extends Controller
             $qrId = $decoded->data->id;
             sleep(2); // Wait for Ligo to process
             
-            $qrDetails = $this->getQRDetailsById($qrId, $authToken['token'], $organization);
+            // Get fresh auth token for QR details call
+            $freshAuthToken = $this->getLigoAuthToken($organization);
+            if (isset($freshAuthToken->error)) {
+                return ['error' => 'Auth error for QR details: ' . $freshAuthToken->error];
+            }
+            
+            $qrDetails = $this->getQRDetailsById($qrId, $freshAuthToken->token, $organization);
             if (isset($qrDetails->error)) {
                 return ['error' => 'Error obtaining QR details: ' . $qrDetails->error];
             }
