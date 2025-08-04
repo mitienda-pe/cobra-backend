@@ -191,6 +191,27 @@
 
         <?php endif; ?>
 
+        /* Menu divider */
+        .menu-divider {
+            height: 1px;
+            background-color: var(--notion-border);
+            margin: 8px 16px;
+        }
+
+        /* Sidebar notice */
+        .sidebar-notice {
+            margin: 16px 8px;
+            padding: 16px;
+            background-color: rgba(13, 110, 253, 0.05);
+            border-radius: 6px;
+            border: 1px solid rgba(13, 110, 253, 0.1);
+        }
+
+        .sidebar-notice small {
+            line-height: 1.4;
+            display: block;
+        }
+
         /* User profile section at bottom of sidebar */
         .sidebar-footer {
             position: sticky;
@@ -396,68 +417,122 @@
 
             <!-- Sidebar menu -->
             <div class="sidebar-menu">
-                <a href="<?= site_url('dashboard') ?>" class="sidebar-item <?= $currentPath === '/dashboard' ? 'active' : '' ?>">
-                    <i class="bi bi-speedometer2"></i>
-                    <span class="sidebar-item-text">Dashboard</span>
-                </a>
-
                 <?php if ($isSuperadmin): ?>
                     <a href="<?= site_url('organizations') ?>" class="sidebar-item <?= strpos($currentPath, '/organizations') === 0 ? 'active' : '' ?>">
                         <i class="bi bi-building"></i>
                         <span class="sidebar-item-text">Organizaciones</span>
                     </a>
-                <?php endif; ?>
+                    
+                    <?php if ($selectedOrgId): ?>
+                        <!-- Show full menu only when organization is selected -->
+                        <div class="menu-divider"></div>
+                        
+                        <a href="<?= site_url('dashboard') ?>" class="sidebar-item <?= $currentPath === '/dashboard' ? 'active' : '' ?>">
+                            <i class="bi bi-speedometer2"></i>
+                            <span class="sidebar-item-text">Dashboard</span>
+                        </a>
 
-                <?php if ($isAdmin): ?>
-                    <a href="<?= site_url('users') ?>" class="sidebar-item <?= strpos($currentPath, '/users') === 0 ? 'active' : '' ?>">
-                        <i class="bi bi-people"></i>
-                        <span class="sidebar-item-text">Usuarios</span>
+                        <a href="<?= site_url('users') ?>" class="sidebar-item <?= strpos($currentPath, '/users') === 0 ? 'active' : '' ?>">
+                            <i class="bi bi-people"></i>
+                            <span class="sidebar-item-text">Usuarios</span>
+                        </a>
+
+                        <a href="<?= site_url('clients') ?>" class="sidebar-item <?= $currentPath === '/clients' ? 'active' : '' ?>">
+                            <i class="bi bi-person-vcard"></i>
+                            <span class="sidebar-item-text">Clientes</span>
+                        </a>
+
+                        <a href="<?= site_url('portfolios') ?>" class="sidebar-item <?= $currentPath === '/portfolios' ? 'active' : '' ?>">
+                            <i class="bi bi-folder"></i>
+                            <span class="sidebar-item-text">Carteras</span>
+                        </a>
+
+                        <a href="<?= site_url('invoices') ?>" class="sidebar-item <?= $currentPath === '/invoices' ? 'active' : '' ?>">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <span class="sidebar-item-text">Facturas</span>
+                        </a>
+
+                        <a href="<?= site_url('instalments') ?>" class="sidebar-item <?= $currentPath === '/instalments' ? 'active' : '' ?>">
+                            <i class="bi bi-calendar-check"></i>
+                            <span class="sidebar-item-text">Cuotas</span>
+                        </a>
+
+                        <a href="<?= site_url('payments') ?>" class="sidebar-item <?= $currentPath === '/payments' ? 'active' : '' ?>">
+                            <i class="bi bi-credit-card"></i>
+                            <span class="sidebar-item-text">Pagos</span>
+                        </a>
+
+                        <a href="<?= site_url('payments/report') ?>" class="sidebar-item <?= $currentPath === '/payments/report' ? 'active' : '' ?>">
+                            <i class="bi bi-bar-chart"></i>
+                            <span class="sidebar-item-text">Reportes</span>
+                        </a>
+
+                        <a href="<?= site_url('webhooks') ?>" class="sidebar-item <?= $currentPath === '/webhooks' ? 'active' : '' ?>">
+                            <i class="bi bi-link-45deg"></i>
+                            <span class="sidebar-item-text">Webhooks</span>
+                        </a>
+                    <?php else: ?>
+                        <!-- Minimal menu when no organization selected -->
+                        <div class="sidebar-notice">
+                            <div class="text-center p-3">
+                                <i class="bi bi-info-circle text-muted mb-2 d-block"></i>
+                                <small class="text-muted">
+                                    <span class="sidebar-item-text">Selecciona una organización para acceder a todos los módulos</span>
+                                </small>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
+                <?php else: ?>
+                    <!-- Full menu for admin users (always have organization context) -->
+                    <a href="<?= site_url('dashboard') ?>" class="sidebar-item <?= $currentPath === '/dashboard' ? 'active' : '' ?>">
+                        <i class="bi bi-speedometer2"></i>
+                        <span class="sidebar-item-text">Dashboard</span>
                     </a>
-                <?php endif; ?>
 
-                <!-- Gestión de Cobranzas links moved to first level -->
-                <!-- <div class="sidebar-section">
-                    <div class="sidebar-section-header">
-                        <i class="bi bi-cash-coin me-2"></i>
-                        <span>Gestión de Cobranzas</span>
-                    </div>
-                </div> -->
+                    <?php if ($isAdmin): ?>
+                        <a href="<?= site_url('users') ?>" class="sidebar-item <?= strpos($currentPath, '/users') === 0 ? 'active' : '' ?>">
+                            <i class="bi bi-people"></i>
+                            <span class="sidebar-item-text">Usuarios</span>
+                        </a>
+                    <?php endif; ?>
 
-                <a href="<?= site_url('clients') ?>" class="sidebar-item <?= $currentPath === '/clients' ? 'active' : '' ?>">
-                    <i class="bi bi-person-vcard"></i>
-                    <span class="sidebar-item-text">Clientes</span>
-                </a>
-
-                <a href="<?= site_url('portfolios') ?>" class="sidebar-item <?= $currentPath === '/portfolios' ? 'active' : '' ?>">
-                    <i class="bi bi-folder"></i>
-                    <span class="sidebar-item-text">Carteras</span>
-                </a>
-
-                <a href="<?= site_url('invoices') ?>" class="sidebar-item <?= $currentPath === '/invoices' ? 'active' : '' ?>">
-                    <i class="bi bi-file-earmark-text"></i>
-                    <span class="sidebar-item-text">Facturas</span>
-                </a>
-
-                <a href="<?= site_url('instalments') ?>" class="sidebar-item <?= $currentPath === '/instalments' ? 'active' : '' ?>">
-                    <i class="bi bi-calendar-check"></i>
-                    <span class="sidebar-item-text">Cuotas</span>
-                </a>
-
-                <a href="<?= site_url('payments') ?>" class="sidebar-item <?= $currentPath === '/payments' ? 'active' : '' ?>">
-                    <i class="bi bi-credit-card"></i>
-                    <span class="sidebar-item-text">Pagos</span>
-                </a>
-
-                <a href="<?= site_url('payments/report') ?>" class="sidebar-item <?= $currentPath === '/payments/report' ? 'active' : '' ?>">
-                    <i class="bi bi-bar-chart"></i>
-                    <span class="sidebar-item-text">Reportes</span>
-                </a>
-
-                <?php if ($isAdmin): ?>
-                    <a href="<?= site_url('webhooks') ?>" class="sidebar-item <?= $currentPath === '/webhooks' ? 'active' : '' ?>">
-                        <i class="bi bi-link-45deg"></i>
-                        <span class="sidebar-item-text">Webhooks</span>
+                    <a href="<?= site_url('clients') ?>" class="sidebar-item <?= $currentPath === '/clients' ? 'active' : '' ?>">
+                        <i class="bi bi-person-vcard"></i>
+                        <span class="sidebar-item-text">Clientes</span>
                     </a>
+
+                    <a href="<?= site_url('portfolios') ?>" class="sidebar-item <?= $currentPath === '/portfolios' ? 'active' : '' ?>">
+                        <i class="bi bi-folder"></i>
+                        <span class="sidebar-item-text">Carteras</span>
+                    </a>
+
+                    <a href="<?= site_url('invoices') ?>" class="sidebar-item <?= $currentPath === '/invoices' ? 'active' : '' ?>">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span class="sidebar-item-text">Facturas</span>
+                    </a>
+
+                    <a href="<?= site_url('instalments') ?>" class="sidebar-item <?= $currentPath === '/instalments' ? 'active' : '' ?>">
+                        <i class="bi bi-calendar-check"></i>
+                        <span class="sidebar-item-text">Cuotas</span>
+                    </a>
+
+                    <a href="<?= site_url('payments') ?>" class="sidebar-item <?= $currentPath === '/payments' ? 'active' : '' ?>">
+                        <i class="bi bi-credit-card"></i>
+                        <span class="sidebar-item-text">Pagos</span>
+                    </a>
+
+                    <a href="<?= site_url('payments/report') ?>" class="sidebar-item <?= $currentPath === '/payments/report' ? 'active' : '' ?>">
+                        <i class="bi bi-bar-chart"></i>
+                        <span class="sidebar-item-text">Reportes</span>
+                    </a>
+
+                    <?php if ($isAdmin): ?>
+                        <a href="<?= site_url('webhooks') ?>" class="sidebar-item <?= $currentPath === '/webhooks' ? 'active' : '' ?>">
+                            <i class="bi bi-link-45deg"></i>
+                            <span class="sidebar-item-text">Webhooks</span>
+                        </a>
+                    <?php endif; ?>
                 <?php endif; ?>
 
             </div>
