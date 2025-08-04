@@ -25,26 +25,8 @@ $routes->post('auth/forgot-password', 'Auth::forgot_password');
 $routes->get('auth/reset-password/(:segment)', 'Auth::reset_password/$1');
 $routes->post('auth/reset-password/(:segment)', 'Auth::reset_password/$1');
 
-// Debug routes
-$routes->get('debug/client-create', 'Debug::clientCreate');
-$routes->post('debug/client-create', 'Debug::clientCreate');
-$routes->get('debug/auth-info', 'Debug::authInfo');
-$routes->get('debug/get-users-by-organization/(:num)', 'Debug::getUsersByOrganization/$1');
-$routes->get('debug/get-clients-by-organization/(:num)', 'Debug::getClientsByOrganization/$1');
-$routes->get('debug/orgContext', 'Debug::orgContext');
-$routes->get('debug/csrf', 'Debug::csrf');
-$routes->get('debug/db-test', 'Debug::dbTest');
-$routes->get('debug/test-api', 'Debug::testApi');
-
-// Ligo Debug Routes
-$routes->get('debug/ligo/status', 'DebugController::ligoStatus');
-$routes->get('debug/ligo/enable', 'DebugController::enableLigo');
-
-// Ligo Debug Routes (con UUID)
+// Ligo QR Hash Management (moved from debug section)
 $routes->get('ligo/hashes', 'LigoQRHashViewController::index', ['filter' => 'auth']);
-$routes->get('debug/ligo-uuid/status', 'LigoDebugController::status');
-$routes->get('debug/ligo-uuid/enable', 'LigoDebugController::enable');
-$routes->get('debug/ligo-uuid/update-auth-token', 'LigoDebugController::updateAuthToken');
 
 // Ligo Webhook Route - Public (compatibilidad con URL sin /api)
 $routes->post('webhooks/ligo', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification');
@@ -62,7 +44,6 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->post('auth/refresh-token', 'AuthController::refreshToken');
     $routes->get('auth/profile', 'AuthController::profile');
     $routes->post('auth/logout', 'AuthController::logout');
-    $routes->get('auth/debug', 'AuthController::debug');
     // OPTIONS routes for CORS preflight
     $routes->match(['options'], 'auth/request-otp', 'AuthController::requestOtp');
     $routes->match(['options'], 'auth/verify-otp', 'AuthController::verifyOtp');
@@ -235,7 +216,6 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
 
     // Ligo Payment Routes
     $routes->group('payment/ligo', function ($routes) {
-        $routes->get('debug', 'LigoQRController::debug');
         $routes->get('qr/(:segment)', 'LigoQRController::index/$1');
         $routes->get('qr/(:segment)/(:num)', 'LigoQRController::index/$1/$2');
         $routes->get('ajax-qr/(:segment)', 'LigoQRController::ajaxQR/$1');
