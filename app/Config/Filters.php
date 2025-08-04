@@ -12,19 +12,21 @@ use App\Filters\CorsFilter;
 use App\Filters\AuthFilter;
 use App\Filters\ApiAuthFilter;
 use App\Filters\ApiLogFilter;
+use App\Filters\SuperadminRedirectFilter;
 
 class Filters extends BaseConfig
 {
     public array $aliases = [
-        'csrf'          => CSRF::class,
-        'toolbar'       => DebugToolbar::class,
-        'honeypot'      => Honeypot::class,
-        'invalidchars'  => InvalidChars::class,
-        'secureheaders' => SecureHeaders::class,
-        'cors'          => CorsFilter::class,
-        'auth'          => AuthFilter::class,
-        'apiAuth'       => ApiAuthFilter::class,
-        'apiLog'        => ApiLogFilter::class,
+        'csrf'              => CSRF::class,
+        'toolbar'           => DebugToolbar::class,
+        'honeypot'          => Honeypot::class,
+        'invalidchars'      => InvalidChars::class,
+        'secureheaders'     => SecureHeaders::class,
+        'cors'              => CorsFilter::class,
+        'auth'              => AuthFilter::class,
+        'apiAuth'           => ApiAuthFilter::class,
+        'apiLog'            => ApiLogFilter::class,
+        'superadminRedirect' => SuperadminRedirectFilter::class,
     ];
 
     public array $globals = [
@@ -81,6 +83,18 @@ class Filters extends BaseConfig
             'except' => [
                 'clients/import*',
                 'invoices/import*'
+            ]
+        ],
+        'superadminRedirect' => [
+            'before' => [
+                'dashboard',
+                'dashboard/*',
+                'clients/*',
+                'invoices/*',
+                'users/*',
+                'portfolios/*',
+                'payments/*',
+                'instalments/*'
             ]
         ],
     ];

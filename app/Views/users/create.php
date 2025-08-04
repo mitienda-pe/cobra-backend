@@ -59,15 +59,26 @@
                         <div class="mb-3" id="organization-container">
                             <label for="organization_id" class="form-label">Organización</label>
                             <select class="form-select" id="organization_id" name="organization_id">
-                                <option value="">Seleccionar Organización</option>
-                                <?php foreach ($organizations as $org): ?>
-                                    <option value="<?= $org['id'] ?>" <?= old('organization_id') == $org['id'] ? 'selected' : '' ?>>
-                                        <?= $org['name'] ?>
-                                    </option>
-                                <?php endforeach; ?>
+                                <?php if ($auth->organizationId()): ?>
+                                    <?php 
+                                        $orgModel = new \App\Models\OrganizationModel();
+                                        $currentOrg = $orgModel->find($auth->organizationId());
+                                    ?>
+                                    <option value="<?= $currentOrg['id'] ?>" selected><?= esc($currentOrg['name']) ?></option>
+                                <?php else: ?>
+                                    <option value="">Seleccionar Organización</option>
+                                    <?php foreach ($organizations as $org): ?>
+                                        <option value="<?= $org['id'] ?>" <?= old('organization_id') == $org['id'] ? 'selected' : '' ?>>
+                                            <?= esc($org['name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </select>
                             <small class="form-text text-muted">Sólo para roles Administrador y Usuario. Superadmin no requiere organización.</small>
                         </div>
+                    <?php else: ?>
+                        <!-- Admin users can only create users in their own organization -->
+                        <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
                     <?php endif; ?>
                     
                     <div class="d-grid gap-2">

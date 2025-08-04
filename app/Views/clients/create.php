@@ -17,43 +17,9 @@
                     <?= csrf_field() ?>
                     <input type="hidden" name="status" value="active">
                     
-                    <?php if (isset($organizations) && $auth->hasRole('superadmin')): ?>
-                    <!-- Organization information -->
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6 class="card-title">Información de Organización</h6>
-                                    <?php if ($auth->organizationId()): ?>
-                                        <?php 
-                                            $orgModel = new \App\Models\OrganizationModel();
-                                            $org = $orgModel->find($auth->organizationId());
-                                            $orgName = $org ? $org['name'] : 'Desconocida';
-                                        ?>
-                                        <div class="alert alert-info mb-0">
-                                            <i class="bi bi-building"></i> Creando cliente para: <strong><?= esc($orgName) ?></strong>
-                                        </div>
-                                        <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
-                                    <?php else: ?>
-                                        <div class="form-group">
-                                            <label for="organization_id" class="form-label">Organización *</label>
-                                            <select class="form-select <?= session('errors.organization_id') ? 'is-invalid' : '' ?>" id="organization_id" name="organization_id" required>
-                                                <option value="">Seleccionar organización</option>
-                                                <?php foreach ($organizations as $org): ?>
-                                                    <option value="<?= $org['id'] ?>" <?= old('organization_id') == $org['id'] ? 'selected' : '' ?>>
-                                                        <?= esc($org['name']) ?> <?= ($org['status'] == 'inactive') ? '(Inactiva)' : '' ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                            <?php if (session('errors.organization_id')): ?>
-                                                <div class="invalid-feedback"><?= session('errors.organization_id') ?></div>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Organization Context (automatically handled) -->
+                    <?php if ($auth->organizationId()): ?>
+                        <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
                     <?php endif; ?>
                     
                     <!-- Client Information -->

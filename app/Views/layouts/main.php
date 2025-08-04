@@ -375,9 +375,22 @@
                 </button>
             </div>
 
-            <?php if ($selectedOrgId && $isSuperadmin): ?>
-                <div class="org-indicator">
-                    <strong>Organización:</strong> <?= esc($selectedOrgName) ?>
+            <!-- Organization Context Display -->
+            <?php if ($isSuperadmin && $selectedOrgId): ?>
+                <div class="org-context-bar">
+                    <div class="d-flex align-items-center justify-content-between p-3 bg-light border-bottom">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-building text-primary me-2"></i>
+                            <div>
+                                <small class="text-muted d-block">Trabajando en:</small>
+                                <strong class="text-dark"><?= esc($selectedOrgName) ?></strong>
+                            </div>
+                        </div>
+                        <a href="<?= site_url('organizations') ?>" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-arrow-left-right"></i>
+                            <span class="sidebar-item-text">Cambiar</span>
+                        </a>
+                    </div>
                 </div>
             <?php endif; ?>
 
@@ -447,32 +460,6 @@
                     </a>
                 <?php endif; ?>
 
-                <?php if ($isSuperadmin): ?>
-                    <div class="sidebar-dropdown">
-                        <div class="sidebar-dropdown-toggle">
-                            <i class="bi bi-building menu-icon"></i>
-                            <span class="sidebar-item-text"><?= esc($selectedOrgName) ?></span>
-                            <i class="bi bi-chevron-right dropdown-icon"></i>
-                        </div>
-                        <div class="sidebar-dropdown-menu">
-                            <a href="<?= base_url(uri_string()) . '?clear_org=1' ?>" class="sidebar-item <?= !$selectedOrgId ? 'active' : '' ?>">
-                                <i class="bi bi-buildings"></i>
-                                <span class="sidebar-item-text">Todas las organizaciones</span>
-                            </a>
-                            <?php
-                            // Cargar todas las organizaciones para el dropdown
-                            $orgModel = new \App\Models\OrganizationModel();
-                            $allOrgs = $orgModel->findAll();
-                            foreach ($allOrgs as $org):
-                            ?>
-                                <a href="<?= base_url(uri_string()) . '?org_id=' . $org['id'] ?>" class="sidebar-item <?= $selectedOrgId == $org['id'] ? 'active' : '' ?>">
-                                    <i class="bi bi-building"></i>
-                                    <span class="sidebar-item-text"><?= esc($org['name']) ?></span>
-                                </a>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                <?php endif; ?>
             </div>
 
             <!-- User profile section -->

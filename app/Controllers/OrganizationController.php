@@ -35,10 +35,14 @@ class OrganizationController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para acceder a esta sección.');
         }
         
+        // Check if this is the organization selector context (superadmin without organization selected)
+        $isOrgSelector = !$this->auth->organizationId();
+        
         return view('organizations/index', [
-            'title' => 'Organizations',
-            'organizations' => $this->organizationModel->findAll(),
+            'title' => $isOrgSelector ? 'Seleccionar Organización' : 'Gestión de Organizaciones',
+            'organizations' => $this->organizationModel->where('status', 'active')->findAll(),
             'auth' => $this->auth,
+            'isOrgSelector' => $isOrgSelector,
         ]);
     }
     
@@ -403,6 +407,28 @@ class OrganizationController extends BaseController
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Error al eliminar la organización: ' . $e->getMessage());
         }
+    }
+    
+    /**
+     * Select organization for superadmin and redirect to dashboard
+     */
+    public function select($id)
+    {
+        // Only superadmins can select organization context
+        if (!$this->auth->hasRole('superadmin')) {
+            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para seleccionar organizaciones.');
+        }
+        
+        $organization = $this->organizationModel->find($id);
+        
+        if (!$organization) {
+            return redirect()->to('/organizations')->with('error', 'Organización no encontrada.');
+        }
+        
+        // Set organization context in session
+        $this->session->set('selected_organization_id', $organization['id']);
+        
+        return redirect()->to('/dashboard')->with('message', 'Organización seleccionada: ' . $organization['name']);
     }
     
     public function view($uuid)

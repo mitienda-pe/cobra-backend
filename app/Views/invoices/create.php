@@ -38,31 +38,8 @@
                 <form action="<?= site_url('invoices/create') ?>" method="post">
                     <?= csrf_field() ?>
                     
-                    <?php if ($auth->hasRole('superadmin') && isset($organizations)): ?>
-                        <?php if ($auth->organizationId()): ?>
-                            <?php 
-                                $orgModel = new \App\Models\OrganizationModel();
-                                $org = $orgModel->find($auth->organizationId());
-                                $orgName = $org ? $org['name'] : 'Desconocida';
-                            ?>
-                            <div class="alert alert-info mb-3">
-                                <i class="bi bi-building"></i> Creando factura para: <strong><?= esc($orgName) ?></strong>
-                            </div>
-                            <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
-                        <?php else: ?>
-                            <div class="mb-3">
-                                <label for="organization_id" class="form-label">Organización *</label>
-                                <select name="organization_id" id="organization_id" class="form-select" required>
-                                    <option value="">Seleccione una organización</option>
-                                    <?php foreach ($organizations as $org): ?>
-                                        <option value="<?= $org['id'] ?>" data-uuid="<?= $org['uuid'] ?>">
-                                            <?= esc($org['name']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        <?php endif; ?>
-                    <?php elseif (!$auth->hasRole('superadmin')): ?>
+                    <!-- Organization Context (automatically handled) -->
+                    <?php if ($auth->organizationId()): ?>
                         <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
                     <?php endif; ?>
                     

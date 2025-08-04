@@ -131,6 +131,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('/', 'OrganizationController::index');
         $routes->get('create', 'OrganizationController::create');
         $routes->post('/', 'OrganizationController::store');
+        $routes->get('select/(:num)', 'OrganizationController::select/$1');
         $routes->get('(:segment)', 'OrganizationController::view/$1');
         $routes->get('(:segment)/edit', 'OrganizationController::edit/$1');
         $routes->post('(:segment)', 'OrganizationController::update/$1');
