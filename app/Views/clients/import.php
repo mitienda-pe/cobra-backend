@@ -47,56 +47,15 @@
                         <input type="file" class="form-control" id="csv_file" name="csv_file" required accept=".csv">
                     </div>
                     
-                    <?php if ($auth->hasRole('superadmin') && isset($organizations) && !isset($selected_organization_id)): ?>
-                    <!-- Para superadmin, mostrar selector de organización primero -->
-                    <div class="mb-3">
-                        <label for="organization_id" class="form-label">Organización *</label>
-                        <select class="form-select" id="organization_id" name="organization_id" required>
-                            <option value="">Seleccione una organización</option>
-                            <?php foreach ($organizations as $org): ?>
-                                <option value="<?= $org['id'] ?>"><?= esc($org['name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <div class="form-text">Seleccione primero una organización para ver sus cobradores.</div>
-                    </div>
-                    
-                    <div class="d-grid gap-2 mb-3">
-                        <button type="button" id="select_organization_btn" class="btn btn-secondary">Seleccionar Organización</button>
-                    </div>
-                    
-                    <script>
-                        document.getElementById('select_organization_btn').addEventListener('click', function() {
-                            const organizationId = document.getElementById('organization_id').value;
-                            if (organizationId) {
-                                window.location.href = '<?= site_url('clients/import') ?>?organization_id=' + organizationId;
-                            } else {
-                                alert('Por favor, seleccione una organización.');
-                            }
-                        });
-                    </script>
-                    
-                    <?php else: ?>
-                    
-                    <?php if ($auth->hasRole('superadmin') && isset($selected_organization_id) && isset($selected_organization_name)): ?>
-                    <div class="alert alert-info">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>Organización seleccionada:</strong> <?= esc($selected_organization_name) ?>
-                                <input type="hidden" name="organization_id" value="<?= $selected_organization_id ?>">
-                            </div>
-                            <a href="<?= site_url('clients/import?clear=1') ?>" class="btn btn-sm btn-outline-secondary">Cambiar</a>
-                        </div>
-                    </div>
-                    <?php elseif (!$auth->hasRole('superadmin')): ?>
-                    <!-- Para usuarios no superadmin, incluir el ID de la organización -->
-                    <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
+                    <!-- Organization Context (automatically handled) -->
+                    <?php if ($auth->organizationId()): ?>
+                        <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
                     <?php endif; ?>
                     
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-upload"></i> Importar Clientes
                     </button>
                     <a href="<?= site_url('clients') ?>" class="btn btn-secondary">Cancelar</a>
-                    <?php endif; ?>
                 </form>
                 
                 <div class="mt-4">

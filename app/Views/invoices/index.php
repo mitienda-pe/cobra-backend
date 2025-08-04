@@ -12,41 +12,13 @@
         <a href="<?= site_url('invoices/create') ?>" class="btn btn-primary">
             <i class="bi bi-plus-lg"></i> Nueva Factura
         </a>
-        <a href="<?= site_url('invoices/import') ?><?= (isset($selected_organization_id) && $selected_organization_id) ? '?organization_id=' . $selected_organization_id : '' ?>" class="btn btn-outline-primary">
+        <a href="<?= site_url('invoices/import') ?>" class="btn btn-outline-primary">
             <i class="bi bi-upload"></i> Importar
         </a>
     </div>
     <?php endif; ?>
 </div>
 
-<?php if ($auth->hasRole('superadmin') && !isset($selected_organization_id)): ?>
-<div class="row mb-4">
-    <div class="col">
-        <div class="card">
-            <div class="card-body">
-                <form method="get" class="row g-3 align-items-center">
-                    <div class="col-auto">
-                        <label for="organization_id" class="col-form-label">Filtrar por Organización:</label>
-                    </div>
-                    <div class="col-auto">
-                        <select name="organization_id" id="organization_id" class="form-select">
-                            <option value="">Todas las organizaciones</option>
-                            <?php foreach ($organizations as $org): ?>
-                                <option value="<?= $org['id'] ?>" <?= $selected_organization_id == $org['id'] ? 'selected' : '' ?>>
-                                    <?= esc($org['name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">Filtrar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-<?php endif; ?>
 
 <?php if (session()->has('success')): ?>
     <div class="alert alert-success alert-dismissible fade show" role="alert">

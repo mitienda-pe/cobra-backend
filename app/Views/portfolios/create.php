@@ -16,30 +16,8 @@
                 <form action="<?= site_url('portfolios/create') ?>" method="post">
                     <?= csrf_field() ?>
                     
-                    <?php if($auth->hasRole('superadmin')): ?>
-                        <?php if ($auth->organizationId()): ?>
-                            <?php 
-                                $orgModel = new \App\Models\OrganizationModel();
-                                $org = $orgModel->find($auth->organizationId());
-                                $orgName = $org ? $org['name'] : 'Desconocida';
-                            ?>
-                            <div class="alert alert-info mb-3">
-                                <i class="bi bi-building"></i> Creando cartera para: <strong><?= esc($orgName) ?></strong>
-                            </div>
-                            <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
-                        <?php else: ?>
-                            <div class="mb-3">
-                                <label for="organization_id" class="form-label">Organización *</label>
-                                <select class="form-select" id="organization_id" name="organization_id" required>
-                                    <option value="">Seleccione una organización</option>
-                                    <?php foreach($organizations as $org): ?>
-                                        <option value="<?= $org['id'] ?>" data-uuid="<?= $org['uuid'] ?>"><?= $org['name'] ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        <?php endif; ?>
-                    <?php elseif (!$auth->hasRole('superadmin')): ?>
-                        <!-- For non-superadmins, just add the hidden organization ID -->
+                    <!-- Organization Context (automatically handled) -->
+                    <?php if ($auth->organizationId()): ?>
                         <input type="hidden" name="organization_id" value="<?= $auth->organizationId() ?>">
                     <?php endif; ?>
                     
