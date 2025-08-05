@@ -562,13 +562,8 @@ class ClientController extends BaseController
         // Get assigned portfolios
         $assignedPortfolios = $this->clientModel->getPortfolios($client['uuid']);
 
-        // Get organization info
-        $organizationModel = new \App\Models\OrganizationModel();
-        $organization = $organizationModel->find($client['organization_id']);
-
         $data = [
             'client' => $client,
-            'organization' => $organization,
             'portfolios' => $assignedPortfolios,
             'auth' => $this->auth
         ];

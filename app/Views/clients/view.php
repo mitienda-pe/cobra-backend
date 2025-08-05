@@ -116,36 +116,6 @@
     </div>
 </div>
 
-<?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0">Información de la Organización</h5>
-    </div>
-    <div class="card-body">
-        <dl class="row">
-            <dt class="col-sm-3">Organización</dt>
-            <dd class="col-sm-9"><?= $organization['name'] ?></dd>
-
-            <dt class="col-sm-3">Código</dt>
-            <dd class="col-sm-9"><?= $organization['code'] ?></dd>
-
-            <dt class="col-sm-3">Estado</dt>
-            <dd class="col-sm-9">
-                <?php if ($organization['status'] == 'active'): ?>
-                    <span class="badge bg-success">Activo</span>
-                <?php else: ?>
-                    <span class="badge bg-danger">Inactivo</span>
-                <?php endif; ?>
-            </dd>
-
-            <?php if ($organization['description']): ?>
-            <dt class="col-sm-3">Descripción</dt>
-            <dd class="col-sm-9"><?= $organization['description'] ?></dd>
-            <?php endif; ?>
-        </dl>
-    </div>
-</div>
-<?php endif; ?>
 
 <script>
 function copyToClipboard(elementId) {
