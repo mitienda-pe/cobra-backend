@@ -49,20 +49,69 @@ class InvoiceController extends Controller
             $data['selected_organization_id'] = $organizationId;
         }
         
-        // Build the query
+        // Get filter parameters
+        $statusFilter = $this->request->getGet('status');
+        $sortBy = $this->request->getGet('sort') ?: 'invoices.created_at';
+        $sortOrder = $this->request->getGet('order') ?: 'DESC';
+        
+        // Build the query with additional fields
         $builder = $this->invoiceModel
-            ->select('invoices.id, invoices.uuid, invoices.invoice_number, invoices.concept, invoices.amount, invoices.total_amount, invoices.due_date, invoices.status, invoices.created_at, clients.business_name')
-            ->join('clients', 'clients.id = invoices.client_id', 'left');
+            ->select('
+                invoices.id, 
+                invoices.uuid, 
+                invoices.invoice_number, 
+                invoices.concept, 
+                invoices.amount, 
+                invoices.total_amount, 
+                invoices.due_date, 
+                invoices.status, 
+                invoices.created_at,
+                invoices.issue_date,
+                clients.business_name,
+                clients.document_number as client_document,
+                COUNT(instalments.id) as instalments_count
+            ')
+            ->join('clients', 'clients.id = invoices.client_id', 'left')
+            ->join('instalments', 'instalments.invoice_id = invoices.id', 'left')
+            ->groupBy('invoices.id');
             
         if ($organizationId) {
             $builder->where('invoices.organization_id', $organizationId);
         }
         
-        // Get invoices with pagination
-        $data['invoices'] = $builder->orderBy('invoices.created_at', 'DESC')
-                                  ->paginate(10);
+        // Apply status filter
+        if ($statusFilter && $statusFilter !== 'all') {
+            $builder->where('invoices.status', $statusFilter);
+        }
         
+        // Apply sorting - validate sort field for security
+        $allowedSortFields = [
+            'invoices.invoice_number',
+            'invoices.created_at', 
+            'invoices.issue_date',
+            'invoices.due_date',
+            'invoices.total_amount',
+            'invoices.status',
+            'clients.business_name',
+            'clients.document_number'
+        ];
+        
+        if (in_array($sortBy, $allowedSortFields)) {
+            $order = (strtoupper($sortOrder) === 'ASC') ? 'ASC' : 'DESC';
+            $builder->orderBy($sortBy, $order);
+        } else {
+            // Default sort by issue_date or created_at DESC
+            $builder->orderBy('invoices.issue_date IS NOT NULL DESC, invoices.issue_date DESC, invoices.created_at DESC');
+        }
+        
+        // Get invoices with pagination
+        $data['invoices'] = $builder->paginate(15);
         $data['pager'] = $this->invoiceModel->pager;
+        
+        // Pass filter values to view
+        $data['current_status'] = $statusFilter;
+        $data['current_sort'] = $sortBy;
+        $data['current_order'] = $sortOrder;
         
         return view('invoices/index', $data);
     }
