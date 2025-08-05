@@ -482,9 +482,23 @@ class InstalmentController extends BaseController
         // Ordenar por fecha de vencimiento (más próximas primero)
         $builder->orderBy('i.due_date', 'ASC');
         
-        // Ejecutar la consulta con paginación
-        $instalments = $builder->paginate(15, 'default');
+        // Implementar paginación manual
+        $perPage = 15;
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        
+        // Obtener el total de registros
+        $totalBuilder = clone $builder;
+        $total = $totalBuilder->countAllResults();
+        
+        // Calcular offset
+        $offset = ($page - 1) * $perPage;
+        
+        // Ejecutar la consulta con limit y offset
+        $instalments = $builder->limit($perPage, $offset)->get()->getResultArray();
+        
+        // Crear el pager manualmente
         $pager = \Config\Services::pager();
+        $pager->store('default', $page, $perPage, $total);
         
         // Obtener carteras para el filtro
         $portfolioModel = new \App\Models\PortfolioModel();
