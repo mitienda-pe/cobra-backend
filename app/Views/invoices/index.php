@@ -26,8 +26,8 @@
             <div class="col-md-3">
                 <label for="status" class="form-label">Estado</label>
                 <select name="status" id="status" class="form-select">
-                    <option value="all" <?= ($current_status ?? '') === 'all' ? 'selected' : '' ?>>Todos los estados</option>
-                    <option value="pending" <?= ($current_status ?? '') === 'pending' ? 'selected' : '' ?>>Pendiente</option>
+                    <option value="all" <?= ($current_status ?? 'pending') === 'all' ? 'selected' : '' ?>>Todos los estados</option>
+                    <option value="pending" <?= ($current_status ?? 'pending') === 'pending' ? 'selected' : '' ?>>Pendiente</option>
                     <option value="paid" <?= ($current_status ?? '') === 'paid' ? 'selected' : '' ?>>Pagado</option>
                     <option value="cancelled" <?= ($current_status ?? '') === 'cancelled' ? 'selected' : '' ?>>Cancelado</option>
                     <option value="expired" <?= ($current_status ?? '') === 'expired' ? 'selected' : '' ?>>Vencido</option>

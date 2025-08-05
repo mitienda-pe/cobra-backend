@@ -50,7 +50,7 @@ class InvoiceController extends Controller
         }
         
         // Get filter parameters
-        $statusFilter = $this->request->getGet('status');
+        $statusFilter = $this->request->getGet('status') ?: 'pending';
         $sortBy = $this->request->getGet('sort') ?: 'invoices.created_at';
         $sortOrder = $this->request->getGet('order') ?: 'DESC';
         
