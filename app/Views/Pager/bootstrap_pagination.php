@@ -47,7 +47,7 @@ $pager->setSurroundCount(2);
 <?php if ($pager->getPageCount() > 1) : ?>
     <div class="text-center mt-3">
         <small class="text-muted">
-            Mostrando página <?= $pager->getCurrentPage() ?> de <?= $pager->getPageCount() ?>
+            Mostrando página <?= $pager->getCurrentPageNumber() ?> de <?= $pager->getPageCount() ?>
             (<?= $pager->getTotal() ?> registros en total)
         </small>
     </div>
