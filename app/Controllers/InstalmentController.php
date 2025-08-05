@@ -408,9 +408,9 @@ class InstalmentController extends BaseController
         
         $builder = $db->table('instalments i');
         if ($hasSeriesColumn) {
-            $builder->select('i.*, inv.invoice_number as invoice_number, inv.series, inv.uuid as invoice_uuid, c.business_name as client_name, c.document_number as client_document');
+            $builder->select('i.*, inv.invoice_number as invoice_number, inv.series, inv.uuid as invoice_uuid, c.business_name as client_name, c.document_number as client_document, (SELECT COUNT(*) FROM instalments i2 WHERE i2.invoice_id = i.invoice_id AND i2.deleted_at IS NULL) as total_instalments');
         } else {
-            $builder->select('i.*, inv.invoice_number as invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name, c.document_number as client_document');
+            $builder->select('i.*, inv.invoice_number as invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name, c.document_number as client_document, (SELECT COUNT(*) FROM instalments i2 WHERE i2.invoice_id = i.invoice_id AND i2.deleted_at IS NULL) as total_instalments');
         }
         $builder->join('invoices inv', 'i.invoice_id = inv.id');
         $builder->join('clients c', 'inv.client_id = c.id');
@@ -512,21 +512,6 @@ class InstalmentController extends BaseController
         foreach ($instalments as &$instalment) {
             // Determinar si es una cuota vencida
             $instalment['is_overdue'] = ($instalment['status'] !== 'paid' && $instalment['due_date'] < $today);
-            
-            // Calcular el monto pagado para esta cuota
-            $paymentModel = new PaymentModel();
-            $payments = $paymentModel
-                ->where('instalment_id', $instalment['id'])
-                ->where('status', 'completed')
-                ->findAll();
-                
-            $paidAmount = 0;
-            foreach ($payments as $payment) {
-                $paidAmount += $payment['amount'];
-            }
-            
-            $instalment['paid_amount'] = $paidAmount;
-            $instalment['remaining_amount'] = $instalment['amount'] - $paidAmount;
         }
         
         // Preparar datos para la vista

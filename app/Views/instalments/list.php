@@ -84,10 +84,9 @@
                             <tr>
                                 <th>Factura</th>
                                 <th>Cliente</th>
+                                <th>RUC</th>
                                 <th>Cuota</th>
                                 <th>Monto</th>
-                                <th>Pagado</th>
-                                <th>Pendiente</th>
                                 <th>Vencimiento</th>
                                 <th>Estado</th>
                                 <th></th>
@@ -110,14 +109,17 @@
                                         </a>
                                     </td>
                                     <td><?= esc($instalment['client_name']) ?></td>
-                                    <td><?= $instalment['number'] ?></td>
+                                    <td><?= esc($instalment['client_document']) ?></td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            <?= $instalment['number'] ?>/<?= $instalment['total_instalments'] ?>
+                                        </span>
+                                    </td>
                                     <td>S/ <?= number_format($instalment['amount'], 2) ?></td>
-                                    <td>S/ <?= number_format($instalment['paid_amount'], 2) ?></td>
-                                    <td>S/ <?= number_format($instalment['remaining_amount'], 2) ?></td>
                                     <td><?= date('d/m/Y', strtotime($instalment['due_date'])) ?></td>
                                     <td>
                                         <span class="badge bg-<?= $instalment['status'] === 'paid' ? 'success' : ($instalment['status'] === 'pending' ? 'warning' : 'danger') ?>">
-                                            <?= ucfirst($instalment['status']) ?>
+                                            <?= $instalment['status'] === 'paid' ? 'Pagada' : ($instalment['status'] === 'pending' ? 'Pendiente' : ucfirst($instalment['status'])) ?>
                                         </span>
                                     </td>
                                     <td>
