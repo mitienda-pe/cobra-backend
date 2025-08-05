@@ -36,7 +36,7 @@ class InvoiceModel extends Model
         'issue_date'     => 'permit_empty|valid_date',
         'due_date'       => 'required|valid_date',
         'currency'       => 'required|in_list[PEN,USD]',
-        'status'         => 'required|in_list[pending,paid,cancelled,rejected,expired]',
+        'status'         => 'required|in_list[pending,paid,partially_paid,cancelled,rejected,expired]',
         'external_id'    => 'permit_empty|max_length[36]',
         'notes'          => 'permit_empty'
     ];

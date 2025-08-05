@@ -70,7 +70,8 @@ class InvoiceController extends Controller
                 invoices.issue_date,
                 clients.business_name,
                 clients.document_number as client_document,
-                COUNT(instalments.id) as instalments_count
+                COUNT(instalments.id) as instalments_count,
+                SUM(CASE WHEN instalments.status = "paid" THEN 1 ELSE 0 END) as paid_instalments_count
             ')
             ->join('clients', 'clients.id = invoices.client_id', 'left')
             ->join('instalments', 'instalments.invoice_id = invoices.id', 'left')
@@ -490,7 +491,7 @@ class InvoiceController extends Controller
             'issue_date' => 'required|valid_date',
             'due_date' => 'required|valid_date',
             'currency' => 'required|in_list[PEN,USD]',
-            'status' => 'required|in_list[pending,paid,cancelled,rejected,expired]',
+            'status' => 'required|in_list[pending,paid,partially_paid,cancelled,rejected,expired]',
             'external_id' => 'permit_empty|max_length[36]',
             'notes' => 'permit_empty',
             'num_instalments' => 'required|integer|greater_than[0]|less_than_equal_to[12]'

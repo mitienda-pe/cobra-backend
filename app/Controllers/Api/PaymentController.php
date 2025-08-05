@@ -814,7 +814,7 @@ class PaymentController extends ResourceController
             $invoiceModel->update($invoice['id'], ['status' => 'paid']);
             log_message('debug', 'Factura marcada como pagada');
         } else if ($totalPaid > 0) {
-            $invoiceModel->update($invoice['id'], ['status' => 'partial']);
+            $invoiceModel->update($invoice['id'], ['status' => 'partially_paid']);
             log_message('debug', 'Factura marcada como pago parcial');
         }
         

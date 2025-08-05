@@ -29,6 +29,7 @@
                     <option value="all" <?= ($current_status ?? 'pending') === 'all' ? 'selected' : '' ?>>Todos los estados</option>
                     <option value="pending" <?= ($current_status ?? 'pending') === 'pending' ? 'selected' : '' ?>>Pendiente</option>
                     <option value="paid" <?= ($current_status ?? '') === 'paid' ? 'selected' : '' ?>>Pagado</option>
+                    <option value="partially_paid" <?= ($current_status ?? '') === 'partially_paid' ? 'selected' : '' ?>>Pagado Parcialmente</option>
                     <option value="cancelled" <?= ($current_status ?? '') === 'cancelled' ? 'selected' : '' ?>>Cancelado</option>
                     <option value="expired" <?= ($current_status ?? '') === 'expired' ? 'selected' : '' ?>>Vencido</option>
                 </select>
@@ -173,7 +174,20 @@
                             </td>
                             <td class="text-center">
                                 <?php if ($invoice['instalments_count'] > 0): ?>
-                                    <span class="badge bg-info"><?= $invoice['instalments_count'] ?></span>
+                                    <?php 
+                                        $paidCount = (int)($invoice['paid_instalments_count'] ?? 0);
+                                        $totalCount = (int)$invoice['instalments_count'];
+                                        $progressPercent = $totalCount > 0 ? ($paidCount / $totalCount * 100) : 0;
+                                        $badgeClass = $paidCount == $totalCount ? 'success' : ($paidCount > 0 ? 'primary' : 'secondary');
+                                    ?>
+                                    <div class="text-center">
+                                        <span class="badge bg-<?= $badgeClass ?>"><?= $paidCount ?>/<?= $totalCount ?></span>
+                                        <?php if ($totalCount > 1): ?>
+                                            <div class="progress mt-1" style="height: 6px;">
+                                                <div class="progress-bar bg-<?= $badgeClass ?>" style="width: <?= $progressPercent ?>%"></div>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 <?php else: ?>
                                     <span class="text-muted">-</span>
                                 <?php endif; ?>
@@ -181,12 +195,14 @@
                             <td>
                                 <span class="badge bg-<?= $invoice['status'] === 'paid' ? 'success' : 
                                     ($invoice['status'] === 'pending' ? 'warning' : 
+                                    ($invoice['status'] === 'partially_paid' ? 'primary' : 
                                     ($invoice['status'] === 'cancelled' ? 'danger' : 
-                                    ($invoice['status'] === 'expired' ? 'secondary' : 'info'))) ?>">
+                                    ($invoice['status'] === 'expired' ? 'secondary' : 'info')))) ?>">
                                     <?= $invoice['status'] === 'paid' ? 'Pagado' : 
                                         ($invoice['status'] === 'pending' ? 'Pendiente' : 
+                                        ($invoice['status'] === 'partially_paid' ? 'Pagado Parcialmente' : 
                                         ($invoice['status'] === 'cancelled' ? 'Cancelado' : 
-                                        ($invoice['status'] === 'expired' ? 'Vencido' : ucfirst($invoice['status'])))) ?>
+                                        ($invoice['status'] === 'expired' ? 'Vencido' : ucfirst($invoice['status']))))) ?>
                                 </span>
                             </td>
                             <td>

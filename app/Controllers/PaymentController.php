@@ -270,8 +270,9 @@ class PaymentController extends BaseController
                     $paymentInfo = $invoiceModel->calculateRemainingAmount($invoice['id']);
                     $remainingAfterPayment = $paymentInfo['remaining'] - $paymentAmount;
                     
-                    // Si no queda saldo pendiente, marcar la factura como pagada
+                    // Actualizar estado de la factura según el monto pagado
                     if ($remainingAfterPayment <= 0) {
+                        // Completamente pagada
                         $invoiceModel->update($invoice['id'], ['status' => 'paid']);
                         
                         // También marcar todas las cuotas pendientes como pagadas cuando la factura esté 100% pagada
@@ -284,6 +285,9 @@ class PaymentController extends BaseController
                             $instalmentModel->update($pendingInstalment['id'], ['status' => 'paid']);
                             log_message('info', 'Marked instalment ' . $pendingInstalment['id'] . ' as paid due to invoice completion');
                         }
+                    } else if (($paymentInfo['total_paid'] + $paymentAmount) > 0) {
+                        // Parcialmente pagada
+                        $invoiceModel->update($invoice['id'], ['status' => 'partially_paid']);
                     }
                     
                     $db->transComplete();
