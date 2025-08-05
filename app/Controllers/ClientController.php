@@ -569,7 +569,7 @@ class ClientController extends BaseController
         $data = [
             'client' => $client,
             'organization' => $organization,
-            'assignedPortfolios' => $assignedPortfolios,
+            'portfolios' => $assignedPortfolios,
             'auth' => $this->auth
         ];
 
