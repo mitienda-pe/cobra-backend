@@ -51,6 +51,7 @@ class InvoiceController extends Controller
         
         // Get filter parameters
         $statusFilter = $this->request->getGet('status') ?: 'pending';
+        $clientSearch = $this->request->getGet('client_search');
         $sortBy = $this->request->getGet('sort') ?: 'invoices.created_at';
         $sortOrder = $this->request->getGet('order') ?: 'DESC';
         
@@ -84,6 +85,14 @@ class InvoiceController extends Controller
             $builder->where('invoices.status', $statusFilter);
         }
         
+        // Apply client search filter
+        if (!empty($clientSearch)) {
+            $builder->groupStart();
+            $builder->like('clients.business_name', $clientSearch);
+            $builder->orLike('clients.document_number', $clientSearch);
+            $builder->groupEnd();
+        }
+        
         // Apply sorting - validate sort field for security
         $allowedSortFields = [
             'invoices.invoice_number',
@@ -110,6 +119,7 @@ class InvoiceController extends Controller
         
         // Pass filter values to view
         $data['current_status'] = $statusFilter;
+        $data['current_client_search'] = $clientSearch;
         $data['current_sort'] = $sortBy;
         $data['current_order'] = $sortOrder;
         

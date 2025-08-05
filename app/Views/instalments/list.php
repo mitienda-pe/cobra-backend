@@ -43,7 +43,7 @@
                 </div>
 
                 <!-- Filtro por Fecha de Vencimiento -->
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="due_date" class="form-label">Vencimiento</label>
                     <select name="due_date" id="due_date" class="form-select">
                         <option value="all" <?= $selectedDueDate === 'all' ? 'selected' : '' ?>>Todas las fechas</option>
@@ -52,7 +52,13 @@
                     </select>
                 </div>
 
-                <div class="col-md-3 d-flex align-items-end">
+                <!-- Buscador por Cliente -->
+                <div class="col-md-3">
+                    <label for="client_search" class="form-label">Cliente</label>
+                    <input type="text" name="client_search" id="client_search" class="form-control" placeholder="Buscar por nombre o RUC" value="<?= $selectedClientSearch ?? '' ?>">
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-filter"></i> Filtrar
                     </button>

@@ -34,6 +34,10 @@
                 </select>
             </div>
             <div class="col-md-3">
+                <label for="client_search" class="form-label">Cliente</label>
+                <input type="text" name="client_search" id="client_search" class="form-control" placeholder="Buscar por nombre o RUC" value="<?= $current_client_search ?? '' ?>">
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Acciones</label>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">

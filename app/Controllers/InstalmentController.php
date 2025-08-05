@@ -377,6 +377,7 @@ class InstalmentController extends BaseController
         $portfolioUuid = $this->request->getGet('portfolio_uuid'); // Añadir soporte para portfolio_uuid directo
         $status = $this->request->getGet('status') ?: 'pending'; // Por defecto, mostrar cuotas pendientes
         $dueDate = $this->request->getGet('due_date') ?: 'all'; // all, overdue, upcoming
+        $clientSearch = $this->request->getGet('client_search'); // Búsqueda por cliente
         
         // Si tenemos un ID de cartera pero no UUID, intentamos obtener el UUID
         if ($portfolioId && !$portfolioUuid) {
@@ -407,9 +408,9 @@ class InstalmentController extends BaseController
         
         $builder = $db->table('instalments i');
         if ($hasSeriesColumn) {
-            $builder->select('i.*, inv.invoice_number as invoice_number, inv.series, inv.uuid as invoice_uuid, c.business_name as client_name');
+            $builder->select('i.*, inv.invoice_number as invoice_number, inv.series, inv.uuid as invoice_uuid, c.business_name as client_name, c.document_number as client_document');
         } else {
-            $builder->select('i.*, inv.invoice_number as invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name');
+            $builder->select('i.*, inv.invoice_number as invoice_number, inv.uuid as invoice_uuid, c.business_name as client_name, c.document_number as client_document');
         }
         $builder->join('invoices inv', 'i.invoice_id = inv.id');
         $builder->join('clients c', 'inv.client_id = c.id');
@@ -470,6 +471,14 @@ class InstalmentController extends BaseController
             $builder->where('i.due_date >=', $today);
         }
         
+        // Filtrar por búsqueda de cliente
+        if (!empty($clientSearch)) {
+            $builder->groupStart();
+            $builder->like('c.business_name', $clientSearch);
+            $builder->orLike('c.document_number', $clientSearch);
+            $builder->groupEnd();
+        }
+        
         // Ordenar por fecha de vencimiento (más próximas primero)
         $builder->orderBy('i.due_date', 'ASC');
         
@@ -513,6 +522,7 @@ class InstalmentController extends BaseController
             'selectedPortfolio' => $portfolioId,
             'selectedStatus' => $status,
             'selectedDueDate' => $dueDate,
+            'selectedClientSearch' => $clientSearch,
             'organizationId' => $organizationId
         ];
         
