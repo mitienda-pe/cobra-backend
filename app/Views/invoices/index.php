@@ -179,13 +179,10 @@
                                     ($invoice['status'] === 'pending' ? 'warning' : 
                                     ($invoice['status'] === 'cancelled' ? 'danger' : 
                                     ($invoice['status'] === 'expired' ? 'secondary' : 'info'))) ?>">
-                                    <?= match($invoice['status']) {
-                                        'paid' => 'Pagado',
-                                        'pending' => 'Pendiente',
-                                        'cancelled' => 'Cancelado',
-                                        'expired' => 'Vencido',
-                                        default => ucfirst($invoice['status'])
-                                    } ?>
+                                    <?= $invoice['status'] === 'paid' ? 'Pagado' : 
+                                        ($invoice['status'] === 'pending' ? 'Pendiente' : 
+                                        ($invoice['status'] === 'cancelled' ? 'Cancelado' : 
+                                        ($invoice['status'] === 'expired' ? 'Vencido' : ucfirst($invoice['status'])))) ?>
                                 </span>
                             </td>
                             <td>
