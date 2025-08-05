@@ -6,16 +6,16 @@
 $pager->setSurroundCount(2);
 ?>
 
-<nav aria-label="<?= lang('Pager.pageNavigation') ?>">
+<nav aria-label="Navegación de páginas">
     <ul class="pagination justify-content-center">
         <?php if ($pager->hasPrevious()) : ?>
             <li class="page-item">
-                <a class="page-link" href="<?= $pager->getFirst() ?>" aria-label="<?= lang('Pager.first') ?>">
-                    <span aria-hidden="true"><?= lang('Pager.first') ?></span>
+                <a class="page-link" href="<?= $pager->getFirst() ?>" aria-label="Primera">
+                    <span aria-hidden="true">Primera</span>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="<?= $pager->getPrevious() ?>" aria-label="<?= lang('Pager.previous') ?>">
+                <a class="page-link" href="<?= $pager->getPrevious() ?>" aria-label="Anterior">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
@@ -31,13 +31,13 @@ $pager->setSurroundCount(2);
 
         <?php if ($pager->hasNext()) : ?>
             <li class="page-item">
-                <a class="page-link" href="<?= $pager->getNext() ?>" aria-label="<?= lang('Pager.next') ?>">
+                <a class="page-link" href="<?= $pager->getNext() ?>" aria-label="Siguiente">
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="<?= $pager->getLast() ?>" aria-label="<?= lang('Pager.last') ?>">
-                    <span aria-hidden="true"><?= lang('Pager.last') ?></span>
+                <a class="page-link" href="<?= $pager->getLast() ?>" aria-label="Última">
+                    <span aria-hidden="true">Última</span>
                 </a>
             </li>
         <?php endif ?>
