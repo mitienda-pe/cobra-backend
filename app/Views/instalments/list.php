@@ -144,6 +144,12 @@
                     </table>
                 </div>
             <?php endif; ?>
+            
+            <?php if (isset($pager)): ?>
+                <div class="mt-4">
+                    <?= $pager->links('default', 'bootstrap_pagination') ?>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>

@@ -482,8 +482,9 @@ class InstalmentController extends BaseController
         // Ordenar por fecha de vencimiento (más próximas primero)
         $builder->orderBy('i.due_date', 'ASC');
         
-        // Ejecutar la consulta
-        $instalments = $builder->get()->getResultArray();
+        // Ejecutar la consulta con paginación
+        $instalments = $builder->paginate(15, 'default');
+        $pager = \Config\Services::pager();
         
         // Obtener carteras para el filtro
         $portfolioModel = new \App\Models\PortfolioModel();
@@ -523,7 +524,8 @@ class InstalmentController extends BaseController
             'selectedStatus' => $status,
             'selectedDueDate' => $dueDate,
             'selectedClientSearch' => $clientSearch,
-            'organizationId' => $organizationId
+            'organizationId' => $organizationId,
+            'pager' => $pager
         ];
         
         return view('instalments/list', $data);
