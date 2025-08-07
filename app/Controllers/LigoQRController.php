@@ -18,6 +18,41 @@ class LigoQRController extends Controller
     }
     
     /**
+     * Get Ligo credentials based on active environment
+     */
+    private function getLigoCredentials($organization)
+    {
+        $environment = $organization['ligo_environment'] ?? 'dev';
+        $prefix = $environment === 'prod' ? 'prod' : 'dev';
+        
+        // Try to get environment-specific credentials first
+        $credentials = [
+            'username' => $organization["ligo_{$prefix}_username"] ?? null,
+            'password' => $organization["ligo_{$prefix}_password"] ?? null,
+            'company_id' => $organization["ligo_{$prefix}_company_id"] ?? null,
+            'account_id' => $organization["ligo_{$prefix}_account_id"] ?? null,
+            'merchant_code' => $organization["ligo_{$prefix}_merchant_code"] ?? null,
+            'private_key' => $organization["ligo_{$prefix}_private_key"] ?? null,
+            'webhook_secret' => $organization["ligo_{$prefix}_webhook_secret"] ?? null,
+        ];
+        
+        // Fallback to legacy fields if environment-specific fields are empty
+        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
+            $credentials = [
+                'username' => $organization['ligo_username'] ?? null,
+                'password' => $organization['ligo_password'] ?? null,
+                'company_id' => $organization['ligo_company_id'] ?? null,
+                'account_id' => $organization['ligo_account_id'] ?? null,
+                'merchant_code' => $organization['ligo_merchant_code'] ?? null,
+                'private_key' => $organization['ligo_private_key'] ?? null,
+                'webhook_secret' => $organization['ligo_webhook_secret'] ?? null,
+            ];
+        }
+        
+        return $credentials;
+    }
+
+    /**
      * Get Ligo API configuration based on organization settings
      */
     private function getLigoConfig($organization)
@@ -80,9 +115,10 @@ class LigoQRController extends Controller
 
         // Check if Ligo is enabled for this organization and has valid credentials
         $ligoEnabled = isset($organization['ligo_enabled']) && $organization['ligo_enabled'];
-        $hasValidCredentials = !empty($organization['ligo_username']) && 
-                              !empty($organization['ligo_password']) && 
-                              !empty($organization['ligo_company_id']);
+        $credentials = $this->getLigoCredentials($organization);
+        $hasValidCredentials = !empty($credentials['username']) && 
+                              !empty($credentials['password']) && 
+                              !empty($credentials['company_id']);
         $hasValidToken = !empty($organization['ligo_token']) && 
                          !empty($organization['ligo_token_expiry']) && 
                          strtotime($organization['ligo_token_expiry']) > time();
@@ -255,9 +291,10 @@ class LigoQRController extends Controller
 
         // Check if Ligo is enabled for this organization and has valid credentials
         $ligoEnabled = isset($organization['ligo_enabled']) && $organization['ligo_enabled'];
-        $hasValidCredentials = !empty($organization['ligo_username']) && 
-                              !empty($organization['ligo_password']) && 
-                              !empty($organization['ligo_company_id']);
+        $credentials = $this->getLigoCredentials($organization);
+        $hasValidCredentials = !empty($credentials['username']) && 
+                              !empty($credentials['password']) && 
+                              !empty($credentials['company_id']);
         $hasValidToken = !empty($organization['ligo_token']) && 
                          !empty($organization['ligo_token_expiry']) && 
                          strtotime($organization['ligo_token_expiry']) > time();
@@ -302,7 +339,7 @@ class LigoQRController extends Controller
         ];
 
         // Intentar generar QR solo si las credenciales están configuradas
-        if (!empty($organization['ligo_username']) && !empty($organization['ligo_password']) && !empty($organization['ligo_company_id'])) {
+        if (!empty($credentials['username']) && !empty($credentials['password']) && !empty($credentials['company_id'])) {
             // 🚀 CACHE: Verificar cache antes de generar nuevo QR
             $hashModel = new \App\Models\LigoQRHashModel();
             $cacheMinutes = 15;
@@ -473,8 +510,11 @@ class LigoQRController extends Controller
             ]);
         }
         
+        // Get Ligo credentials
+        $credentials = $this->getLigoCredentials($organization);
+        
         // Check if Ligo credentials are configured
-        if (empty($organization['ligo_username']) || empty($organization['ligo_password']) || empty($organization['ligo_company_id'])) {
+        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
             return $this->response->setJSON([
                 'success' => false,
                 'error_message' => 'Ligo API credentials not configured'
@@ -789,7 +829,7 @@ class LigoQRController extends Controller
         ];
 
         // Intentar generar QR solo si las credenciales están configuradas
-        if (!empty($organization['ligo_username']) && !empty($organization['ligo_password']) && !empty($organization['ligo_company_id'])) {
+        if (!empty($credentials['username']) && !empty($credentials['password']) && !empty($credentials['company_id'])) {
             // 🚀 CACHE: Verificar si existe QR válido reciente (15 minutos)
             $hashModel = new \App\Models\LigoQRHashModel();
             $cacheMinutes = 15;
@@ -834,7 +874,7 @@ class LigoQRController extends Controller
 
                 // Log para depuración
                 log_message('debug', 'Intentando crear orden en Ligo con datos: ' . json_encode($orderData));
-                log_message('debug', 'Organización: ' . $organization['id'] . ' - Username: ' . $organization['ligo_username']);
+                log_message('debug', 'Organización: ' . $organization['id'] . ' - Username: ' . $credentials['username']);
 
                 // Crear orden en Ligo
                 $response = $this->createLigoOrder($orderData, $organization);
@@ -1018,7 +1058,7 @@ class LigoQRController extends Controller
                 log_message('info', '🚀 TOKEN CACHE HIT: Usando token almacenado válido (queda ' . $remainingMinutes . ' min) - org_id=' . $organization['id']);
                 
                 // Extraer el company ID del token JWT
-                $companyId = $organization['ligo_company_id'];
+                $companyId = $credentials['company_id'];
                 
                 // Verificar si podemos extraer el company ID del token
                 $tokenParts = explode('.', $organization['ligo_token']);
@@ -1049,7 +1089,12 @@ class LigoQRController extends Controller
         }
         
         // Si no hay token válido almacenado, intentar obtener uno nuevo
-        if (empty($organization['ligo_username']) || empty($organization['ligo_password']) || empty($organization['ligo_company_id'])) {
+        // Get credentials if not already obtained
+        if (!isset($credentials)) {
+            $credentials = $this->getLigoCredentials($organization);
+        }
+        
+        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
             log_message('error', 'Credenciales de Ligo incompletas para organización ID: ' . $organization['id']);
             return (object)['error' => 'Incomplete Ligo credentials'];
         }
@@ -1058,7 +1103,7 @@ class LigoQRController extends Controller
         $config = $this->getLigoConfig($organization);
         
         // URL específica para autenticación
-        $authUrl = $config['auth_url'] . '/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
+        $authUrl = $config['auth_url'] . '/v1/auth/sign-in?companyId=' . $credentials['company_id'];
         log_message('info', "🌍 ENTORNO: {$config['environment']} - Auth URL: {$authUrl}");
         log_message('debug', 'URL de autenticación completa: ' . $authUrl);
         
@@ -1076,7 +1121,7 @@ class LigoQRController extends Controller
             
             // Preparar payload
             $payload = [
-                'companyId' => $organization['ligo_company_id']
+                'companyId' => $credentials['company_id']
             ];
             
             // Generar token JWT
@@ -1094,7 +1139,7 @@ class LigoQRController extends Controller
             return (object)['error' => 'Error al generar token JWT: ' . $e->getMessage()];
         }
         
-        $companyId = $organization['ligo_company_id'];
+        $companyId = $credentials['company_id'];
         // Usar la URL específica para autenticación
         $url = $authUrl;
         
@@ -1102,8 +1147,8 @@ class LigoQRController extends Controller
         
         // Datos de autenticación para la solicitud POST
         $authData = [
-            'username' => $organization['ligo_username'],
-            'password' => $organization['ligo_password']
+            'username' => $credentials['username'],
+            'password' => $credentials['password']
         ];
         $requestBody = json_encode($authData);
         
