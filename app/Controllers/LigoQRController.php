@@ -18,6 +18,24 @@ class LigoQRController extends Controller
     }
     
     /**
+     * Get Ligo API configuration based on organization settings
+     */
+    private function getLigoConfig($organization)
+    {
+        $environment = $organization['ligo_environment'] ?? 'dev';
+        $sslVerify = isset($organization['ligo_ssl_verify']) ? (bool)$organization['ligo_ssl_verify'] : ($environment === 'prod');
+        
+        return [
+            'environment' => $environment,
+            'auth_url' => $organization['ligo_auth_url'] ?? "https://cce-auth-{$environment}.ligocloud.tech",
+            'api_url' => $organization['ligo_api_url'] ?? "https://cce-api-gateway-{$environment}.ligocloud.tech",
+            'ssl_verify' => $sslVerify,
+            'ssl_verify_host' => $sslVerify ? 2 : 0,
+            'prefix' => $environment
+        ];
+    }
+    
+    /**
      * Debug endpoint to verify deployment
      */
     public function debug()
@@ -285,6 +303,36 @@ class LigoQRController extends Controller
 
         // Intentar generar QR solo si las credenciales están configuradas
         if (!empty($organization['ligo_username']) && !empty($organization['ligo_password']) && !empty($organization['ligo_company_id'])) {
+            // 🚀 CACHE: Verificar cache antes de generar nuevo QR
+            $hashModel = new \App\Models\LigoQRHashModel();
+            $cacheMinutes = 15;
+            $cacheTime = date('Y-m-d H:i:s', strtotime("-{$cacheMinutes} minutes"));
+            
+            $existingQR = $hashModel
+                ->where('invoice_id', $invoice['id'])
+                ->where('instalment_id', $instalmentId)
+                ->where('amount', $paymentAmount)
+                ->where('created_at >', $cacheTime)
+                ->orderBy('created_at', 'DESC')
+                ->first();
+            
+            if ($existingQR && !empty($existingQR['real_hash'])) {
+                // ✅ Retornar QR desde cache
+                log_message('info', '🚀 AJAX CACHE HIT: Usando QR en cache para invoice_id=' . $invoice['id'] . ', instalment_id=' . ($instalmentId ?? 'null'));
+                
+                return $this->response->setJSON([
+                    'success' => true,
+                    'qr_data' => $existingQR['real_hash'],
+                    'qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($existingQR['real_hash']),
+                    'order_id' => $existingQR['order_id'],
+                    'expiration' => date('Y-m-d H:i:s', strtotime($existingQR['created_at'] . ' +1 hour')),
+                    'is_cached' => true,
+                    'cache_age' => round((strtotime('now') - strtotime($existingQR['created_at'])) / 60, 1)
+                ]);
+            }
+            
+            log_message('info', '❌ AJAX CACHE MISS: Generando nuevo QR para invoice_id=' . $invoice['id'] . ', instalment_id=' . ($instalmentId ?? 'null'));
+            
             // Si hay un instalmentId, usar el método que obtiene hash real
             if ($instalmentId) {
                 log_message('info', '[ajaxQR] Using generateInstalmentQRInternal for instalment ' . $instalmentId);
@@ -491,8 +539,8 @@ class LigoQRController extends Controller
         try {
             // Step 1: Create QR (same as PaymentController)
             $curl = curl_init();
-            $prefix = 'dev';
-            $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
+            $config = $this->getLigoConfig($organization);
+            $url = $config['api_url'] . '/v1/createQr';
             
             $idCuenta = !empty($organization['ligo_account_id']) ? $organization['ligo_account_id'] : '92100178794744781044';
             $codigoComerciante = !empty($organization['ligo_merchant_code']) ? $organization['ligo_merchant_code'] : '4829';
@@ -532,8 +580,8 @@ class LigoQRController extends Controller
                     'Content-Type: application/json',
                     'Authorization: Bearer ' . $authToken['token']
                 ],
-                CURLOPT_SSL_VERIFYHOST => 0,
-                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => $config['ssl_verify_host'],
+                CURLOPT_SSL_VERIFYPEER => $config['ssl_verify'],
             ]);
             
             $response = curl_exec($curl);
@@ -742,37 +790,73 @@ class LigoQRController extends Controller
 
         // Intentar generar QR solo si las credenciales están configuradas
         if (!empty($organization['ligo_username']) && !empty($organization['ligo_password']) && !empty($organization['ligo_company_id'])) {
-            // Preparar datos para la orden
-            $orderData = [
-                'amount' => $paymentAmount,
-                'currency' => $invoice['currency'] ?? 'PEN',
-                'orderId' => $invoice['id'],
-                'description' => $paymentDescription
-            ];
-
-            // Log para depuración
-            log_message('debug', 'Intentando crear orden en Ligo con datos: ' . json_encode($orderData));
-            log_message('debug', 'Organización: ' . $organization['id'] . ' - Username: ' . $organization['ligo_username']);
-
-            // Crear orden en Ligo
-            $response = $this->createLigoOrder($orderData, $organization);
-
-            // Log de respuesta
-            log_message('debug', 'Respuesta de Ligo: ' . json_encode($response));
-
-            if (!isset($response->error)) {
-                $data['qr_data'] = $response->qr_data ?? null;
-                $data['qr_image_url'] = $response->qr_image_url ?? null;
-                $data['order_id'] = $response->order_id ?? null;
-                $data['expiration'] = $response->expiration ?? null;
-
-                // Log de éxito
-                log_message('info', 'QR generado exitosamente para factura #' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A'));
+            // 🚀 CACHE: Verificar si existe QR válido reciente (15 minutos)
+            $hashModel = new \App\Models\LigoQRHashModel();
+            $cacheMinutes = 15;
+            $cacheTime = date('Y-m-d H:i:s', strtotime("-{$cacheMinutes} minutes"));
+            
+            $existingQR = $hashModel
+                ->where('invoice_id', $invoice['id'])
+                ->where('instalment_id', $instalmentId)
+                ->where('amount', $paymentAmount)
+                ->where('created_at >', $cacheTime)
+                ->orderBy('created_at', 'DESC')
+                ->first();
+            
+            if ($existingQR && !empty($existingQR['real_hash'])) {
+                // ✅ Usar QR en cache
+                log_message('info', '🚀 CACHE HIT: Usando QR en cache para invoice_id=' . $invoice['id'] . ', instalment_id=' . ($instalmentId ?? 'null') . ', age=' . (strtotime('now') - strtotime($existingQR['created_at'])) . 's');
+                
+                $data['qr_data'] = $existingQR['real_hash'];
+                $data['qr_image_url'] = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($existingQR['real_hash']);
+                $data['order_id'] = $existingQR['order_id'];
+                $data['expiration'] = date('Y-m-d H:i:s', strtotime($existingQR['created_at'] . ' +1 hour'));
+                $data['is_cached'] = true;
+                $data['cache_age'] = round((strtotime('now') - strtotime($existingQR['created_at'])) / 60, 1); // minutos
+                
+                log_message('info', '✅ QR servido desde cache (edad: ' . $data['cache_age'] . ' minutos)');
+                
+                // 🧹 Limpieza oportunista de cache viejo (10% de probabilidad)
+                if (rand(1, 10) === 1) {
+                    $this->cleanupOldQRCache();
+                }
             } else {
-                log_message('error', 'Error generando QR Ligo: ' . json_encode($response));
+                // ❌ Cache miss: Generar nuevo QR
+                log_message('info', '❌ CACHE MISS: Generando nuevo QR para invoice_id=' . $invoice['id'] . ', instalment_id=' . ($instalmentId ?? 'null'));
+                
+                // Preparar datos para la orden
+                $orderData = [
+                    'amount' => $paymentAmount,
+                    'currency' => $invoice['currency'] ?? 'PEN',
+                    'orderId' => $invoice['id'],
+                    'description' => $paymentDescription
+                ];
 
-                // Si hay un error, mostrar un mensaje en la vista
-                $data['error_message'] = 'No se pudo generar el código QR. Error: ' . (is_string($response->error) ? $response->error : json_encode($response->error));
+                // Log para depuración
+                log_message('debug', 'Intentando crear orden en Ligo con datos: ' . json_encode($orderData));
+                log_message('debug', 'Organización: ' . $organization['id'] . ' - Username: ' . $organization['ligo_username']);
+
+                // Crear orden en Ligo
+                $response = $this->createLigoOrder($orderData, $organization);
+
+                // Log de respuesta
+                log_message('debug', 'Respuesta de Ligo: ' . json_encode($response));
+
+                if (!isset($response->error)) {
+                    $data['qr_data'] = $response->qr_data ?? null;
+                    $data['qr_image_url'] = $response->qr_image_url ?? null;
+                    $data['order_id'] = $response->order_id ?? null;
+                    $data['expiration'] = $response->expiration ?? null;
+                    $data['is_cached'] = false;
+
+                    // Log de éxito
+                    log_message('info', '🆕 QR generado exitosamente para factura #' . ($invoice['number'] ?? $invoice['invoice_number'] ?? 'N/A'));
+                } else {
+                    log_message('error', 'Error generando QR Ligo: ' . json_encode($response));
+
+                    // Si hay un error, mostrar un mensaje en la vista
+                    $data['error_message'] = 'No se pudo generar el código QR. Error: ' . (is_string($response->error) ? $response->error : json_encode($response->error));
+                }
             }
         } else {
             log_message('error', 'Credenciales de Ligo no configuradas para la organización ID: ' . $organization['id']);
@@ -922,14 +1006,16 @@ class LigoQRController extends Controller
     {
         log_message('debug', 'Obteniendo token de autenticación de Ligo para organización ID: ' . $organization['id']);
 
-        // Verificar si hay un token almacenado y si aún es válido
+        // 🚀 CACHE MEJORADO: Verificar si hay un token almacenado y si aún es válido
         if (!empty($organization['ligo_token']) && !empty($organization['ligo_token_expiry'])) {
             $expiryDate = strtotime($organization['ligo_token_expiry']);
             $now = time();
+            $marginMinutes = 10; // Aumentado de 5 a 10 minutos para mayor seguridad
             
-            // Si el token aún es válido (con 5 minutos de margen), usarlo
-            if ($expiryDate > ($now + 300)) {
-                log_message('info', 'Usando token almacenado válido hasta: ' . $organization['ligo_token_expiry']);
+            // Si el token aún es válido (con margen ampliado), usarlo
+            if ($expiryDate > ($now + ($marginMinutes * 60))) {
+                $remainingMinutes = round(($expiryDate - $now) / 60, 1);
+                log_message('info', '🚀 TOKEN CACHE HIT: Usando token almacenado válido (queda ' . $remainingMinutes . ' min) - org_id=' . $organization['id']);
                 
                 // Extraer el company ID del token JWT
                 $companyId = $organization['ligo_company_id'];
@@ -950,11 +1036,16 @@ class LigoQRController extends Controller
                 return (object)[
                     'token' => $organization['ligo_token'],
                     'userId' => 'stored-user',
-                    'companyId' => $companyId
+                    'companyId' => $companyId,
+                    'is_cached' => true,
+                    'remaining_minutes' => $remainingMinutes
                 ];
             } else {
-                log_message('info', 'Token almacenado expirado, obteniendo nuevo token');
+                $expiredMinutes = round(($now - $expiryDate) / 60, 1);
+                log_message('info', '❌ TOKEN CACHE MISS: Token expirado hace ' . $expiredMinutes . ' min, obteniendo nuevo token - org_id=' . $organization['id']);
             }
+        } else {
+            log_message('info', '❌ TOKEN CACHE MISS: No hay token almacenado - org_id=' . $organization['id']);
         }
         
         // Si no hay token válido almacenado, intentar obtener uno nuevo
@@ -963,16 +1054,12 @@ class LigoQRController extends Controller
             return (object)['error' => 'Incomplete Ligo credentials'];
         }
         
-        // Definir URL de API si no existe
-        if (empty($organization['ligo_api_url'])) {
-            // URL por defecto para el entorno de desarrollo
-            $organization['ligo_api_url'] = 'https://cce-api-gateway-dev.ligocloud.tech/v1';
-            log_message('info', 'Usando URL de API por defecto: ' . $organization['ligo_api_url']);
-        }
+        // Obtener configuración dinámica
+        $config = $this->getLigoConfig($organization);
         
         // URL específica para autenticación
-        $authUrl = 'https://cce-auth-dev.ligocloud.tech/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
-        log_message('info', 'Usando URL de autenticación: ' . $authUrl);
+        $authUrl = $config['auth_url'] . '/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
+        log_message('info', "🌍 ENTORNO: {$config['environment']} - Auth URL: {$authUrl}");
         log_message('debug', 'URL de autenticación completa: ' . $authUrl);
         
         // Intentar generar el token JWT usando la clave privada
@@ -1038,8 +1125,8 @@ class LigoQRController extends Controller
                 'Content-Length: ' . strlen($requestBody),  // Agregar Content-Length
                 'Accept: application/json'
             ],
-            CURLOPT_SSL_VERIFYHOST => 0,
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYHOST => $config['ssl_verify_host'],
+            CURLOPT_SSL_VERIFYPEER => $config['ssl_verify']
         ]);
         
         $response = curl_exec($curl);
@@ -1176,9 +1263,9 @@ class LigoQRController extends Controller
                 $qrData['data']['info'] = null;
             }
 
-            // URL para generar QR según la documentación
-            $prefix = 'dev'; // Temporalmente de vuelta a dev para test
-            $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/createQr';
+            // Obtener configuración dinámica y URL para generar QR
+            $config = $this->getLigoConfig($organization);
+            $url = $config['api_url'] . '/v1/createQr';
 
             log_message('debug', 'URL para generar QR: ' . $url);
             log_message('debug', 'Datos para generar QR: ' . json_encode($qrData));
@@ -1197,8 +1284,8 @@ class LigoQRController extends Controller
                     'Accept: application/json',
                     'Authorization: Bearer ' . $token
                 ],
-                CURLOPT_SSL_VERIFYHOST => 0,
-                CURLOPT_SSL_VERIFYPEER => false
+                CURLOPT_SSL_VERIFYHOST => $config['ssl_verify_host'],
+                CURLOPT_SSL_VERIFYPEER => $config['ssl_verify']
             ]);
             
             $response = curl_exec($curl);
@@ -1277,9 +1364,9 @@ class LigoQRController extends Controller
         try {
             $curl = curl_init();
             
-            // URL para obtener detalles del QR según Postman
-            $prefix = 'dev'; // Temporalmente de vuelta a dev para test
-            $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
+            // Obtener configuración dinámica y URL para obtener detalles del QR
+            $config = $this->getLigoConfig($organization);
+            $url = $config['api_url'] . '/v1/getCreateQRById/' . $qrId;
             
             log_message('debug', 'URL para obtener detalles del QR: ' . $url);
             
@@ -1296,8 +1383,8 @@ class LigoQRController extends Controller
                     'Accept: application/json',
                     'Authorization: Bearer ' . $token
                 ],
-                CURLOPT_SSL_VERIFYHOST => 0,
-                CURLOPT_SSL_VERIFYPEER => false
+                CURLOPT_SSL_VERIFYHOST => $config['ssl_verify_host'],
+                CURLOPT_SSL_VERIFYPEER => $config['ssl_verify']
             ]);
             
             $response = curl_exec($curl);
@@ -1351,6 +1438,32 @@ class LigoQRController extends Controller
         } catch (\Exception $e) {
             log_message('error', 'Error al obtener detalles del QR: ' . $e->getMessage());
             return (object)['error' => 'QR details error: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Clean up old QR cache entries to prevent database bloat
+     * Removes QR cache entries older than 24 hours
+     */
+    private function cleanupOldQRCache()
+    {
+        try {
+            $hashModel = new \App\Models\LigoQRHashModel();
+            $cleanupTime = date('Y-m-d H:i:s', strtotime('-24 hours'));
+            
+            // Get count before cleanup for logging
+            $oldCount = $hashModel->where('created_at <', $cleanupTime)->countAllResults(false);
+            
+            if ($oldCount > 0) {
+                // Delete old cache entries
+                $hashModel->where('created_at <', $cleanupTime)->delete();
+                
+                log_message('info', '🧹 CACHE CLEANUP: Eliminadas ' . $oldCount . ' entradas de cache QR antiguas (>24h)');
+            } else {
+                log_message('debug', '🧹 CACHE CLEANUP: No hay entradas de cache QR antiguas para eliminar');
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error durante limpieza de cache QR: ' . $e->getMessage());
         }
     }
 }

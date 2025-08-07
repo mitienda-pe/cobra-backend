@@ -30,7 +30,8 @@
       "Bash(curl:*)",
       "Bash(ping:*)",
       "Bash(mysql:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(brew services:*)"
     ],
     "deny": []
   }
