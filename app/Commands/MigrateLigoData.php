@@ -93,9 +93,31 @@ class MigrateLigoData extends BaseCommand
 
                 if ($dryRun) {
                     CLI::write("   📋 Simulación: " . count($updateData) . " campos serían migrados a dev", 'blue');
+                    foreach ($updateData as $field => $value) {
+                        if ($field !== 'updated_at') {
+                            $displayValue = in_array($field, ['ligo_dev_password', 'ligo_dev_private_key', 'ligo_dev_webhook_secret']) 
+                                ? '[CONFIGURADO]' 
+                                : $value;
+                            CLI::write("      {$field}: {$displayValue}");
+                        }
+                    }
                     $migrated++;
                 } else {
-                    $result = $organizationModel->update($org['id'], $updateData);
+                    // Usar query builder directamente para mayor control
+                    $db = \Config\Database::connect();
+                    
+                    CLI::write("   🔧 Datos a migrar:");
+                    foreach ($updateData as $field => $value) {
+                        if ($field !== 'updated_at') {
+                            $displayValue = in_array($field, ['ligo_dev_password', 'ligo_dev_private_key', 'ligo_dev_webhook_secret']) 
+                                ? '[CONFIGURADO]' 
+                                : $value;
+                            CLI::write("      {$field}: {$displayValue}");
+                        }
+                    }
+                    
+                    $builder = $db->table('organizations');
+                    $result = $builder->where('id', $org['id'])->update($updateData);
                     
                     if ($result) {
                         CLI::write("   ✅ Datos migrados a campos de desarrollo (" . count($updateData) . " campos)", 'green');
@@ -105,6 +127,7 @@ class MigrateLigoData extends BaseCommand
                         log_message('info', "LIGO DATA MIGRATION: Organización {$org['name']} (ID: {$org['id']}) - datos migrados a campos dev");
                     } else {
                         CLI::write("   ❌ Error al actualizar en base de datos", 'red');
+                        CLI::write("   🐛 Debug: " . $db->getLastQuery(), 'yellow');
                         $errors++;
                     }
                 }
