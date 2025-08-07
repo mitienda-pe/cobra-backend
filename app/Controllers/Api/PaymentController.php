@@ -39,6 +39,41 @@ class PaymentController extends ResourceController
         $this->paymentModel = new \App\Models\PaymentModel();
     }
     
+    /**
+     * Get Ligo credentials based on active environment
+     */
+    private function getLigoCredentials($organization)
+    {
+        $environment = $organization['ligo_environment'] ?? 'dev';
+        $prefix = $environment === 'prod' ? 'prod' : 'dev';
+        
+        // Try to get environment-specific credentials first
+        $credentials = [
+            'username' => $organization["ligo_{$prefix}_username"] ?? null,
+            'password' => $organization["ligo_{$prefix}_password"] ?? null,
+            'company_id' => $organization["ligo_{$prefix}_company_id"] ?? null,
+            'account_id' => $organization["ligo_{$prefix}_account_id"] ?? null,
+            'merchant_code' => $organization["ligo_{$prefix}_merchant_code"] ?? null,
+            'private_key' => $organization["ligo_{$prefix}_private_key"] ?? null,
+            'webhook_secret' => $organization["ligo_{$prefix}_webhook_secret"] ?? null,
+        ];
+        
+        // Fallback to legacy fields if environment-specific fields are empty
+        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
+            $credentials = [
+                'username' => $organization['ligo_username'] ?? null,
+                'password' => $organization['ligo_password'] ?? null,
+                'company_id' => $organization['ligo_company_id'] ?? null,
+                'account_id' => $organization['ligo_account_id'] ?? null,
+                'merchant_code' => $organization['ligo_merchant_code'] ?? null,
+                'private_key' => $organization['ligo_private_key'] ?? null,
+                'webhook_secret' => $organization['ligo_webhook_secret'] ?? null,
+            ];
+        }
+        
+        return $credentials;
+    }
+    
     // Los métodos de generación de QR se han movido a LigoPaymentController
     // para evitar redundancia y mantener un único punto de entrada
 
@@ -74,7 +109,8 @@ class PaymentController extends ResourceController
         if (!isset($organization['ligo_enabled']) || !$organization['ligo_enabled']) {
             return $this->fail('Ligo payments not enabled for this organization', 400);
         }
-        if (empty($organization['ligo_username']) || empty($organization['ligo_password']) || empty($organization['ligo_company_id'])) {
+        $credentials = $this->getLigoCredentials($organization);
+        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
             return $this->fail('Ligo API credentials not configured', 400);
         }
         // --- NUEVO: Revisar si ya existe un hash para este instalment ---
@@ -142,7 +178,8 @@ class PaymentController extends ResourceController
             log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Ligo payments not enabled');
             return $this->fail('Ligo payments not enabled for this organization', 400);
         }
-        if (empty($organization['ligo_username']) || empty($organization['ligo_password']) || empty($organization['ligo_company_id'])) {
+        $credentials = $this->getLigoCredentials($organization);
+        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
             log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Ligo API credentials not configured');
             return $this->fail('Ligo API credentials not configured', 400);
         }
@@ -165,8 +202,8 @@ class PaymentController extends ResourceController
         }
         $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
         $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
-        $idCuenta = !empty($organization['ligo_account_id']) ? $organization['ligo_account_id'] : '92100178794744781044';
-        $codigoComerciante = !empty($organization['ligo_merchant_code']) ? $organization['ligo_merchant_code'] : '4829';
+        $idCuenta = !empty($credentials['account_id']) ? $credentials['account_id'] : '92100178794744781044';
+        $codigoComerciante = !empty($credentials['merchant_code']) ? $credentials['merchant_code'] : '4829';
         // Calcular fecha de vencimiento: 2 días posteriores a hoy
         $fechaVencimiento = date('Ymd', strtotime('+2 days'));
         
@@ -367,6 +404,9 @@ class PaymentController extends ResourceController
      */
     private function getLigoAuthToken($organization)
     {
+        // Get credentials first
+        $credentials = $this->getLigoCredentials($organization);
+        
         // Basado en getAuthToken de LigoPaymentController, pero retorna array para compatibilidad
         if (!empty($organization['ligo_token']) && !empty($organization['ligo_token_expiry'])) {
             $tokenExpiry = strtotime($organization['ligo_token_expiry']);
@@ -375,16 +415,16 @@ class PaymentController extends ResourceController
             }
         }
         try {
-            if (empty($organization['ligo_company_id'])) {
+            if (empty($credentials['company_id'])) {
                 return ['error' => 'Incomplete Ligo credentials'];
             }
-            $authUrl = 'https://cce-auth-dev.ligocloud.tech/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
-            if (empty($organization['ligo_private_key'])) {
+            $authUrl = 'https://cce-auth-dev.ligocloud.tech/v1/auth/sign-in?companyId=' . $credentials['company_id'];
+            if (empty($credentials['private_key'])) {
                 return ['error' => 'Ligo private key not configured'];
             }
-            $privateKey = $organization['ligo_private_key'];
+            $privateKey = $credentials['private_key'];
             $formattedKey = \App\Libraries\JwtGenerator::formatPrivateKey($privateKey);
-            $payload = [ 'companyId' => $organization['ligo_company_id'] ];
+            $payload = [ 'companyId' => $credentials['company_id'] ];
             $authorizationToken = \App\Libraries\JwtGenerator::generateToken($payload, $formattedKey, [
                 'issuer' => 'ligo',
                 'audience' => 'ligo-calidad.com',
@@ -392,8 +432,8 @@ class PaymentController extends ResourceController
                 'expiresIn' => 3600
             ]);
             $authData = [
-                'username' => $organization['ligo_username'] ?? '',
-                'password' => $organization['ligo_password'] ?? ''
+                'username' => $credentials['username'] ?? '',
+                'password' => $credentials['password'] ?? ''
             ];
             $requestBody = json_encode($authData);
             $curl = curl_init();

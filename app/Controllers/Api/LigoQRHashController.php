@@ -18,6 +18,41 @@ class LigoQRHashController extends ResourceController
         $this->organizationModel = new \App\Models\OrganizationModel();
     }
     
+    /**
+     * Get Ligo credentials based on active environment
+     */
+    private function getLigoCredentials($organization)
+    {
+        $environment = $organization['ligo_environment'] ?? 'dev';
+        $prefix = $environment === 'prod' ? 'prod' : 'dev';
+        
+        // Try to get environment-specific credentials first
+        $credentials = [
+            'username' => $organization["ligo_{$prefix}_username"] ?? null,
+            'password' => $organization["ligo_{$prefix}_password"] ?? null,
+            'company_id' => $organization["ligo_{$prefix}_company_id"] ?? null,
+            'account_id' => $organization["ligo_{$prefix}_account_id"] ?? null,
+            'merchant_code' => $organization["ligo_{$prefix}_merchant_code"] ?? null,
+            'private_key' => $organization["ligo_{$prefix}_private_key"] ?? null,
+            'webhook_secret' => $organization["ligo_{$prefix}_webhook_secret"] ?? null,
+        ];
+        
+        // Fallback to legacy fields if environment-specific fields are empty
+        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
+            $credentials = [
+                'username' => $credentials['username'] ?? null,
+                'password' => $credentials['password'] ?? null,
+                'company_id' => $credentials['company_id'] ?? null,
+                'account_id' => $organization['ligo_account_id'] ?? null,
+                'merchant_code' => $organization['ligo_merchant_code'] ?? null,
+                'private_key' => $credentials['private_key'] ?? null,
+                'webhook_secret' => $organization['ligo_webhook_secret'] ?? null,
+            ];
+        }
+        
+        return $credentials;
+    }
+    
     public function index()
     {
         $hashes = $this->ligoQRHashModel->orderBy('created_at', 'DESC')->findAll(50);
@@ -95,9 +130,9 @@ class LigoQRHashController extends ResourceController
                 // Si no hay invoice_id, buscar la primera organización con credenciales LIGO configuradas
                 $organization = $this->organizationModel
                     ->where('ligo_enabled', 1)
-                    ->where('ligo_username IS NOT NULL')
-                    ->where('ligo_password IS NOT NULL')
-                    ->where('ligo_company_id IS NOT NULL')
+                    ->where('(ligo_username IS NOT NULL OR ligo_dev_username IS NOT NULL OR ligo_prod_username IS NOT NULL)')
+                    ->where('(ligo_password IS NOT NULL OR ligo_dev_password IS NOT NULL OR ligo_prod_password IS NOT NULL)')
+                    ->where('(ligo_company_id IS NOT NULL OR ligo_dev_company_id IS NOT NULL OR ligo_prod_company_id IS NOT NULL)')
                     ->first();
                     
                 if (!$organization) {
@@ -192,23 +227,24 @@ class LigoQRHashController extends ResourceController
         }
         
         // Si no hay token válido almacenado, intentar obtener uno nuevo
-        if (empty($organization['ligo_username']) || empty($organization['ligo_password']) || empty($organization['ligo_company_id'])) {
+        $credentials = $this->getLigoCredentials($organization);
+        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
             return (object)['error' => 'Incomplete Ligo credentials'];
         }
         
         try {
             // Verificar que la clave privada exista
-            if (empty($organization['ligo_private_key'])) {
+            if (empty($credentials['private_key'])) {
                 return (object)['error' => 'Ligo private key not configured'];
             }
             
             // Cargar la clase JwtGenerator
-            $privateKey = $organization['ligo_private_key'];
+            $privateKey = $credentials['private_key'];
             $formattedKey = \App\Libraries\JwtGenerator::formatPrivateKey($privateKey);
             
             // Preparar payload
             $payload = [
-                'companyId' => $organization['ligo_company_id']
+                'companyId' => $credentials['company_id']
             ];
             
             // Generar token JWT
@@ -220,14 +256,14 @@ class LigoQRHashController extends ResourceController
             ]);
             
             // URL específica para autenticación
-            $authUrl = 'https://cce-auth-dev.ligocloud.tech/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'];
+            $authUrl = 'https://cce-auth-dev.ligocloud.tech/v1/auth/sign-in?companyId=' . $credentials['company_id'];
             
             $curl = curl_init();
             
             // Datos de autenticación para la solicitud POST
             $authData = [
-                'username' => $organization['ligo_username'],
-                'password' => $organization['ligo_password']
+                'username' => $credentials['username'],
+                'password' => $credentials['password']
             ];
             $requestBody = json_encode($authData);
             
