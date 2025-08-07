@@ -160,6 +160,7 @@ class OrganizationController extends BaseController
         
         // Handle Ligo payment settings
         $data['ligo_enabled'] = isset($postData['ligo_enabled']) ? 1 : 0;
+        $data['ligo_environment'] = $postData['ligo_environment'] ?? 'dev';
         
         // Nuevos campos de Ligo
         $data['ligo_username'] = $postData['ligo_username'] ?? null;
