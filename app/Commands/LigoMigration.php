@@ -35,40 +35,81 @@ class LigoMigration extends BaseCommand
         $dryRun = CLI::getOption('dry-run');
         $force = CLI::getOption('force');
 
+        CLI::write("📋 Configuración:", 'yellow');
+        CLI::write("   • Entorno objetivo: {$environment}");
+        CLI::write("   • Organización: " . ($orgId ? "ID {$orgId}" : "Todas"));
+        CLI::write("   • Modo: " . ($dryRun ? "Simulación" : "Aplicar cambios"));
+        CLI::newLine();
+
         // Obtener organizaciones
         $organizationModel = new \App\Models\OrganizationModel();
         
         if ($orgId) {
-            $organizations = [$organizationModel->find($orgId)];
-            if (!$organizations[0]) {
+            $organization = $organizationModel->find($orgId);
+            if (!$organization) {
                 CLI::error("❌ Organización con ID {$orgId} no encontrada");
                 return;
             }
+            $organizations = [$organization];
         } else {
             $organizations = $organizationModel->where('ligo_enabled', 1)->findAll();
         }
 
+        if (empty($organizations)) {
+            CLI::write('⚠️  No se encontraron organizaciones con Ligo habilitado', 'yellow');
+            return;
+        }
+
+        CLI::write("🔍 Organizaciones encontradas: " . count($organizations), 'green');
+        CLI::newLine();
+
         // Procesar cada organización
         $updated = 0;
+        $errors = 0;
+
         foreach ($organizations as $org) {
             CLI::write("📦 Procesando: {$org['name']} (ID: {$org['id']})");
             
-            $updateData = [
-                'ligo_environment' => $environment,
-                'ligo_ssl_verify' => $environment === 'prod' ? 1 : 0,
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
+            try {
+                $updateData = [
+                    'ligo_environment' => $environment,
+                    'ligo_ssl_verify' => $environment === 'prod' ? 1 : 0,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
 
-            if (!$dryRun) {
-                $organizationModel->update($org['id'], $updateData);
-                CLI::write("   ✅ Migrada a {$environment}", 'green');
-                $updated++;
-            } else {
-                CLI::write("   📋 Simulación: Migración a {$environment} preparada");
+                if ($dryRun) {
+                    CLI::write("   📋 Simulación: Migración a {$environment} preparada", 'blue');
+                    $updated++;
+                } else {
+                    $result = $organizationModel->update($org['id'], $updateData);
+                    
+                    if ($result) {
+                        CLI::write("   ✅ Migrada a {$environment} exitosamente", 'green');
+                        $updated++;
+                        
+                        // Log de auditoría
+                        log_message('info', "LIGO MIGRATION: Organización {$org['name']} (ID: {$org['id']}) migrada a {$environment}");
+                    } else {
+                        CLI::write("   ❌ Error al actualizar en base de datos", 'red');
+                        $errors++;
+                    }
+                }
+            } catch (\Exception $e) {
+                CLI::write("   💥 Error: " . $e->getMessage(), 'red');
+                $errors++;
             }
         }
 
         CLI::newLine();
-        CLI::write("📊 Resumen: Actualizadas: {$updated}");
+        CLI::write("📊 Resumen:", 'yellow');
+        CLI::write("   • Actualizadas: {$updated}");
+        CLI::write("   • Errores: {$errors}");
+        
+        if ($dryRun) {
+            CLI::write("   • Modo simulación - No se aplicaron cambios", 'blue');
+        }
+        
+        CLI::newLine();
+        CLI::write($errors === 0 ? '🎉 Migración completada exitosamente!' : '⚠️  Migración completada con errores', $errors === 0 ? 'green' : 'yellow');
     }
 }
