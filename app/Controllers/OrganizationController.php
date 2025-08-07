@@ -162,24 +162,47 @@ class OrganizationController extends BaseController
         $data['ligo_enabled'] = isset($postData['ligo_enabled']) ? 1 : 0;
         $data['ligo_environment'] = $postData['ligo_environment'] ?? 'dev';
         
-        // Nuevos campos de Ligo
-        $data['ligo_username'] = $postData['ligo_username'] ?? null;
+        // Development credentials
+        $data['ligo_dev_username'] = $postData['ligo_dev_username'] ?? null;
+        if (!empty($postData['ligo_dev_password'])) {
+            $data['ligo_dev_password'] = $postData['ligo_dev_password'];
+        }
+        $data['ligo_dev_company_id'] = $postData['ligo_dev_company_id'] ?? null;
+        $data['ligo_dev_account_id'] = $postData['ligo_dev_account_id'] ?? null;
+        $data['ligo_dev_merchant_code'] = $postData['ligo_dev_merchant_code'] ?? null;
+        if (!empty($postData['ligo_dev_private_key'])) {
+            $data['ligo_dev_private_key'] = $postData['ligo_dev_private_key'];
+        }
+        if (!empty($postData['ligo_dev_webhook_secret'])) {
+            $data['ligo_dev_webhook_secret'] = $postData['ligo_dev_webhook_secret'];
+        }
         
-        // Solo actualizar contraseña si se proporciona
+        // Production credentials
+        $data['ligo_prod_username'] = $postData['ligo_prod_username'] ?? null;
+        if (!empty($postData['ligo_prod_password'])) {
+            $data['ligo_prod_password'] = $postData['ligo_prod_password'];
+        }
+        $data['ligo_prod_company_id'] = $postData['ligo_prod_company_id'] ?? null;
+        $data['ligo_prod_account_id'] = $postData['ligo_prod_account_id'] ?? null;
+        $data['ligo_prod_merchant_code'] = $postData['ligo_prod_merchant_code'] ?? null;
+        if (!empty($postData['ligo_prod_private_key'])) {
+            $data['ligo_prod_private_key'] = $postData['ligo_prod_private_key'];
+        }
+        if (!empty($postData['ligo_prod_webhook_secret'])) {
+            $data['ligo_prod_webhook_secret'] = $postData['ligo_prod_webhook_secret'];
+        }
+        
+        // Legacy fields - keep for backward compatibility
+        $data['ligo_username'] = $postData['ligo_username'] ?? null;
         if (!empty($postData['ligo_password'])) {
             $data['ligo_password'] = $postData['ligo_password'];
         }
-        
         $data['ligo_company_id'] = $postData['ligo_company_id'] ?? null;
         $data['ligo_account_id'] = $postData['ligo_account_id'] ?? null;
         $data['ligo_merchant_code'] = $postData['ligo_merchant_code'] ?? null;
-        
-        // Solo actualizar webhook secret si se proporciona
         if (!empty($postData['ligo_webhook_secret'])) {
             $data['ligo_webhook_secret'] = $postData['ligo_webhook_secret'];
         }
-        
-        // Solo actualizar private key si se proporciona
         if (!empty($postData['ligo_private_key'])) {
             $data['ligo_private_key'] = $postData['ligo_private_key'];
         }

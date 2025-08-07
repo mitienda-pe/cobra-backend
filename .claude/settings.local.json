@@ -31,7 +31,9 @@
       "Bash(ping:*)",
       "Bash(mysql:*)",
       "Bash(sed:*)",
-      "Bash(brew services:*)"
+      "Bash(brew services:*)",
+      "Bash(sudo chown:*)",
+      "Bash(git check-ignore:*)"
     ],
     "deny": []
   }
