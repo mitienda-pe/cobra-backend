@@ -131,4 +131,4 @@ nb-configuration.xml
 /phpunit*.xml
 /.phpunit.*.cache
 
-*.pdf
+*.pdfwritable/keys/*.pem
