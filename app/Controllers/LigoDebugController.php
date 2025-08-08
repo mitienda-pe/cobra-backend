@@ -371,6 +371,18 @@ class LigoDebugController extends BaseController
             log_message('info', '[LIGO_DEBUG] QR response - HTTP: ' . $qrHttpCode . ', Error: ' . ($qrError ?: 'none'));
             log_message('info', '[LIGO_DEBUG] QR response body: ' . substr($qrResponse, 0, 500));
             
+            $qrDetails = null;
+            if ($qrHttpCode === 200) {
+                $qrResponseDecoded = json_decode($qrResponse, true);
+                if ($qrResponseDecoded && isset($qrResponseDecoded['data']['id'])) {
+                    $qrId = $qrResponseDecoded['data']['id'];
+                    log_message('info', '[LIGO_DEBUG] Testing QR details retrieval for ID: ' . $qrId);
+                    
+                    // Test QR details retrieval with retry mechanism
+                    $qrDetails = $this->testQRDetails($qrId, $accessToken, $organization);
+                }
+            }
+            
             return $this->response->setJSON([
                 'success' => true,
                 'auth_result' => 'success',
@@ -380,6 +392,7 @@ class LigoDebugController extends BaseController
                     'error' => $qrError ?: null,
                     'response' => $qrResponse
                 ],
+                'qr_details_test' => $qrDetails,
                 'config_used' => $config,
                 'credentials_used' => [
                     'username' => $credentials['username'],
@@ -396,6 +409,92 @@ class LigoDebugController extends BaseController
                 'error' => 'Exception: ' . $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+        }
+    }
+    
+    /**
+     * Test QR details retrieval with retry mechanism (same as LigoQRController)
+     */
+    private function testQRDetails($qrId, $token, $organization, $maxRetries = 3, $currentAttempt = 1)
+    {
+        log_message('info', "[LIGO_DEBUG] Testing QR details retrieval - ID: {$qrId} (Attempt {$currentAttempt}/{$maxRetries})");
+
+        try {
+            $curl = curl_init();
+            
+            $config = $this->getLigoConfig($organization);
+            $url = $config['api_url'] . '/v1/getCreateQRById/' . $qrId;
+            
+            log_message('info', '[LIGO_DEBUG] QR Details URL: ' . $url);
+            
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Accept: application/json',
+                    'Authorization: Bearer ' . $token
+                ],
+                CURLOPT_SSL_VERIFYHOST => $config['ssl_verify_host'],
+                CURLOPT_SSL_VERIFYPEER => $config['ssl_verify']
+            ]);
+            
+            $response = curl_exec($curl);
+            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            $error = curl_error($curl);
+            curl_close($curl);
+            
+            log_message('info', "[LIGO_DEBUG] QR Details Response - HTTP: {$httpCode}, Error: " . ($error ?: 'none'));
+            log_message('info', '[LIGO_DEBUG] QR Details Response body: ' . substr($response, 0, 500));
+            
+            if ($error) {
+                return ['error' => 'cURL Error: ' . $error];
+            }
+            
+            $decoded = json_decode($response, true);
+            
+            if (!$decoded || !isset($decoded['data'])) {
+                return ['error' => 'Invalid response format'];
+            }
+            
+            // Check if data is empty and we can retry
+            if (empty($decoded['data']) || (is_array($decoded['data']) && empty($decoded['data']))) {
+                log_message('warning', "[LIGO_DEBUG] Empty QR details data (attempt {$currentAttempt}/{$maxRetries})");
+                
+                if ($currentAttempt < $maxRetries) {
+                    $waitTime = $currentAttempt * 2; // 2s, 4s, 6s
+                    log_message('info', "[LIGO_DEBUG] Waiting {$waitTime} seconds before retry...");
+                    sleep($waitTime);
+                    
+                    // Recursive call for retry
+                    return $this->testQRDetails($qrId, $token, $organization, $maxRetries, $currentAttempt + 1);
+                }
+                
+                log_message('warning', '[LIGO_DEBUG] All retry attempts exhausted');
+                return [
+                    'status' => 'empty_after_retries',
+                    'attempts' => $maxRetries,
+                    'response' => $decoded
+                ];
+            }
+            
+            // Success case
+            log_message('info', "[LIGO_DEBUG] QR details obtained successfully on attempt {$currentAttempt}");
+            return [
+                'status' => 'success',
+                'attempts' => $currentAttempt,
+                'response' => $decoded,
+                'has_hash' => isset($decoded['data']['hash']) && !empty($decoded['data']['hash'])
+            ];
+            
+        } catch (\Exception $e) {
+            log_message('error', '[LIGO_DEBUG] Exception in testQRDetails: ' . $e->getMessage());
+            return ['error' => 'Exception: ' . $e->getMessage()];
         }
     }
 }
