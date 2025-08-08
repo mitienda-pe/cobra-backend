@@ -497,4 +497,74 @@ class LigoDebugController extends BaseController
             return ['error' => 'Exception: ' . $e->getMessage()];
         }
     }
+    
+    /**
+     * Test web flow authentication like LigoQRController does
+     */
+    public function testWebFlow($orgId = null)
+    {
+        log_message('info', '[LIGO_DEBUG] Starting web flow authentication test');
+        
+        if (!$orgId) {
+            $organization = $this->organizationModel->where('ligo_enabled', 1)->first();
+        } else {
+            $organization = $this->organizationModel->find($orgId);
+        }
+        
+        if (!$organization) {
+            log_message('error', '[LIGO_DEBUG] Organization not found');
+            return $this->response->setJSON(['error' => 'Organization not found']);
+        }
+        
+        log_message('info', '[LIGO_DEBUG] Testing web flow for organization: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
+        
+        try {
+            // Use LigoQRController's getLigoAuthToken method by simulating the same code
+            $ligoController = new \App\Controllers\LigoQRController();
+            
+            // Use reflection to call private method
+            $reflection = new \ReflectionClass($ligoController);
+            $method = $reflection->getMethod('getLigoAuthToken');
+            $method->setAccessible(true);
+            
+            $result = $method->invoke($ligoController, $organization);
+            
+            if (isset($result->error)) {
+                log_message('error', '[LIGO_DEBUG] Web flow auth failed: ' . $result->error);
+                return $this->response->setJSON([
+                    'success' => false,
+                    'error' => $result->error,
+                    'organization' => [
+                        'id' => $organization['id'],
+                        'name' => $organization['name'],
+                        'environment' => $organization['ligo_environment'] ?? 'dev'
+                    ]
+                ]);
+            }
+            
+            log_message('info', '[LIGO_DEBUG] Web flow auth successful');
+            return $this->response->setJSON([
+                'success' => true,
+                'token_length' => strlen($result->token),
+                'company_id' => $result->companyId,
+                'user_id' => $result->userId,
+                'is_cached' => $result->is_cached ?? false,
+                'organization' => [
+                    'id' => $organization['id'],
+                    'name' => $organization['name'],
+                    'environment' => $organization['ligo_environment'] ?? 'dev'
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            log_message('error', '[LIGO_DEBUG] Web flow test exception: ' . $e->getMessage());
+            log_message('error', '[LIGO_DEBUG] Stack trace: ' . $e->getTraceAsString());
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'error' => 'Exception: ' . $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
 }
