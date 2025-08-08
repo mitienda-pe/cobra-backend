@@ -169,7 +169,7 @@
 
 <!-- Modal para ver detalles del hash -->
 <div class="modal fade" id="hashDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Detalles del Hash QR</h5>
@@ -214,28 +214,40 @@
 
     function copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(function() {
-            // Mostrar notificación de éxito
-            const toast = document.createElement('div');
-            toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
-            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
-            toast.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">
-                        ID QR copiado al portapapeles
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            `;
-            document.body.appendChild(toast);
-            const bsToast = new bootstrap.Toast(toast);
-            bsToast.show();
-            
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
+            showToast('ID QR copiado al portapapeles', 'success');
         }, function(err) {
             console.error('Error al copiar: ', err);
         });
+    }
+
+    function copyHashToClipboard(hash) {
+        navigator.clipboard.writeText(hash).then(function() {
+            showToast('Hash copiado al portapapeles', 'success');
+        }, function(err) {
+            console.error('Error al copiar hash: ', err);
+            showToast('Error al copiar hash', 'danger');
+        });
+    }
+
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type} border-0 position-fixed`;
+        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
     }
 
     function requestHash(hashId, orderId) {
@@ -322,6 +334,19 @@
                         <strong>Instalment ID:</strong> ${hash.instalment_id || '-'}<br>
                         <strong>Monto:</strong> ${hash.amount} ${hash.currency}<br>
                         <strong>Creado:</strong> ${hash.created_at}
+                        
+                        ${hash.real_hash ? `
+                        <hr>
+                        <div class="text-center">
+                            <strong>Código QR:</strong><br>
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(hash.real_hash)}" 
+                                 alt="QR Code" 
+                                 class="img-fluid border rounded mt-2"
+                                 style="max-width: 200px;">
+                            <br>
+                            <small class="text-muted">Generado desde hash almacenado</small>
+                        </div>
+                        ` : ''}
                     </div>
                     <div class="col-md-6">
                         <strong>Descripción:</strong><br>
@@ -329,7 +354,10 @@
                         
                         <strong>Hash Real de LIGO:</strong><br>
                         ${hash.real_hash ? 
-                            `<textarea class="form-control" rows="4" readonly>${hash.real_hash}</textarea>` : 
+                            `<textarea class="form-control" rows="4" readonly>${hash.real_hash}</textarea>
+                             <button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyHashToClipboard('${hash.real_hash.replace(/'/g, "\\'")}')">
+                                <i class="bi bi-clipboard"></i> Copiar Hash
+                             </button>` : 
                             '<span class="text-warning">No disponible</span>'
                         }
                         
