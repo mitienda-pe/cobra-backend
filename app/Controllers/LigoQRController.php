@@ -828,6 +828,9 @@ class LigoQRController extends Controller
             'expiration' => null
         ];
 
+        // Get Ligo credentials
+        $credentials = $this->getLigoCredentials($organization);
+
         // Intentar generar QR solo si las credenciales están configuradas
         if (!empty($credentials['username']) && !empty($credentials['password']) && !empty($credentials['company_id'])) {
             // 🚀 CACHE: Verificar si existe QR válido reciente (15 minutos)
@@ -1045,6 +1048,9 @@ class LigoQRController extends Controller
     private function getLigoAuthToken($organization)
     {
         log_message('debug', 'Obteniendo token de autenticación de Ligo para organización ID: ' . $organization['id']);
+
+        // Get credentials for this organization
+        $credentials = $this->getLigoCredentials($organization);
 
         // 🚀 CACHE MEJORADO: Verificar si hay un token almacenado y si aún es válido
         if (!empty($organization['ligo_token']) && !empty($organization['ligo_token_expiry'])) {
