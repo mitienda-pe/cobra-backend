@@ -165,7 +165,7 @@
                                                     <div class="form-text">ID de cuenta para QR (opcional)</div>
                                                 </div>
                                             </div>
-                                            <div class="row mb-3">
+                                            <div class="row mb-3" style="display: none;">
                                                 <div class="col-md-6">
                                                     <label for="ligo_dev_merchant_code" class="form-label">
                                                         <i class="bi bi-shop"></i> Merchant Code
@@ -260,7 +260,7 @@
                                                     <div class="form-text">ID de cuenta para QR (opcional)</div>
                                                 </div>
                                             </div>
-                                            <div class="row mb-3">
+                                            <div class="row mb-3" style="display: none;">
                                                 <div class="col-md-6">
                                                     <label for="ligo_prod_merchant_code" class="form-label">
                                                         <i class="bi bi-shop"></i> Merchant Code
