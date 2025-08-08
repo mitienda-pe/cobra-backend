@@ -193,4 +193,209 @@ class LigoDebugController extends BaseController
         
         return $this->response->setJSON($debugInfo);
     }
+    
+    /**
+     * Test QR generation with detailed logging
+     */
+    public function testQR($orgId = null)
+    {
+        log_message('info', '[LIGO_DEBUG] Starting QR test generation');
+        
+        if (!$orgId) {
+            $organization = $this->organizationModel->where('ligo_enabled', 1)->first();
+        } else {
+            $organization = $this->organizationModel->find($orgId);
+        }
+        
+        if (!$organization) {
+            log_message('error', '[LIGO_DEBUG] Organization not found');
+            return $this->response->setJSON([
+                'error' => 'Organization not found'
+            ]);
+        }
+        
+        log_message('info', '[LIGO_DEBUG] Using organization: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
+        
+        try {
+            // Use the same method as LigoQRController
+            $credentials = $this->getLigoCredentials($organization);
+            $config = $this->getLigoConfig($organization);
+            
+            log_message('info', '[LIGO_DEBUG] Environment: ' . $config['environment']);
+            log_message('info', '[LIGO_DEBUG] Auth URL: ' . $config['auth_url']);
+            log_message('info', '[LIGO_DEBUG] SSL Verify: ' . ($config['ssl_verify'] ? 'true' : 'false'));
+            log_message('info', '[LIGO_DEBUG] Username: ' . $credentials['username']);
+            log_message('info', '[LIGO_DEBUG] Company ID: ' . $credentials['company_id']);
+            
+            // Test authentication
+            $authUrl = $config['auth_url'] . '/v1/auth/sign-in?companyId=' . $credentials['company_id'];
+            log_message('info', '[LIGO_DEBUG] Auth URL with company: ' . $authUrl);
+            
+            // Generate JWT token
+            if (empty($credentials['private_key'])) {
+                log_message('error', '[LIGO_DEBUG] Private key not configured');
+                return $this->response->setJSON(['error' => 'Private key not configured']);
+            }
+            
+            $privateKey = \App\Libraries\JwtGenerator::formatPrivateKey($credentials['private_key']);
+            $payload = ['companyId' => $credentials['company_id']];
+            $authorizationToken = \App\Libraries\JwtGenerator::generateToken($payload, $privateKey, [
+                'issuer' => 'ligo',
+                'audience' => 'ligo-calidad.com',
+                'subject' => 'ligo@gmail.com',
+                'expiresIn' => 3600
+            ]);
+            
+            log_message('info', '[LIGO_DEBUG] JWT token generated successfully');
+            
+            $curl = curl_init();
+            $authData = [
+                'username' => $credentials['username'],
+                'password' => $credentials['password']
+            ];
+            
+            log_message('info', '[LIGO_DEBUG] Auth data prepared');
+            
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $authUrl,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => json_encode($authData),
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Accept: application/json',
+                    'Authorization: Bearer ' . $authorizationToken
+                ],
+                CURLOPT_SSL_VERIFYHOST => $config['ssl_verify_host'],
+                CURLOPT_SSL_VERIFYPEER => $config['ssl_verify'],
+                CURLOPT_FOLLOWLOCATION => true
+            ]);
+            
+            log_message('info', '[LIGO_DEBUG] Making auth request to: ' . $authUrl);
+            
+            $response = curl_exec($curl);
+            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            $error = curl_error($curl);
+            curl_close($curl);
+            
+            log_message('info', '[LIGO_DEBUG] Auth response - HTTP: ' . $httpCode . ', Error: ' . ($error ?: 'none'));
+            
+            if ($error) {
+                log_message('error', '[LIGO_DEBUG] CURL Error: ' . $error);
+                return $this->response->setJSON([
+                    'error' => 'Connection error: ' . $error,
+                    'details' => [
+                        'url' => $authUrl,
+                        'curl_error' => $error,
+                        'http_code' => $httpCode
+                    ]
+                ]);
+            }
+            
+            if ($httpCode !== 200) {
+                log_message('error', '[LIGO_DEBUG] HTTP Error: ' . $httpCode);
+                log_message('error', '[LIGO_DEBUG] Response: ' . $response);
+                return $this->response->setJSON([
+                    'error' => 'HTTP error: ' . $httpCode,
+                    'response' => $response
+                ]);
+            }
+            
+            $decoded = json_decode($response, true);
+            if (!$decoded || !isset($decoded['data']['access_token'])) {
+                log_message('error', '[LIGO_DEBUG] Invalid response format');
+                return $this->response->setJSON([
+                    'error' => 'Invalid response format',
+                    'response' => $response
+                ]);
+            }
+            
+            log_message('info', '[LIGO_DEBUG] Authentication successful, got token');
+            
+            // Now test QR creation
+            $qrUrl = $config['api_url'] . '/v1/createQr';
+            $accessToken = $decoded['data']['access_token'];
+            
+            $qrData = [
+                'header' => ['sisOrigen' => '0921'],
+                'data' => [
+                    'qrTipo' => '12',
+                    'idCuenta' => $credentials['account_id'] ?: '92100126723511862044',
+                    'moneda' => '604', // PEN
+                    'importe' => 1000, // 10.00 PEN in cents
+                    'fechaVencimiento' => date('Ymd', strtotime('+2 days')),
+                    'cantidadPagos' => 1,
+                    'codigoComerciante' => $credentials['merchant_code'] ?: '4829',
+                    'nombreComerciante' => $organization['name'],
+                    'ciudadComerciante' => 'Lima',
+                    'glosa' => 'Test QR from debug endpoint',
+                    'info' => [
+                        ['codigo' => 'test_id', 'valor' => 'debug_' . time()]
+                    ]
+                ],
+                'type' => 'TEXT'
+            ];
+            
+            log_message('info', '[LIGO_DEBUG] QR data prepared for: ' . $qrUrl);
+            
+            $curl = curl_init();
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $qrUrl,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => json_encode($qrData),
+                CURLOPT_HTTPHEADER => [
+                    'Authorization: Bearer ' . $accessToken,
+                    'Content-Type: application/json'
+                ],
+                CURLOPT_SSL_VERIFYHOST => $config['ssl_verify_host'],
+                CURLOPT_SSL_VERIFYPEER => $config['ssl_verify'],
+                CURLOPT_FOLLOWLOCATION => true
+            ]);
+            
+            log_message('info', '[LIGO_DEBUG] Making QR request');
+            
+            $qrResponse = curl_exec($curl);
+            $qrHttpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            $qrError = curl_error($curl);
+            curl_close($curl);
+            
+            log_message('info', '[LIGO_DEBUG] QR response - HTTP: ' . $qrHttpCode . ', Error: ' . ($qrError ?: 'none'));
+            log_message('info', '[LIGO_DEBUG] QR response body: ' . substr($qrResponse, 0, 500));
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'auth_result' => 'success',
+                'qr_request' => [
+                    'url' => $qrUrl,
+                    'http_code' => $qrHttpCode,
+                    'error' => $qrError ?: null,
+                    'response' => $qrResponse
+                ],
+                'config_used' => $config,
+                'credentials_used' => [
+                    'username' => $credentials['username'],
+                    'company_id' => $credentials['company_id'],
+                    'account_id' => $credentials['account_id']
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            log_message('error', '[LIGO_DEBUG] Exception: ' . $e->getMessage());
+            log_message('error', '[LIGO_DEBUG] Stack trace: ' . $e->getTraceAsString());
+            
+            return $this->response->setJSON([
+                'error' => 'Exception: ' . $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
 }

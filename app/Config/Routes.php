@@ -29,6 +29,8 @@ $routes->post('auth/reset-password/(:segment)', 'Auth::reset_password/$1');
 $routes->get('ligo/hashes', 'LigoQRHashViewController::index', ['filter' => 'auth']);
 $routes->get('ligo/debug/(:num)', 'LigoDebugController::debug/$1');
 $routes->get('ligo/debug', 'LigoDebugController::debug');
+$routes->get('ligo/test-qr/(:num)', 'LigoDebugController::testQR/$1');
+$routes->get('ligo/test-qr', 'LigoDebugController::testQR');
 
 // Ligo Webhook Route - Public (compatibilidad con URL sin /api)
 $routes->post('webhooks/ligo', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification');
