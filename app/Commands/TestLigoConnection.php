@@ -55,11 +55,22 @@ class TestLigoConnection extends BaseCommand
         // Obtener credenciales según el entorno
         $prefix = $environment === 'prod' ? 'prod' : 'dev';
         $credentials = [
-            'username' => $organization["ligo_{$prefix}_username"] ?? $organization['ligo_username'] ?? null,
-            'password' => $organization["ligo_{$prefix}_password"] ?? $organization['ligo_password'] ?? null,
-            'company_id' => $organization["ligo_{$prefix}_company_id"] ?? $organization['ligo_company_id'] ?? null,
-            'private_key' => $organization["ligo_{$prefix}_private_key"] ?? $organization['ligo_private_key'] ?? null,
+            'username' => $organization["ligo_{$prefix}_username"] ?? null,
+            'password' => $organization["ligo_{$prefix}_password"] ?? null,
+            'company_id' => $organization["ligo_{$prefix}_company_id"] ?? null,
+            'private_key' => $organization["ligo_{$prefix}_private_key"] ?? null,
         ];
+        
+        // Fallback to legacy fields only if environment-specific fields are empty
+        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
+            CLI::write("⚠️  No se encontraron credenciales específicas para " . strtoupper($environment) . ", usando credenciales legacy", 'yellow');
+            $credentials = [
+                'username' => $organization['ligo_username'] ?? null,
+                'password' => $organization['ligo_password'] ?? null,
+                'company_id' => $organization['ligo_company_id'] ?? null,
+                'private_key' => $organization['ligo_private_key'] ?? null,
+            ];
+        }
 
         // Verificar credenciales
         if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
