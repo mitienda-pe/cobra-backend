@@ -1122,13 +1122,13 @@ class LigoQRController extends Controller
         // Intentar generar el token JWT usando la clave privada
         try {
             // Verificar que la clave privada exista
-            if (empty($organization['ligo_private_key'])) {
+            if (empty($credentials['private_key'])) {
                 log_message('error', 'Clave privada de Ligo no configurada para la organización ID: ' . $organization['id']);
                 return (object)['error' => 'Ligo private key not configured'];
             }
             
             // Cargar la clase JwtGenerator
-            $privateKey = $organization['ligo_private_key'];
+            $privateKey = $credentials['private_key'];
             $formattedKey = \App\Libraries\JwtGenerator::formatPrivateKey($privateKey);
             
             // Preparar payload
