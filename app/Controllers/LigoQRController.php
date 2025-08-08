@@ -582,8 +582,10 @@ class LigoQRController extends Controller
             $config = $this->getLigoConfig($organization);
             $url = $config['api_url'] . '/v1/createQr';
             
-            $idCuenta = !empty($organization['ligo_account_id']) ? $organization['ligo_account_id'] : '92100178794744781044';
-            $codigoComerciante = !empty($organization['ligo_merchant_code']) ? $organization['ligo_merchant_code'] : '4829';
+            // Get credentials for environment-specific account and merchant info
+            $credentials = $this->getLigoCredentials($organization);
+            $idCuenta = !empty($credentials['account_id']) ? $credentials['account_id'] : '92100178794744781044';
+            $codigoComerciante = !empty($credentials['merchant_code']) ? $credentials['merchant_code'] : '4829';
             $fechaVencimiento = date('Ymd', strtotime('+2 days'));
             
             $qrData = [
@@ -1261,8 +1263,10 @@ class LigoQRController extends Controller
             $curl = curl_init();
 
             // Asegurar que tenemos valores válidos para los campos requeridos
-            $idCuenta = !empty($organization['ligo_account_id']) ? $organization['ligo_account_id'] : '92100178794744781044';
-            $codigoComerciante = !empty($organization['ligo_merchant_code']) ? $organization['ligo_merchant_code'] : '4829';
+            // Get credentials for environment-specific account and merchant info
+            $credentials = $this->getLigoCredentials($organization);
+            $idCuenta = !empty($credentials['account_id']) ? $credentials['account_id'] : '92100178794744781044';
+            $codigoComerciante = !empty($credentials['merchant_code']) ? $credentials['merchant_code'] : '4829';
             
             // Registrar los valores para depuración
             log_message('debug', 'Valores para generación de QR - idCuenta: ' . $idCuenta . ', codigoComerciante: ' . $codigoComerciante);
