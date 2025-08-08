@@ -1402,9 +1402,9 @@ class LigoQRController extends Controller
      * @param array $organization Organization data
      * @return object Response from Ligo API
      */
-    private function getQRDetailsById($qrId, $token, $organization)
+    private function getQRDetailsById($qrId, $token, $organization, $maxRetries = 3, $currentAttempt = 1)
     {
-        log_message('debug', 'Obteniendo detalles de QR con ID: ' . $qrId);
+        log_message('debug', "Obteniendo detalles de QR con ID: {$qrId} (Intento {$currentAttempt}/{$maxRetries})");
 
         try {
             $curl = curl_init();
@@ -1447,6 +1447,7 @@ class LigoQRController extends Controller
             $logData = [
                 'timestamp' => date('Y-m-d H:i:s'),
                 'qr_id' => $qrId,
+                'attempt' => $currentAttempt,
                 'response_code' => $info['http_code'],
                 'response_data' => $response
             ];
@@ -1469,14 +1470,36 @@ class LigoQRController extends Controller
                 return (object)['error' => 'Error in QR details response: ' . json_encode($decoded)];
             }
             
-            // La respuesta puede ser válida incluso si no contiene hash
-            if (empty($decoded->data)) {
-                log_message('warning', 'La respuesta de detalles de QR no contiene datos: ' . json_encode($decoded));
-                // Crear un objeto con datos mínimos para que el flujo pueda continuar
+            // Verificar si los datos están vacíos y si podemos reintentar
+            if (empty($decoded->data) || (is_object($decoded->data) && empty((array)$decoded->data))) {
+                log_message('warning', "La respuesta de detalles de QR no contiene datos (intento {$currentAttempt}/{$maxRetries}): " . json_encode($decoded));
+                
+                // Si no hemos alcanzado el máximo de reintentos, esperar y reintentar
+                if ($currentAttempt < $maxRetries) {
+                    $waitTime = $currentAttempt * 2; // Incrementar el tiempo de espera: 2s, 4s, 6s
+                    log_message('info', "Esperando {$waitTime} segundos antes del siguiente intento...");
+                    sleep($waitTime);
+                    
+                    // Llamada recursiva con el siguiente intento
+                    return $this->getQRDetailsById($qrId, $token, $organization, $maxRetries, $currentAttempt + 1);
+                }
+                
+                // Si agotamos todos los intentos, crear datos mínimos para que el flujo continúe
+                log_message('warning', "Agotados todos los intentos para obtener detalles de QR. Usando datos de respaldo.");
                 $decoded->data = (object)[
-                    'hash' => 'LIGO-' . $qrId . '-' . time(),
-                    'idQr' => $qrId
+                    'hash' => 'LIGO-PENDING-' . $qrId . '-' . time(),
+                    'idQr' => $qrId,
+                    'status' => 'pending_details',
+                    'note' => 'QR created successfully but details are still being processed by Ligo'
                 ];
+            } else {
+                // Datos obtenidos exitosamente
+                log_message('info', "Detalles de QR obtenidos exitosamente en el intento {$currentAttempt}");
+                
+                // Verificar si tenemos el hash real
+                if (isset($decoded->data->hash) && !empty($decoded->data->hash)) {
+                    log_message('info', 'Hash del QR obtenido: ' . substr($decoded->data->hash, 0, 50) . '...');
+                }
             }
             
             return $decoded;
