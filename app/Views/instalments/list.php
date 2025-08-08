@@ -94,11 +94,12 @@
                         </thead>
                         <tbody>
                             <?php foreach ($instalments as $instalment):
-                                // Calcular clase CSS para la fila
+                                // Calcular clase CSS para la fila basándose en pagos reales
                                 $rowClass = '';
-                                if ($instalment['status'] === 'paid') {
+                                $isPaid = isset($instalment['is_actually_paid']) && $instalment['is_actually_paid'];
+                                if ($isPaid) {
                                     $rowClass = 'table-success';
-                                } elseif ($instalment['is_overdue']) {
+                                } elseif (isset($instalment['is_overdue']) && $instalment['is_overdue']) {
                                     $rowClass = 'table-danger';
                                 }
                             ?>
@@ -118,12 +119,15 @@
                                     <td>S/ <?= number_format($instalment['amount'], 2) ?></td>
                                     <td><?= date('d/m/Y', strtotime($instalment['due_date'])) ?></td>
                                     <td>
-                                        <span class="badge bg-<?= $instalment['status'] === 'paid' ? 'success' : ($instalment['status'] === 'pending' ? 'warning' : 'danger') ?>">
-                                            <?= $instalment['status'] === 'paid' ? 'Pagada' : ($instalment['status'] === 'pending' ? 'Pendiente' : ucfirst($instalment['status'])) ?>
+                                        <span class="badge bg-<?= $isPaid ? 'success' : ($instalment['status'] === 'pending' ? 'warning' : 'danger') ?>">
+                                            <?= $isPaid ? 'Pagada' : ($instalment['status'] === 'pending' ? 'Pendiente' : ucfirst($instalment['status'])) ?>
                                         </span>
+                                        <?php if ($isPaid && isset($instalment['total_paid_amount']) && $instalment['total_paid_amount'] > 0): ?>
+                                            <br><small class="text-muted">S/ <?= number_format($instalment['total_paid_amount'], 2) ?></small>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php if ($instalment['status'] === 'pending' && $auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                                        <?php if (!$isPaid && $auth->hasAnyRole(['superadmin', 'admin'])): ?>
                                             <div class="btn-group">
                                                 <a href="<?= site_url('payments/create/' . $instalment['invoice_uuid'] . '/' . $instalment['id']) ?>" class="btn btn-sm btn-success">
                                                     <i class="bi bi-cash"></i> Pagar

@@ -510,8 +510,51 @@ class InstalmentController extends BaseController
         
         // Categorizar las cuotas para mostrar información adicional en la vista
         foreach ($instalments as &$instalment) {
-            // Determinar si es una cuota vencida
-            $instalment['is_overdue'] = ($instalment['status'] !== 'paid' && $instalment['due_date'] < $today);
+            // Calculate actual payment status based on payments
+            $totalPaid = $db->table('payments')
+                            ->selectSum('amount')
+                            ->where('instalment_id', $instalment['id'])
+                            ->where('status', 'completed')
+                            ->get()
+                            ->getRow()
+                            ->amount ?? 0;
+            
+            // Normalize Ligo payments (convert from cents to soles if needed)
+            if ($totalPaid >= 100) {
+                $ligoPayments = $db->table('payments')
+                                 ->where('instalment_id', $instalment['id'])
+                                 ->where('status', 'completed')
+                                 ->where('payment_method', 'ligo_qr')
+                                 ->get()
+                                 ->getResultArray();
+                
+                if (!empty($ligoPayments)) {
+                    // Recalculate with proper normalization
+                    $totalPaid = 0;
+                    $allPayments = $db->table('payments')
+                                    ->where('instalment_id', $instalment['id'])
+                                    ->where('status', 'completed')
+                                    ->get()
+                                    ->getResultArray();
+                    
+                    foreach ($allPayments as $payment) {
+                        if ($payment['payment_method'] === 'ligo_qr' && $payment['amount'] >= 100) {
+                            $totalPaid += $payment['amount'] / 100; // Convert from cents
+                        } else {
+                            $totalPaid += $payment['amount'];
+                        }
+                    }
+                }
+            }
+            
+            // Determine if instalment is actually paid based on payments
+            $instalment['is_actually_paid'] = $totalPaid >= $instalment['amount'];
+            
+            // Determinar si es una cuota vencida (use actual payment status)
+            $instalment['is_overdue'] = (!$instalment['is_actually_paid'] && $instalment['due_date'] < $today);
+            
+            // Store total paid amount for display
+            $instalment['total_paid_amount'] = $totalPaid;
         }
         
         // Preparar datos para la vista
