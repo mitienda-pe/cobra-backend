@@ -372,6 +372,9 @@ class PaymentController extends ResourceController
         }
         log_message('error', '[LIGO_DEBUG] PaymentController - Extracted idQr: ' . json_encode($idQr) . ' from qrDetails');
 
+        // Get organization environment for tracking
+        $environment = $organization['ligo_environment'] ?? 'dev';
+        
         $dataInsert = [
             'hash' => $qrId, // Hash ID (order_id) para la columna "Hash ID (Order)"
             'real_hash' => $isRealHash ? $qrHash : null, // Hash real solo si no es temporal
@@ -382,7 +385,8 @@ class PaymentController extends ResourceController
             'instalment_id' => $instalment['id'],
             'amount' => $qrDataArr['amount'],
             'currency' => $qrDataArr['currency'],
-            'description' => $qrDataArr['description']
+            'description' => $qrDataArr['description'],
+            'environment' => $environment
         ];
         
         $insertResult = $hashModel->insert($dataInsert);

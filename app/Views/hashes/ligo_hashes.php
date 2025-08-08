@@ -21,6 +21,7 @@
                         <th>Monto</th>
                         <th>Estado QR</th>
                         <th>Estado Pago</th>
+                        <th>Entorno</th>
                         <th>Creado</th>
                         <th>Acciones</th>
                     </tr>
@@ -40,11 +41,16 @@
                     
                     if (empty($hashes)): ?>
                         <tr>
-                            <td colspan="10" class="text-center">No hay hashes generados.</td>
+                            <td colspan="11" class="text-center">No hay hashes generados.</td>
                         </tr>
                         <?php else: foreach ($hashes as $h): 
                             // Calcular el monto correcto
                             $displayAmount = normalizeAmount($h['amount'] ?? 0);
+                            
+                            // Determinar el entorno y badge
+                            $environment = $h['environment'] ?? 'dev';
+                            $envBadgeClass = $environment === 'prod' ? 'bg-danger' : 'bg-warning text-dark';
+                            $envText = $environment === 'prod' ? 'PROD' : 'DEV';
                             
                             // Usar el estado real calculado en el controlador
                             $paymentStatus = 'No pagado';
@@ -119,6 +125,9 @@
                                 </td>
                                 <td>
                                     <span class="badge <?= $paymentBadgeClass ?>"><?= $paymentStatus ?></span>
+                                </td>
+                                <td>
+                                    <span class="badge <?= $envBadgeClass ?>"><?= $envText ?></span>
                                 </td>
                                 <td>
                                     <?= date('d/m/Y H:i', strtotime($h['created_at'])) ?>

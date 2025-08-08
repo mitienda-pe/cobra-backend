@@ -684,6 +684,9 @@ class LigoQRController extends Controller
             $hashModel = new \App\Models\LigoQRHashModel();
             $isRealHash = !empty($qrHash) && strlen($qrHash) > 50;
             
+            // Get organization environment for tracking
+            $config = $this->getLigoConfig($organization);
+            
             $dataInsert = [
                 'hash' => $qrId,
                 'real_hash' => $isRealHash ? $qrHash : null,
@@ -694,7 +697,8 @@ class LigoQRController extends Controller
                 'instalment_id' => $instalment['id'],
                 'amount' => $orderData['amount'],
                 'currency' => $orderData['currency'],
-                'description' => $orderData['description']
+                'description' => $orderData['description'],
+                'environment' => $config['environment']
             ];
             
             $hashModel->insert($dataInsert);
