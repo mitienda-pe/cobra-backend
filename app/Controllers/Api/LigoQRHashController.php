@@ -255,8 +255,10 @@ class LigoQRHashController extends ResourceController
                 'expiresIn' => 3600 // 1 hora
             ]);
             
-            // URL específica para autenticación
-            $authUrl = 'https://cce-auth-dev.ligocloud.tech/v1/auth/sign-in?companyId=' . $credentials['company_id'];
+            // Get environment prefix for auth URL
+            $environment = $organization['ligo_environment'] ?? 'dev';
+            $prefix = $environment === 'prod' ? 'prod' : 'dev';
+            $authUrl = "https://cce-auth-{$prefix}.ligocloud.tech/v1/auth/sign-in?companyId=" . $credentials['company_id'];
             
             $curl = curl_init();
             
@@ -340,7 +342,8 @@ class LigoQRHashController extends ResourceController
             $curl = curl_init();
             
             // URL para obtener detalles del QR según Postman
-            $prefix = 'dev'; // Temporalmente de vuelta a dev para test
+            $environment = $organization['ligo_environment'] ?? 'dev';
+            $prefix = $environment === 'prod' ? 'prod' : 'dev';
             $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
             
             curl_setopt_array($curl, [

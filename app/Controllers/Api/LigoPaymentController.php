@@ -263,7 +263,8 @@ class LigoPaymentController extends ResourceController
         }
         
         // URL para generar QR según la documentación
-        $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
+        $environment = $organization['ligo_environment'] ?? 'dev';
+        $prefix = $environment === 'prod' ? 'prod' : 'dev';
         $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
         
         // Asegurar que tenemos valores válidos para los campos requeridos
@@ -553,7 +554,8 @@ class LigoPaymentController extends ResourceController
         }
         
         // URL para generar QR según la documentación
-        $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
+        $environment = $organization['ligo_environment'] ?? 'dev';
+        $prefix = $environment === 'prod' ? 'prod' : 'dev';
         $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
         
         // Asegurar que tenemos valores válidos para los campos requeridos
@@ -742,15 +744,19 @@ class LigoPaymentController extends ResourceController
                 return (object)['error' => 'Incomplete Ligo credentials'];
             }
             
-            // Definir URLs de API
+            // Definir URLs de API basado en el entorno
             if (empty($organization['ligo_api_url'])) {
-                // URL por defecto para el entorno de desarrollo
-                $organization['ligo_api_url'] = 'https://cce-api-gateway-dev.ligocloud.tech/v1';
+                // Get environment prefix for default API URL
+                $environment = $organization['ligo_environment'] ?? 'dev';
+                $prefix = $environment === 'prod' ? 'prod' : 'dev';
+                $organization['ligo_api_url'] = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1";
                 log_message('info', 'API: Usando URL de API por defecto: ' . $organization['ligo_api_url']);
             }
             
-            // URL específica para autenticación
-            $authUrl = 'https://cce-auth-dev.ligocloud.tech/v1/auth/sign-in?companyId=' . $credentials['company_id'];
+            // Get environment prefix for auth URL
+            $environment = $organization['ligo_environment'] ?? 'dev';
+            $prefix = $environment === 'prod' ? 'prod' : 'dev';
+            $authUrl = "https://cce-auth-{$prefix}.ligocloud.tech/v1/auth/sign-in?companyId=" . $credentials['company_id'];
             log_message('info', 'API: Usando URL de autenticación: ' . $authUrl);
             
             // Intentar generar el token JWT usando la clave privada
@@ -948,7 +954,8 @@ class LigoPaymentController extends ResourceController
             $curl = curl_init();
             
             // URL para obtener detalles del QR según Postman
-            $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
+            $environment = $organization['ligo_environment'] ?? 'dev';
+            $prefix = $environment === 'prod' ? 'prod' : 'dev';
             $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
             
             log_message('debug', 'URL para obtener detalles del QR: ' . $url);

@@ -34,7 +34,8 @@
       "Bash(brew services:*)",
       "Bash(sudo chown:*)",
       "Bash(git check-ignore:*)",
-      "WebFetch(domain:cobra.mitienda.host)"
+      "WebFetch(domain:cobra.mitienda.host)",
+      "Bash(git log:*)"
     ],
     "deny": []
   }
