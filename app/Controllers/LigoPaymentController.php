@@ -8,7 +8,7 @@ use CodeIgniter\API\ResponseTrait;
 class LigoPaymentController extends Controller
 {
     use ResponseTrait;
-    
+
     protected $invoiceModel;
     protected $organizationModel;
     protected $paymentModel;
@@ -31,28 +31,28 @@ class LigoPaymentController extends Controller
     {
         // Get invoice details
         $invoice = $this->invoiceModel->find($invoiceId);
-        
+
         if (!$invoice) {
             return $this->fail('Invoice not found', 404);
         }
-        
+
         // Get organization details
         $organization = $this->organizationModel->find($invoice['organization_id']);
-        
+
         if (!$organization) {
             return $this->fail('Organization not found', 404);
         }
-        
+
         // Check if Ligo is enabled for this organization
         if (!isset($organization['ligo_enabled']) || !$organization['ligo_enabled']) {
             return $this->fail('Ligo payments not enabled for this organization', 400);
         }
-        
+
         // Check if Ligo credentials are configured
         if (empty($organization['ligo_api_key']) || empty($organization['ligo_api_secret'])) {
             return $this->fail('Ligo API credentials not configured', 400);
         }
-        
+
         // Prepare order data for Ligo
         $orderData = [
             'amount' => $invoice['amount'],
@@ -60,21 +60,21 @@ class LigoPaymentController extends Controller
             'orderId' => $invoice['id'],
             'description' => "Pago factura #{$invoice['invoice_number']}"
         ];
-        
+
         // Log the request data for debugging
         log_message('debug', 'Ligo QR request data: ' . json_encode($orderData));
-        
+
         // Create order in Ligo
         $response = $this->createLigoOrder($orderData, $organization);
-        
+
         // Log the response for debugging
         log_message('debug', 'Ligo QR response: ' . json_encode($response));
-        
+
         if (isset($response->error)) {
             log_message('error', 'Ligo QR generation error: ' . $response->error);
             return $this->fail($response->error, 400);
         }
-        
+
         return $this->respond([
             'success' => true,
             'qr_data' => $response->qr_data ?? null,
@@ -83,7 +83,7 @@ class LigoPaymentController extends Controller
             'expiration' => $response->expiration ?? null
         ]);
     }
-    
+
     /**
      * Display QR code page for invoice payment
      *
@@ -94,45 +94,45 @@ class LigoPaymentController extends Controller
     {
         // Get invoice details
         $invoice = $this->invoiceModel->find($invoiceId);
-        
+
         if (!$invoice) {
             return redirect()->to('/invoices')->with('error', 'Invoice not found');
         }
-        
+
         // Get organization details
         $organization = $this->organizationModel->find($invoice['organization_id']);
-        
+
         if (!$organization) {
             return redirect()->to('/invoices')->with('error', 'Organization not found');
         }
-        
+
         // Check if Ligo is enabled for this organization
         if (!isset($organization['ligo_enabled']) || !$organization['ligo_enabled']) {
             return redirect()->to('/invoices')->with('error', 'Ligo payments not enabled for this organization');
         }
-        
+
         // Generate QR data
         $qrData = $this->generateQR($invoiceId);
         $qrResponse = json_decode($qrData->getBody());
-        
+
         if (!isset($qrResponse->success) || !$qrResponse->success) {
             return redirect()->to('/invoices')->with('error', 'Failed to generate QR code');
         }
-        
+
         // Prepare data for view
         $data = [
-            'title' => 'Pago con QR - Ligo',
+            'title' => 'Pago con QR',
             'invoice' => $invoice,
             'qr_data' => $qrResponse->qr_data ?? null,
             'qr_image_url' => $qrResponse->qr_image_url ?? null,
             'order_id' => $qrResponse->order_id ?? null,
             'expiration' => $qrResponse->expiration ?? null
         ];
-        
+
         // Usar return view() directamente como en otros controladores
         return view('payments/ligo_qr', $data);
     }
-    
+
     /**
      * Create order in Ligo API
      *
@@ -143,7 +143,7 @@ class LigoPaymentController extends Controller
     private function createLigoOrder($data, $organization)
     {
         $curl = curl_init();
-        
+
         curl_setopt_array($curl, [
             CURLOPT_URL => 'https://api.ligo.pe/v1/orders',
             CURLOPT_RETURNTRANSFER => true,
@@ -160,17 +160,17 @@ class LigoPaymentController extends Controller
             CURLOPT_SSL_VERIFYHOST => 0, // Deshabilitar verificación de host SSL
             CURLOPT_SSL_VERIFYPEER => false, // Deshabilitar verificación de certificado SSL
         ]);
-        
+
         $response = curl_exec($curl);
         $err = curl_error($curl);
-        
+
         curl_close($curl);
-        
+
         if ($err) {
             log_message('error', 'Ligo API Error: ' . $err);
             return (object)['error' => 'Failed to connect to Ligo API'];
         }
-        
+
         return json_decode($response);
     }
 }

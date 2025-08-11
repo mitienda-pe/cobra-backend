@@ -51,10 +51,10 @@
                             <div><?= esc($payment['payment_method']) ?></div>
                         </div>
                         <?php if ($payment['reference_code']): ?>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Código de Referencia:</label>
-                            <div><?= esc($payment['reference_code']) ?></div>
-                        </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Código de Referencia:</label>
+                                <div><?= esc($payment['reference_code']) ?></div>
+                            </div>
                         <?php endif; ?>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Estado:</label>
@@ -68,14 +68,14 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <?php if ($payment['notes']): ?>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Notas:</label>
-                    <div><?= nl2br(esc($payment['notes'])) ?></div>
-                </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Notas:</label>
+                        <div><?= nl2br(esc($payment['notes'])) ?></div>
+                    </div>
                 <?php endif; ?>
-                
+
                 <div class="mb-3">
                     <label class="form-label fw-bold">Cobrador:</label>
                     <div>
@@ -86,7 +86,7 @@
                         <?php endif; ?>
                     </div>
                 </div>
-                
+
                 <div class="mb-3">
                     <label class="form-label fw-bold">Notificación:</label>
                     <div>
@@ -97,34 +97,34 @@
                         <?php endif; ?>
                     </div>
                 </div>
-                
+
                 <?php if ($payment['latitude'] && $payment['longitude']): ?>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Ubicación:</label>
-                    <div class="mt-2">
-                        <div id="map" style="height: 300px; width: 100%;"></div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ubicación:</label>
+                        <div class="mt-2">
+                            <div id="map" style="height: 300px; width: 100%;"></div>
+                        </div>
                     </div>
-                </div>
                 <?php endif; ?>
             </div>
             <div class="card-footer d-flex gap-2">
                 <a href="<?= site_url('invoices/view/' . $invoice['uuid']) ?>" class="btn btn-info">
                     Ver Factura
                 </a>
-                
+
                 <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
                     <button type="button" class="btn btn-danger" onclick="confirmDelete('<?= $payment['uuid'] ?>')">
                         Eliminar Pago
                     </button>
                 <?php endif; ?>
-                
+
                 <a href="<?= site_url('payments') ?>" class="btn btn-secondary ms-auto">
                     Volver
                 </a>
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-4">
         <div class="card mb-3">
             <div class="card-header">
@@ -153,7 +153,7 @@
                         <?php
                         $statusClass = '';
                         $statusText = '';
-                        
+
                         switch ($invoice['status']) {
                             case 'pending':
                                 $statusClass = 'bg-warning text-dark';
@@ -179,20 +179,20 @@
             </div>
         </div>
         <?php if (!empty($show_ligo_qr)): ?>
-        <div class="card border-success mb-3">
-            <div class="card-header bg-success text-white">
-                Pago Ligo QR
+            <div class="card border-success mb-3">
+                <div class="card-header bg-success text-white">
+                    Pago QR
+                </div>
+                <div class="card-body text-center">
+                    <p class="fw-bold">Presenta este código QR para completar el pago con Ligo:</p>
+                    <?php if (!empty($qr_url)): ?>
+                        <img src="<?= esc($qr_url) ?>" alt="QR" class="img-fluid mb-2" style="max-width: 220px;" />
+                    <?php endif; ?>
+                    <?php if (!empty($qr_hash['hash'])): ?>
+                        <div class="mt-2 small text-muted">Hash QR: <span class="fw-bold"><?= esc($qr_hash['hash']) ?></span></div>
+                    <?php endif; ?>
+                </div>
             </div>
-            <div class="card-body text-center">
-                <p class="fw-bold">Presenta este código QR para completar el pago con Ligo:</p>
-                <?php if (!empty($qr_url)): ?>
-                    <img src="<?= esc($qr_url) ?>" alt="QR Ligo" class="img-fluid mb-2" style="max-width: 220px;" />
-                <?php endif; ?>
-                <?php if (!empty($qr_hash['hash'])): ?>
-                    <div class="mt-2 small text-muted">Hash QR: <span class="fw-bold"><?= esc($qr_hash['hash']) ?></span></div>
-                <?php endif; ?>
-            </div>
-        </div>
         <?php endif; ?>
     </div>
 </div>
@@ -221,39 +221,39 @@
 <script>
     function confirmDelete(uuid) {
         document.getElementById('deleteLink').href = '<?= site_url('payments/delete/') ?>' + uuid;
-        
+
         var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
         modal.show();
     }
-    
+
     <?php if ($payment['latitude'] && $payment['longitude']): ?>
-    // Inicializar el mapa
-    document.addEventListener('DOMContentLoaded', function() {
-        // Cargar el script de Google Maps
-        var script = document.createElement('script');
-        script.src = 'https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap';
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-    });
-    
-    function initMap() {
-        const paymentLocation = { 
-            lat: <?= $payment['latitude'] ?>, 
-            lng: <?= $payment['longitude'] ?> 
-        };
-        
-        const map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 15,
-            center: paymentLocation,
+        // Inicializar el mapa
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cargar el script de Google Maps
+            var script = document.createElement('script');
+            script.src = 'https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap';
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
         });
-        
-        const marker = new google.maps.Marker({
-            position: paymentLocation,
-            map: map,
-            title: "Ubicación del pago",
-        });
-    }
+
+        function initMap() {
+            const paymentLocation = {
+                lat: <?= $payment['latitude'] ?>,
+                lng: <?= $payment['longitude'] ?>
+            };
+
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 15,
+                center: paymentLocation,
+            });
+
+            const marker = new google.maps.Marker({
+                position: paymentLocation,
+                map: map,
+                title: "Ubicación del pago",
+            });
+        }
     <?php endif; ?>
 </script>
 <?= $this->endSection() ?>

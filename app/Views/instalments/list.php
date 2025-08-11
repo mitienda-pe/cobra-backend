@@ -138,7 +138,7 @@
                                                 $organization = $organizationModel->find($organizationId);
                                                 if (isset($organization['ligo_enabled']) && $organization['ligo_enabled']): ?>
                                                     <a href="<?= site_url('payment/ligo/qr/' . $instalment['invoice_uuid'] . '/' . $instalment['id']) ?>" class="btn btn-sm btn-primary">
-                                                        <i class="bi bi-qr-code"></i> QR Ligo
+                                                        <i class="bi bi-qr-code"></i> QR
                                                     </a>
                                                 <?php endif; ?>
                                             </div>
@@ -150,7 +150,7 @@
                     </table>
                 </div>
             <?php endif; ?>
-            
+
             <?php if (isset($pager)): ?>
                 <div class="mt-4">
                     <?= $pager->links('default', 'bootstrap_pagination') ?>

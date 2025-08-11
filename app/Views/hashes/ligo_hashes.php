@@ -1,11 +1,11 @@
 <?= $this->extend('layouts/main') ?>
-<?= $this->section('title') ?>Hashes QR Ligo<?= $this->endSection() ?>
+<?= $this->section('title') ?>Hashes QR<?= $this->endSection() ?>
 <?= $this->section('content') ?>
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Hashes QR generados por Ligo</h2>
+        <h2 class="mb-0">Hashes QR</h2>
         <a href="<?= site_url('webhooks/ligo-logs') ?>" class="btn btn-info">
-            <i class="bi bi-bell"></i> Ver Notificaciones de Ligo
+            <i class="bi bi-bell"></i> Ver Notificaciones
         </a>
     </div>
     <div class="card">
@@ -27,10 +27,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php 
+                    <?php
                     // Función para normalizar montos consistentemente (fuera del bucle)
                     if (!function_exists('normalizeAmount')) {
-                        function normalizeAmount($amount) {
+                        function normalizeAmount($amount)
+                        {
                             // Convertir centavos a soles si el monto parece estar en centavos
                             if ($amount >= 100) {
                                 return $amount / 100;
@@ -38,20 +39,20 @@
                             return $amount;
                         }
                     }
-                    
+
                     if (empty($hashes)): ?>
                         <tr>
                             <td colspan="11" class="text-center">No hay hashes generados.</td>
                         </tr>
-                        <?php else: foreach ($hashes as $h): 
+                        <?php else: foreach ($hashes as $h):
                             // Calcular el monto correcto
                             $displayAmount = normalizeAmount($h['amount'] ?? 0);
-                            
+
                             // Determinar el entorno y badge
                             $environment = $h['environment'] ?? 'dev';
                             $envBadgeClass = $environment === 'prod' ? 'bg-danger' : 'bg-warning text-dark';
                             $envText = $environment === 'prod' ? 'PROD' : 'DEV';
-                            
+
                             // Usar el estado real calculado en el controlador
                             $paymentStatus = 'No pagado';
                             $paymentBadgeClass = 'bg-warning';
@@ -63,7 +64,7 @@
                                     $paymentStatus = 'Pendiente';
                                     $paymentBadgeClass = 'bg-warning';
                                 }
-                                
+
                                 // Mostrar el monto total pagado si existe
                                 if (isset($h['total_paid']) && $h['total_paid'] > 0) {
                                     $paymentStatus .= '<br><small>S/ ' . number_format($h['total_paid'], 2) . '</small>';
@@ -134,7 +135,7 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <?php 
+                                        <?php
                                         // Don't show request button if QR is older than 24 hours (likely expired)
                                         $qrAge = time() - strtotime($h['created_at']);
                                         $isOldQR = $qrAge > (24 * 60 * 60); // 24 hours
@@ -244,7 +245,7 @@
         document.body.appendChild(toast);
         const bsToast = new bootstrap.Toast(toast);
         bsToast.show();
-        
+
         setTimeout(() => {
             toast.remove();
         }, 3000);

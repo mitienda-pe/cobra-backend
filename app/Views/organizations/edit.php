@@ -15,7 +15,7 @@
             <div class="card-body">
                 <form action="<?= site_url('organizations/' . $organization['uuid']) ?>" method="post">
                     <?= csrf_field() ?>
-                    
+
                     <div class="mb-3">
                         <label for="name" class="form-label">Nombre</label>
                         <input type="text" class="form-control <?= session('errors.name') ? 'is-invalid' : '' ?>" id="name" name="name" value="<?= old('name', $organization['name']) ?>" required>
@@ -23,7 +23,7 @@
                             <div class="invalid-feedback"><?= session('errors.name') ?></div>
                         <?php endif; ?>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="code" class="form-label">Código</label>
                         <input type="text" class="form-control <?= session('errors.code') ? 'is-invalid' : '' ?>" id="code" name="code" value="<?= old('code', $organization['code']) ?>" readonly>
@@ -32,7 +32,7 @@
                             <div class="invalid-feedback"><?= session('errors.code') ?></div>
                         <?php endif; ?>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="description" class="form-label">Descripción</label>
                         <textarea class="form-control <?= session('errors.description') ? 'is-invalid' : '' ?>" id="description" name="description" rows="3"><?= old('description', $organization['description']) ?></textarea>
@@ -40,7 +40,7 @@
                             <div class="invalid-feedback"><?= session('errors.description') ?></div>
                         <?php endif; ?>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="status" class="form-label">Estado</label>
                         <select class="form-select <?= session('errors.status') ? 'is-invalid' : '' ?>" id="status" name="status" required>
@@ -51,20 +51,20 @@
                             <div class="invalid-feedback"><?= session('errors.status') ?></div>
                         <?php endif; ?>
                     </div>
-                    
+
                     <!-- Ligo Payment Integration Settings -->
                     <div class="card mb-3">
                         <div class="card-header bg-light">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0">
-                                    <i class="bi bi-qr-code-scan"></i> Configuración de Pagos Ligo QR
+                                    <i class="bi bi-qr-code-scan"></i> Configuración de Pagos QR
                                 </h5>
                                 <div class="d-flex align-items-center">
                                     <span class="badge bg-<?= ($organization['ligo_environment'] ?? 'dev') === 'prod' ? 'danger' : 'warning' ?> me-2">
                                         <?= ($organization['ligo_environment'] ?? 'dev') === 'prod' ? 'PRODUCCIÓN' : 'DESARROLLO' ?>
                                     </span>
                                     <?php if (!empty($organization['ligo_token']) && !empty($organization['ligo_token_expiry'])): ?>
-                                        <?php 
+                                        <?php
                                         $expiry = strtotime($organization['ligo_token_expiry']);
                                         $isExpired = $expiry <= time();
                                         ?>
@@ -110,7 +110,7 @@
                                     </div>
                                 </div>
                                 <div class="form-text">
-                                    <i class="bi bi-info-circle"></i> 
+                                    <i class="bi bi-info-circle"></i>
                                     Configure las credenciales por separado para cada entorno usando las pestañas de abajo.
                                 </div>
                             </div>
@@ -192,7 +192,7 @@
                                                 </label>
                                                 <textarea class="form-control" id="ligo_dev_private_key" name="ligo_dev_private_key" rows="6" style="font-family: monospace; font-size: 0.875rem;"><?= old('ligo_dev_private_key', $organization['ligo_dev_private_key'] ?? '') ?></textarea>
                                                 <div class="form-text">
-                                                    <i class="bi bi-info-circle"></i> 
+                                                    <i class="bi bi-info-circle"></i>
                                                     Llave privada RSA para desarrollo. La llave pública debe enviarse a Ligo.
                                                 </div>
                                             </div>
@@ -287,7 +287,7 @@
                                                 </label>
                                                 <textarea class="form-control" id="ligo_prod_private_key" name="ligo_prod_private_key" rows="6" style="font-family: monospace; font-size: 0.875rem;"><?= old('ligo_prod_private_key', $organization['ligo_prod_private_key'] ?? '') ?></textarea>
                                                 <div class="form-text">
-                                                    <i class="bi bi-info-circle"></i> 
+                                                    <i class="bi bi-info-circle"></i>
                                                     Llave privada RSA para producción. La llave pública debe enviarse a Ligo.
                                                 </div>
                                             </div>
@@ -309,7 +309,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-save"></i> Actualizar
@@ -322,64 +322,72 @@
 </div>
 
 <script>
-function togglePassword(fieldId) {
-    const field = document.getElementById(fieldId);
-    const button = field.parentElement.querySelector('button');
-    const icon = button.querySelector('i');
-    
-    if (field.type === 'password') {
-        field.type = 'text';
-        icon.className = 'bi bi-eye-slash';
-    } else {
-        field.type = 'password';
-        icon.className = 'bi bi-eye';
-    }
-}
+    function togglePassword(fieldId) {
+        const field = document.getElementById(fieldId);
+        const button = field.parentElement.querySelector('button');
+        const icon = button.querySelector('i');
 
-// Auto-update badge color when environment changes
-document.addEventListener('DOMContentLoaded', function() {
-    const envRadios = document.querySelectorAll('input[name="ligo_environment"]');
-    const badge = document.querySelector('.badge');
-    
-    envRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            if (this.value === 'prod') {
-                badge.className = 'badge bg-danger me-2';
-                badge.textContent = 'PRODUCCIÓN';
-                // Expand production accordion
-                const prodCollapse = document.getElementById('prodCollapse');
-                const devCollapse = document.getElementById('devCollapse');
-                if (prodCollapse && devCollapse) {
-                    const prodAccordion = new bootstrap.Collapse(prodCollapse, {show: true});
-                    const devAccordion = new bootstrap.Collapse(devCollapse, {hide: true});
-                }
-            } else {
-                badge.className = 'badge bg-warning me-2';
-                badge.textContent = 'DESARROLLO';
-                // Expand development accordion
-                const prodCollapse = document.getElementById('prodCollapse');
-                const devCollapse = document.getElementById('devCollapse');
-                if (prodCollapse && devCollapse) {
-                    const prodAccordion = new bootstrap.Collapse(prodCollapse, {hide: true});
-                    const devAccordion = new bootstrap.Collapse(devCollapse, {show: true});
-                }
-            }
-        });
-    });
-    
-    // Show/hide accordion based on Ligo enabled
-    const ligoEnabled = document.getElementById('ligo_enabled');
-    const credentialsAccordion = document.getElementById('credentialsAccordion');
-    
-    function toggleLigoAccordion() {
-        if (credentialsAccordion) {
-            credentialsAccordion.style.opacity = ligoEnabled.checked ? '1' : '0.5';
+        if (field.type === 'password') {
+            field.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            field.type = 'password';
+            icon.className = 'bi bi-eye';
         }
     }
-    
-    ligoEnabled.addEventListener('change', toggleLigoAccordion);
-    toggleLigoAccordion(); // Initial state
-});
+
+    // Auto-update badge color when environment changes
+    document.addEventListener('DOMContentLoaded', function() {
+        const envRadios = document.querySelectorAll('input[name="ligo_environment"]');
+        const badge = document.querySelector('.badge');
+
+        envRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.value === 'prod') {
+                    badge.className = 'badge bg-danger me-2';
+                    badge.textContent = 'PRODUCCIÓN';
+                    // Expand production accordion
+                    const prodCollapse = document.getElementById('prodCollapse');
+                    const devCollapse = document.getElementById('devCollapse');
+                    if (prodCollapse && devCollapse) {
+                        const prodAccordion = new bootstrap.Collapse(prodCollapse, {
+                            show: true
+                        });
+                        const devAccordion = new bootstrap.Collapse(devCollapse, {
+                            hide: true
+                        });
+                    }
+                } else {
+                    badge.className = 'badge bg-warning me-2';
+                    badge.textContent = 'DESARROLLO';
+                    // Expand development accordion
+                    const prodCollapse = document.getElementById('prodCollapse');
+                    const devCollapse = document.getElementById('devCollapse');
+                    if (prodCollapse && devCollapse) {
+                        const prodAccordion = new bootstrap.Collapse(prodCollapse, {
+                            hide: true
+                        });
+                        const devAccordion = new bootstrap.Collapse(devCollapse, {
+                            show: true
+                        });
+                    }
+                }
+            });
+        });
+
+        // Show/hide accordion based on Ligo enabled
+        const ligoEnabled = document.getElementById('ligo_enabled');
+        const credentialsAccordion = document.getElementById('credentialsAccordion');
+
+        function toggleLigoAccordion() {
+            if (credentialsAccordion) {
+                credentialsAccordion.style.opacity = ligoEnabled.checked ? '1' : '0.5';
+            }
+        }
+
+        ligoEnabled.addEventListener('change', toggleLigoAccordion);
+        toggleLigoAccordion(); // Initial state
+    });
 </script>
 
 <?= $this->endSection() ?>

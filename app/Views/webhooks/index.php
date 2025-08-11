@@ -27,7 +27,7 @@
             </div>
             <div class="card-body">
                 <p class="mb-2">
-                    <strong>Monitoreo de Pagos:</strong> Vea las notificaciones de confirmación de pagos que llegan desde Ligo cuando se completan transacciones.
+                    <strong>Monitoreo de Pagos:</strong> Vea las notificaciones de confirmación de pagos que llegan cuando se completan transacciones.
                 </p>
                 <p class="mb-0">
                     <strong>Endpoint:</strong> <code>/api/webhooks/ligo</code> - Recibe automáticamente notificaciones de pagos procesados.
@@ -60,7 +60,7 @@
                         <td><?= esc($webhook['name']) ?></td>
                         <td class="text-truncate" style="max-width: 250px;"><?= esc($webhook['url']) ?></td>
                         <td>
-                            <?php 
+                            <?php
                             $events = explode(',', $webhook['events']);
                             foreach ($events as $event) {
                                 $badgeClass = 'bg-secondary';
@@ -99,8 +99,8 @@
                             <a href="<?= site_url('webhooks/test/' . $webhook['id']) ?>" class="btn btn-sm btn-warning">
                                 Probar
                             </a>
-                            <button type="button" class="btn btn-sm btn-danger" 
-                                    onclick="confirmDelete(<?= $webhook['id'] ?>, '<?= esc($webhook['name']) ?>')">
+                            <button type="button" class="btn btn-sm btn-danger"
+                                onclick="confirmDelete(<?= $webhook['id'] ?>, '<?= esc($webhook['name']) ?>')">
                                 Eliminar
                             </button>
                         </td>
@@ -136,7 +136,7 @@
     function confirmDelete(id, name) {
         document.getElementById('webhookName').textContent = name;
         document.getElementById('deleteLink').href = '<?= site_url('webhooks/delete/') ?>' + id;
-        
+
         var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
         modal.show();
     }

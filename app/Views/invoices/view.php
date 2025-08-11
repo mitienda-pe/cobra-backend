@@ -147,23 +147,24 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <?php 
+                            <?php
                             // Función para convertir pagos a soles consistentemente (fuera del bucle)
                             if (!function_exists('normalizePaymentAmount')) {
-                                function normalizePaymentAmount($amount, $paymentMethod) {
-                                    // Para pagos Ligo QR, convertir de centavos a soles si el monto parece estar en centavos
+                                function normalizePaymentAmount($amount, $paymentMethod)
+                                {
+                                    // Para pagos QR, convertir de centavos a soles si el monto parece estar en centavos
                                     if ($paymentMethod === 'ligo_qr' && $amount >= 100) {
                                         return $amount / 100;
                                     }
                                     return $amount;
                                 }
                             }
-                            
+
                             // Mostrar todas las cuotas en esta vista
-                            foreach ($instalments as $instalment): 
+                            foreach ($instalments as $instalment):
                                 // Calcular clase CSS para la fila
                                 $rowClass = '';
-                                
+
                                 // Buscar pagos asociados a esta cuota
                                 $instalmentPayments = [];
                                 $instalmentPaidAmount = 0;
@@ -174,11 +175,11 @@
                                         $instalmentPaidAmount += $paymentAmount;
                                     }
                                 }
-                                
+
                                 // Verificar si la cuota está completamente pagada basándose en los pagos reales
                                 $instalmentAmount = isset($instalment['amount']) ? $instalment['amount'] : 0;
                                 $isPaid = $instalmentPaidAmount >= $instalmentAmount;
-                                
+
                                 // Actualizar la clase CSS basándose en el estado real de pagos
                                 if ($isPaid) {
                                     $rowClass = 'table-success';
@@ -202,34 +203,48 @@
                                             <span class="badge bg-success">
                                                 S/ <?= number_format($instalmentPaidAmount, 2) ?>
                                             </span>
-                                            <button type="button" class="btn btn-sm btn-link" data-bs-toggle="tooltip" data-bs-html="true" 
-                                                title="<?php 
-                                                    $tooltipContent = '';
-                                                    foreach ($instalmentPayments as $p) {
-                                                        $paymentMethod = '';
-                                                        switch($p['payment_method']) {
-                                                            case 'ligo_qr': $paymentMethod = 'QR-Ligo'; break;
-                                                            case 'cash': $paymentMethod = 'Efectivo'; break;
-                                                            case 'transfer': $paymentMethod = 'Transferencia'; break;
-                                                            case 'deposit': $paymentMethod = 'Depósito'; break;
-                                                            case 'check': $paymentMethod = 'Cheque'; break;
-                                                            case 'card': $paymentMethod = 'Tarjeta'; break;
-                                                            default: $paymentMethod = ucfirst($p['payment_method']); break;
+                                            <button type="button" class="btn btn-sm btn-link" data-bs-toggle="tooltip" data-bs-html="true"
+                                                title="<?php
+                                                        $tooltipContent = '';
+                                                        foreach ($instalmentPayments as $p) {
+                                                            $paymentMethod = '';
+                                                            switch ($p['payment_method']) {
+                                                                case 'ligo_qr':
+                                                                    $paymentMethod = 'QR-Ligo';
+                                                                    break;
+                                                                case 'cash':
+                                                                    $paymentMethod = 'Efectivo';
+                                                                    break;
+                                                                case 'transfer':
+                                                                    $paymentMethod = 'Transferencia';
+                                                                    break;
+                                                                case 'deposit':
+                                                                    $paymentMethod = 'Depósito';
+                                                                    break;
+                                                                case 'check':
+                                                                    $paymentMethod = 'Cheque';
+                                                                    break;
+                                                                case 'card':
+                                                                    $paymentMethod = 'Tarjeta';
+                                                                    break;
+                                                                default:
+                                                                    $paymentMethod = ucfirst($p['payment_method']);
+                                                                    break;
+                                                            }
+
+                                                            // Convertir centavos a soles para mostrar en tooltip
+                                                            $displayAmount = normalizePaymentAmount($p['amount'], $p['payment_method']);
+
+                                                            $tooltipContent .= date('d/m/Y', strtotime($p['payment_date'])) . ': ' .
+                                                                'S/ ' . number_format($displayAmount, 2) .
+                                                                ' (' . $paymentMethod;
+                                                            if (!empty($p['reference_code'])) {
+                                                                $tooltipContent .= ' - Ref: ' . substr($p['reference_code'], 0, 10) . '..';
+                                                            }
+                                                            $tooltipContent .= ')<br>';
                                                         }
-                                                        
-                                                        // Convertir centavos a soles para mostrar en tooltip
-                                                        $displayAmount = normalizePaymentAmount($p['amount'], $p['payment_method']);
-                                                        
-                                                        $tooltipContent .= date('d/m/Y', strtotime($p['payment_date'])) . ': ' . 
-                                                            'S/ ' . number_format($displayAmount, 2) . 
-                                                            ' (' . $paymentMethod;
-                                                        if (!empty($p['reference_code'])) {
-                                                            $tooltipContent .= ' - Ref: ' . substr($p['reference_code'], 0, 10) . '..';
-                                                        }
-                                                        $tooltipContent .= ')<br>';
-                                                    }
-                                                    echo $tooltipContent;
-                                                ?>">
+                                                        echo $tooltipContent;
+                                                        ?>">
                                                 <i class="bi bi-info-circle"></i>
                                             </button>
                                         <?php else: ?>
@@ -237,7 +252,7 @@
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php if (isset($qrHashesByInstalment[$instalment['id']])): 
+                                        <?php if (isset($qrHashesByInstalment[$instalment['id']])):
                                             $qrHash = $qrHashesByInstalment[$instalment['id']]; ?>
                                             <div class="d-flex align-items-center">
                                                 <span class="badge bg-info me-2">QR</span>
@@ -267,7 +282,7 @@
                                                     $organization = $organizationModel->find($invoice['organization_id']);
                                                     if (isset($organization['ligo_enabled']) && $organization['ligo_enabled']): ?>
                                                         <a href="<?= site_url('payment/ligo/qr/' . $invoice['uuid'] . '/' . $instalment['id']) ?>" class="btn btn-sm btn-primary">
-                                                            <i class="bi bi-qr-code"></i> QR Ligo
+                                                            <i class="bi bi-qr-code"></i> QR
                                                         </a>
                                                     <?php endif; ?>
                                                 </div>
@@ -286,7 +301,7 @@
                                                     $organization = $organizationModel->find($invoice['organization_id']);
                                                     if (isset($organization['ligo_enabled']) && $organization['ligo_enabled']): ?>
                                                         <a href="<?= site_url('payment/ligo/qr/' . $invoice['uuid']) ?>" class="btn btn-sm btn-primary">
-                                                            <i class="bi bi-qr-code"></i> QR Ligo
+                                                            <i class="bi bi-qr-code"></i> QR
                                                         </a>
                                                     <?php endif; ?>
                                                 </div>
@@ -347,12 +362,12 @@
 
 <?= $this->section('scripts') ?>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
     });
-});
 </script>
 <?= $this->endSection() ?>
