@@ -188,7 +188,9 @@ class LigoPaymentController extends ResourceController
             'qr_data' => $response->qr_data ?? null,
             'qr_image_url' => $response->qr_image_url ?? null,
             'order_id' => $response->order_id ?? null,
-            'expiration' => $response->expiration ?? null
+            'created_at' => date('Y-m-d H:i:s'),
+            'expires_at' => date('Y-m-d H:i:s', strtotime('+1 hour')),
+            'expiration' => $response->expiration ?? date('d/m/Y H:i', strtotime('+1 hour'))
         ]);
     }
     
@@ -474,7 +476,9 @@ class LigoPaymentController extends ResourceController
             'qr_image_url' => $qrImageUrl,
             'order_id' => $decoded->data->id,
             'instalment_id' => $instalment['id'],
-            'invoice_id' => $invoice['id']
+            'invoice_id' => $invoice['id'],
+            'created_at' => date('Y-m-d H:i:s'),
+            'expires_at' => date('Y-m-d H:i:s', strtotime('+1 hour'))
         ]);
     }
     
@@ -540,7 +544,9 @@ class LigoPaymentController extends ResourceController
             'organization_name' => $organization['name'],
             'qr_data' => $response->qr_data ?? null,
             'qr_image_url' => $response->qr_image_url ?? null,
-            'order_id' => $response->order_id ?? null
+            'order_id' => $response->order_id ?? null,
+            'created_at' => date('Y-m-d H:i:s'),
+            'expires_at' => date('Y-m-d H:i:s', strtotime('+1 hour'))
         ]);
     }
     

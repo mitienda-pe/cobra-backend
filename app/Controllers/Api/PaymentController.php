@@ -113,9 +113,17 @@ class PaymentController extends ResourceController
         if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
             return $this->fail('Ligo API credentials not configured', 400);
         }
-        // --- NUEVO: Revisar si ya existe un hash para este instalment ---
+        // --- NUEVO: Revisar si ya existe un hash válido para este instalment (cache de 60 min) ---
         $qrHashModel = new \App\Models\LigoQRHashModel();
-        $existingQR = $qrHashModel->where('instalment_id', $instalmentId)->orderBy('created_at', 'desc')->first();
+        $cacheMinutes = 60; // Match QR expiration time (1 hour)
+        $cacheTime = date('Y-m-d H:i:s', strtotime("-{$cacheMinutes} minutes"));
+        
+        $existingQR = $qrHashModel
+            ->where('instalment_id', $instalmentId)
+            ->where('created_at >', $cacheTime) // Only valid cache entries
+            ->orderBy('created_at', 'desc')
+            ->first();
+            
         if ($existingQR && !empty($existingQR['hash'])) {
             // Devolver el QR guardado (mismo formato que respuesta normal)
             return $this->respond([
@@ -144,7 +152,9 @@ class PaymentController extends ResourceController
                 ])),
                 'order_id' => $existingQR['order_id'] ?? null,
                 'instalment_id' => $instalmentId,
-                'invoice_id' => $invoice['id']
+                'invoice_id' => $invoice['id'],
+                'created_at' => $existingQR['created_at'],
+                'expires_at' => date('Y-m-d H:i:s', strtotime($existingQR['created_at'] . ' +1 hour'))
             ]);
         }
         // --- FIN NUEVO ---
@@ -400,7 +410,9 @@ class PaymentController extends ResourceController
             'qr_image_url' => $qrImageUrl,
             'order_id' => $decoded->data->id,
             'instalment_id' => $instalment['id'],
-            'invoice_id' => $invoice['id']
+            'invoice_id' => $invoice['id'],
+            'created_at' => date('Y-m-d H:i:s'),
+            'expires_at' => date('Y-m-d H:i:s', strtotime('+1 hour'))
         ]);
     }
 
