@@ -342,7 +342,7 @@ class LigoQRController extends Controller
         if (!empty($credentials['username']) && !empty($credentials['password']) && !empty($credentials['company_id'])) {
             // 🚀 CACHE: Verificar cache antes de generar nuevo QR
             $hashModel = new \App\Models\LigoQRHashModel();
-            $cacheMinutes = 15;
+            $cacheMinutes = 60; // Match QR expiration time (1 hour)
             $cacheTime = date('Y-m-d H:i:s', strtotime("-{$cacheMinutes} minutes"));
 
             $existingQR = $hashModel
@@ -845,7 +845,7 @@ class LigoQRController extends Controller
         if (!empty($credentials['username']) && !empty($credentials['password']) && !empty($credentials['company_id'])) {
             // 🚀 CACHE: Verificar si existe QR válido reciente (15 minutos)
             $hashModel = new \App\Models\LigoQRHashModel();
-            $cacheMinutes = 15;
+            $cacheMinutes = 60; // Match QR expiration time (1 hour)
             $cacheTime = date('Y-m-d H:i:s', strtotime("-{$cacheMinutes} minutes"));
 
             $existingQR = $hashModel
