@@ -127,7 +127,7 @@ class PaymentController extends ResourceController
                     'description' => $existingQR['description'] ?? '',
                     'merchant' => $organization['name'],
                     'timestamp' => strtotime($existingQR['created_at']),
-                    'hash' => $existingQR['hash'],
+                    'hash' => $existingQR['real_hash'] ?? $existingQR['hash'],
                     'instalment_id' => $instalmentId,
                     'invoice_id' => $invoice['id']
                 ]),
@@ -138,7 +138,7 @@ class PaymentController extends ResourceController
                     'description' => $existingQR['description'] ?? '',
                     'merchant' => $organization['name'],
                     'timestamp' => strtotime($existingQR['created_at']),
-                    'hash' => $existingQR['hash'],
+                    'hash' => $existingQR['real_hash'] ?? $existingQR['hash'],
                     'instalment_id' => $instalmentId,
                     'invoice_id' => $invoice['id']
                 ])),
