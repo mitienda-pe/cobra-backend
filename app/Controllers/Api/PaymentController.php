@@ -200,7 +200,8 @@ class PaymentController extends ResourceController
             log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Auth token error: ' . $authToken['error']);
             return $this->fail($authToken['error'], 400);
         }
-        $prefix = 'dev'; // Cambiar a 'dev' para entorno de desarrollo
+        $environment = $organization['ligo_environment'] ?? 'dev';
+        $prefix = $environment === 'prod' ? 'prod' : 'dev';
         $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
         $idCuenta = !empty($credentials['account_id']) ? $credentials['account_id'] : '92100178794744781044';
         $codigoComerciante = !empty($credentials['merchant_code']) ? $credentials['merchant_code'] : '4829';
@@ -422,7 +423,9 @@ class PaymentController extends ResourceController
             if (empty($credentials['company_id'])) {
                 return ['error' => 'Incomplete Ligo credentials'];
             }
-            $authUrl = 'https://cce-auth-dev.ligocloud.tech/v1/auth/sign-in?companyId=' . $credentials['company_id'];
+            $environment = $organization['ligo_environment'] ?? 'dev';
+            $prefix = $environment === 'prod' ? 'prod' : 'dev';
+            $authUrl = "https://cce-auth-{$prefix}.ligocloud.tech/v1/auth/sign-in?companyId=" . $credentials['company_id'];
             if (empty($credentials['private_key'])) {
                 return ['error' => 'Ligo private key not configured'];
             }
@@ -1049,7 +1052,8 @@ class PaymentController extends ResourceController
             $curl = curl_init();
             
             // URL para obtener detalles del QR según Postman
-            $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
+            $environment = $organization['ligo_environment'] ?? 'dev';
+            $prefix = $environment === 'prod' ? 'prod' : 'dev';
             $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
             
             log_message('debug', 'PaymentController - URL para obtener detalles del QR: ' . $url);

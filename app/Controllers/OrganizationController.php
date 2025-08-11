@@ -223,7 +223,8 @@ class OrganizationController extends BaseController
             $authResult = $this->testLigoAuth(
                 $data['ligo_username'], 
                 $password, 
-                $data['ligo_company_id']
+                $data['ligo_company_id'],
+                $data['ligo_environment'] ?? 'dev'
             );
             
             if (isset($authResult['success']) && $authResult['success']) {
@@ -276,7 +277,7 @@ class OrganizationController extends BaseController
      * @param string $companyId Ligo company ID
      * @return array Result with success/error information and token if successful
      */
-    private function testLigoAuth($username, $password, $companyId)
+    private function testLigoAuth($username, $password, $companyId, $environment = 'dev')
     {
         log_message('debug', 'Probando autenticación con Ligo para: ' . $username);
         
@@ -294,8 +295,8 @@ class OrganizationController extends BaseController
                 'password' => $password
             ];
             
-            // URL de autenticación
-            $prefix = 'dev'; // Cambiar a 'prod' para entorno de producción
+            // URL de autenticación basada en el entorno
+            $prefix = $environment === 'prod' ? 'prod' : 'dev';
             $url = 'https://cce-auth-' . $prefix . '.ligocloud.tech/v1/auth/sign-in?companyId=' . $companyId;
             
             log_message('debug', 'URL de autenticación Ligo: ' . $url);
