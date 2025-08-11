@@ -29,6 +29,41 @@ class LigoPaymentController extends ResourceController
     {
         $environment = $organization['ligo_environment'] ?? 'dev';
         $prefix = $environment === 'prod' ? 'prod' : 'dev';
+
+        // Try to get environment-specific credentials first
+        $credentials = [
+            'username' => $organization["ligo_{$prefix}_username"] ?? null,
+            'password' => $organization["ligo_{$prefix}_password"] ?? null,
+            'company_id' => $organization["ligo_{$prefix}_company_id"] ?? null,
+            'account_id' => $organization["ligo_{$prefix}_account_id"] ?? null,
+            'merchant_code' => $organization["ligo_{$prefix}_merchant_code"] ?? null,
+            'private_key' => $organization["ligo_{$prefix}_private_key"] ?? null,
+            'webhook_secret' => $organization["ligo_{$prefix}_webhook_secret"] ?? null,
+        ];
+
+        // Fallback to legacy fields if environment-specific fields are empty
+        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
+            $credentials = [
+                'username' => $organization['ligo_username'] ?? null,
+                'password' => $organization['ligo_password'] ?? null,
+                'company_id' => $organization['ligo_company_id'] ?? null,
+                'account_id' => $organization['ligo_account_id'] ?? null,
+                'merchant_code' => $organization['ligo_merchant_code'] ?? null,
+                'private_key' => $organization['ligo_private_key'] ?? null,
+                'webhook_secret' => $organization['ligo_webhook_secret'] ?? null,
+            ];
+        }
+
+        return $credentials;
+    }
+    
+    /**
+     * Get Ligo credentials based on active environment
+     */
+    private function getLigoCredentials($organization)
+    {
+        $environment = $organization['ligo_environment'] ?? 'dev';
+        $prefix = $environment === 'prod' ? 'prod' : 'dev';
         
         // Try to get environment-specific credentials first
         $credentials = [
@@ -268,8 +303,10 @@ class LigoPaymentController extends ResourceController
         $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
         
         // Asegurar que tenemos valores válidos para los campos requeridos
-        $idCuenta = !empty($organization['ligo_account_id']) ? $organization['ligo_account_id'] : '92100178794744781044';
-        $codigoComerciante = !empty($organization['ligo_merchant_code']) ? $organization['ligo_merchant_code'] : '4829';
+        // Get environment-specific credentials
+        $credentials = $this->getLigoCredentials($organization);
+        $idCuenta = !empty($credentials['account_id']) ? $credentials['account_id'] : '92100178794744781044';
+        $codigoComerciante = !empty($credentials['merchant_code']) ? $credentials['merchant_code'] : '4829';
         
         // Calcular fecha de vencimiento: 2 días posteriores a hoy
         $fechaVencimiento = date('Ymd', strtotime('+2 days'));
@@ -559,8 +596,10 @@ class LigoPaymentController extends ResourceController
         $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
         
         // Asegurar que tenemos valores válidos para los campos requeridos
-        $idCuenta = !empty($organization['ligo_account_id']) ? $organization['ligo_account_id'] : '92100178794744781044';
-        $codigoComerciante = !empty($organization['ligo_merchant_code']) ? $organization['ligo_merchant_code'] : '4829';
+        // Get environment-specific credentials
+        $credentials = $this->getLigoCredentials($organization);
+        $idCuenta = !empty($credentials['account_id']) ? $credentials['account_id'] : '92100178794744781044';
+        $codigoComerciante = !empty($credentials['merchant_code']) ? $credentials['merchant_code'] : '4829';
         
         // Determinar el tipo de QR a generar (estático o dinámico)
         $qrTipo = isset($data['qr_type']) && $data['qr_type'] === 'static' ? '11' : '12';
