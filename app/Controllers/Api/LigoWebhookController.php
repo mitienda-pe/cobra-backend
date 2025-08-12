@@ -29,12 +29,19 @@ class LigoWebhookController extends ResourceController
     /**
      * Handle payment notification from Ligo
      *
+     * @param string $environment Environment (dev/prod) from URL
      * @return mixed
      */
-    public function handlePaymentNotification()
+    public function handlePaymentNotification($environment = 'dev')
     {
+        // Validar entorno solicitado
+        if (!in_array($environment, ['dev', 'prod'])) {
+            $environment = 'dev'; // default fallback
+        }
+        
         // ===== LOGS TEMPORALES PARA DEBUGGING =====
         log_message('info', '[LIGO_WEBHOOK_DEBUG] ===== WEBHOOK RECIBIDO =====');
+        log_message('info', '[LIGO_WEBHOOK_DEBUG] Environment: ' . $environment);
         log_message('info', '[LIGO_WEBHOOK_DEBUG] Method: ' . $this->request->getMethod());
         log_message('info', '[LIGO_WEBHOOK_DEBUG] URI: ' . $this->request->getUri());
         log_message('info', '[LIGO_WEBHOOK_DEBUG] Headers: ' . json_encode($this->request->getHeaders()));
@@ -128,18 +135,24 @@ class LigoWebhookController extends ResourceController
         }
         
         // Get or create webhook record for this organization
-        $webhookId = $this->getOrCreateLigoWebhook($organization['id'] ?? null);
+        $webhookId = $this->getOrCreateLigoWebhook($organization['id'] ?? null, $environment);
         
         // Validar IP de origen (Ligo usa whitelist de IPs, no firma)
         $clientIp = $this->request->getIPAddress();
         log_message('info', '[LIGO_WEBHOOK_DEBUG] IP de origen: ' . $clientIp);
         
-        // Whitelist de IPs de Ligo
-        $allowedIPs = [
-            '35.221.25.179',   // Ligo Producción
-            '34.150.173.107',  // Ligo Desarrollo
-            '190.237.15.74',   // TEMPORAL: IP para testing - REMOVER DESPUÉS
-        ];
+        // Whitelist de IPs de Ligo específicas por entorno
+        $allowedIPs = [];
+        if ($environment === 'prod') {
+            $allowedIPs = [
+                '35.221.25.179',   // Ligo Producción
+            ];
+        } else { // dev
+            $allowedIPs = [
+                '34.150.173.107',  // Ligo Desarrollo
+                '190.237.15.74',   // TEMPORAL: IP para testing - REMOVER DESPUÉS
+            ];
+        }
         
         // Validar IP si hay whitelist configurada
         if (!empty($allowedIPs) && !$this->isIPAllowed($clientIp, $allowedIPs)) {
@@ -291,13 +304,15 @@ class LigoWebhookController extends ResourceController
      * Get or create webhook record for Ligo incoming webhooks
      *
      * @param int $organizationId
+     * @param string $environment
      * @return int|null
      */
-    private function getOrCreateLigoWebhook($organizationId)
+    private function getOrCreateLigoWebhook($organizationId, $environment = 'dev')
     {
-        // Look for existing Ligo webhook record for this organization
+        // Look for existing Ligo webhook record for this organization and environment
+        $webhookName = 'Ligo Incoming Webhooks (' . strtoupper($environment) . ')';
         $webhook = $this->webhookModel->where('organization_id', $organizationId)
-                                    ->where('name', 'Ligo Incoming Webhooks')
+                                    ->where('name', $webhookName)
                                     ->first();
         
         if ($webhook) {
@@ -305,10 +320,14 @@ class LigoWebhookController extends ResourceController
         }
         
         // Create new webhook record for logging purposes
+        $webhookUrl = $environment === 'prod' 
+            ? 'https://tu-dominio.com/webhooks/ligo/prod (incoming)' 
+            : 'https://tu-dominio.com/webhooks/ligo/dev (incoming)';
+            
         $webhookData = [
             'organization_id' => $organizationId,
-            'name' => 'Ligo Incoming Webhooks',
-            'url' => 'https://api.ligo.com/webhooks (incoming)',
+            'name' => $webhookName,
+            'url' => $webhookUrl,
             'secret' => null, // No secret needed for incoming webhooks
             'events' => 'payment.succeeded,payment.failed,payment.cancelled',
             'is_active' => true,

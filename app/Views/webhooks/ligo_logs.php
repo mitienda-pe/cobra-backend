@@ -30,9 +30,11 @@
                 <div class="row">
                     <div class="col-md-6">
                         <dl class="row">
-                            <dt class="col-sm-4">Endpoint:</dt>
+                            <dt class="col-sm-4">Endpoints:</dt>
                             <dd class="col-sm-8">
-                                <code>/api/webhooks/ligo</code>
+                                <code>/api/webhooks/ligo/dev</code> (Desarrollo)<br>
+                                <code>/api/webhooks/ligo/prod</code> (Producción)<br>
+                                <small class="text-muted">Compatibilidad: <code>/api/webhooks/ligo</code></small>
                             </dd>
                             
                             <dt class="col-sm-4">Estado:</dt>

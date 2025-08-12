@@ -30,7 +30,10 @@
                     <strong>Monitoreo de Pagos:</strong> Vea las notificaciones de confirmación de pagos que llegan cuando se completan transacciones.
                 </p>
                 <p class="mb-0">
-                    <strong>Endpoint:</strong> <code>/api/webhooks/ligo</code> - Recibe automáticamente notificaciones de pagos procesados.
+                    <strong>Endpoints por entorno:</strong><br>
+                    • <strong>Desarrollo:</strong> <code>/api/webhooks/ligo/dev</code><br>
+                    • <strong>Producción:</strong> <code>/api/webhooks/ligo/prod</code><br>
+                    • <strong>Compatibilidad:</strong> <code>/api/webhooks/ligo</code> (usa dev por defecto)
                 </p>
             </div>
         </div>

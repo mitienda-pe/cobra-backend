@@ -34,9 +34,15 @@ $routes->get('ligo/test-qr', 'LigoDebugController::testQR');
 $routes->get('ligo/test-web-flow/(:num)', 'LigoDebugController::testWebFlow/$1');
 $routes->get('ligo/test-web-flow', 'LigoDebugController::testWebFlow');
 
-// Ligo Webhook Route - Public (compatibilidad con URL sin /api)
-$routes->post('webhooks/ligo', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification');
-$routes->match(['options'], 'webhooks/ligo', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification');
+// Ligo Webhook Routes - Public (separados por entorno)
+$routes->post('webhooks/ligo/dev', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification/dev');
+$routes->post('webhooks/ligo/prod', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification/prod');
+$routes->match(['options'], 'webhooks/ligo/dev', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification/dev');
+$routes->match(['options'], 'webhooks/ligo/prod', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification/prod');
+
+// Mantener compatibilidad con URL anterior (por defecto usa dev)
+$routes->post('webhooks/ligo', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification/dev');
+$routes->match(['options'], 'webhooks/ligo', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification/dev');
 
 // API Routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
@@ -57,9 +63,15 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->match(['options'], 'auth/profile', 'AuthController::profile');
     $routes->match(['options'], 'auth/logout', 'AuthController::logout');
 
-    // Ligo Webhook Route - Public
-    $routes->post('webhooks/ligo', 'LigoWebhookController::handlePaymentNotification');
-    $routes->match(['options'], 'webhooks/ligo', 'LigoWebhookController::handlePaymentNotification');
+    // Ligo Webhook Routes - Public (separados por entorno)
+    $routes->post('webhooks/ligo/dev', 'LigoWebhookController::handlePaymentNotification/dev');
+    $routes->post('webhooks/ligo/prod', 'LigoWebhookController::handlePaymentNotification/prod');
+    $routes->match(['options'], 'webhooks/ligo/dev', 'LigoWebhookController::handlePaymentNotification/dev');
+    $routes->match(['options'], 'webhooks/ligo/prod', 'LigoWebhookController::handlePaymentNotification/prod');
+    
+    // Mantener compatibilidad con URL anterior (por defecto usa dev)
+    $routes->post('webhooks/ligo', 'LigoWebhookController::handlePaymentNotification/dev');
+    $routes->match(['options'], 'webhooks/ligo', 'LigoWebhookController::handlePaymentNotification/dev');
 
     // Ligo Auth Route - Public
     $routes->get('auth/ligo/token', 'LigoAuthController::getToken');
