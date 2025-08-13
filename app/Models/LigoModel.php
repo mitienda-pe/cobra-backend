@@ -397,24 +397,24 @@ class LigoModel extends Model
         $startDate = $params['startDate'];
         $endDate = $params['endDate'];
         
-        // Función para convertir fecha a formato YYYYMMDD
+        // Función para convertir fecha - probando formato YYYY-MM-DD basado en el ejemplo de la documentación
         $formatDate = function($date) {
             if (!$date) return '';
             
-            // Si ya está en formato YYYYMMDD (8 dígitos), devolverlo tal como está
-            if (preg_match('/^\d{8}$/', $date)) {
+            // Si está en formato YYYY-MM-DD, mantenerlo (como en el ejemplo de la documentación)
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
                 return $date;
             }
             
-            // Si está en formato YYYY-MM-DD, convertir
-            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-                return str_replace('-', '', $date);
+            // Si está en formato YYYYMMDD, convertir a YYYY-MM-DD
+            if (preg_match('/^\d{8}$/', $date)) {
+                return substr($date, 0, 4) . '-' . substr($date, 4, 2) . '-' . substr($date, 6, 2);
             }
             
-            // Intentar parsear la fecha y convertirla
+            // Intentar parsear la fecha y convertirla a YYYY-MM-DD
             try {
                 $dateObj = new \DateTime($date);
-                return $dateObj->format('Ymd');
+                return $dateObj->format('Y-m-d');
             } catch (\Exception $e) {
                 return '';
             }
@@ -425,8 +425,8 @@ class LigoModel extends Model
         
         $data = [
             'page' => $params['page'] ?? 1,
-            'startDate' => $startDate,  // Formato YYYYMMDD
-            'endDate' => $endDate,      // Formato YYYYMMDD
+            'startDate' => $startDate,  // Formato YYYY-MM-DD (según ejemplo en documentación)
+            'endDate' => $endDate,      // Formato YYYY-MM-DD (según ejemplo en documentación)
             'empty' => false  // false para mostrar registros con data (no vacíos)
         ];
 
