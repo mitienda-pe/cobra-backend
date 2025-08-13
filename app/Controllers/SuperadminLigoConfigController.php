@@ -163,6 +163,18 @@ class SuperadminLigoConfigController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Configuración no encontrada']);
         }
 
+        log_message('info', '[SuperadminLigoConfig] Testing configuration ID: ' . $id . ', Environment: ' . $config['environment']);
+        log_message('debug', '[SuperadminLigoConfig] Config details: ' . json_encode([
+            'environment' => $config['environment'],
+            'username' => $config['username'] ?? 'null',
+            'company_id' => $config['company_id'] ?? 'null',
+            'account_id' => $config['account_id'] ?? 'null',
+            'has_password' => !empty($config['password']),
+            'has_private_key' => !empty($config['private_key']),
+            'auth_url' => $config['auth_url'] ?? 'default',
+            'api_url' => $config['api_url'] ?? 'default'
+        ]));
+
         // Test the configuration by trying to authenticate
         $ligoModel = new \App\Models\LigoModel();
         
@@ -171,15 +183,21 @@ class SuperadminLigoConfigController extends BaseController
                                                          ->where('is_active', 1)
                                                          ->first();
         
+        log_message('debug', '[SuperadminLigoConfig] Original active config: ' . ($originalActive ? $originalActive['id'] : 'none'));
+        
         // Set test config as active
         $this->superadminLigoConfigModel->where('environment', $config['environment'])
                                        ->set('is_active', 0)
                                        ->update();
         $this->superadminLigoConfigModel->update($id, ['is_active' => 1]);
+        
+        log_message('info', '[SuperadminLigoConfig] Temporarily activated config ID: ' . $id . ' for testing');
 
         // Test authentication
         try {
+            log_message('info', '[SuperadminLigoConfig] Starting authentication test...');
             $testResult = $ligoModel->getAccountBalanceForOrganization();
+            log_message('debug', '[SuperadminLigoConfig] Test result: ' . json_encode($testResult));
             
             // Restore original active config
             if ($originalActive) {
@@ -187,14 +205,25 @@ class SuperadminLigoConfigController extends BaseController
                                                ->set('is_active', 0)
                                                ->update();
                 $this->superadminLigoConfigModel->update($originalActive['id'], ['is_active' => 1]);
+                log_message('debug', '[SuperadminLigoConfig] Restored original active config ID: ' . $originalActive['id']);
+            } else {
+                log_message('debug', '[SuperadminLigoConfig] No original active config to restore');
             }
 
             if (isset($testResult['error'])) {
+                log_message('error', '[SuperadminLigoConfig] Test failed with error: ' . $testResult['error']);
                 return $this->response->setJSON([
                     'success' => false, 
-                    'message' => 'Error en prueba: ' . $testResult['error']
+                    'message' => 'Error en prueba: ' . $testResult['error'],
+                    'debug_info' => [
+                        'environment' => $config['environment'],
+                        'username' => $config['username'],
+                        'company_id' => $config['company_id'],
+                        'auth_url' => $config['auth_url'] ?? 'default'
+                    ]
                 ]);
             } else {
+                log_message('info', '[SuperadminLigoConfig] Test successful for config ID: ' . $id);
                 return $this->response->setJSON([
                     'success' => true, 
                     'message' => 'Configuración probada exitosamente',
@@ -202,17 +231,26 @@ class SuperadminLigoConfigController extends BaseController
                 ]);
             }
         } catch (\Exception $e) {
+            log_message('error', '[SuperadminLigoConfig] Exception during test: ' . $e->getMessage());
+            log_message('error', '[SuperadminLigoConfig] Exception trace: ' . $e->getTraceAsString());
+            
             // Restore original active config
             if ($originalActive) {
                 $this->superadminLigoConfigModel->where('environment', $config['environment'])
                                                ->set('is_active', 0)
                                                ->update();
                 $this->superadminLigoConfigModel->update($originalActive['id'], ['is_active' => 1]);
+                log_message('debug', '[SuperadminLigoConfig] Restored original active config after exception');
             }
 
             return $this->response->setJSON([
                 'success' => false, 
-                'message' => 'Error en prueba: ' . $e->getMessage()
+                'message' => 'Error en prueba: ' . $e->getMessage(),
+                'debug_info' => [
+                    'environment' => $config['environment'],
+                    'username' => $config['username'],
+                    'company_id' => $config['company_id']
+                ]
             ]);
         }
     }

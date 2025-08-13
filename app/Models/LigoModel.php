@@ -178,10 +178,13 @@ class LigoModel extends Model
         $privateKey = $ligoConfig['private_key'];
 
         log_message('debug', 'LigoModel: Auth data - username: ' . ($authData['username'] ?? 'null') . ', company_id: ' . ($companyId ?? 'null'));
+        log_message('debug', 'LigoModel: Password length: ' . (isset($authData['password']) ? strlen($authData['password']) : 0));
+        log_message('debug', 'LigoModel: Private key length: ' . (isset($privateKey) ? strlen($privateKey) : 0));
 
         // Validar que las credenciales estén presentes
         if (empty($authData['username']) || empty($authData['password']) || empty($companyId)) {
             log_message('error', 'LigoModel: Missing auth credentials in centralized config for environment: ' . $environment);
+            log_message('error', 'LigoModel: Missing credentials details: username=' . ($authData['username'] ?? 'empty') . ', password=' . (empty($authData['password']) ? 'empty' : 'present') . ', company_id=' . ($companyId ?? 'empty'));
             return ['error' => "Missing authentication credentials in centralized configuration for {$environment} environment"];
         }
 
@@ -197,15 +200,19 @@ class LigoModel extends Model
         
         $authUrl = $authBaseUrl . '/v1/auth/sign-in?companyId=' . $companyId;
         log_message('debug', 'LigoModel: Authenticating with centralized config - URL: ' . $authUrl . ' and username: ' . $authData['username'] . ' for env: ' . $environment);
+        log_message('debug', 'LigoModel: API URLs - auth: ' . $authBaseUrl . ', api: ' . $urls['api_url']);
 
         // Generar token JWT usando la clave privada centralizada
         try {
+            log_message('debug', 'LigoModel: Starting JWT token generation...');
             $formattedKey = \App\Libraries\JwtGenerator::formatPrivateKey($privateKey);
+            log_message('debug', 'LigoModel: Private key formatted successfully');
 
             // Preparar payload
             $payload = [
                 'companyId' => $companyId
             ];
+            log_message('debug', 'LigoModel: JWT payload: ' . json_encode($payload));
 
             // Generar token JWT
             $authorizationToken = \App\Libraries\JwtGenerator::generateToken($payload, $formattedKey, [
@@ -224,6 +231,21 @@ class LigoModel extends Model
 
         $curl = curl_init();
         $requestBody = json_encode($authData);
+        
+        log_message('debug', 'LigoModel: Preparing HTTP request to: ' . $authUrl);
+        log_message('debug', 'LigoModel: Request body: ' . $requestBody);
+        log_message('debug', 'LigoModel: Authorization header with JWT token length: ' . strlen($authorizationToken));
+
+        $headers = [
+            'Authorization: Bearer ' . $authorizationToken,  // JWT token como LigoQRController
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($requestBody),
+            'Accept: application/json'
+        ];
+        
+        log_message('debug', 'LigoModel: Request headers: ' . json_encode(array_map(function($h) { 
+            return strpos($h, 'Authorization:') === 0 ? 'Authorization: Bearer [HIDDEN]' : $h; 
+        }, $headers)));
 
         curl_setopt_array($curl, [
             CURLOPT_URL => $authUrl,
@@ -234,19 +256,17 @@ class LigoModel extends Model
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
             CURLOPT_POSTFIELDS => $requestBody,
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $authorizationToken,  // JWT token como LigoQRController
-                'Content-Type: application/json',
-                'Content-Length: ' . strlen($requestBody),
-                'Accept: application/json'
-            ],
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_SSL_VERIFYHOST => 0,
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
+        log_message('info', 'LigoModel: Executing authentication request...');
         $response = curl_exec($curl);
         $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         $err = curl_error($curl);
+        
+        log_message('debug', 'LigoModel: cURL completed - HTTP Code: ' . $httpCode . ', Error: ' . ($err ?: 'none'));
 
         curl_close($curl);
 
