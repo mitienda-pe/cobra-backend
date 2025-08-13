@@ -134,7 +134,7 @@ class LigoModel extends Model
             return ['error' => 'Error de conexión con Ligo API: ' . $err];
         }
 
-        log_message('debug', 'Ligo API Response - HTTP Code: ' . $httpCode . ', Raw Response: ' . $response);
+        log_message('error', 'LIGO TRANSACTIONS DEBUG - HTTP Code: ' . $httpCode . ', URL: ' . $url . ', Raw Response: ' . $response);
         
         $decodedResponse = json_decode($response, true);
         
@@ -377,8 +377,10 @@ class LigoModel extends Model
             'debtorCCI' => $accountId  // Usar automáticamente el account_id de la organización
         ];
 
-        log_message('debug', 'LigoModel: Making transactions request with data: ' . json_encode($data));
-        return $this->makeApiRequest('/v1/transactionsReport', 'POST', $data);
+        log_message('error', 'LIGO TRANSACTIONS - Making transactions request with data: ' . json_encode($data));
+        $response = $this->makeApiRequest('/v1/transactionsReport', 'POST', $data);
+        log_message('error', 'LIGO TRANSACTIONS - Response: ' . json_encode($response));
+        return $response;
     }
 
     public function getTransactionDetail($transactionId)
@@ -400,7 +402,10 @@ class LigoModel extends Model
             'empty' => false  // false para mostrar registros con data
         ];
 
-        return $this->makeApiRequest('/v1/transactionsReportReception', 'POST', $data);
+        log_message('error', 'LIGO RECHARGES - Making recharges request with data: ' . json_encode($data));
+        $response = $this->makeApiRequest('/v1/transactionsReportReception', 'POST', $data);
+        log_message('error', 'LIGO RECHARGES - Response: ' . json_encode($response));
+        return $response;
     }
 
     public function processOrdinaryTransfer($transferData)
