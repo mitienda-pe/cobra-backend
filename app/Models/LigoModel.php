@@ -462,11 +462,11 @@ class LigoModel extends Model
                 $qrResult = $qrQuery->getRowArray();
                 
                 if ($qrResult && !empty($qrResult['instalment_id'])) {
-                    // Buscar información del instalment con invoice y client
+                    // Buscar información del instalment con invoice y cliente
                     $instalmentQuery = $db->table('instalments i')
                         ->select('i.id, i.uuid, i.invoice_id, i.number, i.amount, i.due_date, i.status, i.notes, 
-                                 inv.invoice_number, inv.concept, inv.total_amount, inv.currency,
-                                 c.name as client_name, c.email as client_email')
+                                 inv.invoice_number, inv.concept, inv.total_amount, inv.currency, inv.client_id,
+                                 c.business_name as client_business_name, c.contact_name as client_contact_name')
                         ->join('invoices inv', 'i.invoice_id = inv.id', 'left')
                         ->join('clients c', 'inv.client_id = c.id', 'left')
                         ->where('i.id', $qrResult['instalment_id'])
@@ -481,8 +481,8 @@ class LigoModel extends Model
                             'uuid' => $instalmentResult['uuid'],
                             'invoice_id' => $instalmentResult['invoice_id'],
                             'invoice_number' => $instalmentResult['invoice_number'] ?? 'N/A',
-                            'client_name' => $instalmentResult['client_name'] ?? 'Cliente sin nombre',
-                            'client_email' => $instalmentResult['client_email'] ?? '',
+                            'client_name' => $instalmentResult['client_business_name'] ?? 'Cliente sin nombre',
+                            'client_contact' => $instalmentResult['client_contact_name'] ?? '',
                             'invoice_description' => $instalmentResult['concept'] ?? 'Pago de cuota',
                             'invoice_total' => $instalmentResult['total_amount'] ?? $instalmentResult['amount'],
                             'currency' => $instalmentResult['currency'] ?? 'PEN',
