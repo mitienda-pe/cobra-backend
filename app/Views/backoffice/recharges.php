@@ -196,11 +196,16 @@ function searchRecharges() {
     if (rechargesResult) rechargesResult.style.display = 'none';
     if (errorResult) errorResult.style.display = 'none';
     
+    // Obtener token CSRF
+    const csrfToken = document.querySelector('meta[name="X-CSRF-TOKEN"]').getAttribute('content');
+    formData['csrf_token_name'] = csrfToken;
+    
     fetch('<?= base_url('backoffice/recharges') ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken
         },
         body: new URLSearchParams(formData)
     })

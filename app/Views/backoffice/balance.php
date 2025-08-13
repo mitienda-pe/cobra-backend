@@ -100,13 +100,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (balanceResult) balanceResult.style.display = 'none';
             if (errorResult) errorResult.style.display = 'none';
             
+            // Obtener token CSRF
+            const csrfToken = document.querySelector('meta[name="X-CSRF-TOKEN"]').getAttribute('content');
+            
             fetch('<?= base_url('backoffice/balance') ?>', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken
                 },
-                body: new URLSearchParams({})
+                body: new URLSearchParams({
+                    'csrf_token_name': csrfToken
+                })
             })
             .then(response => response.json())
             .then(data => {
