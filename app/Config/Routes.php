@@ -285,3 +285,13 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     // Ruta para obtener clientes por organización
     $routes->get('organizations/(:segment)/clients', 'OrganizationController::getClientsByOrganization/$1');
 });
+
+// Superadmin Routes - Protected 
+$routes->group('superadmin', ['namespace' => 'App\Controllers', 'filter' => 'auth'], function ($routes) {
+    // Ligo Configuration Management
+    $routes->get('ligo-config', 'SuperadminLigoConfigController::index');
+    $routes->get('ligo-config/edit/(:num)', 'SuperadminLigoConfigController::edit/$1');
+    $routes->post('ligo-config/update/(:num)', 'SuperadminLigoConfigController::update/$1');
+    $routes->post('ligo-config/set-active/(:num)', 'SuperadminLigoConfigController::setActive/$1');
+    $routes->post('ligo-config/test/(:num)', 'SuperadminLigoConfigController::test/$1');
+});

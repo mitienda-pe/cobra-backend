@@ -58,6 +58,31 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <?php 
+                    // Only show configuration section for superadmin
+                    $user = session()->get('user');
+                    $isSuperadmin = isset($user) && $user['role'] === 'superadmin';
+                    if ($isSuperadmin): ?>
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h4><i class="bi bi-gear-wide-connected"></i> Configuración del Sistema</h4>
+                            <hr>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-gear-wide-connected fa-3x text-danger mb-3"></i>
+                                    <h5 class="card-title">Configuración Ligo</h5>
+                                    <p class="card-text">Administra las credenciales centralizadas de Ligo</p>
+                                    <a href="<?= site_url('superadmin/ligo-config') ?>" class="btn btn-danger">
+                                        <i class="bi bi-gear-wide-connected"></i> Configurar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
