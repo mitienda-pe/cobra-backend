@@ -269,6 +269,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
 
     // Debug Routes
     $routes->get('debug/ligo-config', 'DebugController::ligoConfig');
+    $routes->get('debug/backoffice-org', 'DebugBackofficeController::checkOrganization');
     $routes->get('debug/test-ligo-auth', 'TestLigoController::testAuth');
     $routes->get('debug/test-ligo-auth-dev', 'TestLigoController::testAuthDev');
     $routes->get('debug/test-ligo-auth-prod', 'TestLigoController::testAuthProd');

@@ -151,17 +151,18 @@ class LigoModel extends Model
     {
         $curl = curl_init();
 
-        // Usar credenciales según el entorno
-        $environment = env('CI_ENVIRONMENT', 'development');
+        // Usar credenciales según el entorno de la organización
         $orgEnvironment = $organization['ligo_environment'] ?? 'dev';
+        log_message('debug', 'LigoModel: Auth using environment: ' . $orgEnvironment);
         
-        if ($environment === 'production' || $orgEnvironment === 'prod') {
+        if ($orgEnvironment === 'prod') {
             $authData = [
                 'username' => $organization['ligo_prod_username'],
                 'password' => $organization['ligo_prod_password']
             ];
             $companyId = $organization['ligo_prod_company_id'];
             $useEnv = 'prod';
+            log_message('debug', 'LigoModel: Using PROD credentials for auth');
         } else {
             $authData = [
                 'username' => $organization['ligo_dev_username'],
@@ -169,6 +170,15 @@ class LigoModel extends Model
             ];
             $companyId = $organization['ligo_dev_company_id'];
             $useEnv = 'dev';
+            log_message('debug', 'LigoModel: Using DEV credentials for auth');
+        }
+
+        log_message('debug', 'LigoModel: Auth data - username: ' . ($authData['username'] ?? 'null') . ', company_id: ' . ($companyId ?? 'null'));
+
+        // Validar que las credenciales estén presentes
+        if (empty($authData['username']) || empty($authData['password']) || empty($companyId)) {
+            log_message('error', 'LigoModel: Missing auth credentials for environment: ' . $orgEnvironment);
+            return ['error' => "Missing authentication credentials for {$orgEnvironment} environment"];
         }
 
         // Ajustar URL de auth según el entorno
