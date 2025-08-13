@@ -232,12 +232,12 @@ function searchTransactions() {
     .then(data => {
         if (loading) loading.style.display = 'none';
         
-        if (data.data && data.data.transactions) {
+        if (data.data && data.data.records && data.data.records.length > 0) {
             displayTransactions(data.data);
             if (transactionsResult) transactionsResult.style.display = 'block';
         } else {
             const errorMessage = document.getElementById('errorMessage');
-            if (errorMessage) errorMessage.textContent = 'No se encontraron transacciones';
+            if (errorMessage) errorMessage.textContent = 'No se encontraron transacciones en el rango de fechas seleccionado';
             if (errorResult) errorResult.style.display = 'block';
         }
     })
@@ -251,8 +251,8 @@ function searchTransactions() {
 }
 
 function displayTransactions(data) {
-    const transactions = data.transactions || [];
-    const total = data.total || 0;
+    const transactions = data.records || [];
+    const total = data.detail ? data.detail.totalRecords : 0;
     const tbody = document.getElementById('transactionsTableBody');
     const totalResults = document.getElementById('totalResults');
     
@@ -266,24 +266,30 @@ function displayTransactions(data) {
     
     transactions.forEach(function(transaction) {
         const row = document.createElement('tr');
-        const transactionType = transaction.debtorCCI === transaction.creditorCCI ? 'Interno' : 
-                               (transaction.type || 'Transferencia');
-        const counterparty = transaction.debtorCCI !== transaction.creditorCCI ? 
-                            (transaction.creditorCCI || transaction.debtorCCI || 'N/A') : 'Cuenta propia';
+        const transactionType = transaction.type || 'Transferencia';
+        const counterparty = transaction.type === 'recharge' ? transaction.debtorCCI : 
+                            (transaction.creditorCCI || transaction.debtorCCI || 'N/A');
+        const counterpartyName = transaction.type === 'recharge' ? transaction.debtorName : 
+                               (transaction.creditorName || 'N/A');
+        const currency = transaction.currency === '604' ? 'PEN' : 
+                        transaction.currency === '840' ? 'USD' : 'PEN';
+        const status = transaction.responseCode === '00' ? 'Completado' : 'Error';
         
         row.innerHTML = `
-            <td>${transaction.id || 'N/A'}</td>
-            <td>${formatDate(transaction.date)}</td>
-            <td><span class="badge badge-info">${transactionType}</span></td>
-            <td><small>${counterparty}</small></td>
-            <td class="text-right">${formatAmount(transaction.amount)}</td>
-            <td>${transaction.currency || 'PEN'}</td>
-            <td><span class="badge badge-${getStatusBadge(transaction.status)}">${transaction.status || 'Pendiente'}</span></td>
+            <td><small>${transaction.transferId || transaction.instructionId || 'N/A'}</small></td>
+            <td>${formatDate(transaction.createdAt)}</td>
+            <td><span class="badge badge-${getTypeBadge(transaction.type)}">${transactionType}</span></td>
             <td>
-                <a href="<?= base_url('backoffice/transaction-detail') ?>/${transaction.id}" 
-                   class="btn btn-sm btn-info" title="Ver Detalle">
+                <small><strong>${counterparty}</strong><br>
+                ${counterpartyName}</small>
+            </td>
+            <td class="text-right"><strong>${formatAmount(transaction.amount)}</strong></td>
+            <td>${currency}</td>
+            <td><span class="badge badge-${getStatusBadge(transaction.responseCode)}">${status}</span></td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick="showTransactionDetail('${transaction.transferId || transaction.instructionId}')" title="Ver Detalle">
                     <i class="fas fa-eye"></i>
-                </a>
+                </button>
             </td>
         `;
         if (tbody) tbody.appendChild(row);
@@ -310,19 +316,24 @@ function formatAmount(amount) {
     return parseFloat(amount).toFixed(2);
 }
 
-function getStatusBadge(status) {
-    switch (status) {
-        case 'completed':
-        case 'success':
+function getStatusBadge(responseCode) {
+    return responseCode === '00' ? 'success' : 'danger';
+}
+
+function getTypeBadge(type) {
+    switch (type) {
+        case 'recharge':
             return 'success';
-        case 'failed':
-        case 'error':
-            return 'danger';
-        case 'pending':
-            return 'warning';
+        case 'transfer':
+            return 'primary';
         default:
-            return 'secondary';
+            return 'info';
     }
+}
+
+function showTransactionDetail(transactionId) {
+    alert('Detalle de transacción: ' + transactionId);
+    // Aquí se puede implementar un modal o redirección
 }
 
 function clearForm() {
