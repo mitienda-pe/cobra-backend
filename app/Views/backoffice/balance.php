@@ -46,27 +46,31 @@
                         <hr>
                         <h5>Resultado de la Consulta</h5>
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-8">
                                 <div class="card">
                                     <div class="card-body">
-                                        <h6 class="card-title">Información de la Cuenta</h6>
+                                        <h6 class="card-title">Balance Disponible</h6>
+                                        <h2 class="text-success mb-3">
+                                            <i class="fas fa-coins"></i> <span id="resultBalance"></span>
+                                        </h2>
                                         <p class="card-text">
-                                            <strong>CCI:</strong> <span id="resultCCI"></span><br>
-                                            <strong>Banco:</strong> <span id="resultBank"></span><br>
-                                            <strong>Estado:</strong> <span id="resultStatus"></span>
+                                            <strong>Estado de la consulta:</strong> <span id="resultStatus" class="badge badge-success"></span><br>
+                                            <strong>Última actualización:</strong> <span id="resultTimestamp"></span>
                                         </p>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="card">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
                                     <div class="card-body">
-                                        <h6 class="card-title">Balance Disponible</h6>
-                                        <h3 class="text-success">
-                                            <span id="resultBalance"></span>
-                                        </h3>
+                                        <h6 class="card-title">Información Adicional</h6>
+                                        <p class="card-text small">
+                                            <strong>CCI:</strong> <span id="resultCCI" class="text-muted"></span><br>
+                                            <strong>Banco:</strong> <span id="resultBank" class="text-muted"></span>
+                                        </p>
                                         <small class="text-muted">
-                                            Última actualización: <span id="resultTimestamp"></span>
+                                            <i class="fas fa-info-circle"></i> 
+                                            La API de Ligo solo proporciona el balance actual.
                                         </small>
                                     </div>
                                 </div>
@@ -132,11 +136,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     const resultBalance = document.getElementById('resultBalance');
                     const resultTimestamp = document.getElementById('resultTimestamp');
                     
-                    if (resultCCI) resultCCI.textContent = data.data.debtorCCI || 'No disponible';
-                    if (resultBank) resultBank.textContent = data.data.bankName || 'No disponible';
-                    if (resultStatus) resultStatus.textContent = data.data.status || 'Activo';
-                    if (resultBalance) resultBalance.textContent = (data.data.balance || '0.00') + ' ' + (data.data.currency || 'PEN');
-                    if (resultTimestamp) resultTimestamp.textContent = new Date().toLocaleString();
+                    if (resultCCI) resultCCI.textContent = data.data.debtorCCI || 'No disponible en esta respuesta';
+                    if (resultBank) resultBank.textContent = data.data.bankName || 'No disponible en esta respuesta';
+                    if (resultStatus) resultStatus.textContent = data.status === 1 ? 'Activo' : 'Inactivo';
+                    if (resultBalance) resultBalance.textContent = (data.data.amount || '0.00') + ' ' + (data.data.currency_symbol || 'PEN');
+                    if (resultTimestamp) resultTimestamp.textContent = data.date || new Date().toLocaleString();
                     
                     if (balanceResult) balanceResult.style.display = 'block';
                 } else {

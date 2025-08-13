@@ -134,7 +134,7 @@ class LigoModel extends Model
             return ['error' => 'Error de conexión con Ligo API: ' . $err];
         }
 
-        log_message('error', 'LIGO BALANCE DEBUG - HTTP Code: ' . $httpCode . ', Raw Response: ' . $response);
+        log_message('debug', 'Ligo API Response - HTTP Code: ' . $httpCode . ', Raw Response: ' . $response);
         
         $decodedResponse = json_decode($response, true);
         
