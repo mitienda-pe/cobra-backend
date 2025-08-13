@@ -84,11 +84,10 @@
                                         <th>Fecha</th>
                                         <th>Tipo</th>
                                         <th>Monto</th>
-                                        <th>Moneda</th>
-                                        <th>CCI Origen</th>
-                                        <th>CCI Destino</th>
+                                        <th>Cliente/Origen</th>
+                                        <th>Factura/Cuota</th>
                                         <th>Estado</th>
-                                        <th>Referencia</th>
+                                        <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="rechargesTableBody">
@@ -256,7 +255,7 @@ function displayRecharges(data) {
     }
     
     if (recharges.length === 0) {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center">No se encontraron recargas QR</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center">No se encontraron recargas QR</td></tr>';
         return;
     }
     
@@ -267,18 +266,42 @@ function displayRecharges(data) {
         const status = recharge.responseCode === '00' ? 'Completado' : 'Error';
         const typeLabel = recharge.type === 'recharge' ? 'Recarga QR' : recharge.type || 'Recarga';
         
+        // Información del cliente y factura si está disponible
+        let clientInfo = `<small><strong>${recharge.debtorCCI}</strong><br>${recharge.debtorName || 'N/A'}</small>`;
+        let invoiceInfo = '<small class="text-muted">Sin asociar</small>';
+        let actionButtons = '<span class="text-muted">-</span>';
+        
+        if (recharge.instalment) {
+            const inst = recharge.instalment;
+            clientInfo = `<small><strong>${inst.client_name || 'Cliente'}</strong><br>${recharge.debtorName}</small>`;
+            invoiceInfo = `
+                <small>
+                    <strong>Factura:</strong> ${inst.invoice_number || 'N/A'}<br>
+                    <strong>Cuota #${inst.number}:</strong> ${currency} ${formatAmount(inst.amount)}<br>
+                    <span class="text-muted">${inst.invoice_description || ''}</span>
+                </small>
+            `;
+            actionButtons = `
+                <button class="btn btn-sm btn-outline-primary" onclick="viewInstalment('${inst.uuid}')" title="Ver Cuota">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-info" onclick="viewInvoice('${inst.invoice_id}')" title="Ver Factura">
+                    <i class="fas fa-file-invoice"></i>
+                </button>
+            `;
+        }
+        
         row.innerHTML = `
             <td><small>${recharge.transferId || recharge.instructionId || 'N/A'}</small></td>
             <td>${formatDate(recharge.createdAt)}</td>
             <td><span class="badge badge-success">${typeLabel}</span></td>
             <td class="text-right font-weight-bold text-success">
-                + ${formatAmount(recharge.amount)}
+                + ${formatAmount(recharge.amount)} ${currency}
             </td>
-            <td>${currency}</td>
-            <td><small><strong>${recharge.debtorCCI}</strong><br>${recharge.debtorName || 'N/A'}</small></td>
-            <td><small><strong>${recharge.creditorCCI}</strong><br>${recharge.creditorName || 'N/A'}</small></td>
+            <td>${clientInfo}</td>
+            <td>${invoiceInfo}</td>
             <td><span class="badge badge-${getStatusBadge(recharge.responseCode)}">${status}</span></td>
-            <td><small>${recharge.referenceTransactionId || recharge.instructionId || 'N/A'}</small></td>
+            <td>${actionButtons}</td>
         `;
         if (tbody) tbody.appendChild(row);
     });
@@ -332,6 +355,16 @@ function clearForm() {
     
     if (endDate) endDate.value = todayStr;
     if (startDate) startDate.value = sevenDaysAgoStr;
+}
+
+function viewInstalment(instalmentUuid) {
+    // Redirigir a la página de detalle de la cuota
+    window.open(`<?= base_url('instalments/view') ?>/${instalmentUuid}`, '_blank');
+}
+
+function viewInvoice(invoiceId) {
+    // Redirigir a la página de detalle de la factura
+    window.open(`<?= base_url('invoices/view') ?>/${invoiceId}`, '_blank');
 }
 </script>
 <?= $this->endSection() ?>

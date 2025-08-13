@@ -431,7 +431,72 @@ class LigoModel extends Model
         ];
 
         log_message('debug', 'LigoModel: Making recharges request with data: ' . json_encode($data));
-        return $this->makeApiRequest('/v1/transactionsReportReception', 'POST', $data);
+        $response = $this->makeApiRequest('/v1/transactionsReportReception', 'POST', $data);
+        
+        // Enriquecer respuesta con información de installments
+        if (isset($response['data']['records']) && is_array($response['data']['records'])) {
+            $response['data']['records'] = $this->enrichRechargesWithInstallments($response['data']['records']);
+        }
+        
+        return $response;
+    }
+
+    /**
+     * Enriquece las recargas con información de installments asociados
+     */
+    protected function enrichRechargesWithInstallments($recharges)
+    {
+        $db = \Config\Database::connect();
+        
+        foreach ($recharges as &$recharge) {
+            // Buscar QR hash usando unstructuredInformation como id_qr
+            $unstructuredInfo = $recharge['unstructuredInformation'] ?? '';
+            
+            if (!empty($unstructuredInfo)) {
+                // Buscar en ligo_qr_hashes por id_qr
+                $qrQuery = $db->table('ligo_qr_hashes')
+                    ->select('ligo_qr_hashes.instalment_id, ligo_qr_hashes.hash, ligo_qr_hashes.description')
+                    ->where('ligo_qr_hashes.id_qr', $unstructuredInfo)
+                    ->get();
+                
+                $qrResult = $qrQuery->getRowArray();
+                
+                if ($qrResult && !empty($qrResult['instalment_id'])) {
+                    // Buscar información del instalment
+                    $instalmentQuery = $db->table('instalments i')
+                        ->select('i.id, i.uuid, i.invoice_id, i.number, i.amount, i.due_date, i.status, i.notes, inv.invoice_number, inv.client_name, inv.description as invoice_description')
+                        ->join('invoices inv', 'i.invoice_id = inv.id', 'left')
+                        ->where('i.id', $qrResult['instalment_id'])
+                        ->get();
+                    
+                    $instalmentResult = $instalmentQuery->getRowArray();
+                    
+                    if ($instalmentResult) {
+                        // Agregar información del instalment a la recarga
+                        $recharge['instalment'] = [
+                            'id' => $instalmentResult['id'],
+                            'uuid' => $instalmentResult['uuid'],
+                            'invoice_id' => $instalmentResult['invoice_id'],
+                            'invoice_number' => $instalmentResult['invoice_number'],
+                            'client_name' => $instalmentResult['client_name'],
+                            'invoice_description' => $instalmentResult['invoice_description'],
+                            'number' => $instalmentResult['number'],
+                            'amount' => $instalmentResult['amount'],
+                            'due_date' => $instalmentResult['due_date'],
+                            'status' => $instalmentResult['status'],
+                            'notes' => $instalmentResult['notes']
+                        ];
+                        
+                        $recharge['qr_info'] = [
+                            'hash' => $qrResult['hash'],
+                            'description' => $qrResult['description']
+                        ];
+                    }
+                }
+            }
+        }
+        
+        return $recharges;
     }
 
     public function processOrdinaryTransfer($transferData)
