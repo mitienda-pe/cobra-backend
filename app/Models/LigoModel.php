@@ -32,10 +32,19 @@ class LigoModel extends Model
         $organizationId = $session->get('selected_organization_id');
         
         if (!$organizationId) {
+            log_message('debug', 'LigoModel: No organization ID in session');
             return null;
         }
         
-        return $this->organizationModel->find($organizationId);
+        $organization = $this->organizationModel->find($organizationId);
+        
+        if (!$organization) {
+            log_message('debug', 'LigoModel: Organization not found with ID: ' . $organizationId);
+            return null;
+        }
+        
+        log_message('debug', 'LigoModel: Using organization: ' . $organization['name'] . ' (ID: ' . $organizationId . ')');
+        return $organization;
     }
 
     protected function makeApiRequest($endpoint, $method = 'GET', $data = null, $requiresAuth = true)
@@ -43,12 +52,26 @@ class LigoModel extends Model
         $organization = $this->getOrganizationFromSession();
         
         if (!$organization) {
+            log_message('error', 'LigoModel: No organization available for API request');
             return ['error' => 'No hay organización seleccionada'];
         }
 
-        if ($requiresAuth && (empty($organization['ligo_api_key']) || empty($organization['ligo_api_secret']))) {
-            return ['error' => 'Credenciales de Ligo no configuradas'];
+        // Verificar credenciales según el entorno
+        $environment = env('CI_ENVIRONMENT', 'development');
+        if ($environment === 'production') {
+            $requiredFields = ['ligo_prod_username', 'ligo_prod_password', 'ligo_prod_company_id'];
+        } else {
+            $requiredFields = ['ligo_username', 'ligo_password', 'ligo_company_id'];
         }
+
+        foreach ($requiredFields as $field) {
+            if (empty($organization[$field])) {
+                log_message('error', 'LigoModel: Missing credential field: ' . $field . ' for environment: ' . $environment);
+                return ['error' => 'Credenciales de Ligo no configuradas para ' . $environment . '. Falta: ' . $field];
+            }
+        }
+        
+        log_message('debug', 'LigoModel: Using environment: ' . $environment . ' with URL: ' . $this->ligoBaseUrl);
 
         $curl = curl_init();
         $url = $this->ligoBaseUrl . $endpoint;
@@ -111,13 +134,27 @@ class LigoModel extends Model
     {
         $curl = curl_init();
 
-        $authData = [
-            'username' => $organization['ligo_username'],
-            'password' => $organization['ligo_password']
-        ];
+        // Usar credenciales según el entorno
+        $environment = env('CI_ENVIRONMENT', 'development');
+        if ($environment === 'production') {
+            $authData = [
+                'username' => $organization['ligo_prod_username'],
+                'password' => $organization['ligo_prod_password']
+            ];
+            $companyId = $organization['ligo_prod_company_id'];
+        } else {
+            $authData = [
+                'username' => $organization['ligo_username'],
+                'password' => $organization['ligo_password']
+            ];
+            $companyId = $organization['ligo_company_id'];
+        }
+
+        $authUrl = $this->ligoAuthUrl . '/v1/auth/sign-in?companyId=' . $companyId;
+        log_message('debug', 'LigoModel: Authenticating with URL: ' . $authUrl . ' and username: ' . $authData['username']);
 
         curl_setopt_array($curl, [
-            CURLOPT_URL => $this->ligoAuthUrl . '/v1/auth/sign-in?companyId=' . $organization['ligo_company_id'],
+            CURLOPT_URL => $authUrl,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,

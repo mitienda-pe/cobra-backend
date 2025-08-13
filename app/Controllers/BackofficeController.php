@@ -37,15 +37,23 @@ class BackofficeController extends Controller
         ];
 
         if ($this->request->isAJAX() && $this->request->getMethod() === 'post') {
+            log_message('debug', 'BackofficeController: Processing balance request');
+            
             $debtorCCI = $this->request->getPost('debtorCCI');
             
             if (empty($debtorCCI)) {
+                log_message('error', 'BackofficeController: Empty debtorCCI received');
                 return $this->fail('El CCI del deudor es requerido', 400);
             }
 
+            log_message('debug', 'BackofficeController: Requesting balance for CCI: ' . $debtorCCI);
+            
             $response = $this->ligoModel->getAccountBalance($debtorCCI);
             
+            log_message('debug', 'BackofficeController: Balance response: ' . json_encode($response));
+            
             if (isset($response['error'])) {
+                log_message('error', 'BackofficeController: Balance error: ' . $response['error']);
                 return $this->fail($response['error'], 400);
             }
 

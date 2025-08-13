@@ -267,6 +267,9 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('transfer-status/(:segment)', 'BackofficeController::transferStatus/$1');
     });
 
+    // Debug Routes
+    $routes->get('debug/ligo-config', 'DebugController::ligoConfig');
+
     // Ruta para obtener clientes por organización
     $routes->get('organizations/(:segment)/clients', 'OrganizationController::getClientsByOrganization/$1');
 });
