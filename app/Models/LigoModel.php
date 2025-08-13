@@ -344,7 +344,7 @@ class LigoModel extends Model
             $data['creditorCCI'] = $params['creditorCCI'];
         }
 
-        return $this->makeApiRequest('/v1/listTransactions', 'POST', $data);
+        return $this->makeApiRequest('/v1/transactionsReport', 'POST', $data);
     }
 
     public function listTransactionsForOrganization($params)
@@ -378,12 +378,17 @@ class LigoModel extends Model
         ];
 
         log_message('debug', 'LigoModel: Making transactions request with data: ' . json_encode($data));
-        return $this->makeApiRequest('/v1/listTransactions', 'POST', $data);
+        return $this->makeApiRequest('/v1/transactionsReport', 'POST', $data);
     }
 
     public function getTransactionDetail($transactionId)
     {
-        return $this->makeApiRequest('/v1/transaction/' . $transactionId, 'GET');
+        $data = [
+            'transferId' => null,
+            'instructionId' => $transactionId  // Usar instructionId como parámetro principal
+        ];
+        
+        return $this->makeApiRequest('/v1/transactionsReportById', 'POST', $data);
     }
 
     public function listRecharges($params)
@@ -392,10 +397,10 @@ class LigoModel extends Model
             'page' => $params['page'] ?? 1,
             'startDate' => $params['startDate'],
             'endDate' => $params['endDate'],
-            'type' => 'recharge'
+            'empty' => false  // false para mostrar registros con data
         ];
 
-        return $this->makeApiRequest('/v1/listTransactions', 'POST', $data);
+        return $this->makeApiRequest('/v1/transactionsReportReception', 'POST', $data);
     }
 
     public function processOrdinaryTransfer($transferData)
