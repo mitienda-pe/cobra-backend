@@ -132,59 +132,89 @@
 let currentPage = 1;
 let currentFilters = {};
 
-$(document).ready(function() {
-    // Establecer fecha por defecto (últimos 7 días incluyendo hoy)
-    console.log('Setting default dates for transactions...');
-    const today = new Date();
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
+document.addEventListener('DOMContentLoaded', function() {
+    // Usar setTimeout para asegurar que el DOM esté completamente listo
+    setTimeout(function() {
+        // Establecer fecha por defecto (últimos 7 días incluyendo hoy)
+        console.log('Setting default dates for transactions...');
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        
+        const todayStr = today.toISOString().split('T')[0];
+        const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+        
+        console.log('Today:', todayStr, 'Seven days ago:', sevenDaysAgoStr);
+        
+        const endDateField = document.getElementById('endDate');
+        const startDateField = document.getElementById('startDate');
+        
+        console.log('endDateField found:', !!endDateField);
+        console.log('startDateField found:', !!startDateField);
+        
+        if (endDateField && startDateField) {
+            endDateField.value = todayStr;
+            startDateField.value = sevenDaysAgoStr;
+            console.log('Dates set successfully');
+            console.log('endDate value:', endDateField.value);
+            console.log('startDate value:', startDateField.value);
+        } else {
+            console.error('Date fields not found');
+            console.error('endDateField:', endDateField);
+            console.error('startDateField:', startDateField);
+        }
+    }, 100);
     
-    const todayStr = today.toISOString().split('T')[0];
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
     
-    console.log('Today:', todayStr, 'Seven days ago:', sevenDaysAgoStr);
-    
-    const endDateField = document.getElementById('endDate');
-    const startDateField = document.getElementById('startDate');
-    
-    if (endDateField && startDateField) {
-        endDateField.value = todayStr;
-        startDateField.value = sevenDaysAgoStr;
-        console.log('Dates set successfully');
-    } else {
-        console.error('Date fields not found');
+    // Form submit
+    const transactionsForm = document.getElementById('transactionsForm');
+    if (transactionsForm) {
+        transactionsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            currentPage = 1;
+            searchTransactions();
+        });
     }
     
-    $('#transactionsForm').on('submit', function(e) {
-        e.preventDefault();
-        currentPage = 1;
-        searchTransactions();
-    });
+    // Pagination buttons
+    const prevPageBtn = document.getElementById('prevPage');
+    const nextPageBtn = document.getElementById('nextPage');
     
-    $('#prevPage').on('click', function() {
-        if (currentPage > 1) {
-            currentPage--;
+    if (prevPageBtn) {
+        prevPageBtn.addEventListener('click', function() {
+            if (currentPage > 1) {
+                currentPage--;
+                searchTransactions();
+            }
+        });
+    }
+    
+    if (nextPageBtn) {
+        nextPageBtn.addEventListener('click', function() {
+            currentPage++;
             searchTransactions();
-        }
-    });
-    
-    $('#nextPage').on('click', function() {
-        currentPage++;
-        searchTransactions();
-    });
+        });
+    }
     
     // Validar solo números en campos CCI
-    $('#debtorCCI, #creditorCCI').on('input', function() {
-        this.value = this.value.replace(/[^0-9]/g, '');
+    const debtorCCI = document.getElementById('debtorCCI');
+    const creditorCCI = document.getElementById('creditorCCI');
+    
+    [debtorCCI, creditorCCI].forEach(field => {
+        if (field) {
+            field.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+        }
     });
 });
 
 function searchTransactions() {
     const formData = {
-        startDate: $('#startDate').val(),
-        endDate: $('#endDate').val(),
-        debtorCCI: $('#debtorCCI').val().trim(),
-        creditorCCI: $('#creditorCCI').val().trim(),
+        startDate: document.getElementById('startDate').value,
+        endDate: document.getElementById('endDate').value,
+        debtorCCI: document.getElementById('debtorCCI').value.trim(),
+        creditorCCI: document.getElementById('creditorCCI').value.trim(),
         page: currentPage
     };
     
@@ -195,72 +225,86 @@ function searchTransactions() {
     
     currentFilters = formData;
     
-    $('#loading').show();
-    $('#transactionsResult').hide();
-    $('#errorResult').hide();
+    const loading = document.getElementById('loading');
+    const transactionsResult = document.getElementById('transactionsResult');
+    const errorResult = document.getElementById('errorResult');
     
-    $.ajax({
-        url: '<?= base_url('backoffice/transactions') ?>',
-        type: 'POST',
-        data: formData,
-        success: function(response) {
-            $('#loading').hide();
-            
-            if (response.data && response.data.transactions) {
-                displayTransactions(response.data);
-                $('#transactionsResult').show();
-            } else {
-                $('#errorMessage').text('No se encontraron transacciones');
-                $('#errorResult').show();
-            }
+    if (loading) loading.style.display = 'block';
+    if (transactionsResult) transactionsResult.style.display = 'none';
+    if (errorResult) errorResult.style.display = 'none';
+    
+    fetch('<?= base_url('backoffice/transactions') ?>', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
         },
-        error: function(xhr) {
-            $('#loading').hide();
-            const response = xhr.responseJSON;
-            $('#errorMessage').text(response?.messages?.error || 'Error al buscar transacciones');
-            $('#errorResult').show();
+        body: new URLSearchParams(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (loading) loading.style.display = 'none';
+        
+        if (data.data && data.data.transactions) {
+            displayTransactions(data.data);
+            if (transactionsResult) transactionsResult.style.display = 'block';
+        } else {
+            const errorMessage = document.getElementById('errorMessage');
+            if (errorMessage) errorMessage.textContent = 'No se encontraron transacciones';
+            if (errorResult) errorResult.style.display = 'block';
         }
+    })
+    .catch(error => {
+        if (loading) loading.style.display = 'none';
+        const errorMessage = document.getElementById('errorMessage');
+        if (errorMessage) errorMessage.textContent = 'Error al buscar transacciones';
+        if (errorResult) errorResult.style.display = 'block';
+        console.error('Error:', error);
     });
 }
 
 function displayTransactions(data) {
     const transactions = data.transactions || [];
     const total = data.total || 0;
-    const tbody = $('#transactionsTableBody');
+    const tbody = document.getElementById('transactionsTableBody');
+    const totalResults = document.getElementById('totalResults');
     
-    tbody.empty();
-    $('#totalResults').text(total + ' resultados');
+    if (tbody) tbody.innerHTML = '';
+    if (totalResults) totalResults.textContent = total + ' resultados';
     
     if (transactions.length === 0) {
-        tbody.append('<tr><td colspan="8" class="text-center">No se encontraron transacciones</td></tr>');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center">No se encontraron transacciones</td></tr>';
         return;
     }
     
     transactions.forEach(function(transaction) {
-        const row = `
-            <tr>
-                <td>${transaction.id || 'N/A'}</td>
-                <td>${formatDate(transaction.date)}</td>
-                <td>${transaction.debtorCCI || 'N/A'}</td>
-                <td>${transaction.creditorCCI || 'N/A'}</td>
-                <td class="text-right">${formatAmount(transaction.amount)}</td>
-                <td>${transaction.currency || 'PEN'}</td>
-                <td><span class="badge badge-${getStatusBadge(transaction.status)}">${transaction.status || 'Pendiente'}</span></td>
-                <td>
-                    <a href="<?= base_url('backoffice/transaction-detail') ?>/${transaction.id}" 
-                       class="btn btn-sm btn-info" title="Ver Detalle">
-                        <i class="fas fa-eye"></i>
-                    </a>
-                </td>
-            </tr>
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${transaction.id || 'N/A'}</td>
+            <td>${formatDate(transaction.date)}</td>
+            <td>${transaction.debtorCCI || 'N/A'}</td>
+            <td>${transaction.creditorCCI || 'N/A'}</td>
+            <td class="text-right">${formatAmount(transaction.amount)}</td>
+            <td>${transaction.currency || 'PEN'}</td>
+            <td><span class="badge badge-${getStatusBadge(transaction.status)}">${transaction.status || 'Pendiente'}</span></td>
+            <td>
+                <a href="<?= base_url('backoffice/transaction-detail') ?>/${transaction.id}" 
+                   class="btn btn-sm btn-info" title="Ver Detalle">
+                    <i class="fas fa-eye"></i>
+                </a>
+            </td>
         `;
-        tbody.append(row);
+        if (tbody) tbody.appendChild(row);
     });
     
     // Actualizar controles de paginación
-    $('#prevPage').prop('disabled', currentPage <= 1);
-    $('#nextPage').prop('disabled', transactions.length < 10); // Asumiendo 10 por página
-    $('#pageInfo').text('Página ' + currentPage);
+    const prevPage = document.getElementById('prevPage');
+    const nextPage = document.getElementById('nextPage');
+    const pageInfo = document.getElementById('pageInfo');
+    
+    if (prevPage) prevPage.disabled = currentPage <= 1;
+    if (nextPage) nextPage.disabled = transactions.length < 10; // Asumiendo 10 por página
+    if (pageInfo) pageInfo.textContent = 'Página ' + currentPage;
 }
 
 function formatDate(dateString) {
@@ -290,21 +334,31 @@ function getStatusBadge(status) {
 }
 
 function clearForm() {
-    $('#transactionsForm')[0].reset();
-    $('#transactionsResult').hide();
-    $('#errorResult').hide();
+    const form = document.getElementById('transactionsForm');
+    const transactionsResult = document.getElementById('transactionsResult');
+    const errorResult = document.getElementById('errorResult');
+    
+    if (form) form.reset();
+    if (transactionsResult) transactionsResult.style.display = 'none';
+    if (errorResult) errorResult.style.display = 'none';
     currentPage = 1;
     
-    // Reestablecer fechas por defecto (últimos 7 días incluyendo hoy)
-    const today = new Date();
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
-    
-    const todayStr = today.toISOString().split('T')[0];
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
-    
-    document.getElementById('endDate').value = todayStr;
-    document.getElementById('startDate').value = sevenDaysAgoStr;
+    // Usar setTimeout para asegurar que el reset no interfiera
+    setTimeout(function() {
+        // Reestablecer fechas por defecto (últimos 7 días incluyendo hoy)
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        
+        const todayStr = today.toISOString().split('T')[0];
+        const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+        
+        const endDate = document.getElementById('endDate');
+        const startDate = document.getElementById('startDate');
+        
+        if (endDate) endDate.value = todayStr;
+        if (startDate) startDate.value = sevenDaysAgoStr;
+    }, 50);
 }
 </script>
 <?= $this->endSection() ?>
