@@ -7,6 +7,7 @@ use CodeIgniter\Model;
 class LigoModel extends Model
 {
     protected $organizationModel;
+    protected $superadminLigoConfigModel;
     protected $ligoBaseUrl;
     protected $ligoAuthUrl;
 
@@ -14,6 +15,7 @@ class LigoModel extends Model
     {
         parent::__construct();
         $this->organizationModel = new OrganizationModel();
+        $this->superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
         
         // URLs base de Ligo según el entorno
         $environment = env('CI_ENVIRONMENT', 'development');
@@ -47,46 +49,55 @@ class LigoModel extends Model
         return $organization;
     }
 
+    /**
+     * Get centralized Ligo configuration from superadmin
+     */
+    protected function getSuperadminLigoConfig()
+    {
+        // Determine environment
+        $environment = env('CI_ENVIRONMENT', 'development') === 'production' ? 'prod' : 'dev';
+        
+        $config = $this->superadminLigoConfigModel->getActiveConfig($environment);
+        
+        if (!$config) {
+            log_message('error', 'LigoModel: No active superadmin Ligo configuration found for environment: ' . $environment);
+            return null;
+        }
+
+        if (!$this->superadminLigoConfigModel->isConfigurationComplete($config)) {
+            log_message('error', 'LigoModel: Superadmin Ligo configuration is incomplete for environment: ' . $environment);
+            return null;
+        }
+
+        log_message('debug', 'LigoModel: Using centralized Ligo config for environment: ' . $environment);
+        return $config;
+    }
+
     protected function makeApiRequest($endpoint, $method = 'GET', $data = null, $requiresAuth = true)
     {
-        $organization = $this->getOrganizationFromSession();
+        // Get centralized Ligo configuration
+        $ligoConfig = $this->getSuperadminLigoConfig();
         
+        if (!$ligoConfig) {
+            log_message('error', 'LigoModel: No centralized Ligo configuration available');
+            return ['error' => 'Configuración de Ligo no disponible. Contacte al administrador.'];
+        }
+
+        // We still need organization for context (but not for credentials)
+        $organization = $this->getOrganizationFromSession();
         if (!$organization) {
-            log_message('error', 'LigoModel: No organization available for API request');
+            log_message('error', 'LigoModel: No organization available for API request context');
             return ['error' => 'No hay organización seleccionada'];
         }
 
-        // Verificar credenciales según el entorno configurado en la organización
-        $environment = env('CI_ENVIRONMENT', 'development');
-        $orgEnvironment = $organization['ligo_environment'] ?? 'dev';
+        $useEnv = $ligoConfig['environment'];
         
-        // Si estamos en producción, usar las credenciales de producción configuradas en la organización
-        // Si estamos en desarrollo, usar las credenciales según el entorno configurado en la organización
-        if ($environment === 'production' || $orgEnvironment === 'prod') {
-            $requiredFields = ['ligo_prod_username', 'ligo_prod_password', 'ligo_prod_company_id'];
-            $useEnv = 'prod';
-        } else {
-            $requiredFields = ['ligo_dev_username', 'ligo_dev_password', 'ligo_dev_company_id'];
-            $useEnv = 'dev';
-        }
-
-        foreach ($requiredFields as $field) {
-            if (empty($organization[$field])) {
-                log_message('error', 'LigoModel: Missing credential field: ' . $field . ' for useEnv: ' . $useEnv);
-                return ['error' => 'Credenciales de Ligo no configuradas para ' . $useEnv . '. Falta: ' . $field];
-            }
-        }
+        log_message('debug', 'LigoModel: Using centralized Ligo config for environment: ' . $useEnv . ' with organization context: ' . $organization['name']);
         
-        log_message('debug', 'LigoModel: Using environment: ' . $environment . ', org environment: ' . $orgEnvironment . ', final env: ' . $useEnv . ' with URL: ' . $this->ligoBaseUrl);
-        
-        // Ajustar URLs según el entorno que se va a usar
-        if ($useEnv === 'prod') {
-            $this->ligoBaseUrl = 'https://cce-api-gateway-prod.ligocloud.tech';
-            $this->ligoAuthUrl = 'https://cce-auth-prod.ligocloud.tech';
-        } else {
-            $this->ligoBaseUrl = 'https://cce-api-gateway-dev.ligocloud.tech';
-            $this->ligoAuthUrl = 'https://cce-auth-dev.ligocloud.tech';
-        }
+        // Get API URLs from configuration
+        $urls = $this->superadminLigoConfigModel->getApiUrls($useEnv);
+        $this->ligoBaseUrl = $urls['api_url'];
+        $this->ligoAuthUrl = $urls['auth_url'];
 
         $curl = curl_init();
         $url = $this->ligoBaseUrl . $endpoint;
@@ -97,7 +108,7 @@ class LigoModel extends Model
         ];
 
         if ($requiresAuth) {
-            $token = $this->getAuthToken($organization);
+            $token = $this->getAuthToken($ligoConfig);
             if (isset($token['error'])) {
                 return $token;
             }
@@ -147,57 +158,41 @@ class LigoModel extends Model
         return $decodedResponse;
     }
 
-    protected function getAuthToken($organization)
+    protected function getAuthToken($ligoConfig)
     {
-        // Usar credenciales según el entorno de la organización
-        $orgEnvironment = $organization['ligo_environment'] ?? 'dev';
-        log_message('debug', 'LigoModel: Auth using environment: ' . $orgEnvironment);
+        // Use centralized credentials
+        $environment = $ligoConfig['environment'];
+        log_message('debug', 'LigoModel: Auth using centralized config for environment: ' . $environment);
         
-        if ($orgEnvironment === 'prod') {
-            $authData = [
-                'username' => $organization['ligo_prod_username'],
-                'password' => $organization['ligo_prod_password']
-            ];
-            $companyId = $organization['ligo_prod_company_id'];
-            $privateKey = $organization['ligo_prod_private_key'] ?? null;
-            $useEnv = 'prod';
-            log_message('debug', 'LigoModel: Using PROD credentials for auth');
-        } else {
-            $authData = [
-                'username' => $organization['ligo_dev_username'],
-                'password' => $organization['ligo_dev_password']
-            ];
-            $companyId = $organization['ligo_dev_company_id'];
-            $privateKey = $organization['ligo_dev_private_key'] ?? null;
-            $useEnv = 'dev';
-            log_message('debug', 'LigoModel: Using DEV credentials for auth');
-        }
+        $authData = [
+            'username' => $ligoConfig['username'],
+            'password' => $ligoConfig['password']
+        ];
+        $companyId = $ligoConfig['company_id'];
+        $privateKey = $ligoConfig['private_key'];
 
         log_message('debug', 'LigoModel: Auth data - username: ' . ($authData['username'] ?? 'null') . ', company_id: ' . ($companyId ?? 'null'));
 
         // Validar que las credenciales estén presentes
         if (empty($authData['username']) || empty($authData['password']) || empty($companyId)) {
-            log_message('error', 'LigoModel: Missing auth credentials for environment: ' . $orgEnvironment);
-            return ['error' => "Missing authentication credentials for {$orgEnvironment} environment"];
+            log_message('error', 'LigoModel: Missing auth credentials in centralized config for environment: ' . $environment);
+            return ['error' => "Missing authentication credentials in centralized configuration for {$environment} environment"];
         }
 
         // Verificar que la clave privada exista
         if (empty($privateKey)) {
-            log_message('error', 'LigoModel: Private key not configured for environment: ' . $orgEnvironment);
-            return ['error' => "Private key not configured for {$orgEnvironment} environment"];
+            log_message('error', 'LigoModel: Private key not configured in centralized config for environment: ' . $environment);
+            return ['error' => "Private key not configured in centralized configuration for {$environment} environment"];
         }
 
-        // Ajustar URL de auth según el entorno
-        if ($useEnv === 'prod') {
-            $authBaseUrl = 'https://cce-auth-prod.ligocloud.tech';
-        } else {
-            $authBaseUrl = 'https://cce-auth-dev.ligocloud.tech';
-        }
+        // Get auth URL from centralized config
+        $urls = $this->superadminLigoConfigModel->getApiUrls($environment);
+        $authBaseUrl = $urls['auth_url'];
         
         $authUrl = $authBaseUrl . '/v1/auth/sign-in?companyId=' . $companyId;
-        log_message('debug', 'LigoModel: Authenticating with URL: ' . $authUrl . ' and username: ' . $authData['username'] . ' for env: ' . $useEnv);
+        log_message('debug', 'LigoModel: Authenticating with centralized config - URL: ' . $authUrl . ' and username: ' . $authData['username'] . ' for env: ' . $environment);
 
-        // Generar token JWT usando la clave privada (mismo método que LigoQRController)
+        // Generar token JWT usando la clave privada centralizada
         try {
             $formattedKey = \App\Libraries\JwtGenerator::formatPrivateKey($privateKey);
 
@@ -214,10 +209,10 @@ class LigoModel extends Model
                 'expiresIn' => 3600 // 1 hora
             ]);
 
-            log_message('info', 'LigoModel: JWT token generated successfully');
+            log_message('info', 'LigoModel: JWT token generated successfully using centralized config');
             log_message('debug', 'LigoModel: JWT token: ' . substr($authorizationToken, 0, 30) . '...');
         } catch (\Exception $e) {
-            log_message('error', 'LigoModel: Error generating JWT token: ' . $e->getMessage());
+            log_message('error', 'LigoModel: Error generating JWT token with centralized config: ' . $e->getMessage());
             return ['error' => 'Error generating JWT token: ' . $e->getMessage()];
         }
 
@@ -299,32 +294,39 @@ class LigoModel extends Model
 
     public function getAccountBalanceForOrganization()
     {
-        log_message('debug', 'LigoModel: Getting account balance for organization');
+        log_message('debug', 'LigoModel: Getting account balance using centralized config');
         
+        // We still need organization for context
         $organization = $this->getOrganizationFromSession();
         if (!$organization) {
             log_message('error', 'LigoModel: No organization found in session');
             return ['error' => 'No organization found in session'];
         }
 
-        log_message('debug', 'LigoModel: Organization found: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
+        log_message('debug', 'LigoModel: Organization context: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
 
-        // Determinar el entorno y obtener el account_id correspondiente
-        $environment = $organization['ligo_environment'] ?? 'dev';
-        $accountId = $organization["ligo_{$environment}_account_id"] ?? null;
+        // Get centralized account_id from superadmin config
+        $ligoConfig = $this->getSuperadminLigoConfig();
+        if (!$ligoConfig) {
+            log_message('error', 'LigoModel: No centralized Ligo configuration available');
+            return ['error' => 'Configuración de Ligo no disponible. Contacte al administrador.'];
+        }
 
-        log_message('debug', 'LigoModel: Environment: ' . $environment . ', Account ID: ' . ($accountId ?? 'null'));
+        $accountId = $ligoConfig['account_id'];
+        $environment = $ligoConfig['environment'];
+
+        log_message('debug', 'LigoModel: Using centralized config - Environment: ' . $environment . ', Account ID: ' . ($accountId ?? 'null'));
 
         if (empty($accountId)) {
-            log_message('error', 'LigoModel: No account ID configured for environment: ' . $environment);
-            return ['error' => "No account ID configured for {$environment} environment"];
+            log_message('error', 'LigoModel: No account ID configured in centralized config for environment: ' . $environment);
+            return ['error' => "No account ID configured in centralized configuration for {$environment} environment"];
         }
 
         $data = [
             'debtorCCI' => $accountId
         ];
         
-        log_message('debug', 'LigoModel: Making balance request with data: ' . json_encode($data));
+        log_message('debug', 'LigoModel: Making balance request with centralized config data: ' . json_encode($data));
         return $this->makeApiRequest('/v1/accountBalance', 'POST', $data);
     }
 
@@ -349,35 +351,42 @@ class LigoModel extends Model
 
     public function listTransactionsForOrganization($params)
     {
-        log_message('debug', 'LigoModel: Getting transactions for organization');
+        log_message('debug', 'LigoModel: Getting transactions using centralized config');
         
+        // We still need organization for context
         $organization = $this->getOrganizationFromSession();
         if (!$organization) {
             log_message('error', 'LigoModel: No organization found in session');
             return ['error' => 'No organization found in session'];
         }
 
-        log_message('debug', 'LigoModel: Organization found: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
+        log_message('debug', 'LigoModel: Organization context: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
 
-        // Determinar el entorno y obtener el account_id correspondiente
-        $environment = $organization['ligo_environment'] ?? 'dev';
-        $accountId = $organization["ligo_{$environment}_account_id"] ?? null;
+        // Get centralized account_id from superadmin config
+        $ligoConfig = $this->getSuperadminLigoConfig();
+        if (!$ligoConfig) {
+            log_message('error', 'LigoModel: No centralized Ligo configuration available');
+            return ['error' => 'Configuración de Ligo no disponible. Contacte al administrador.'];
+        }
 
-        log_message('debug', 'LigoModel: Environment: ' . $environment . ', Account ID: ' . ($accountId ?? 'null'));
+        $accountId = $ligoConfig['account_id'];
+        $environment = $ligoConfig['environment'];
+
+        log_message('debug', 'LigoModel: Using centralized config - Environment: ' . $environment . ', Account ID: ' . ($accountId ?? 'null'));
 
         if (empty($accountId)) {
-            log_message('error', 'LigoModel: No account ID configured for environment: ' . $environment);
-            return ['error' => "No account ID configured for {$environment} environment"];
+            log_message('error', 'LigoModel: No account ID configured in centralized config for environment: ' . $environment);
+            return ['error' => "No account ID configured in centralized configuration for {$environment} environment"];
         }
 
         $data = [
             'page' => $params['page'] ?? 1,
             'startDate' => $params['startDate'],
             'endDate' => $params['endDate'],
-            'debtorCCI' => $accountId  // Usar automáticamente el account_id de la organización
+            'debtorCCI' => $accountId  // Usar automáticamente el account_id centralizado
         ];
 
-        log_message('debug', 'LigoModel: Making transactions request with data: ' . json_encode($data));
+        log_message('debug', 'LigoModel: Making transactions request with centralized config data: ' . json_encode($data));
         return $this->makeApiRequest('/v1/transactionsReport', 'POST', $data);
     }
 
