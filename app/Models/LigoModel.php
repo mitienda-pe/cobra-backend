@@ -130,16 +130,18 @@ class LigoModel extends Model
         curl_close($curl);
 
         if ($err) {
-            log_message('error', 'Ligo API Error: ' . $err);
+            log_message('error', 'Ligo API Error: ' . $err . ' for URL: ' . $url);
             return ['error' => 'Error de conexión con Ligo API: ' . $err];
         }
 
+        log_message('debug', 'Ligo API Response - HTTP Code: ' . $httpCode . ', Raw Response: ' . $response);
+        
         $decodedResponse = json_decode($response, true);
         
         if ($httpCode >= 400) {
             $errorMessage = $decodedResponse['message'] ?? 'Error en la API de Ligo';
-            log_message('error', 'Ligo API HTTP Error ' . $httpCode . ': ' . $response);
-            return ['error' => $errorMessage, 'http_code' => $httpCode];
+            log_message('error', 'Ligo API HTTP Error ' . $httpCode . ': ' . $response . ' for URL: ' . $url);
+            return ['error' => $errorMessage, 'http_code' => $httpCode, 'raw_response' => $response];
         }
 
         return $decodedResponse;
@@ -203,22 +205,26 @@ class LigoModel extends Model
         curl_close($curl);
 
         if ($err) {
-            log_message('error', 'Ligo Auth Error: ' . $err);
+            log_message('error', 'Ligo Auth Error: ' . $err . ' for URL: ' . $authUrl);
             return ['error' => 'Error de conexión con Ligo Auth: ' . $err];
         }
 
+        log_message('debug', 'Ligo Auth Response - HTTP Code: ' . $httpCode . ', Raw Response: ' . $response);
+        
         $decodedResponse = json_decode($response, true);
         
         if ($httpCode >= 400) {
             $errorMessage = $decodedResponse['message'] ?? 'Error de autenticación con Ligo';
-            log_message('error', 'Ligo Auth HTTP Error ' . $httpCode . ': ' . $response);
-            return ['error' => $errorMessage];
+            log_message('error', 'Ligo Auth HTTP Error ' . $httpCode . ': ' . $response . ' for URL: ' . $authUrl);
+            return ['error' => $errorMessage, 'http_code' => $httpCode, 'raw_response' => $response];
         }
 
         if (!isset($decodedResponse['data']['token'])) {
-            return ['error' => 'Token de autenticación no recibido'];
+            log_message('error', 'Ligo Auth: No token in response: ' . $response);
+            return ['error' => 'Token de autenticación no recibido', 'raw_response' => $response];
         }
 
+        log_message('debug', 'Ligo Auth: Token received successfully');
         return ['token' => $decodedResponse['data']['token']];
     }
 
