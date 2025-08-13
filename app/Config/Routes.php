@@ -252,6 +252,21 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('(:num)/retry', 'WebhookController::retry/$1');
     });
 
+    // Backoffice Routes
+    $routes->group('backoffice', function ($routes) {
+        $routes->get('/', 'BackofficeController::index');
+        $routes->get('balance', 'BackofficeController::balance');
+        $routes->post('balance', 'BackofficeController::balance');
+        $routes->get('transactions', 'BackofficeController::transactions');
+        $routes->post('transactions', 'BackofficeController::transactions');
+        $routes->get('transaction-detail/(:num)', 'BackofficeController::transactionDetail/$1');
+        $routes->get('recharges', 'BackofficeController::recharges');
+        $routes->post('recharges', 'BackofficeController::recharges');
+        $routes->get('transfer', 'BackofficeController::transfer');
+        $routes->post('transfer', 'BackofficeController::transfer');
+        $routes->get('transfer-status/(:segment)', 'BackofficeController::transferStatus/$1');
+    });
+
     // Ruta para obtener clientes por organización
     $routes->get('organizations/(:segment)/clients', 'OrganizationController::getClientsByOrganization/$1');
 });

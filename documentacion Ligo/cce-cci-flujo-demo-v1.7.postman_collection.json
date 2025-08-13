@@ -1,0 +1,3026 @@
+{
+	"info": {
+		"_postman_id": "a38c0863-c316-4722-9d80-885b38bbcb45",
+		"name": "cce-cci-flujo-demo-v1.7",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "32369836",
+		"_collection_link": "https://red-satellite-682784.postman.co/workspace/ligopay~d7dfccd9-2871-47ad-83cb-d29338a17c5f/collection/32369836-a38c0863-c316-4722-9d80-885b38bbcb45?action=share&source=collection_link&creator=32369836"
+	},
+	"item": [
+		{
+			"name": "login",
+			"item": [
+				{
+					"name": "login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"token-client\", data.data.access_token)\r",
+									"pm.environment.set(\"userId\", data.data.userId)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_login}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"{{password}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_login}}/v1/auth/sign-in?companyId={{companyId}}",
+							"host": [
+								"{{url_login}}"
+							],
+							"path": [
+								"v1",
+								"auth",
+								"sign-in"
+							],
+							"query": [
+								{
+									"key": "companyId",
+									"value": "{{companyId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "configuration",
+			"item": [
+				{
+					"name": "register min amount for alerts",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"minAmountThreshold\": 2000,\n    \"currency\": \"PEN\",\n    \"enable\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_login}}/v1/companies/amount-alerts-config",
+							"host": [
+								"{{url_login}}"
+							],
+							"path": [
+								"v1",
+								"companies",
+								"amount-alerts-config"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 ok",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"minAmountThreshold\": 2000,\n    \"currency\": \"PEN\",\n    \"enable\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_login}}/v1/companies/amount-alerts-config",
+									"host": [
+										"{{url_login}}"
+									],
+									"path": [
+										"v1",
+										"companies",
+										"amount-alerts-config"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"currency\": \"PEN\",\n        \"minAmountThreshold\": 2000,\n        \"enable\": true\n    },\n    \"date\": \"2025-02-24 18:18:54\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "transferencia ordinaria",
+			"item": [
+				{
+					"name": "1. consulta de cuenta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"accountInquiryId\", data.data.id)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorParticipantCode\": \"{{debtorParticipantCode}}\",\r\n    \"creditorParticipantCode\": \"0806\",\r\n    \"debtorName\": \"{{debtorName}}\",\r\n    \"debtorId\": \"{{debtorId}}\",\r\n    \"debtorIdCode\": \"{{debtorIdCode}}\",\r\n    \"debtorPhoneNumber\": \"\",\r\n    \"debtorAddressLine\": \"{{debtorAddressLine}}\",\r\n    \"debtorMobileNumber\": \"{{debtorMobileNumber}}\",\r\n    \"transactionType\": \"{{transactionType}}\",\r\n    \"channel\": \"{{channel}}\",\r\n    \"creditorAddressLine\": \"JR LIMA\",\r\n    \"creditorCCI\": \"80600232101054189129\",\r\n    \"debtorTypeOfPerson\": \"{{debtorTypeOfPerson}}\",\r\n    \"currency\": \"{{currency}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/accountInquiry",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"accountInquiry"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "1. response consulta de cuenta",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"userId\": \"a17cbf75-3609-45fc-a18a-14e4a61d5882\",\r\n    \"debtorParticipantCode\": \"{{debtorParticipantCode}}\",\r\n    \"creditorParticipantCode\": \"{{creditorParticipantCode}}\",\r\n    \"debtorName\": \"{{debtorName}}\",\r\n    \"debtorId\": \"{{debtorId}}\",\r\n    \"debtorIdCode\": \"{{debtorIdCode}}\",\r\n    \"debtorPhoneNumber\": \"\",\r\n    \"debtorAddressLine\": \"{{debtorAddressLine}}\",\r\n    \"debtorMobileNumber\": \"{{debtorMobileNumber}}\",\r\n    \"transactionType\": \"320\",\r\n    \"channel\": \"15\",\r\n    \"creditorAddressLine\": \"JR LIMA\",\r\n    \"creditorCCI\": \"04900100601812001010\",\r\n    \"debtorTypeOfPerson\": \"N\",\r\n    \"currency\": \"604\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/accountInquiry",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"accountInquiry"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "Text",
+							"header": [],
+							"cookie": [],
+							"body": "{\r\n    \"status\": 1,\r\n    \"errors\": null,\r\n    \"code\": 200,\r\n    \"data\": {\r\n        \"msg\": \"Ok\",\r\n        \"id\": \"f71517e3-c257-4f58-b66c-d49a8b8c66d4\"\r\n    },\r\n    \"date\": \"2024-11-07 16:55:15\"\r\n}"
+						}
+					]
+				},
+				{
+					"name": "2. obtener respuesta consulta de cuenta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"instructionId\", data.data.instructionId)\r",
+									"pm.environment.set(\"creditorCCI\", data.data.creditorCCI)\r",
+									"pm.environment.set(\"creditorName\", data.data.creditorName)\r",
+									"pm.environment.set(\"creditorAddressLine\", data.data.creditorAddressLine)\r",
+									"pm.environment.set(\"terminalId\", data.data.terminalId)\r",
+									"pm.environment.set(\"retrievalReferenteNumber\", data.data.retrievalReferenteNumber)\r",
+									"pm.environment.set(\"sameCustomerFlag\", data.data.sameCustomerFlag)\r",
+									"pm.environment.set(\"debtorParticipantCode\", data.data.debtorParticipantCode)\r",
+									"pm.environment.set(\"creditorParticipantCode\", data.data.creditorParticipantCode)\r",
+									"pm.environment.set(\"creditorParticipantName\", data.data.creditorParticipantName)\r",
+									"pm.environment.set(\"creditorCCICurrency\", data.data.creditorCCICurrency)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getAccountInquiryById/{{accountInquiryId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getAccountInquiryById",
+								"{{accountInquiryId}}"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "2. response obtener respuesta consulta de cuenta",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/getAccountInquiryById/{{accountInquiryId}}",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"getAccountInquiryById",
+										"{{accountInquiryId}}"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"debtorParticipantCode\": \"0921\",\n        \"creditorParticipantCode\": \"0049\",\n        \"creationDate\": \"20241107\",\n        \"creationTime\": \"201809\",\n        \"terminalId\": \"A8689608\",\n        \"retrievalReferenteNumber\": \"110720180957\",\n        \"instructionId\": \"2024110720180909218115003281\",\n        \"responseCode\": \"00\",\n        \"creditorName\": \"HUAYLLANI PONCIANO MONTEROLA\",\n        \"creditorCCI\": \"04900100601812001010\",\n        \"sameCustomerFlag\": \"O\",\n        \"creditorParticipantName\": \"MI BANCO\",\n        \"creditorCCICurrency\": \"604\",\n        \"errorMessage\": null\n    },\n    \"date\": \"2024-11-07 20:18:46\"\n}"
+						}
+					]
+				},
+				{
+					"name": "3. (UPDATED) obtener codigo de comisión Copy",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let requestBody = pm.request.body.raw;\r",
+									"let bodyObject = JSON.parse(requestBody);\r",
+									"let amount = bodyObject.amount;\r",
+									"\r",
+									"var jsonData = JSON.parse(responseBody);\r",
+									"postman.setEnvironmentVariable(\"feeCode\", jsonData.data.rateCode);  \r",
+									"postman.setEnvironmentVariable(\"feeAmount\", jsonData.data.fiatFeeAmount*100);  \r",
+									"postman.setEnvironmentVariable(\"feeLigo\", jsonData.data.feeLigo*100);  \r",
+									"postman.setEnvironmentVariable(\"feeId\", jsonData.data.id);  \r",
+									"postman.setEnvironmentVariable(\"applicationCriteria\", jsonData.data.placeType);  \r",
+									"postman.setEnvironmentVariable(\"amount\", amount*100); "
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorCCI\": \"{{debtorCCI}}\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"currency\": \"{{currency}}\",\r\n    \"amount\":3.5 // monto en soles (S/ 500)\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/infoFeeCodeNew",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"infoFeeCodeNew"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "3. (UPDATED) obtener codigo de comisión Copy",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"debtorCCI\": \"{{debtorCCI}}\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"currency\": \"{{currency}}\",\r\n    \"amount\":3.5 // monto en soles (S/ 500)\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/infoFeeCodeNew",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"infoFeeCodeNew"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"id\": \"e77e7384-51ec-41f3-966e-e35c189be7d8\",\n        \"placeType\": \"M\",\n        \"rateCode\": \"5133\",\n        \"fiatFeeAmount\": 0,\n        \"feeLigo\": 4,\n        \"feeTotal\": 4\n    },\n    \"date\": \"2024-12-20 12:08:12\"\n}"
+						}
+					]
+				},
+				{
+					"name": "4. (UPDATED) transferencia",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);\r",
+									"postman.setEnvironmentVariable(\"transferId\", jsonData.data.id);  "
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorParticipantCode\": \"{{debtorParticipantCode}}\",\r\n    \"creditorParticipantCode\": \"{{creditorParticipantCode}}\",\r\n    \"messageTypeId\": \"{{messageTypeId}}\",\r\n    \"channel\": \"15\",\r\n    \"amount\": {{amount}},\r\n    \"currency\": \"{{currency}}\",\r\n    \"referenceTransactionId\": \"{{instructionId}}\",\r\n    \"transactionType\": \"{{transactionType}}\",\r\n    \"feeAmount\": {{feeAmount}},\r\n    \"feeCode\": \"{{feeCode}}\",\r\n    \"applicationCriteria\": \"{{applicationCriteria}}\",\r\n    \"debtorTypeOfPerson\": \"{{debtorTypeOfPerson}}\",\r\n    \"debtorName\": \"{{debtorName}}\",\r\n    \"debtorAddressLine\": \"{{debtorAddressLine}}\",\r\n    \"debtorIdCode\": \"{{debtorIdCode}}\",\r\n    \"debtorId\": \"{{debtorId}}\",\r\n    \"debtorMobileNumber\": \"{{debtorMobileNumber}}\",\r\n    \"debtorCCI\": \"{{debtorCCI}}\",\r\n    \"creditorName\": \"{{creditorName}}\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"sameCustomerFlag\": \"M\",\r\n    \"purposeCode\": \"{{purposeCode}}\",\r\n    \"unstructuredInformation\": \"Pago test diciembre\",\r\n    \"feeId\":\"{{feeId}}\",\r\n    \"feeLigo\":\"{{feeLigo}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/orderTransferShipping",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"orderTransferShipping"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "4. (UPDATED) transferencia Copy",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"userId\": \"{{userId}}\",\r\n    \"companyId\": \"{{companyId}}\",\r\n \"debtorParticipantCode\": \"{{debtorParticipantCode}}\",\r\n    \"creditorParticipantCode\": \"{{creditorParticipantCode}}\",\r\n \"messageTypeId\": \"{{messageTypeId}}\",\r\n \"channel\": \"{{channel}}\",\r\n \"amount\": {{amount}},\r\n \"currency\": \"{{currency}}\",\r\n \"referenceTransactionId\": \"{{instructionId}}\",\r\n \"transactionType\": \"{{transactionType}}\",\r\n \"feeAmount\": {{feeAmount}},\r\n \"feeCode\": \"{{feeCode}}\",\r\n \"applicationCriteria\": \"{{applicationCriteria}}\",\r\n \"debtorTypeOfPerson\": \"{{debtorTypeOfPerson}}\",\r\n \"debtorName\": \"{{debtorName}}\",\r\n \"debtorAddressLine\": \"{{debtorAddressLine}}\",\r\n \"debtorIdCode\": \"{{debtorIdCode}}\",\r\n \"debtorId\": \"{{debtorId}}\",\r\n \"debtorMobileNumber\": \"{{debtorMobileNumber}}\",\r\n \"debtorCCI\": \"{{debtorCCI}}\",\r\n \"creditorName\": \"{{creditorName}}\",\r\n \"creditorCCI\": \"{{creditorCCI}}\",\r\n \"sameCustomerFlag\": \"M\",\r\n \"purposeCode\": \"{{purposeCode}}\",\r\n \"unstructuredInformation\": \"Pago test diciembre\",\r\n \"feeId\":\"{{feeId}}\",\r\n \"feeLigo\":\"{{feeLigo}}\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/orderTransferShipping",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"orderTransferShipping"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"code\": 200,\n        \"msg\": \"Ok\",\n        \"id\": \"edd28905-8d7e-49fc-a320-c6a56008c65c\"\n    },\n    \"date\": \"2024-12-20 12:08:47\"\n}"
+						}
+					]
+				},
+				{
+					"name": "5. obtener respuesta de transferencia",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getOrderTransferShippingById/{{transferId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getOrderTransferShippingById",
+								"{{transferId}}"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "5. rssponse obtener respuesta de transferencia",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/getOrderTransferShippingById/{{transferId}}",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"getOrderTransferShippingById",
+										"{{transferId}}"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"debtorParticipantCode\": \"0921\",\n        \"creditorParticipantCode\": \"0049\",\n        \"retrievalReferenteNumber\": \"110720195272\",\n        \"trace\": \"000177\",\n        \"transactionReference\": \"000000000177\",\n        \"responseCode\": \"00\",\n        \"feeAmount\": 0,\n        \"settlementDate\": \"20241108\",\n        \"transactionType\": \"320\",\n        \"debtorCCI\": \"92100116665856271049\",\n        \"creditorCCI\": \"04900100601812001010\",\n        \"sameCustomerFlag\": \"M\",\n        \"instructionId\": \"2024110720195209214115000177\",\n        \"creationDate\": \"20241107\",\n        \"creationTime\": \"201952\",\n        \"channel\": \"15\",\n        \"interbankSettlementAmount\": 100,\n        \"errorMessage\": null\n    },\n    \"date\": \"2024-11-07 20:20:07\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "transferencia por alias (número de celular)",
+			"item": [
+				{
+					"name": "1. buscar contacto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"lookUpId\", data.data.id)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"searcher\": \"{{searcher}}\",\r\n    \"contactList\": [\r\n        \"+51973647361\",\r\n        \"+51968067517\"\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/lookUpContacts",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"lookUpContacts"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "1. buscar contacto",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"userId\": \"{{userId}}\",\r\n    \"companyId\": \"{{companyId}}\",\r\n    \"searcher\": \"{{searcher}}\",\r\n    \"contactList\": [\r\n        \"+51965431212\"\r\n    ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/lookUpContacts",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"lookUpContacts"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"code\": 200,\n        \"msg\": \"Ok\",\n        \"id\": \"95da0ea1-21e1-4da7-9168-6a3c222eb47e\"\n    },\n    \"date\": \"2024-11-25 12:44:12\"\n}"
+						}
+					]
+				},
+				{
+					"name": "2. obtener respuesta de busqueda de contacto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());",
+									"pm.environment.set(\"creditorMobileNumber\", data.data.contactList[0].contactNumber.substring(3,12))"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getLookUpContactsById/{{lookUpId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getLookUpContactsById",
+								"{{lookUpId}}"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "ok",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/getLookUpContactsById/{{lookUpId}}",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"getLookUpContactsById",
+										"{{lookUpId}}"
+									]
+								}
+							},
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"contactList\": [\n            {\n                \"contactNumber\": \"+51965431212\",\n                \"results\": [\n                    {\n                        \"directoryCode\": \"0903\",\n                        \"entityCode\": \"0921\"\n                    }\n                ]\n            }\n        ],\n        \"responseCode\": \"00\",\n        \"reasonCode\": null,\n        \"errorMessage\": null\n    },\n    \"date\": \"2024-11-25 12:44:41\"\n}"
+						}
+					]
+				},
+				{
+					"name": "3. consulta de cuenta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"accountInquiryId\", data.data.id)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorParticipantCode\": \"{{debtorParticipantCode}}\",\r\n    \"creditorParticipantCode\": \"0806\",// de la lista del paso 2 campo entityCode\r\n    \"debtorName\": \"{{debtorName}}\",\r\n    \"debtorId\": \"{{debtorId}}\",\r\n    \"debtorIdCode\": \"{{debtorIdCode}}\",\r\n    \"debtorPhoneNumber\": \"\",\r\n    \"debtorAddressLine\": \"{{debtorAddressLine}}\",\r\n    \"debtorMobileNumber\": \"{{debtorMobileNumber}}\",\r\n    \"transactionType\": \"{{transactionType}}\",\r\n    \"channel\": \"52\",\r\n    \"creditorAddressLine\": \"{{creditorAddressLine}}\",\r\n    \"creditorMobileNumber\": \"{{creditorMobileNumber}}\",\r\n    \"creditorCCI\": \"80699999999999999999\", // estructura [creditorParticipantCode] 4 primeros dígitos - el primer digito = 053, concatenar 17 veces 9 = 05399999999999999999\r\n    \"debtorTypeOfPerson\": \"{{debtorTypeOfPerson}}\",\r\n    \"currency\": \"{{currency}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/accountInquiry",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"accountInquiry"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "ok",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"userId\": \"{{userId}}\",\r\n    \"companyId\": \"{{companyId}}\",\r\n    \"debtorParticipantCode\": \"{{debtorParticipantCode}}\",\r\n    \"creditorParticipantCode\": \"{{creditorParticipantCode}}\",// de la lista del paso 2 campo entityCode\r\n    \"debtorName\": \"{{debtorName}}\",\r\n    \"debtorId\": \"{{debtorId}}\",\r\n    \"debtorIdCode\": \"{{debtorIdCode}}\",\r\n    \"debtorPhoneNumber\": \"\",\r\n    \"debtorAddressLine\": \"{{debtorAddressLine}}\",\r\n    \"debtorMobileNumber\": \"{{debtorMobileNumber}}\",\r\n    \"transactionType\": \"{{transactionType}}\",\r\n    \"channel\": \"52\",\r\n    \"creditorAddressLine\": \"{{creditorAddressLine}}\",\r\n    \"creditorMobileNumber\": \"{{creditorMobileNumber}}\",\r\n    \"creditorCCI\": \"05399999999999999999\", // estructura [creditorParticipantCode] 4 primeros dígitos - el primer digito = 053, concatenar 17 veces 9 = 05399999999999999999\r\n    \"debtorTypeOfPerson\": \"{{debtorTypeOfPerson}}\",\r\n    \"currency\": \"604\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/accountInquiry",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"accountInquiry"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"code\": 200,\n        \"msg\": \"Ok\",\n        \"id\": \"5c5f22b5-a43f-4f21-861c-9ddb5f21c849\"\n    },\n    \"date\": \"2024-11-25 12:46:41\"\n}"
+						}
+					]
+				},
+				{
+					"name": "4. obtener respuesta consulta de cuenta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"instructionId\", data.data.instructionId)\r",
+									"pm.environment.set(\"creditorCCI\", data.data.creditorCCI)\r",
+									"pm.environment.set(\"creditorName\", data.data.creditorName)\r",
+									"pm.environment.set(\"creditorAddressLine\", data.data.creditorAddressLine)\r",
+									"pm.environment.set(\"terminalId\", data.data.terminalId)\r",
+									"pm.environment.set(\"retrievalReferenteNumber\", data.data.retrievalReferenteNumber)\r",
+									"pm.environment.set(\"sameCustomerFlag\", data.data.sameCustomerFlag)\r",
+									"pm.environment.set(\"debtorParticipantCode\", data.data.debtorParticipantCode)\r",
+									"pm.environment.set(\"creditorParticipantCode\", data.data.creditorParticipantCode)\r",
+									"pm.environment.set(\"creditorParticipantName\", data.data.creditorParticipantName)\r",
+									"pm.environment.set(\"creditorCCICurrency\", data.data.creditorCCICurrency)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getAccountInquiryById/{{accountInquiryId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getAccountInquiryById",
+								"{{accountInquiryId}}"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "4. obtener respuesta consulta de cuenta",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/getAccountInquiryById/{{accountInquiryId}}",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"getAccountInquiryById",
+										"{{accountInquiryId}}"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"debtorParticipantCode\": \"0921\",\n        \"creditorParticipantCode\": \"0813\",\n        \"creationDate\": \"20241125\",\n        \"creationTime\": \"152250\",\n        \"terminalId\": \"A6170700\",\n        \"retrievalReferenteNumber\": \"112515225068\",\n        \"instructionId\": \"2024112515225009218152003582\",\n        \"responseCode\": \"00\",\n        \"creditorName\": \"Nom_cliente\",\n        \"creditorAddressLine\": \"null\",\n        \"creditorId\": \"73646908\",\n        \"creditorIdCode\": \"2\",\n        \"creditorMobileNumber\": \"960378410\",\n        \"creditorCCI\": \"81300121110200937057\",\n        \"sameCustomerFlag\": \"O\",\n        \"creditorParticipantName\": \"Caja Tacna\",\n        \"creditorCCICurrency\": \"604\",\n        \"errorMessage\": null\n    },\n    \"date\": \"2024-11-25 15:23:00\"\n}"
+						}
+					]
+				},
+				{
+					"name": "5. (UPDATED) obtener codigo de comisión",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let requestBody = pm.request.body.raw;\r",
+									"let bodyObject = JSON.parse(requestBody);\r",
+									"let amount = bodyObject.amount;\r",
+									"\r",
+									"var jsonData = JSON.parse(responseBody);\r",
+									"postman.setEnvironmentVariable(\"feeCode\", jsonData.data.rateCode);  \r",
+									"postman.setEnvironmentVariable(\"feeAmount\", jsonData.data.fiatFeeAmount*100);  \r",
+									"postman.setEnvironmentVariable(\"feeLigo\", jsonData.data.feeLigo*100);  \r",
+									"postman.setEnvironmentVariable(\"feeId\", jsonData.data.id);  \r",
+									"postman.setEnvironmentVariable(\"applicationCriteria\", jsonData.data.placeType);  \r",
+									"postman.setEnvironmentVariable(\"amount\", amount*100); "
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorCCI\": \"{{debtorCCI}}\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"currency\": \"{{currency}}\",\r\n    \"amount\":3.5 // monto en soles (S/ 500)\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/infoFeeCodeNew",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"infoFeeCodeNew"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "3. (UPDATED) obtener codigo de comisión Copy",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"debtorCCI\": \"{{debtorCCI}}\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"currency\": \"{{currency}}\",\r\n    \"amount\":3.5 // monto en soles (S/ 500)\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/infoFeeCodeNew",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"infoFeeCodeNew"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"id\": \"e77e7384-51ec-41f3-966e-e35c189be7d8\",\n        \"placeType\": \"M\",\n        \"rateCode\": \"5133\",\n        \"fiatFeeAmount\": 0,\n        \"feeLigo\": 4,\n        \"feeTotal\": 4\n    },\n    \"date\": \"2024-12-20 12:08:12\"\n}"
+						}
+					]
+				},
+				{
+					"name": "6. (UPDATED) transferencia",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);\r",
+									"  postman.setEnvironmentVariable(\"transferId\", jsonData.data.id);  "
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorParticipantCode\": \"{{debtorParticipantCode}}\",\r\n    \"creditorParticipantCode\": \"{{creditorParticipantCode}}\",\r\n    \"messageTypeId\": \"{{messageTypeId}}\",\r\n    \"channel\": \"52\",\r\n    \"amount\": {{amount}},\r\n    \"currency\": \"{{currency}}\",\r\n    \"referenceTransactionId\": \"{{instructionId}}\",\r\n    \"transactionType\": \"{{transactionType}}\",\r\n    \"feeAmount\": {{feeAmount}},\r\n    \"feeCode\": \"{{feeCode}}\",\r\n    \"applicationCriteria\": \"{{applicationCriteria}}\",\r\n    \"debtorTypeOfPerson\": \"{{debtorTypeOfPerson}}\",\r\n    \"debtorName\": \"{{debtorName}}\",\r\n    \"debtorAddressLine\": \"{{debtorAddressLine}}\",\r\n    \"debtorIdCode\": \"{{debtorIdCode}}\",\r\n    \"debtorId\": \"{{debtorId}}\",\r\n    \"debtorMobileNumber\": \"{{debtorMobileNumber}}\",\r\n    \"debtorCCI\": \"{{debtorCCI}}\",\r\n    \"creditorName\": \"{{creditorName}}\",\r\n    \"creditorAddressLine\": \"{{creditorAddressLine}}\",\r\n    \"creditorMobileNumber\": \"{{creditorMobileNumber}}\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"sameCustomerFlag\": \"M\",\r\n    \"purposeCode\": \"{{purposeCode}}\",\r\n    \"unstructuredInformation\": \"Pago test Noviembre 26 YAPE\",\r\n    \"feeId\":\"{{feeId}}\",\r\n    \"feeLigo\":\"{{feeLigo}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/orderTransferShipping",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"orderTransferShipping"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7. obtener respuesta de transferencia",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getOrderTransferShippingById/{{transferId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getOrderTransferShippingById",
+								"{{transferId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "transferencia por QR CCE",
+			"item": [
+				{
+					"name": "1, leer qr",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"qrReadId\", data.data.id)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"header\": {\r\n        \"sisOrigen\": \"{{debtorParticipantCode}}\"\r\n    },\r\n    \"hash\": \"000201010211263700028001039030220230710080619935520495204482953036045802PE5910CMAC CUSCO6005CUSCO80550003ID101444qCADeELoDpjUAjSmf/fjZyZpi5fJHczHugNUYX/S44=630410C2\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/readQr",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"readQr"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. obtener respuesta de lectura de qr",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"creditorCCI\", data.data.qr.idCuenta)\r",
+									"pm.environment.set(\"creditorParticipantCode\", '0'+String(data.data.qr.idCuenta).substring(0,3))"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getReadQRById/{{qrReadId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getReadQRById",
+								"{{qrReadId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3. consulta de cuenta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"accountInquiryId\", data.data.id)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorParticipantCode\": \"{{debtorParticipantCode}}\",\r\n    \"creditorParticipantCode\": \"{{creditorParticipantCode}}\",\r\n    \"debtorName\": \"{{debtorName}}\",\r\n    \"debtorId\": \"{{debtorId}}\",\r\n    \"debtorIdCode\": \"{{debtorIdCode}}\",\r\n    \"debtorPhoneNumber\": \"\",\r\n    \"debtorAddressLine\": \"{{debtorAddressLine}}\",\r\n    \"debtorMobileNumber\": \"{{debtorMobileNumber}}\",\r\n    \"transactionType\": \"{{transactionType}}\",\r\n    \"channel\": \"15\",\r\n    \"creditorAddressLine\": \"JR LIMA\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"debtorTypeOfPerson\": \"{{debtorTypeOfPerson}}\",\r\n    \"currency\": \"{{currency}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/accountInquiry",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"accountInquiry"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4. obtener respuesta consulta de cuenta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"instructionId\", data.data.instructionId)\r",
+									"pm.environment.set(\"creditorCCI\", data.data.creditorCCI)\r",
+									"pm.environment.set(\"creditorName\", data.data.creditorName)\r",
+									"pm.environment.set(\"creditorAddressLine\", data.data.creditorAddressLine)\r",
+									"pm.environment.set(\"terminalId\", data.data.terminalId)\r",
+									"pm.environment.set(\"retrievalReferenteNumber\", data.data.retrievalReferenteNumber)\r",
+									"pm.environment.set(\"sameCustomerFlag\", data.data.sameCustomerFlag)\r",
+									"pm.environment.set(\"debtorParticipantCode\", data.data.debtorParticipantCode)\r",
+									"pm.environment.set(\"creditorParticipantCode\", data.data.creditorParticipantCode)\r",
+									"pm.environment.set(\"creditorParticipantName\", data.data.creditorParticipantName)\r",
+									"pm.environment.set(\"creditorCCICurrency\", data.data.creditorCCICurrency)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getAccountInquiryById/{{accountInquiryId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getAccountInquiryById",
+								"{{accountInquiryId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "5. (UPDATED) obtener codigo de comisión",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let requestBody = pm.request.body.raw;\r",
+									"let bodyObject = JSON.parse(requestBody);\r",
+									"let amount = bodyObject.amount;\r",
+									"\r",
+									"var jsonData = JSON.parse(responseBody);\r",
+									"postman.setEnvironmentVariable(\"feeCode\", jsonData.data.rateCode);  \r",
+									"postman.setEnvironmentVariable(\"feeAmount\", jsonData.data.fiatFeeAmount*100);  \r",
+									"postman.setEnvironmentVariable(\"feeLigo\", jsonData.data.feeLigo*100);  \r",
+									"postman.setEnvironmentVariable(\"feeId\", jsonData.data.id);  \r",
+									"postman.setEnvironmentVariable(\"applicationCriteria\", jsonData.data.placeType);  \r",
+									"postman.setEnvironmentVariable(\"amount\", amount*100); "
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorCCI\": \"{{debtorCCI}}\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"currency\": \"{{currency}}\",\r\n    \"amount\":3.5 // monto en soles (S/ 500)\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/infoFeeCodeNew",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"infoFeeCodeNew"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "3. (UPDATED) obtener codigo de comisión Copy",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"debtorCCI\": \"{{debtorCCI}}\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"currency\": \"{{currency}}\",\r\n    \"amount\":3.5 // monto en soles (S/ 500)\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/infoFeeCodeNew",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"infoFeeCodeNew"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"id\": \"e77e7384-51ec-41f3-966e-e35c189be7d8\",\n        \"placeType\": \"M\",\n        \"rateCode\": \"5133\",\n        \"fiatFeeAmount\": 0,\n        \"feeLigo\": 4,\n        \"feeTotal\": 4\n    },\n    \"date\": \"2024-12-20 12:08:12\"\n}"
+						}
+					]
+				},
+				{
+					"name": "6. (UPDATED) transferencia",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);\r",
+									"  postman.setEnvironmentVariable(\"transferId\", jsonData.data.id);  "
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorParticipantCode\": \"{{debtorParticipantCode}}\",\r\n    \"creditorParticipantCode\": \"{{creditorParticipantCode}}\",\r\n    \"messageTypeId\": \"{{messageTypeId}}\",\r\n    \"channel\": \"15\",\r\n    \"amount\": {{amount}},\r\n    \"currency\": \"{{currency}}\",\r\n    \"referenceTransactionId\": \"{{instructionId}}\",\r\n    \"transactionType\": \"{{transactionType}}\",\r\n    \"feeAmount\": {{feeAmount}},\r\n    \"feeCode\": \"{{feeCode}}\",\r\n    \"applicationCriteria\": \"{{applicationCriteria}}\",\r\n    \"debtorTypeOfPerson\": \"{{debtorTypeOfPerson}}\",\r\n    \"debtorName\": \"{{debtorName}}\",\r\n    \"debtorAddressLine\": \"{{debtorAddressLine}}\",\r\n    \"debtorIdCode\": \"{{debtorIdCode}}\",\r\n    \"debtorId\": \"{{debtorId}}\",\r\n    \"debtorMobileNumber\": \"{{debtorMobileNumber}}\",\r\n    \"debtorCCI\": \"{{debtorCCI}}\",\r\n    \"creditorName\": \"{{creditorName}}\",\r\n    \"creditorAddressLine\": \"{{creditorAddressLine}}\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"sameCustomerFlag\": \"{{sameCustomerFlag}}\",\r\n    \"purposeCode\": \"{{purposeCode}}\",\r\n    \"unstructuredInformation\": \"{{idQr}}\",\r\n    \"feeId\":\"{{feeId}}\",\r\n    \"feeLigo\":\"{{feeLigo}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/orderTransferShipping",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"orderTransferShipping"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "9. obtener respuesta de transferencia",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getOrderTransferShippingById/{{transferId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getOrderTransferShippingById",
+								"{{transferId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "transferencia por QR PLIN YAPE",
+			"item": [
+				{
+					"name": "1. leer qr",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);\r",
+									"postman.setEnvironmentVariable(\"qrReadId\", jsonData.data.id);  "
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"header\": {\r\n        \"sisOrigen\": \"{{debtorParticipantCode}}\"\r\n    },\r\n    //\"hash\": \"000201010211393218a99da378635844910be8d193c0ae1b5204561153036045802PE5906YAPERO6004Lima630434B8\"\r\n    \"hash\": \"0002015802PE0102115204482953036045912P2P Transfer6004Lima26560032ffceb16a52ac432ea8db122a318883e70116Plin Network P2P6304F824\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/readQr",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"readQr"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. obtener respuesta de lectura de qr",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);\r",
+									"  postman.setEnvironmentVariable(\"proxyValue\", jsonData.data.qr.idCuenta);  \r",
+									"  postman.setEnvironmentVariable(\"creditorParticipantCode\", '0'+String(jsonData.data.qr.emisor));  \r",
+									"  postman.setEnvironmentVariable(\"creditorCCI\", String(jsonData.data.qr.emisor)+'99999999999999999');  "
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getReadQRById/{{qrReadId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getReadQRById",
+								"{{qrReadId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3. consulta de cuenta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);\r",
+									"  postman.setEnvironmentVariable(\"accountInquiryId\", jsonData.data.id);  "
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorParticipantCode\": \"{{debtorParticipantCode}}\",\r\n    \"creditorParticipantCode\": \"{{creditorParticipantCode}}\",\r\n    \"debtorName\": \"{{debtorName}}\",\r\n    \"debtorId\": \"{{debtorId}}\",\r\n    \"debtorIdCode\": \"{{debtorIdCode}}\",\r\n    \"debtorPhoneNumber\": \"\",\r\n    \"debtorAddressLine\": \"{{debtorAddressLine}}\",\r\n    \"debtorMobileNumber\": \"{{debtorMobileNumber}}\",\r\n    \"transactionType\": \"{{transactionType}}\",\r\n    \"channel\": \"52\", // canal 52 es interoperable\r\n    \"creditorAddressLine\": \"JR LIMA\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"debtorTypeOfPerson\": \"{{debtorTypeOfPerson}}\",\r\n    \"currency\": \"{{currency}}\",\r\n    \"proxyValue\": \"{{proxyValue}}\",\r\n    \"proxyType\": \"O\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/accountInquiry",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"accountInquiry"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4. obtener respuesta consulta de cuenta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);\r",
+									"  postman.setEnvironmentVariable(\"instructionId\", jsonData.data.instructionId);  \r",
+									"  postman.setEnvironmentVariable(\"creditorCCI\", jsonData.data.creditorCCI);  \r",
+									"  postman.setEnvironmentVariable(\"creditorName\", jsonData.data.creditorName); \r",
+									"postman.setEnvironmentVariable(\"creditorAddressLine\", jsonData.data.creditorAddressLine); "
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getAccountInquiryById/{{accountInquiryId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getAccountInquiryById",
+								"{{accountInquiryId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "5. (UPDATED) obtener codigo de comisión",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let requestBody = pm.request.body.raw;\r",
+									"let bodyObject = JSON.parse(requestBody);\r",
+									"let amount = bodyObject.amount;\r",
+									"\r",
+									"var jsonData = JSON.parse(responseBody);\r",
+									"postman.setEnvironmentVariable(\"feeCode\", jsonData.data.rateCode);  \r",
+									"postman.setEnvironmentVariable(\"feeAmount\", jsonData.data.fiatFeeAmount*100);  \r",
+									"postman.setEnvironmentVariable(\"feeLigo\", jsonData.data.feeLigo*100);  \r",
+									"postman.setEnvironmentVariable(\"feeId\", jsonData.data.id);  \r",
+									"postman.setEnvironmentVariable(\"applicationCriteria\", jsonData.data.placeType);  \r",
+									"postman.setEnvironmentVariable(\"amount\", amount*100); "
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorCCI\": \"{{debtorCCI}}\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"currency\": \"{{currency}}\",\r\n    \"amount\":3.5 // monto en soles (S/ 500)\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/infoFeeCodeNew",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"infoFeeCodeNew"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "3. (UPDATED) obtener codigo de comisión Copy",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"debtorCCI\": \"{{debtorCCI}}\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"currency\": \"{{currency}}\",\r\n    \"amount\":3.5 // monto en soles (S/ 500)\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/infoFeeCodeNew",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"infoFeeCodeNew"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"id\": \"e77e7384-51ec-41f3-966e-e35c189be7d8\",\n        \"placeType\": \"M\",\n        \"rateCode\": \"5133\",\n        \"fiatFeeAmount\": 0,\n        \"feeLigo\": 4,\n        \"feeTotal\": 4\n    },\n    \"date\": \"2024-12-20 12:08:12\"\n}"
+						}
+					]
+				},
+				{
+					"name": "6. (UPDATED) transferencia",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);\r",
+									"  postman.setEnvironmentVariable(\"transferId\", jsonData.data.id);  "
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorParticipantCode\": \"{{debtorParticipantCode}}\",\r\n    \"creditorParticipantCode\": \"{{creditorParticipantCode}}\",\r\n    \"messageTypeId\": \"{{messageTypeId}}\",\r\n    \"channel\": \"52\",\r\n    \"amount\": {{amount}},\r\n    \"currency\": \"{{currency}}\",\r\n    \"referenceTransactionId\": \"{{instructionId}}\",\r\n    \"transactionType\": \"{{transactionType}}\",\r\n    \"feeAmount\": {{feeAmount}},\r\n    \"feeCode\": \"{{feeCode}}\",\r\n    \"applicationCriteria\": \"{{applicationCriteria}}\",\r\n    \"debtorTypeOfPerson\": \"{{debtorTypeOfPerson}}\",\r\n    \"debtorName\": \"{{debtorName}}\",\r\n    \"debtorAddressLine\": \"{{debtorAddressLine}}\",\r\n    \"debtorIdCode\": \"{{debtorIdCode}}\",\r\n    \"debtorId\": \"{{debtorId}}\",\r\n    \"debtorMobileNumber\": \"{{debtorMobileNumber}}\",\r\n    \"debtorCCI\": \"{{debtorCCI}}\",\r\n    \"creditorName\": \"{{creditorName}}\",\r\n    \"creditorAddressLine\": \"{{creditorAddressLine}}\",\r\n    \"creditorCCI\": \"{{creditorCCI}}\",\r\n    \"sameCustomerFlag\": \"{{sameCustomerFlag}}\",\r\n    \"purposeCode\": \"{{purposeCode}}\",\r\n    \"unstructuredInformation\": \"{{idQr}}\",\r\n    \"feeId\":\"{{feeId}}\",\r\n    \"feeLigo\":\"{{feeLigo}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/orderTransferShipping",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"orderTransferShipping"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7. obtener respuesta de transferencia",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getOrderTransferShippingById/{{transferId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getOrderTransferShippingById",
+								"{{transferId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "registro de contacto",
+			"item": [
+				{
+					"name": "1. agregar contacto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"contactId\", data.data.id)\r",
+									"\r",
+									"let requestBody = pm.request.body.raw;\r",
+									"let bodyObject = JSON.parse(requestBody);\r",
+									"\r",
+									"pm.environment.set('cellphoneContact', bodyObject.phoneNumber)\r",
+									"pm.environment.set('personTypeContact', bodyObject.personType)\r",
+									"pm.environment.set('traceContact', bodyObject.trace)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"participantCode\": \"{{debtorParticipantCode}}\",\r\n    \"trace\": \"21323\",\r\n    \"CCI\": \"{{debtorCCI}}\",\r\n    \"action\": \"add\", // tipos: add, update, delete\r\n    \"phoneNumber\": \"+51968067123\",\r\n    \"registerId\": null,\r\n    \"displayName\": \"\",\r\n    \"personType\": \"Natural\",//Natural, Jurídico\r\n    \"supplementaryData\": [\r\n        {\r\n            \"placeAndName\": \"Peru\"\r\n        }\r\n    ],\r\n    \"placeAndName\": null\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/registrationContacts",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"registrationContacts"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "agregar contacto",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"userId\": \"{{userId}}\",\r\n    \"companyId\": \"{{companyId}}\",\r\n    \"participantCode\": \"{{debtorParticipantCode}}\",\r\n    \"trace\": \"21323\",\r\n    \"CCI\": \"92100178794744781044\",\r\n    \"action\": \"add\", // tipos: add, update, delete\r\n    \"phoneNumber\": \"+51968067516\",\r\n    \"registerId\": null,\r\n    \"displayName\": \"\",\r\n    \"personType\": \"Natural\",//Natural, Jurídico\r\n    \"supplementaryData\": [\r\n        {\r\n            \"placeAndName\": \"Peru\"\r\n        }\r\n    ],\r\n    \"placeAndName\": null\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/registrationContacts",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"registrationContacts"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"code\": 200,\n        \"msg\": \"Ok\",\n        \"id\": \"b36404df-514b-4455-bc8b-af14a55933b0\"\n    },\n    \"date\": \"2024-11-29 16:46:54\"\n}"
+						}
+					]
+				},
+				{
+					"name": "2. obtener respuesta de la creacion de contacto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());",
+									"pm.environment.set(\"registerId\", data.data.registerId)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getRegistrationContactsById/{{contactId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getRegistrationContactsById",
+								"{{contactId}}"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "obtener respuesta de la acción aplicada al contacto (add,update, delete)",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/getRegistrationContactsById/{{contactId}}",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"getRegistrationContactsById",
+										"{{contactId}}"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 0,\n    \"errors\": null,\n    \"code\": 400,\n    \"data\": {\n        \"registerId\": null,\n        \"status\": \"Rejected\",\n        \"codError\": \"IREG\",\n        \"errorDescription\": \"N/A\",\n        \"errorMessage\": \"No se puede completar el Registro: El registro ya existe o ya tiene un número de cuenta (CCI) asociado bajo la misma Entidad.\"\n    },\n    \"date\": \"2024-11-29 17:54:19\"\n}"
+						},
+						{
+							"name": "obtener respuesta de la acción aplicada al contacto (add,update, delete) Copy",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/getRegistrationContactsById/{{contactId}}",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"getRegistrationContactsById",
+										"{{contactId}}"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 0,\n    \"errors\": null,\n    \"code\": 400,\n    \"data\": {\n        \"registerId\": \"R202411281032430921000031\",\n        \"status\": \"Accepted\",\n        \"codError\": \"\",\n        \"errorDescription\": \"0\",\n        \"errorMessage\": \"\"\n    },\n    \"date\": \"2024-11-29 17:54:19\"\n}"
+						}
+					]
+				},
+				{
+					"name": "3. actualizar datos de contacto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"contactUpdateId\", data.data.id)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"participantCode\": \"{{debtorParticipantCode}}\",\r\n    \"CCI\": \"{{debtorCCI}}\",\r\n    \"action\": \"update\", // tipos: add, update, delete\r\n    \"phoneNumber\": \"{{cellphoneContact}}\",\r\n    \"registerId\": \"{{registerId}}\",// se obtiene del primer registro del contacto \"accepted\"\r\n    \"displayName\": \"\",\r\n    \"personType\": \"{{personTypeContact}}\",//Natural, Jurídico\r\n    \"supplementaryData\": [\r\n        {\r\n            \"placeAndName\": \"Peru\"\r\n        }\r\n    ],\r\n    \"placeAndName\": null\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/registrationContacts",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"registrationContacts"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "actualizar datos de contacto Copy",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"userId\": \"{{userId}}\",\r\n    \"companyId\": \"{{companyId}}\",\r\n    \"participantCode\": \"{{debtorParticipantCode}}\",\r\n    \"CCI\": \"92100178794744781044\",\r\n    \"action\": \"update\", // tipos: add, update, delete\r\n    \"phoneNumber\": \"+51968067516\",\r\n    \"registerId\": \"{{registerId}}\",// se obtiene del primer registro del contacto \"accepted\"\r\n    \"displayName\": \"\",\r\n    \"personType\": \"Natural\",//Natural, Jurídico\r\n    \"supplementaryData\": [\r\n        {\r\n            \"placeAndName\": \"Peru\"\r\n        }\r\n    ],\r\n    \"placeAndName\": null\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/registrationContacts",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"registrationContacts"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"code\": 200,\n        \"msg\": \"Ok\",\n        \"id\": \"b36404df-514b-4455-bc8b-af14a55933b0\"\n    },\n    \"date\": \"2024-11-29 16:46:54\"\n}"
+						}
+					]
+				},
+				{
+					"name": "4. obtener respuesta de la actualizacion de datos del contacto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getRegistrationContactsById/{{contactUpdateId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getRegistrationContactsById",
+								"{{contactUpdateId}}"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "obtener respuesta de la acción aplicada al contacto (add,update, delete)",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/getRegistrationContactsById/{{contactId}}",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"getRegistrationContactsById",
+										"{{contactId}}"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 0,\n    \"errors\": null,\n    \"code\": 400,\n    \"data\": {\n        \"registerId\": null,\n        \"status\": \"Rejected\",\n        \"codError\": \"IREG\",\n        \"errorDescription\": \"N/A\",\n        \"errorMessage\": \"No se puede completar el Registro: El registro ya existe o ya tiene un número de cuenta (CCI) asociado bajo la misma Entidad.\"\n    },\n    \"date\": \"2024-11-29 17:54:19\"\n}"
+						},
+						{
+							"name": "obtener respuesta de la acción aplicada al contacto (add,update, delete) Copy",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/getRegistrationContactsById/{{contactId}}",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"getRegistrationContactsById",
+										"{{contactId}}"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 0,\n    \"errors\": null,\n    \"code\": 400,\n    \"data\": {\n        \"registerId\": \"R202411281032430921000031\",\n        \"status\": \"Accepted\",\n        \"codError\": \"\",\n        \"errorDescription\": \"0\",\n        \"errorMessage\": \"\"\n    },\n    \"date\": \"2024-11-29 17:54:19\"\n}"
+						}
+					]
+				},
+				{
+					"name": "5. eliminar datos de contacto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());\r",
+									"pm.environment.set(\"contactDeleteId\", data.data.id)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"participantCode\": \"{{debtorParticipantCode}}\",\r\n    \"CCI\": \"{{debtorCCI}}\",\r\n    \"action\": \"delete\", // tipos: add, update, delete\r\n    \"phoneNumber\": \"{{cellphoneContact}}\",\r\n    \"registerId\": \"{{registerId}}\",// se obtiene del primer registro del contacto \"accepted\"\r\n    \"displayName\": \"\",\r\n    \"personType\": \"{{personTypeContact}}\",//Natural, Jurídico\r\n    \"supplementaryData\": [\r\n        {\r\n            \"placeAndName\": \"Peru\"\r\n        }\r\n    ],\r\n    \"placeAndName\": null\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/registrationContacts",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"registrationContacts"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "eliminar datos de contacto",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"userId\": \"{{userId}}\",\r\n    \"companyId\": \"{{companyId}}\",\r\n    \"participantCode\": \"{{debtorParticipantCode}}\",\r\n    \"CCI\": \"92100178794744781044\",\r\n    \"action\": \"delete\", // tipos: add, update, delete\r\n    \"phoneNumber\": \"+51968067516\",\r\n    \"registerId\": \"{{registerId}}\",// se obtiene del primer registro del contacto \"accepted\"\r\n    \"displayName\": \"\",\r\n    \"personType\": \"Natural\",//Natural, Jurídico\r\n    \"supplementaryData\": [\r\n        {\r\n            \"placeAndName\": \"Peru\"\r\n        }\r\n    ],\r\n    \"placeAndName\": null\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/registrationContacts",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"registrationContacts"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"code\": 200,\n        \"msg\": \"Ok\",\n        \"id\": \"b36404df-514b-4455-bc8b-af14a55933b0\"\n    },\n    \"date\": \"2024-11-29 16:46:54\"\n}"
+						}
+					]
+				},
+				{
+					"name": "6. obtener respuesta de la eliminacion del contacto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var data = JSON.parse(pm.response.text());",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/getRegistrationContactsById/{{contactDeleteId}}",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"getRegistrationContactsById",
+								"{{contactDeleteId}}"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "obtener respuesta de la acción aplicada al contacto (add,update, delete)",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/getRegistrationContactsById/{{contactId}}",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"getRegistrationContactsById",
+										"{{contactId}}"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 0,\n    \"errors\": null,\n    \"code\": 400,\n    \"data\": {\n        \"registerId\": null,\n        \"status\": \"Rejected\",\n        \"codError\": \"IREG\",\n        \"errorDescription\": \"N/A\",\n        \"errorMessage\": \"No se puede completar el Registro: El registro ya existe o ya tiene un número de cuenta (CCI) asociado bajo la misma Entidad.\"\n    },\n    \"date\": \"2024-11-29 17:54:19\"\n}"
+						},
+						{
+							"name": "obtener respuesta de la acción aplicada al contacto (add,update, delete) Copy",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/getRegistrationContactsById/{{contactId}}",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"getRegistrationContactsById",
+										"{{contactId}}"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 0,\n    \"errors\": null,\n    \"code\": 400,\n    \"data\": {\n        \"registerId\": \"R202411281032430921000031\",\n        \"status\": \"Accepted\",\n        \"codError\": \"\",\n        \"errorDescription\": \"0\",\n        \"errorMessage\": \"\"\n    },\n    \"date\": \"2024-11-29 17:54:19\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "creación de QR",
+			"item": [
+				{
+					"name": "qr dinamico",
+					"item": [
+						{
+							"name": "1. crear qr dinámico",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var data = JSON.parse(pm.response.text());\r",
+											"pm.environment.set(\"qrDinamicoCreateId\", data.data.id)"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token-client}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"header\": {\r\n        \"sisOrigen\": \"{{debtorParticipantCode}}\"\r\n    },\r\n    \"data\": {\r\n        \"qrTipo\": \"12\",\r\n        \"idCuenta\": \"{{idCuentaQr}}\",\r\n        \"moneda\": \"{{currencyQr}}\",\r\n        \"importe\": 150,// 10 = 10 * 100 \r\n        \"fechaVencimiento\": \"20251231\",\r\n        \"cantidadPagos\": null,//null, 1, 2, etc.\r\n        \"glosa\": \"Happy Path Generación de QR Dinamico\",\r\n        \"codigoComerciante\": \"{{merchantCode}}\",\r\n        \"nombreComerciante\": \"{{merchantName}}\",\r\n        \"ciudadComerciante\": \"{{merchantCity}}\",\r\n        \"info\":  [\r\n            {\r\n                \"codigo\": \"nombreCliente\",\r\n                \"valor\": \"{{customerName}}\"\r\n            },\r\n            {\r\n                \"codigo\": \"documentoIdentidad\",\r\n                \"valor\": \"{{docNumber}}\"\r\n            },\r\n            {\r\n                \"codigo\": \"direcciónCliente\",\r\n                \"valor\": \"{{customerAddress}}\"\r\n            }\r\n        ]\r\n    },\r\n    \"type\": \"TEXT\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/createQr",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"createQr"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "1. crear qr",
+									"originalRequest": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"userId\": \"{{userId}}\",\r\n    \"companyId\": \"{{companyId}}\",\r\n    \"header\": {\r\n        \"sisOrigen\": \"{{debtorParticipantCode}}\"\r\n    },\r\n    \"data\": {\r\n        \"qrTipo\": \"11\",\r\n        \"idCuenta\": \"92100144571260631044\", // cci\r\n        \"moneda\": \"604\",\r\n        \"importe\": null,\r\n        \"fechaVencimiento\": null,\r\n        \"cantidadPagos\": null,\r\n        \"glosa\": null,\r\n        \"codigoComerciante\": \"4829\",\r\n        \"nombreComerciante\": \"BLADIMIR VASQUEZ RAMIREZ\",//nombre del cliente o entidad\r\n        \"ciudadComerciante\": \"Lima\",\r\n        \"info\": null\r\n    },\r\n    \"type\": \"TEXT\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{url_cce_dev}}/v1/createQr",
+											"host": [
+												"{{url_cce_dev}}"
+											],
+											"path": [
+												"v1",
+												"createQr"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json",
+											"description": "",
+											"type": "text"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"code\": 200,\n        \"msg\": \"Ok\",\n        \"id\": \"152518fa-1510-49a6-95fa-a8125ed2d040\"\n    },\n    \"date\": \"2024-11-25 15:25:25\"\n}"
+								}
+							]
+						},
+						{
+							"name": "2. obtener respuesta creación de qr dinamico",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var data = JSON.parse(pm.response.text());\r",
+											"pm.globals.set(\"lookUppId\", data.data.id)"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token-client}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/getCreateQRById/{{qrDinamicoCreateId}}",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"getCreateQRById",
+										"{{qrDinamicoCreateId}}"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "2.obtener respuesta creación de qr",
+									"originalRequest": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{url_cce_dev}}/v1/getCreateQRById/6dbe97c6-a4ad-48a2-a9fa-da6da08db321",
+											"host": [
+												"{{url_cce_dev}}"
+											],
+											"path": [
+												"v1",
+												"getCreateQRById",
+												"6dbe97c6-a4ad-48a2-a9fa-da6da08db321"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json",
+											"description": "",
+											"type": "text"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"header\": {\n            \"codReturn\": \"0\",\n            \"txtReturn\": \"SUCCESS\"\n        },\n        \"hash\": \"000201010211263700028001039030220241122092119919762965204482953036045802PE5924BLADIMIR VASQUEZ RAMIREZ6004Lima80550003ID10144huW43jNm3lIFOzgghpN791phXIC2xt2GrwpgN1damFU=63042434\",\n        \"idQr\": \"24112209211991976296\",\n        \"errorMessage\": null\n    },\n    \"date\": \"2024-11-25 15:25:46\"\n}"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "qr estatico",
+					"item": [
+						{
+							"name": "1. crear qr estático",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var data = JSON.parse(pm.response.text());\r",
+											"pm.environment.set(\"qrCreateId\", data.data.id)"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token-client}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"header\": {\r\n        \"sisOrigen\": \"{{debtorParticipantCode}}\"\r\n    },\r\n    \"data\": {\r\n        \"qrTipo\": \"11\",\r\n        \"idCuenta\": \"{{idCuentaQr}}\",\r\n        \"moneda\": \"{{currencyQr}}\",\r\n        \"importe\": null,\r\n        \"fechaVencimiento\": null,\r\n        \"cantidadPagos\": null,\r\n        \"glosa\": null,\r\n        \"codigoComerciante\": \"{{merchantCode}}\",\r\n        \"nombreComerciante\": \"{{merchantName}}\",\r\n        \"ciudadComerciante\": \"{{merchantCity}}\",\r\n        \"info\": null\r\n    },\r\n    \"type\": \"TEXT\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/createQr",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"createQr"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "1. crear qr",
+									"originalRequest": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"userId\": \"{{userId}}\",\r\n    \"companyId\": \"{{companyId}}\",\r\n    \"header\": {\r\n        \"sisOrigen\": \"{{debtorParticipantCode}}\"\r\n    },\r\n    \"data\": {\r\n        \"qrTipo\": \"11\",\r\n        \"idCuenta\": \"92100144571260631044\", // cci\r\n        \"moneda\": \"604\",\r\n        \"importe\": null,\r\n        \"fechaVencimiento\": null,\r\n        \"cantidadPagos\": null,\r\n        \"glosa\": null,\r\n        \"codigoComerciante\": \"4829\",\r\n        \"nombreComerciante\": \"BLADIMIR VASQUEZ RAMIREZ\",//nombre del cliente o entidad\r\n        \"ciudadComerciante\": \"Lima\",\r\n        \"info\": null\r\n    },\r\n    \"type\": \"TEXT\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{url_cce_dev}}/v1/createQr",
+											"host": [
+												"{{url_cce_dev}}"
+											],
+											"path": [
+												"v1",
+												"createQr"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json",
+											"description": "",
+											"type": "text"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"code\": 200,\n        \"msg\": \"Ok\",\n        \"id\": \"152518fa-1510-49a6-95fa-a8125ed2d040\"\n    },\n    \"date\": \"2024-11-25 15:25:25\"\n}"
+								}
+							]
+						},
+						{
+							"name": "2. obtener respuesta creación de qr estatico",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var data = JSON.parse(pm.response.text());\r",
+											"pm.globals.set(\"lookUppId\", data.data.id)"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token-client}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{url_cce_dev}}/v1/getCreateQRById/{{qrCreateId}}",
+									"host": [
+										"{{url_cce_dev}}"
+									],
+									"path": [
+										"v1",
+										"getCreateQRById",
+										"{{qrCreateId}}"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "2.obtener respuesta creación de qr",
+									"originalRequest": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{url_cce_dev}}/v1/getCreateQRById/6dbe97c6-a4ad-48a2-a9fa-da6da08db321",
+											"host": [
+												"{{url_cce_dev}}"
+											],
+											"path": [
+												"v1",
+												"getCreateQRById",
+												"6dbe97c6-a4ad-48a2-a9fa-da6da08db321"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json",
+											"description": "",
+											"type": "text"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": 1,\n    \"errors\": null,\n    \"code\": 200,\n    \"data\": {\n        \"header\": {\n            \"codReturn\": \"0\",\n            \"txtReturn\": \"SUCCESS\"\n        },\n        \"hash\": \"000201010211263700028001039030220241122092119919762965204482953036045802PE5924BLADIMIR VASQUEZ RAMIREZ6004Lima80550003ID10144huW43jNm3lIFOzgghpN791phXIC2xt2GrwpgN1damFU=63042434\",\n        \"idQr\": \"24112209211991976296\",\n        \"errorMessage\": null\n    },\n    \"date\": \"2024-11-25 15:25:46\"\n}"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "reportes",
+			"item": [
+				{
+					"name": "listar transacciones",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"page\": 1, //obligatorio\r\n    \"startDate\": \"2025-02-13\", //obligatorio\r\n    \"endDate\": \"2025-02-13\", //obligatorio\r\n    \"debtorCCI\": null, //opional\r\n    \"creditorCCI\": null //opional\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/transactionsReport",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"transactionsReport"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "buscar transacción por id",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "// debe enviar unp de los 2 parámetros con un valor válido.\r\n{\r\n    \"transferId\":null,//opcional\r\n    \"instructionId\":\"2025021017003409214152002589\"//opcional\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/transactionsReportById",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"transactionsReportById"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "listar recargas QR",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n     \"page\":1,// obligatorio\r\n    \"startDate\":\"2025-01-13\",// obligatorio\r\n    \"endDate\":\"2025-02-13\",// obligatorio\r\n    \"empty\":true // opcional: true muestra registros con el campo unstructuredInformation vacío, false con data.\r\n    \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/transactionsReportReception",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"transactionsReportReception"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "operaciones cuenta CCI",
+			"item": [
+				{
+					"name": "consulta de saldo",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"debtorCCI\": \"{{debtorCCI}}\"}\r\n//92100156708208311040 -error\r\n//92100171571742601040 --ok\r\n//92100168969811331046 --ok",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/accountBalance",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"accountBalance"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "balance de cuenta",
+			"item": [
+				{
+					"name": "consulta de saldo",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token-client}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"debtorCCI\": \"{{debtorCCI}}\"\r\n}\r\n//92100156708208311040 -error\r\n//92100171571742601040 --ok\r\n//92100168969811331046 --ok",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_cce_dev}}/v1/accountBalance",
+							"host": [
+								"{{url_cce_dev}}"
+							],
+							"path": [
+								"v1",
+								"accountBalance"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
