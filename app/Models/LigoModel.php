@@ -54,22 +54,28 @@ class LigoModel extends Model
      */
     protected function getSuperadminLigoConfig()
     {
-        // Determine environment
-        $environment = env('CI_ENVIRONMENT', 'development') === 'production' ? 'prod' : 'dev';
-        
-        $config = $this->superadminLigoConfigModel->getActiveConfig($environment);
+        // First try to get any active configuration regardless of environment
+        $config = $this->superadminLigoConfigModel->where('enabled', 1)
+                                                  ->where('is_active', 1)
+                                                  ->first();
         
         if (!$config) {
-            log_message('error', 'LigoModel: No active superadmin Ligo configuration found for environment: ' . $environment);
-            return null;
+            // Fallback: try to determine environment from CI_ENVIRONMENT
+            $environment = env('CI_ENVIRONMENT', 'development') === 'production' ? 'prod' : 'dev';
+            $config = $this->superadminLigoConfigModel->getActiveConfig($environment);
+            
+            if (!$config) {
+                log_message('error', 'LigoModel: No active superadmin Ligo configuration found');
+                return null;
+            }
         }
 
         if (!$this->superadminLigoConfigModel->isConfigurationComplete($config)) {
-            log_message('error', 'LigoModel: Superadmin Ligo configuration is incomplete for environment: ' . $environment);
+            log_message('error', 'LigoModel: Superadmin Ligo configuration is incomplete for environment: ' . $config['environment']);
             return null;
         }
 
-        log_message('debug', 'LigoModel: Using centralized Ligo config for environment: ' . $environment);
+        log_message('debug', 'LigoModel: Using centralized Ligo config for environment: ' . $config['environment']);
         return $config;
     }
 
