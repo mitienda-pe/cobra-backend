@@ -378,11 +378,11 @@ function clearForm() {
 
 function viewInstalment(instalmentUuid) {
     // Redirigir a la página de detalle de la cuota
-    window.open(`<?= base_url('instalments/view') ?>/${instalmentUuid}`, '_blank');
+    window.open(`<?= base_url('instalments') ?>`, '_blank');
 }
 
 function viewInvoice(invoiceId) {
-    // Redirigir a la página de detalle de la factura
+    // Redirigir a la página de detalle de la factura  
     window.open(`<?= base_url('invoices/view') ?>/${invoiceId}`, '_blank');
 }
 </script>

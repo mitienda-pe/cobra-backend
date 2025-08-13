@@ -21,8 +21,27 @@
                     <form id="transactionsForm">
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i> 
-                            Se listarán las transacciones de la cuenta de la organización seleccionada automáticamente.
+                            Se listarán las transacciones usando las credenciales centralizadas de Ligo.
                         </div>
+                        
+                        <?php
+                        // Show active Ligo configuration
+                        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+                        $activeConfig = $superadminLigoConfigModel->where('enabled', 1)->where('is_active', 1)->first();
+                        ?>
+                        <?php if ($activeConfig): ?>
+                            <div class="alert alert-warning">
+                                <i class="bi bi-gear-wide-connected"></i>
+                                <strong>Configuración Ligo activa:</strong> 
+                                <span class="badge bg-<?= $activeConfig['environment'] === 'prod' ? 'danger' : 'warning' ?> ms-1">
+                                    <?= strtoupper($activeConfig['environment']) ?>
+                                </span>
+                                <small class="d-block mt-1">
+                                    Usuario: <code><?= esc($activeConfig['username']) ?></code> | 
+                                    Company: <code><?= esc(substr($activeConfig['company_id'], 0, 8)) ?>...</code>
+                                </small>
+                            </div>
+                        <?php endif; ?>
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
@@ -70,7 +89,7 @@
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5>Resultados de la Búsqueda</h5>
                             <div>
-                                <span class="badge badge-info" id="totalResults">0 resultados</span>
+                                <span class="badge bg-info text-white" id="totalResults">0 resultados</span>
                             </div>
                         </div>
                         
@@ -278,14 +297,14 @@ function displayTransactions(data) {
         row.innerHTML = `
             <td><small>${transaction.transferId || transaction.instructionId || 'N/A'}</small></td>
             <td>${formatDate(transaction.createdAt)}</td>
-            <td><span class="badge badge-${getTypeBadge(transaction.type)}">${transactionType}</span></td>
+            <td><span class="badge bg-${getTypeBadge(transaction.type)}">${transactionType}</span></td>
             <td>
                 <small><strong>${counterparty}</strong><br>
                 ${counterpartyName}</small>
             </td>
             <td class="text-right"><strong>${formatAmount(transaction.amount)}</strong></td>
             <td>${currency}</td>
-            <td><span class="badge badge-${getStatusBadge(transaction.responseCode)}">${status}</span></td>
+            <td><span class="badge bg-${getStatusBadge(transaction.responseCode)}">${status}</span></td>
             <td>
                 <button class="btn btn-sm btn-info" onclick="showTransactionDetail('${transaction.transferId || transaction.instructionId}')" title="Ver Detalle">
                     <i class="fas fa-eye"></i>
