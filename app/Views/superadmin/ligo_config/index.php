@@ -15,7 +15,7 @@
                         Configuración Centralizada de Ligo
                     </h3>
                     <div class="card-tools">
-                        <span class="badge badge-info">
+                        <span class="badge bg-info text-white">
                             <i class="bi bi-info-circle"></i> 
                             Configuración global para todas las organizaciones
                         </span>
@@ -53,21 +53,21 @@
                                     <?php foreach ($configs as $config): ?>
                                         <tr>
                                             <td>
-                                                <span class="badge badge-<?= $config['environment'] === 'prod' ? 'danger' : 'warning' ?>">
+                                                <span class="badge bg-<?= $config['environment'] === 'prod' ? 'danger' : 'warning' ?>">
                                                     <?= strtoupper($config['environment']) ?>
                                                 </span>
                                             </td>
                                             <td>
                                                 <?php if ($config['is_active'] && $config['enabled']): ?>
-                                                    <span class="badge badge-success">
+                                                    <span class="badge bg-success">
                                                         <i class="bi bi-check-circle"></i> Activa
                                                     </span>
                                                 <?php elseif ($config['enabled']): ?>
-                                                    <span class="badge badge-warning">
+                                                    <span class="badge bg-warning text-dark">
                                                         <i class="bi bi-pause-circle"></i> Habilitada
                                                     </span>
                                                 <?php else: ?>
-                                                    <span class="badge badge-secondary">
+                                                    <span class="badge bg-secondary">
                                                         <i class="bi bi-x-circle"></i> Deshabilitada
                                                     </span>
                                                 <?php endif; ?>
@@ -89,11 +89,11 @@
                                                              !empty($config['private_key']);
                                                 ?>
                                                 <?php if ($isComplete): ?>
-                                                    <span class="badge badge-success">
+                                                    <span class="badge bg-success">
                                                         <i class="bi bi-check"></i> Completa
                                                     </span>
                                                 <?php else: ?>
-                                                    <span class="badge badge-danger">
+                                                    <span class="badge bg-danger">
                                                         <i class="bi bi-exclamation"></i> Incompleta
                                                     </span>
                                                 <?php endif; ?>
@@ -110,12 +110,19 @@
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
                                                     
-                                                    <?php if (!$config['is_active']): ?>
+                                                    <?php if ($config['is_active']): ?>
+                                                        <button type="button" 
+                                                                class="btn btn-success btn-set-active disabled" 
+                                                                data-id="<?= $config['id'] ?>" 
+                                                                title="Ya está activa">
+                                                            <i class="bi bi-check-circle"></i> Activa
+                                                        </button>
+                                                    <?php else: ?>
                                                         <button type="button" 
                                                                 class="btn btn-outline-success btn-set-active" 
                                                                 data-id="<?= $config['id'] ?>" 
-                                                                title="Activar">
-                                                            <i class="bi bi-play"></i>
+                                                                title="Activar esta configuración">
+                                                            <i class="bi bi-play"></i> Activar
                                                         </button>
                                                     <?php endif; ?>
                                                     
@@ -170,7 +177,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Set Active Configuration
-    document.querySelectorAll('.btn-set-active').forEach(function(button) {
+    document.querySelectorAll('.btn-set-active:not(.disabled)').forEach(function(button) {
         button.addEventListener('click', function() {
             const configId = this.getAttribute('data-id');
             const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
