@@ -133,12 +133,13 @@ let currentPage = 1;
 let currentFilters = {};
 
 $(document).ready(function() {
-    // Establecer fecha por defecto (último mes)
+    // Establecer fecha por defecto (últimos 7 días incluyendo hoy)
     const today = new Date();
-    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
     
     $('#endDate').val(today.toISOString().split('T')[0]);
-    $('#startDate').val(lastMonth.toISOString().split('T')[0]);
+    $('#startDate').val(sevenDaysAgo.toISOString().split('T')[0]);
     
     $('#transactionsForm').on('submit', function(e) {
         e.preventDefault();
@@ -280,12 +281,13 @@ function clearForm() {
     $('#errorResult').hide();
     currentPage = 1;
     
-    // Reestablecer fechas por defecto
+    // Reestablecer fechas por defecto (últimos 7 días incluyendo hoy)
     const today = new Date();
-    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
     
     $('#endDate').val(today.toISOString().split('T')[0]);
-    $('#startDate').val(lastMonth.toISOString().split('T')[0]);
+    $('#startDate').val(sevenDaysAgo.toISOString().split('T')[0]);
 }
 </script>
 <?= $this->endSection() ?>
