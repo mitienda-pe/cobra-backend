@@ -29,8 +29,8 @@
                         Los pagos van a la cuenta centralizada del superadmin.
                         <br><br>
                         <small>
-                            <strong>Nota:</strong> Puedes tener una configuración activa para DEV y otra para PROD simultáneamente. 
-                            Cada entorno usa su configuración correspondiente según el sistema esté en desarrollo o producción.
+                            <strong>Nota:</strong> Solo una configuración puede estar activa a la vez. 
+                            Activa DEV para usar credenciales de sandbox/pruebas, o PROD para operaciones reales.
                         </small>
                     </div>
 
@@ -119,14 +119,14 @@
                                                         <button type="button" 
                                                                 class="btn btn-success" 
                                                                 disabled
-                                                                title="Esta configuración está activa para <?= strtoupper($config['environment']) ?>">
-                                                            <i class="bi bi-check-circle"></i> En uso
+                                                                title="Configuración <?= strtoupper($config['environment']) ?> está activa - todas las operaciones usan estas credenciales">
+                                                            <i class="bi bi-check-circle"></i> Activa
                                                         </button>
                                                     <?php else: ?>
                                                         <button type="button" 
                                                                 class="btn btn-outline-success btn-set-active" 
                                                                 data-id="<?= $config['id'] ?>" 
-                                                                title="Activar esta configuración para <?= strtoupper($config['environment']) ?>">
+                                                                title="Activar configuración <?= strtoupper($config['environment']) ?> - cambiará todas las operaciones a estas credenciales">
                                                             <i class="bi bi-play"></i> Activar
                                                         </button>
                                                     <?php endif; ?>
@@ -152,11 +152,11 @@
                         <div class="alert alert-warning">
                             <h6><i class="bi bi-info-circle"></i> Información importante:</h6>
                             <ul class="mb-0">
-                                <li><strong>Entorno DEV:</strong> Para pruebas y desarrollo (usa credenciales de sandbox)</li>
-                                <li><strong>Entorno PROD:</strong> Para operaciones en producción (usa credenciales reales)</li>
-                                <li><strong>Puede haber una configuración activa por entorno simultáneamente</strong></li>
-                                <li><strong>El sistema usa automáticamente DEV o PROD según su configuración</strong></li>
-                                <li><strong>Todas las organizaciones usarán las credenciales centralizadas</strong></li>
+                                <li><strong>Configuración DEV:</strong> Usa credenciales de sandbox/pruebas de Ligo</li>
+                                <li><strong>Configuración PROD:</strong> Usa credenciales reales de producción de Ligo</li>
+                                <li><strong>Solo UNA configuración puede estar activa a la vez</strong></li>
+                                <li><strong>Cambia manualmente entre DEV y PROD según necesites</strong></li>
+                                <li><strong>Todas las organizaciones usarán la configuración activa</strong></li>
                             </ul>
                         </div>
                     </div>

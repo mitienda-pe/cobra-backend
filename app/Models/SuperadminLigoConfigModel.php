@@ -99,10 +99,9 @@ class SuperadminLigoConfigModel extends Model
         $id = isset($data['id']) ? $data['id'] : (isset($data['result']) ? $data['result'] : null);
         $configData = isset($data['data']) ? $data['data'] : [];
 
-        if (isset($configData['is_active']) && $configData['is_active'] && isset($configData['environment'])) {
-            // Deactivate all other configs for this environment
-            $this->where('environment', $configData['environment'])
-                 ->where('id !=', $id)
+        if (isset($configData['is_active']) && $configData['is_active']) {
+            // Deactivate ALL other configs (only one can be active globally)
+            $this->where('id !=', $id)
                  ->set('is_active', 0)
                  ->update();
         }
@@ -148,9 +147,8 @@ class SuperadminLigoConfigModel extends Model
         // Start transaction
         $this->db->transStart();
 
-        // Deactivate all configs for this environment
-        $this->where('environment', $config['environment'])
-             ->set('is_active', 0)
+        // Deactivate ALL configs (only one can be active globally)
+        $this->set('is_active', 0)
              ->update();
 
         // Activate this config
