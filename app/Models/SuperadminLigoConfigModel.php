@@ -102,6 +102,7 @@ class SuperadminLigoConfigModel extends Model
         if (isset($configData['is_active']) && $configData['is_active']) {
             // Deactivate ALL other configs (only one can be active globally)
             $this->where('id !=', $id)
+                 ->where('is_active', 1)
                  ->set('is_active', 0)
                  ->update();
         }
@@ -148,7 +149,8 @@ class SuperadminLigoConfigModel extends Model
         $this->db->transStart();
 
         // Deactivate ALL configs (only one can be active globally)
-        $this->set('is_active', 0)
+        $this->where('is_active', 1)
+             ->set('is_active', 0)
              ->update();
 
         // Activate this config
