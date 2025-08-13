@@ -9,7 +9,7 @@ class TestLigoController extends Controller
 {
     use ResponseTrait;
 
-    public function testAuth()
+    public function testAuth($forceEnv = null)
     {
         $organizationModel = new \App\Models\OrganizationModel();
         $session = session();
@@ -24,8 +24,8 @@ class TestLigoController extends Controller
             return $this->fail('Organization not found', 404);
         }
         
-        // Test authentication manually
-        $orgEnvironment = $organization['ligo_environment'] ?? 'dev';
+        // Force environment if specified in URL
+        $orgEnvironment = $forceEnv ?: ($organization['ligo_environment'] ?? 'dev');
         
         if ($orgEnvironment === 'prod') {
             $authData = [
@@ -78,7 +78,8 @@ class TestLigoController extends Controller
                     'Accept: application/json'
                 ],
                 'body' => $authData,
-                'environment' => $orgEnvironment
+                'environment' => $orgEnvironment,
+                'forced_env' => $forceEnv ? true : false
             ],
             'response' => [
                 'http_code' => $httpCode,
@@ -95,15 +96,25 @@ class TestLigoController extends Controller
         return $this->respond($result);
     }
     
-    public function testBalance()
+    public function testAuthDev()
+    {
+        return $this->testAuth('dev');
+    }
+    
+    public function testAuthProd()
+    {
+        return $this->testAuth('prod');
+    }
+    
+    public function testBalance($forceEnv = null)
     {
         // Get auth token first
-        $authResult = $this->testAuth();
+        $authResult = $this->testAuth($forceEnv);
         $authData = $authResult->getBody();
         $authArray = json_decode($authData, true);
         
         if ($authArray['response']['http_code'] !== 200) {
-            return $this->fail('Authentication failed', 400);
+            return $this->fail('Authentication failed: ' . ($authArray['parsed_response']['errors'] ?? 'Unknown error'), 400);
         }
         
         $parsedAuth = $authArray['parsed_response'];
@@ -119,7 +130,7 @@ class TestLigoController extends Controller
         $organizationId = $session->get('selected_organization_id');
         $organization = $organizationModel->find($organizationId);
         
-        $orgEnvironment = $organization['ligo_environment'] ?? 'dev';
+        $orgEnvironment = $forceEnv ?: ($organization['ligo_environment'] ?? 'dev');
         $baseUrl = $orgEnvironment === 'prod' 
             ? 'https://cce-api-gateway-prod.ligocloud.tech'
             : 'https://cce-api-gateway-dev.ligocloud.tech';
@@ -154,6 +165,7 @@ class TestLigoController extends Controller
         curl_close($curl);
         
         $result = [
+            'auth_success' => true,
             'auth_token' => substr($token, 0, 20) . '...',
             'request' => [
                 'url' => $baseUrl . '/v1/accountBalance',
@@ -179,5 +191,15 @@ class TestLigoController extends Controller
         }
         
         return $this->respond($result);
+    }
+    
+    public function testBalanceDev()
+    {
+        return $this->testBalance('dev');
+    }
+    
+    public function testBalanceProd()
+    {
+        return $this->testBalance('prod');
     }
 }

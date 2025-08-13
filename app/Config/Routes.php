@@ -270,7 +270,11 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     // Debug Routes
     $routes->get('debug/ligo-config', 'DebugController::ligoConfig');
     $routes->get('debug/test-ligo-auth', 'TestLigoController::testAuth');
+    $routes->get('debug/test-ligo-auth-dev', 'TestLigoController::testAuthDev');
+    $routes->get('debug/test-ligo-auth-prod', 'TestLigoController::testAuthProd');
     $routes->get('debug/test-ligo-balance', 'TestLigoController::testBalance');
+    $routes->get('debug/test-ligo-balance-dev', 'TestLigoController::testBalanceDev');
+    $routes->get('debug/test-ligo-balance-prod', 'TestLigoController::testBalanceProd');
 
     // Ruta para obtener clientes por organización
     $routes->get('organizations/(:segment)/clients', 'OrganizationController::getClientsByOrganization/$1');
