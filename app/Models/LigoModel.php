@@ -397,13 +397,31 @@ class LigoModel extends Model
         $startDate = $params['startDate'];
         $endDate = $params['endDate'];
         
-        if ($startDate && strpos($startDate, '-') !== false) {
-            $startDate = str_replace('-', '', $startDate);
-        }
+        // Función para convertir fecha a formato YYYYMMDD
+        $formatDate = function($date) {
+            if (!$date) return '';
+            
+            // Si ya está en formato YYYYMMDD (8 dígitos), devolverlo tal como está
+            if (preg_match('/^\d{8}$/', $date)) {
+                return $date;
+            }
+            
+            // Si está en formato YYYY-MM-DD, convertir
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                return str_replace('-', '', $date);
+            }
+            
+            // Intentar parsear la fecha y convertirla
+            try {
+                $dateObj = new \DateTime($date);
+                return $dateObj->format('Ymd');
+            } catch (\Exception $e) {
+                return '';
+            }
+        };
         
-        if ($endDate && strpos($endDate, '-') !== false) {
-            $endDate = str_replace('-', '', $endDate);
-        }
+        $startDate = $formatDate($startDate);
+        $endDate = $formatDate($endDate);
         
         $data = [
             'page' => $params['page'] ?? 1,
@@ -412,7 +430,9 @@ class LigoModel extends Model
             'empty' => false  // false para mostrar registros con data (no vacíos)
         ];
 
-        log_message('debug', 'LigoModel: Making recharges request with data: ' . json_encode($data));
+        log_message('error', 'LIGO RECHARGES DEBUG - Original dates: startDate=' . $params['startDate'] . ', endDate=' . $params['endDate']);
+        log_message('error', 'LIGO RECHARGES DEBUG - Converted dates: startDate=' . $startDate . ', endDate=' . $endDate);
+        log_message('error', 'LIGO RECHARGES DEBUG - Final request data: ' . json_encode($data));
         return $this->makeApiRequest('/v1/transactionsReportReception', 'POST', $data);
     }
 
