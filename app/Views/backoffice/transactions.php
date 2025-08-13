@@ -134,12 +134,26 @@ let currentFilters = {};
 
 $(document).ready(function() {
     // Establecer fecha por defecto (últimos 7 días incluyendo hoy)
+    console.log('Setting default dates for transactions...');
     const today = new Date();
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 7);
     
-    $('#endDate').val(today.toISOString().split('T')[0]);
-    $('#startDate').val(sevenDaysAgo.toISOString().split('T')[0]);
+    const todayStr = today.toISOString().split('T')[0];
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+    
+    console.log('Today:', todayStr, 'Seven days ago:', sevenDaysAgoStr);
+    
+    const endDateField = document.getElementById('endDate');
+    const startDateField = document.getElementById('startDate');
+    
+    if (endDateField && startDateField) {
+        endDateField.value = todayStr;
+        startDateField.value = sevenDaysAgoStr;
+        console.log('Dates set successfully');
+    } else {
+        console.error('Date fields not found');
+    }
     
     $('#transactionsForm').on('submit', function(e) {
         e.preventDefault();
@@ -286,8 +300,11 @@ function clearForm() {
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 7);
     
-    $('#endDate').val(today.toISOString().split('T')[0]);
-    $('#startDate').val(sevenDaysAgo.toISOString().split('T')[0]);
+    const todayStr = today.toISOString().split('T')[0];
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+    
+    document.getElementById('endDate').value = todayStr;
+    document.getElementById('startDate').value = sevenDaysAgoStr;
 }
 </script>
 <?= $this->endSection() ?>
