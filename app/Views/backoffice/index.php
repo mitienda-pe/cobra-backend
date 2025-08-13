@@ -88,7 +88,7 @@
                             <h4><i class="bi bi-gear-wide-connected"></i> Gestión del Sistema (Superadmin)</h4>
                             <hr>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-6 mb-3">
                             <div class="card text-center">
                                 <div class="card-body">
                                     <i class="bi bi-gear-wide-connected fa-3x text-danger mb-3"></i>
@@ -96,18 +96,6 @@
                                     <p class="card-text">Administra las credenciales centralizadas de Ligo</p>
                                     <a href="<?= site_url('superadmin/ligo-config') ?>" class="btn btn-danger">
                                         <i class="bi bi-gear-wide-connected"></i> Configurar
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <i class="fas fa-qrcode fa-3x text-secondary mb-3"></i>
-                                    <h5 class="card-title">Hashes QR</h5>
-                                    <p class="card-text">Gestiona los hashes QR generados por Ligo</p>
-                                    <a href="<?= base_url('backoffice/hashes') ?>" class="btn btn-secondary">
-                                        <i class="fas fa-qrcode"></i> Ver Hashes
                                     </a>
                                 </div>
                             </div>

@@ -226,8 +226,8 @@ class BackofficeController extends Controller
     public function hashes()
     {
         // Solo superadmin puede acceder
-        $auth = service('authentication');
-        if (!$auth->hasRole('superadmin')) {
+        $user = session()->get('user');
+        if (!$user || $user['role'] !== 'superadmin') {
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Página no encontrada');
         }
 
