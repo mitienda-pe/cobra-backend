@@ -462,9 +462,13 @@ class LigoModel extends Model
                 $qrResult = $qrQuery->getRowArray();
                 
                 if ($qrResult && !empty($qrResult['instalment_id'])) {
-                    // Buscar información del instalment - usar solo campos básicos por ahora
+                    // Buscar información del instalment con invoice y client
                     $instalmentQuery = $db->table('instalments i')
-                        ->select('i.id, i.uuid, i.invoice_id, i.number, i.amount, i.due_date, i.status, i.notes')
+                        ->select('i.id, i.uuid, i.invoice_id, i.number, i.amount, i.due_date, i.status, i.notes, 
+                                 inv.invoice_number, inv.concept, inv.total_amount, inv.currency,
+                                 c.name as client_name, c.email as client_email')
+                        ->join('invoices inv', 'i.invoice_id = inv.id', 'left')
+                        ->join('clients c', 'inv.client_id = c.id', 'left')
                         ->where('i.id', $qrResult['instalment_id'])
                         ->get();
                     
@@ -476,9 +480,12 @@ class LigoModel extends Model
                             'id' => $instalmentResult['id'],
                             'uuid' => $instalmentResult['uuid'],
                             'invoice_id' => $instalmentResult['invoice_id'],
-                            'invoice_number' => 'INV-' . $instalmentResult['invoice_id'], // Temporal hasta conocer estructura real
-                            'client_name' => 'Cliente', // Temporal hasta conocer estructura real
-                            'invoice_description' => $qrResult['description'] ?? 'Pago de cuota',
+                            'invoice_number' => $instalmentResult['invoice_number'] ?? 'N/A',
+                            'client_name' => $instalmentResult['client_name'] ?? 'Cliente sin nombre',
+                            'client_email' => $instalmentResult['client_email'] ?? '',
+                            'invoice_description' => $instalmentResult['concept'] ?? 'Pago de cuota',
+                            'invoice_total' => $instalmentResult['total_amount'] ?? $instalmentResult['amount'],
+                            'currency' => $instalmentResult['currency'] ?? 'PEN',
                             'number' => $instalmentResult['number'],
                             'amount' => $instalmentResult['amount'],
                             'due_date' => $instalmentResult['due_date'],
