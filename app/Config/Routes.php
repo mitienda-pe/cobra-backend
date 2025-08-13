@@ -25,8 +25,10 @@ $routes->post('auth/forgot-password', 'Auth::forgot_password');
 $routes->get('auth/reset-password/(:segment)', 'Auth::reset_password/$1');
 $routes->post('auth/reset-password/(:segment)', 'Auth::reset_password/$1');
 
-// Ligo QR Hash Management (moved from debug section)
-$routes->get('ligo/hashes', 'LigoQRHashViewController::index', ['filter' => 'auth']);
+// Ligo QR Hash Management (deprecated - moved to backoffice, redirect to new location)
+$routes->get('ligo/hashes', function() {
+    return redirect()->to('backoffice/hashes');
+}, ['filter' => 'auth']);
 $routes->get('ligo/debug/(:num)', 'LigoDebugController::debug/$1');
 $routes->get('ligo/debug', 'LigoDebugController::debug');
 $routes->get('ligo/test-qr/(:num)', 'LigoDebugController::testQR/$1');
@@ -265,6 +267,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('transfer', 'BackofficeController::transfer');
         $routes->post('transfer', 'BackofficeController::transfer');
         $routes->get('transfer-status/(:segment)', 'BackofficeController::transferStatus/$1');
+        $routes->get('hashes', 'BackofficeController::hashes');
     });
 
     // Debug Routes

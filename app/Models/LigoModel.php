@@ -500,7 +500,7 @@ class LigoModel extends Model
                     // Buscar información del instalment con invoice y cliente
                     $instalmentQuery = $db->table('instalments i')
                         ->select('i.id, i.uuid, i.invoice_id, i.number, i.amount, i.due_date, i.status, i.notes, 
-                                 inv.invoice_number, inv.concept, inv.total_amount, inv.currency, inv.client_id,
+                                 inv.invoice_number, inv.uuid as invoice_uuid, inv.concept, inv.total_amount, inv.currency, inv.client_id,
                                  c.business_name as client_business_name, c.contact_name as client_contact_name')
                         ->join('invoices inv', 'i.invoice_id = inv.id', 'left')
                         ->join('clients c', 'inv.client_id = c.id', 'left')

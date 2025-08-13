@@ -301,10 +301,7 @@ function displayRecharges(data) {
                 </small>
             `;
             actionButtons = `
-                <button class="btn btn-sm btn-outline-primary" onclick="viewInstalment('${inst.uuid}')" title="Ver Cuota">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-info" onclick="viewInvoice('${inst.invoice_id}')" title="Ver Factura">
+                <button class="btn btn-sm btn-outline-primary" onclick="viewInvoice('${inst.uuid}')" title="Ver Factura con Cuota">
                     <i class="fas fa-file-invoice"></i>
                 </button>
             `;
