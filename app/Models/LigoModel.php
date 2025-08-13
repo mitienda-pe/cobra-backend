@@ -60,15 +60,9 @@ class LigoModel extends Model
         $environment = env('CI_ENVIRONMENT', 'development');
         $orgEnvironment = $organization['ligo_environment'] ?? 'dev';
         
-        // Si estamos en producción, usar las credenciales de producción configuradas en la organización
-        // Si estamos en desarrollo, usar las credenciales según el entorno configurado en la organización
-        if ($environment === 'production' || $orgEnvironment === 'prod') {
-            $requiredFields = ['ligo_prod_username', 'ligo_prod_password', 'ligo_prod_company_id'];
-            $useEnv = 'prod';
-        } else {
-            $requiredFields = ['ligo_dev_username', 'ligo_dev_password', 'ligo_dev_company_id'];
-            $useEnv = 'dev';
-        }
+        // Usar campos legacy por ahora
+        $requiredFields = ['ligo_username', 'ligo_password', 'ligo_company_id'];
+        $useEnv = $orgEnvironment;
 
         foreach ($requiredFields as $field) {
             if (empty($organization[$field])) {
@@ -149,29 +143,19 @@ class LigoModel extends Model
 
     protected function getAuthToken($organization)
     {
-        $curl = curl_init();
-
         // Usar credenciales según el entorno de la organización
         $orgEnvironment = $organization['ligo_environment'] ?? 'dev';
         log_message('debug', 'LigoModel: Auth using environment: ' . $orgEnvironment);
         
-        if ($orgEnvironment === 'prod') {
-            $authData = [
-                'username' => $organization['ligo_prod_username'],
-                'password' => $organization['ligo_prod_password']
-            ];
-            $companyId = $organization['ligo_prod_company_id'];
-            $useEnv = 'prod';
-            log_message('debug', 'LigoModel: Using PROD credentials for auth');
-        } else {
-            $authData = [
-                'username' => $organization['ligo_dev_username'],
-                'password' => $organization['ligo_dev_password']
-            ];
-            $companyId = $organization['ligo_dev_company_id'];
-            $useEnv = 'dev';
-            log_message('debug', 'LigoModel: Using DEV credentials for auth');
-        }
+        // Usar campos legacy por ahora hasta que se migren los campos separados
+        $authData = [
+            'username' => $organization['ligo_username'],
+            'password' => $organization['ligo_password']
+        ];
+        $companyId = $organization['ligo_company_id'];
+        $privateKey = $organization['ligo_private_key'] ?? null;
+        $useEnv = $orgEnvironment;
+        log_message('debug', 'LigoModel: Using legacy credentials for ' . $orgEnvironment . ' environment');
 
         log_message('debug', 'LigoModel: Auth data - username: ' . ($authData['username'] ?? 'null') . ', company_id: ' . ($companyId ?? 'null'));
 
@@ -179,6 +163,12 @@ class LigoModel extends Model
         if (empty($authData['username']) || empty($authData['password']) || empty($companyId)) {
             log_message('error', 'LigoModel: Missing auth credentials for environment: ' . $orgEnvironment);
             return ['error' => "Missing authentication credentials for {$orgEnvironment} environment"];
+        }
+
+        // Verificar que la clave privada exista
+        if (empty($privateKey)) {
+            log_message('error', 'LigoModel: Private key not configured for environment: ' . $orgEnvironment);
+            return ['error' => "Private key not configured for {$orgEnvironment} environment"];
         }
 
         // Ajustar URL de auth según el entorno
@@ -191,6 +181,33 @@ class LigoModel extends Model
         $authUrl = $authBaseUrl . '/v1/auth/sign-in?companyId=' . $companyId;
         log_message('debug', 'LigoModel: Authenticating with URL: ' . $authUrl . ' and username: ' . $authData['username'] . ' for env: ' . $useEnv);
 
+        // Generar token JWT usando la clave privada (mismo método que LigoQRController)
+        try {
+            $formattedKey = \App\Libraries\JwtGenerator::formatPrivateKey($privateKey);
+
+            // Preparar payload
+            $payload = [
+                'companyId' => $companyId
+            ];
+
+            // Generar token JWT
+            $authorizationToken = \App\Libraries\JwtGenerator::generateToken($payload, $formattedKey, [
+                'issuer' => 'ligo',
+                'audience' => 'ligo-calidad.com',
+                'subject' => 'ligo@gmail.com',
+                'expiresIn' => 3600 // 1 hora
+            ]);
+
+            log_message('info', 'LigoModel: JWT token generated successfully');
+            log_message('debug', 'LigoModel: JWT token: ' . substr($authorizationToken, 0, 30) . '...');
+        } catch (\Exception $e) {
+            log_message('error', 'LigoModel: Error generating JWT token: ' . $e->getMessage());
+            return ['error' => 'Error generating JWT token: ' . $e->getMessage()];
+        }
+
+        $curl = curl_init();
+        $requestBody = json_encode($authData);
+
         curl_setopt_array($curl, [
             CURLOPT_URL => $authUrl,
             CURLOPT_RETURNTRANSFER => true,
@@ -199,9 +216,11 @@ class LigoModel extends Model
             CURLOPT_TIMEOUT => 30,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => json_encode($authData),
+            CURLOPT_POSTFIELDS => $requestBody,
             CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $authorizationToken,  // JWT token como LigoQRController
                 'Content-Type: application/json',
+                'Content-Length: ' . strlen($requestBody),
                 'Accept: application/json'
             ],
             CURLOPT_SSL_VERIFYHOST => 0,
@@ -229,13 +248,28 @@ class LigoModel extends Model
             return ['error' => $errorMessage, 'http_code' => $httpCode, 'raw_response' => $response];
         }
 
-        if (!isset($decodedResponse['data']['token'])) {
+        // Verificar si hay token en la respuesta (adaptado del formato de LigoQRController)
+        if (!isset($decodedResponse['data']['access_token']) && !isset($decodedResponse['data']['token'])) {
             log_message('error', 'Ligo Auth: No token in response: ' . $response);
-            return ['error' => 'Token de autenticación no recibido', 'raw_response' => $response];
+
+            // Extraer mensaje de error
+            $errorMsg = 'No token in auth response';
+            if (isset($decodedResponse['message'])) {
+                $errorMsg .= ': ' . $decodedResponse['message'];
+            } elseif (isset($decodedResponse['errors'])) {
+                $errorMsg .= ': ' . (is_string($decodedResponse['errors']) ? $decodedResponse['errors'] : json_encode($decodedResponse['errors']));
+            } elseif (isset($decodedResponse['error'])) {
+                $errorMsg .= ': ' . (is_string($decodedResponse['error']) ? $decodedResponse['error'] : json_encode($decodedResponse['error']));
+            }
+
+            return ['error' => $errorMsg, 'raw_response' => $response];
         }
 
+        // Obtener el token (dar prioridad a access_token como en LigoQRController)
+        $token = $decodedResponse['data']['access_token'] ?? $decodedResponse['data']['token'];
+
         log_message('debug', 'Ligo Auth: Token received successfully');
-        return ['token' => $decodedResponse['data']['token']];
+        return ['token' => $token];
     }
 
     public function getAccountBalance($debtorCCI)
@@ -259,9 +293,9 @@ class LigoModel extends Model
 
         log_message('debug', 'LigoModel: Organization found: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
 
-        // Determinar el entorno y obtener el account_id correspondiente
+        // Usar el account_id legacy por ahora
         $environment = $organization['ligo_environment'] ?? 'dev';
-        $accountId = $organization["ligo_{$environment}_account_id"] ?? null;
+        $accountId = $organization['ligo_account_id'] ?? null;
 
         log_message('debug', 'LigoModel: Environment: ' . $environment . ', Account ID: ' . ($accountId ?? 'null'));
 
@@ -309,9 +343,9 @@ class LigoModel extends Model
 
         log_message('debug', 'LigoModel: Organization found: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
 
-        // Determinar el entorno y obtener el account_id correspondiente
+        // Usar el account_id legacy por ahora
         $environment = $organization['ligo_environment'] ?? 'dev';
-        $accountId = $organization["ligo_{$environment}_account_id"] ?? null;
+        $accountId = $organization['ligo_account_id'] ?? null;
 
         log_message('debug', 'LigoModel: Environment: ' . $environment . ', Account ID: ' . ($accountId ?? 'null'));
 
