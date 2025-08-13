@@ -209,7 +209,14 @@ function searchRecharges() {
         },
         body: new URLSearchParams(formData)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.messages?.error || errorData.message || 'Error del servidor');
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (loading) loading.style.display = 'none';
         
@@ -225,7 +232,7 @@ function searchRecharges() {
     .catch(error => {
         if (loading) loading.style.display = 'none';
         const errorMessage = document.getElementById('errorMessage');
-        if (errorMessage) errorMessage.textContent = 'Error al buscar recargas';
+        if (errorMessage) errorMessage.textContent = error.message || 'Error al buscar recargas';
         if (errorResult) errorResult.style.display = 'block';
         console.error('Error:', error);
     });

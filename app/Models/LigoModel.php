@@ -239,22 +239,32 @@ class LigoModel extends Model
 
     public function getAccountBalanceForOrganization()
     {
+        log_message('debug', 'LigoModel: Getting account balance for organization');
+        
         $organization = $this->getOrganizationFromSession();
         if (!$organization) {
+            log_message('error', 'LigoModel: No organization found in session');
             return ['error' => 'No organization found in session'];
         }
+
+        log_message('debug', 'LigoModel: Organization found: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
 
         // Determinar el entorno y obtener el account_id correspondiente
         $environment = $organization['ligo_environment'] ?? 'dev';
         $accountId = $organization["ligo_{$environment}_account_id"] ?? null;
 
+        log_message('debug', 'LigoModel: Environment: ' . $environment . ', Account ID: ' . ($accountId ?? 'null'));
+
         if (empty($accountId)) {
+            log_message('error', 'LigoModel: No account ID configured for environment: ' . $environment);
             return ['error' => "No account ID configured for {$environment} environment"];
         }
 
         $data = [
             'debtorCCI' => $accountId
         ];
+        
+        log_message('debug', 'LigoModel: Making balance request with data: ' . json_encode($data));
         return $this->makeApiRequest('/v1/accountBalance', 'POST', $data);
     }
 
@@ -279,16 +289,24 @@ class LigoModel extends Model
 
     public function listTransactionsForOrganization($params)
     {
+        log_message('debug', 'LigoModel: Getting transactions for organization');
+        
         $organization = $this->getOrganizationFromSession();
         if (!$organization) {
+            log_message('error', 'LigoModel: No organization found in session');
             return ['error' => 'No organization found in session'];
         }
+
+        log_message('debug', 'LigoModel: Organization found: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
 
         // Determinar el entorno y obtener el account_id correspondiente
         $environment = $organization['ligo_environment'] ?? 'dev';
         $accountId = $organization["ligo_{$environment}_account_id"] ?? null;
 
+        log_message('debug', 'LigoModel: Environment: ' . $environment . ', Account ID: ' . ($accountId ?? 'null'));
+
         if (empty($accountId)) {
+            log_message('error', 'LigoModel: No account ID configured for environment: ' . $environment);
             return ['error' => "No account ID configured for {$environment} environment"];
         }
 
@@ -299,6 +317,7 @@ class LigoModel extends Model
             'debtorCCI' => $accountId  // Usar automáticamente el account_id de la organización
         ];
 
+        log_message('debug', 'LigoModel: Making transactions request with data: ' . json_encode($data));
         return $this->makeApiRequest('/v1/listTransactions', 'POST', $data);
     }
 

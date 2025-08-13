@@ -114,7 +114,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     'csrf_token_name': csrfToken
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.messages?.error || errorData.message || 'Error del servidor');
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (loading) loading.style.display = 'none';
                 
@@ -141,7 +148,19 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 if (loading) loading.style.display = 'none';
                 const errorMessage = document.getElementById('errorMessage');
-                if (errorMessage) errorMessage.textContent = 'Error al consultar el balance';
+                
+                // Intentar obtener el mensaje de error detallado
+                if (error instanceof Response) {
+                    error.json().then(errorData => {
+                        const message = errorData.messages?.error || errorData.message || 'Error al consultar el balance';
+                        if (errorMessage) errorMessage.textContent = message;
+                    }).catch(() => {
+                        if (errorMessage) errorMessage.textContent = 'Error al consultar el balance';
+                    });
+                } else {
+                    if (errorMessage) errorMessage.textContent = 'Error al consultar el balance: ' + error.message;
+                }
+                
                 if (errorResult) errorResult.style.display = 'block';
                 console.error('Error:', error);
             });
