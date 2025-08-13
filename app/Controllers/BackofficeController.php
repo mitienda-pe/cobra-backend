@@ -39,16 +39,8 @@ class BackofficeController extends Controller
         if ($this->request->isAJAX() && $this->request->getMethod() === 'post') {
             log_message('debug', 'BackofficeController: Processing balance request');
             
-            $debtorCCI = $this->request->getPost('debtorCCI');
-            
-            if (empty($debtorCCI)) {
-                log_message('error', 'BackofficeController: Empty debtorCCI received');
-                return $this->fail('El CCI del deudor es requerido', 400);
-            }
-
-            log_message('debug', 'BackofficeController: Requesting balance for CCI: ' . $debtorCCI);
-            
-            $response = $this->ligoModel->getAccountBalance($debtorCCI);
+            // Usar el account_id de la organización automáticamente
+            $response = $this->ligoModel->getAccountBalanceForOrganization();
             
             log_message('debug', 'BackofficeController: Balance response: ' . json_encode($response));
             
@@ -74,16 +66,14 @@ class BackofficeController extends Controller
             $requestData = [
                 'page' => $this->request->getPost('page') ?: 1,
                 'startDate' => $this->request->getPost('startDate'),
-                'endDate' => $this->request->getPost('endDate'),
-                'debtorCCI' => $this->request->getPost('debtorCCI'),
-                'creditorCCI' => $this->request->getPost('creditorCCI')
+                'endDate' => $this->request->getPost('endDate')
             ];
 
             if (empty($requestData['startDate']) || empty($requestData['endDate'])) {
                 return $this->fail('Las fechas de inicio y fin son requeridas', 400);
             }
 
-            $response = $this->ligoModel->listTransactions($requestData);
+            $response = $this->ligoModel->listTransactionsForOrganization($requestData);
             
             if (isset($response['error'])) {
                 return $this->fail($response['error'], 400);

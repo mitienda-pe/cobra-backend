@@ -18,6 +18,11 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        Se listarán las recargas de la cuenta de la organización seleccionada automáticamente.
+                    </div>
+                    
                     <form id="rechargesForm">
                         <div class="row">
                             <div class="col-md-4">

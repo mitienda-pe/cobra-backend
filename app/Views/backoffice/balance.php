@@ -18,26 +18,18 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        Se consultará el balance de la cuenta de la organización seleccionada automáticamente.
+                    </div>
+                    
                     <form id="balanceForm">
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="form-group">
-                                    <label for="debtorCCI">CCI del Deudor *</label>
-                                    <input type="text" class="form-control" id="debtorCCI" name="debtorCCI" 
-                                           placeholder="Ingrese el CCI de 20 dígitos" maxlength="20" required>
-                                    <small class="form-text text-muted">
-                                        Ejemplo: 92100171571742601040
-                                    </small>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>&nbsp;</label>
-                                    <div>
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-search"></i> Consultar Balance
-                                        </button>
-                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search"></i> Consultar Balance de la Organización
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -93,60 +85,62 @@
 </div>
 
 <script>
-$(document).ready(function() {
-    $('#balanceForm').on('submit', function(e) {
-        e.preventDefault();
-        
-        const debtorCCI = $('#debtorCCI').val().trim();
-        
-        if (!debtorCCI) {
-            alert('Por favor ingrese el CCI del deudor');
-            return;
-        }
-        
-        if (debtorCCI.length !== 20) {
-            alert('El CCI debe tener exactamente 20 dígitos');
-            return;
-        }
-        
-        $('#loading').show();
-        $('#balanceResult').hide();
-        $('#errorResult').hide();
-        
-        $.ajax({
-            url: '<?= base_url('backoffice/balance') ?>',
-            type: 'POST',
-            data: {
-                debtorCCI: debtorCCI
-            },
-            success: function(response) {
-                $('#loading').hide();
-                
-                if (response.data) {
-                    $('#resultCCI').text(debtorCCI);
-                    $('#resultBank').text(response.data.bankName || 'No disponible');
-                    $('#resultStatus').text(response.data.status || 'Activo');
-                    $('#resultBalance').text((response.data.balance || '0.00') + ' ' + (response.data.currency || 'PEN'));
-                    $('#resultTimestamp').text(new Date().toLocaleString());
-                    $('#balanceResult').show();
-                } else {
-                    $('#errorMessage').text('No se pudo obtener la información del balance');
-                    $('#errorResult').show();
-                }
-            },
-            error: function(xhr) {
-                $('#loading').hide();
-                const response = xhr.responseJSON;
-                $('#errorMessage').text(response?.messages?.error || 'Error al consultar el balance');
-                $('#errorResult').show();
-            }
-        });
-    });
+document.addEventListener('DOMContentLoaded', function() {
+    const balanceForm = document.getElementById('balanceForm');
     
-    // Validar solo números en el campo CCI
-    $('#debtorCCI').on('input', function() {
-        this.value = this.value.replace(/[^0-9]/g, '');
-    });
+    if (balanceForm) {
+        balanceForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const loading = document.getElementById('loading');
+            const balanceResult = document.getElementById('balanceResult');
+            const errorResult = document.getElementById('errorResult');
+            
+            if (loading) loading.style.display = 'block';
+            if (balanceResult) balanceResult.style.display = 'none';
+            if (errorResult) errorResult.style.display = 'none';
+            
+            fetch('<?= base_url('backoffice/balance') ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: new URLSearchParams({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (loading) loading.style.display = 'none';
+                
+                if (data.data) {
+                    const resultCCI = document.getElementById('resultCCI');
+                    const resultBank = document.getElementById('resultBank');
+                    const resultStatus = document.getElementById('resultStatus');
+                    const resultBalance = document.getElementById('resultBalance');
+                    const resultTimestamp = document.getElementById('resultTimestamp');
+                    
+                    if (resultCCI) resultCCI.textContent = data.data.debtorCCI || 'No disponible';
+                    if (resultBank) resultBank.textContent = data.data.bankName || 'No disponible';
+                    if (resultStatus) resultStatus.textContent = data.data.status || 'Activo';
+                    if (resultBalance) resultBalance.textContent = (data.data.balance || '0.00') + ' ' + (data.data.currency || 'PEN');
+                    if (resultTimestamp) resultTimestamp.textContent = new Date().toLocaleString();
+                    
+                    if (balanceResult) balanceResult.style.display = 'block';
+                } else {
+                    const errorMessage = document.getElementById('errorMessage');
+                    if (errorMessage) errorMessage.textContent = 'No se pudo obtener la información del balance';
+                    if (errorResult) errorResult.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                if (loading) loading.style.display = 'none';
+                const errorMessage = document.getElementById('errorMessage');
+                if (errorMessage) errorMessage.textContent = 'Error al consultar el balance';
+                if (errorResult) errorResult.style.display = 'block';
+                console.error('Error:', error);
+            });
+        });
+    }
 });
 </script>
 <?= $this->endSection() ?>

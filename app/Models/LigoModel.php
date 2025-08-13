@@ -237,6 +237,27 @@ class LigoModel extends Model
         return $this->makeApiRequest('/v1/accountBalance', 'POST', $data);
     }
 
+    public function getAccountBalanceForOrganization()
+    {
+        $organization = $this->getOrganizationFromSession();
+        if (!$organization) {
+            return ['error' => 'No organization found in session'];
+        }
+
+        // Determinar el entorno y obtener el account_id correspondiente
+        $environment = $organization['ligo_environment'] ?? 'dev';
+        $accountId = $organization["ligo_{$environment}_account_id"] ?? null;
+
+        if (empty($accountId)) {
+            return ['error' => "No account ID configured for {$environment} environment"];
+        }
+
+        $data = [
+            'debtorCCI' => $accountId
+        ];
+        return $this->makeApiRequest('/v1/accountBalance', 'POST', $data);
+    }
+
     public function listTransactions($params)
     {
         $data = [
@@ -252,6 +273,31 @@ class LigoModel extends Model
         if (!empty($params['creditorCCI'])) {
             $data['creditorCCI'] = $params['creditorCCI'];
         }
+
+        return $this->makeApiRequest('/v1/listTransactions', 'POST', $data);
+    }
+
+    public function listTransactionsForOrganization($params)
+    {
+        $organization = $this->getOrganizationFromSession();
+        if (!$organization) {
+            return ['error' => 'No organization found in session'];
+        }
+
+        // Determinar el entorno y obtener el account_id correspondiente
+        $environment = $organization['ligo_environment'] ?? 'dev';
+        $accountId = $organization["ligo_{$environment}_account_id"] ?? null;
+
+        if (empty($accountId)) {
+            return ['error' => "No account ID configured for {$environment} environment"];
+        }
+
+        $data = [
+            'page' => $params['page'] ?? 1,
+            'startDate' => $params['startDate'],
+            'endDate' => $params['endDate'],
+            'debtorCCI' => $accountId  // Usar automáticamente el account_id de la organización
+        ];
 
         return $this->makeApiRequest('/v1/listTransactions', 'POST', $data);
     }

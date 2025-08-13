@@ -19,49 +19,37 @@
                 </div>
                 <div class="card-body">
                     <form id="transactionsForm">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            Se listarán las transacciones de la cuenta de la organización seleccionada automáticamente.
+                        </div>
                         <div class="row">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="startDate">Fecha Inicio *</label>
                                     <input type="date" class="form-control" id="startDate" name="startDate" required>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="endDate">Fecha Fin *</label>
                                     <input type="date" class="form-control" id="endDate" name="endDate" required>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="debtorCCI">CCI Deudor (Opcional)</label>
-                                    <input type="text" class="form-control" id="debtorCCI" name="debtorCCI" 
-                                           placeholder="20 dígitos" maxlength="20">
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="creditorCCI">CCI Acreedor (Opcional)</label>
-                                    <input type="text" class="form-control" id="creditorCCI" name="creditorCCI" 
-                                           placeholder="20 dígitos" maxlength="20">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="page">Página</label>
                                     <input type="number" class="form-control" id="page" name="page" value="1" min="1">
                                 </div>
                             </div>
-                            <div class="col-md-9">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label>&nbsp;</label>
                                     <div>
                                         <button type="submit" class="btn btn-primary">
                                             <i class="fas fa-search"></i> Buscar Transacciones
                                         </button>
-                                        <button type="button" class="btn btn-secondary" onclick="clearForm()">
+                                        <button type="button" class="btn btn-secondary ml-2" onclick="clearForm()">
                                             <i class="fas fa-eraser"></i> Limpiar
                                         </button>
                                     </div>
@@ -92,8 +80,8 @@
                                     <tr>
                                         <th>ID</th>
                                         <th>Fecha</th>
-                                        <th>CCI Deudor</th>
-                                        <th>CCI Acreedor</th>
+                                        <th>Tipo</th>
+                                        <th>CCI Contraparte</th>
                                         <th>Monto</th>
                                         <th>Moneda</th>
                                         <th>Estado</th>
@@ -196,25 +184,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Validar solo números en campos CCI
-    const debtorCCI = document.getElementById('debtorCCI');
-    const creditorCCI = document.getElementById('creditorCCI');
-    
-    [debtorCCI, creditorCCI].forEach(field => {
-        if (field) {
-            field.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9]/g, '');
-            });
-        }
-    });
 });
 
 function searchTransactions() {
     const formData = {
         startDate: document.getElementById('startDate').value,
         endDate: document.getElementById('endDate').value,
-        debtorCCI: document.getElementById('debtorCCI').value.trim(),
-        creditorCCI: document.getElementById('creditorCCI').value.trim(),
         page: currentPage
     };
     
@@ -279,11 +254,16 @@ function displayTransactions(data) {
     
     transactions.forEach(function(transaction) {
         const row = document.createElement('tr');
+        const transactionType = transaction.debtorCCI === transaction.creditorCCI ? 'Interno' : 
+                               (transaction.type || 'Transferencia');
+        const counterparty = transaction.debtorCCI !== transaction.creditorCCI ? 
+                            (transaction.creditorCCI || transaction.debtorCCI || 'N/A') : 'Cuenta propia';
+        
         row.innerHTML = `
             <td>${transaction.id || 'N/A'}</td>
             <td>${formatDate(transaction.date)}</td>
-            <td>${transaction.debtorCCI || 'N/A'}</td>
-            <td>${transaction.creditorCCI || 'N/A'}</td>
+            <td><span class="badge badge-info">${transactionType}</span></td>
+            <td><small>${counterparty}</small></td>
             <td class="text-right">${formatAmount(transaction.amount)}</td>
             <td>${transaction.currency || 'PEN'}</td>
             <td><span class="badge badge-${getStatusBadge(transaction.status)}">${transaction.status || 'Pendiente'}</span></td>
