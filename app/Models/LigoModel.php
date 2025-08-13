@@ -60,9 +60,15 @@ class LigoModel extends Model
         $environment = env('CI_ENVIRONMENT', 'development');
         $orgEnvironment = $organization['ligo_environment'] ?? 'dev';
         
-        // Usar campos legacy por ahora
-        $requiredFields = ['ligo_username', 'ligo_password', 'ligo_company_id'];
-        $useEnv = $orgEnvironment;
+        // Si estamos en producción, usar las credenciales de producción configuradas en la organización
+        // Si estamos en desarrollo, usar las credenciales según el entorno configurado en la organización
+        if ($environment === 'production' || $orgEnvironment === 'prod') {
+            $requiredFields = ['ligo_prod_username', 'ligo_prod_password', 'ligo_prod_company_id'];
+            $useEnv = 'prod';
+        } else {
+            $requiredFields = ['ligo_dev_username', 'ligo_dev_password', 'ligo_dev_company_id'];
+            $useEnv = 'dev';
+        }
 
         foreach ($requiredFields as $field) {
             if (empty($organization[$field])) {
@@ -147,15 +153,25 @@ class LigoModel extends Model
         $orgEnvironment = $organization['ligo_environment'] ?? 'dev';
         log_message('debug', 'LigoModel: Auth using environment: ' . $orgEnvironment);
         
-        // Usar campos legacy por ahora hasta que se migren los campos separados
-        $authData = [
-            'username' => $organization['ligo_username'],
-            'password' => $organization['ligo_password']
-        ];
-        $companyId = $organization['ligo_company_id'];
-        $privateKey = $organization['ligo_private_key'] ?? null;
-        $useEnv = $orgEnvironment;
-        log_message('debug', 'LigoModel: Using legacy credentials for ' . $orgEnvironment . ' environment');
+        if ($orgEnvironment === 'prod') {
+            $authData = [
+                'username' => $organization['ligo_prod_username'],
+                'password' => $organization['ligo_prod_password']
+            ];
+            $companyId = $organization['ligo_prod_company_id'];
+            $privateKey = $organization['ligo_prod_private_key'] ?? null;
+            $useEnv = 'prod';
+            log_message('debug', 'LigoModel: Using PROD credentials for auth');
+        } else {
+            $authData = [
+                'username' => $organization['ligo_dev_username'],
+                'password' => $organization['ligo_dev_password']
+            ];
+            $companyId = $organization['ligo_dev_company_id'];
+            $privateKey = $organization['ligo_dev_private_key'] ?? null;
+            $useEnv = 'dev';
+            log_message('debug', 'LigoModel: Using DEV credentials for auth');
+        }
 
         log_message('debug', 'LigoModel: Auth data - username: ' . ($authData['username'] ?? 'null') . ', company_id: ' . ($companyId ?? 'null'));
 
@@ -293,9 +309,9 @@ class LigoModel extends Model
 
         log_message('debug', 'LigoModel: Organization found: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
 
-        // Usar el account_id legacy por ahora
+        // Determinar el entorno y obtener el account_id correspondiente
         $environment = $organization['ligo_environment'] ?? 'dev';
-        $accountId = $organization['ligo_account_id'] ?? null;
+        $accountId = $organization["ligo_{$environment}_account_id"] ?? null;
 
         log_message('debug', 'LigoModel: Environment: ' . $environment . ', Account ID: ' . ($accountId ?? 'null'));
 
@@ -343,9 +359,9 @@ class LigoModel extends Model
 
         log_message('debug', 'LigoModel: Organization found: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
 
-        // Usar el account_id legacy por ahora
+        // Determinar el entorno y obtener el account_id correspondiente
         $environment = $organization['ligo_environment'] ?? 'dev';
-        $accountId = $organization['ligo_account_id'] ?? null;
+        $accountId = $organization["ligo_{$environment}_account_id"] ?? null;
 
         log_message('debug', 'LigoModel: Environment: ' . $environment . ', Account ID: ' . ($accountId ?? 'null'));
 
