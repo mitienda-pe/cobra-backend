@@ -220,12 +220,12 @@ function searchRecharges() {
     .then(data => {
         if (loading) loading.style.display = 'none';
         
-        if (data.data && data.data.recharges) {
+        if (data.data && data.data.records && data.data.records.length > 0) {
             displayRecharges(data.data);
             if (rechargesResult) rechargesResult.style.display = 'block';
         } else {
             const errorMessage = document.getElementById('errorMessage');
-            if (errorMessage) errorMessage.textContent = 'No se encontraron recargas';
+            if (errorMessage) errorMessage.textContent = 'No se encontraron recargas en el rango de fechas seleccionado';
             if (errorResult) errorResult.style.display = 'block';
         }
     })
@@ -239,36 +239,46 @@ function searchRecharges() {
 }
 
 function displayRecharges(data) {
-    const recharges = data.recharges || [];
-    const total = data.total || 0;
-    const totalAmount = data.totalAmount || 0;
+    const recharges = data.records || [];
+    const total = data.detail ? data.detail.totalRecords : 0;
     const tbody = document.getElementById('rechargesTableBody');
     const totalResults = document.getElementById('totalResults');
     const totalAmountElement = document.getElementById('totalAmount');
     
+    // Calcular monto total de las recargas mostradas
+    const totalAmount = recharges.reduce((sum, recharge) => sum + (parseFloat(recharge.amount) || 0), 0);
+    
     if (tbody) tbody.innerHTML = '';
     if (totalResults) totalResults.textContent = total + ' resultados';
-    if (totalAmountElement) totalAmountElement.textContent = 'Total: S/ ' + parseFloat(totalAmount).toFixed(2);
+    if (totalAmountElement) {
+        const currency = recharges.length > 0 && recharges[0].currency === '604' ? 'S/' : 'S/';
+        totalAmountElement.textContent = `Total: ${currency} ${totalAmount.toFixed(2)}`;
+    }
     
     if (recharges.length === 0) {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center">No se encontraron recargas</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center">No se encontraron recargas QR</td></tr>';
         return;
     }
     
     recharges.forEach(function(recharge) {
         const row = document.createElement('tr');
+        const currency = recharge.currency === '604' ? 'PEN' : 
+                        recharge.currency === '840' ? 'USD' : 'PEN';
+        const status = recharge.responseCode === '00' ? 'Completado' : 'Error';
+        const typeLabel = recharge.type === 'recharge' ? 'Recarga QR' : recharge.type || 'Recarga';
+        
         row.innerHTML = `
-            <td>${recharge.id || 'N/A'}</td>
-            <td>${formatDate(recharge.date)}</td>
-            <td><span class="badge badge-info">${recharge.type || 'Recarga'}</span></td>
+            <td><small>${recharge.transferId || recharge.instructionId || 'N/A'}</small></td>
+            <td>${formatDate(recharge.createdAt)}</td>
+            <td><span class="badge badge-success">${typeLabel}</span></td>
             <td class="text-right font-weight-bold text-success">
                 + ${formatAmount(recharge.amount)}
             </td>
-            <td>${recharge.currency || 'PEN'}</td>
-            <td><small>${recharge.sourceAccount || 'N/A'}</small></td>
-            <td><small>${recharge.destinationAccount || 'N/A'}</small></td>
-            <td><span class="badge badge-${getStatusBadge(recharge.status)}">${recharge.status || 'Completado'}</span></td>
-            <td><small>${recharge.reference || 'N/A'}</small></td>
+            <td>${currency}</td>
+            <td><small><strong>${recharge.debtorCCI}</strong><br>${recharge.debtorName || 'N/A'}</small></td>
+            <td><small><strong>${recharge.creditorCCI}</strong><br>${recharge.creditorName || 'N/A'}</small></td>
+            <td><span class="badge badge-${getStatusBadge(recharge.responseCode)}">${status}</span></td>
+            <td><small>${recharge.referenceTransactionId || recharge.instructionId || 'N/A'}</small></td>
         `;
         if (tbody) tbody.appendChild(row);
     });
@@ -294,22 +304,9 @@ function formatAmount(amount) {
     return parseFloat(amount).toFixed(2);
 }
 
-function getStatusBadge(status) {
-    switch (status) {
-        case 'completed':
-        case 'success':
-        case 'exitoso':
-            return 'success';
-        case 'failed':
-        case 'error':
-        case 'fallido':
-            return 'danger';
-        case 'pending':
-        case 'pendiente':
-            return 'warning';
-        default:
-            return 'secondary';
-    }
+function getStatusBadge(responseCode) {
+    // Según documentación: responseCode "00" = exitoso
+    return responseCode === '00' ? 'success' : 'danger';
 }
 
 function clearForm() {

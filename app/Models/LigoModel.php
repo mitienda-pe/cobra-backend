@@ -393,13 +393,26 @@ class LigoModel extends Model
 
     public function listRecharges($params)
     {
+        // Convertir fechas del formato YYYY-MM-DD a YYYYMMDD según documentación
+        $startDate = $params['startDate'];
+        $endDate = $params['endDate'];
+        
+        if ($startDate && strpos($startDate, '-') !== false) {
+            $startDate = str_replace('-', '', $startDate);
+        }
+        
+        if ($endDate && strpos($endDate, '-') !== false) {
+            $endDate = str_replace('-', '', $endDate);
+        }
+        
         $data = [
             'page' => $params['page'] ?? 1,
-            'startDate' => $params['startDate'],
-            'endDate' => $params['endDate'],
-            'empty' => false  // false para mostrar registros con data
+            'startDate' => $startDate,  // Formato YYYYMMDD
+            'endDate' => $endDate,      // Formato YYYYMMDD
+            'empty' => false  // false para mostrar registros con data (no vacíos)
         ];
 
+        log_message('debug', 'LigoModel: Making recharges request with data: ' . json_encode($data));
         return $this->makeApiRequest('/v1/transactionsReportReception', 'POST', $data);
     }
 
