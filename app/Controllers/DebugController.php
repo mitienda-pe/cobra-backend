@@ -36,22 +36,29 @@ class DebugController extends Controller
             'organization' => $organization ? [
                 'id' => $organization['id'],
                 'name' => $organization['name'],
-                'has_ligo_username' => !empty($organization['ligo_username']),
-                'has_ligo_password' => !empty($organization['ligo_password']),
-                'has_ligo_company_id' => !empty($organization['ligo_company_id']),
+                'ligo_environment' => $organization['ligo_environment'] ?? 'dev',
+                'has_ligo_dev_username' => !empty($organization['ligo_dev_username']),
+                'has_ligo_dev_password' => !empty($organization['ligo_dev_password']),
+                'has_ligo_dev_company_id' => !empty($organization['ligo_dev_company_id']),
                 'has_ligo_prod_username' => !empty($organization['ligo_prod_username']),
                 'has_ligo_prod_password' => !empty($organization['ligo_prod_password']),
                 'has_ligo_prod_company_id' => !empty($organization['ligo_prod_company_id']),
-                'ligo_enabled' => $organization['ligo_enabled'] ?? false
+                'ligo_enabled' => $organization['ligo_enabled'] ?? false,
+                'actual_fields' => [
+                    'ligo_dev_username' => $organization['ligo_dev_username'] ?? null,
+                    'ligo_prod_username' => $organization['ligo_prod_username'] ?? null
+                ]
             ] : null,
             'urls' => [
                 'environment' => $environment,
-                'ligo_base_url' => $environment === 'production' 
-                    ? env('LIGO_PROD_URL', 'https://api.ligo.pe')
-                    : env('LIGO_DEV_URL', 'https://dev-api.ligo.pe'),
-                'ligo_auth_url' => $environment === 'production'
-                    ? env('LIGO_PROD_AUTH_URL', 'https://auth.ligo.pe')
-                    : env('LIGO_DEV_AUTH_URL', 'https://dev-auth.ligo.pe')
+                'org_environment' => $organization ? ($organization['ligo_environment'] ?? 'dev') : 'dev',
+                'final_environment' => ($environment === 'production' || ($organization && ($organization['ligo_environment'] ?? 'dev') === 'prod')) ? 'prod' : 'dev',
+                'ligo_base_url' => ($environment === 'production' || ($organization && ($organization['ligo_environment'] ?? 'dev') === 'prod')) 
+                    ? 'https://cce-api-gateway-prod.ligocloud.tech'
+                    : 'https://cce-api-gateway-dev.ligocloud.tech',
+                'ligo_auth_url' => ($environment === 'production' || ($organization && ($organization['ligo_environment'] ?? 'dev') === 'prod'))
+                    ? 'https://cce-auth-prod.ligocloud.tech'
+                    : 'https://cce-auth-dev.ligocloud.tech'
             ]
         ];
         

@@ -56,22 +56,37 @@ class LigoModel extends Model
             return ['error' => 'No hay organización seleccionada'];
         }
 
-        // Verificar credenciales según el entorno
+        // Verificar credenciales según el entorno configurado en la organización
         $environment = env('CI_ENVIRONMENT', 'development');
-        if ($environment === 'production') {
+        $orgEnvironment = $organization['ligo_environment'] ?? 'dev';
+        
+        // Si estamos en producción, usar las credenciales de producción configuradas en la organización
+        // Si estamos en desarrollo, usar las credenciales según el entorno configurado en la organización
+        if ($environment === 'production' || $orgEnvironment === 'prod') {
             $requiredFields = ['ligo_prod_username', 'ligo_prod_password', 'ligo_prod_company_id'];
+            $useEnv = 'prod';
         } else {
-            $requiredFields = ['ligo_username', 'ligo_password', 'ligo_company_id'];
+            $requiredFields = ['ligo_dev_username', 'ligo_dev_password', 'ligo_dev_company_id'];
+            $useEnv = 'dev';
         }
 
         foreach ($requiredFields as $field) {
             if (empty($organization[$field])) {
-                log_message('error', 'LigoModel: Missing credential field: ' . $field . ' for environment: ' . $environment);
-                return ['error' => 'Credenciales de Ligo no configuradas para ' . $environment . '. Falta: ' . $field];
+                log_message('error', 'LigoModel: Missing credential field: ' . $field . ' for useEnv: ' . $useEnv);
+                return ['error' => 'Credenciales de Ligo no configuradas para ' . $useEnv . '. Falta: ' . $field];
             }
         }
         
-        log_message('debug', 'LigoModel: Using environment: ' . $environment . ' with URL: ' . $this->ligoBaseUrl);
+        log_message('debug', 'LigoModel: Using environment: ' . $environment . ', org environment: ' . $orgEnvironment . ', final env: ' . $useEnv . ' with URL: ' . $this->ligoBaseUrl);
+        
+        // Ajustar URLs según el entorno que se va a usar
+        if ($useEnv === 'prod') {
+            $this->ligoBaseUrl = 'https://cce-api-gateway-prod.ligocloud.tech';
+            $this->ligoAuthUrl = 'https://cce-auth-prod.ligocloud.tech';
+        } else {
+            $this->ligoBaseUrl = 'https://cce-api-gateway-dev.ligocloud.tech';
+            $this->ligoAuthUrl = 'https://cce-auth-dev.ligocloud.tech';
+        }
 
         $curl = curl_init();
         $url = $this->ligoBaseUrl . $endpoint;
@@ -136,22 +151,33 @@ class LigoModel extends Model
 
         // Usar credenciales según el entorno
         $environment = env('CI_ENVIRONMENT', 'development');
-        if ($environment === 'production') {
+        $orgEnvironment = $organization['ligo_environment'] ?? 'dev';
+        
+        if ($environment === 'production' || $orgEnvironment === 'prod') {
             $authData = [
                 'username' => $organization['ligo_prod_username'],
                 'password' => $organization['ligo_prod_password']
             ];
             $companyId = $organization['ligo_prod_company_id'];
+            $useEnv = 'prod';
         } else {
             $authData = [
-                'username' => $organization['ligo_username'],
-                'password' => $organization['ligo_password']
+                'username' => $organization['ligo_dev_username'],
+                'password' => $organization['ligo_dev_password']
             ];
-            $companyId = $organization['ligo_company_id'];
+            $companyId = $organization['ligo_dev_company_id'];
+            $useEnv = 'dev';
         }
 
-        $authUrl = $this->ligoAuthUrl . '/v1/auth/sign-in?companyId=' . $companyId;
-        log_message('debug', 'LigoModel: Authenticating with URL: ' . $authUrl . ' and username: ' . $authData['username']);
+        // Ajustar URL de auth según el entorno
+        if ($useEnv === 'prod') {
+            $authBaseUrl = 'https://cce-auth-prod.ligocloud.tech';
+        } else {
+            $authBaseUrl = 'https://cce-auth-dev.ligocloud.tech';
+        }
+        
+        $authUrl = $authBaseUrl . '/v1/auth/sign-in?companyId=' . $companyId;
+        log_message('debug', 'LigoModel: Authenticating with URL: ' . $authUrl . ' and username: ' . $authData['username'] . ' for env: ' . $useEnv);
 
         curl_setopt_array($curl, [
             CURLOPT_URL => $authUrl,
