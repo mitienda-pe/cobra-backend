@@ -203,17 +203,10 @@ class SuperadminLigoConfigModel extends Model
             ];
         }
 
-        // Default URLs
-        if ($environment === 'prod') {
-            return [
-                'auth_url' => 'https://auth.ligo.pe',
-                'api_url' => 'https://api.ligo.pe'
-            ];
-        } else {
-            return [
-                'auth_url' => 'https://dev-auth.ligo.pe',
-                'api_url' => 'https://dev-api.ligo.pe'
-            ];
-        }
+        // Default URLs - revert to working URLs from logs
+        return [
+            'auth_url' => "https://cce-auth-{$environment}.ligocloud.tech",
+            'api_url' => "https://cce-api-gateway-{$environment}.ligocloud.tech"
+        ];
     }
 }
