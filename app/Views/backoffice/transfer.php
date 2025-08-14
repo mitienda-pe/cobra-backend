@@ -54,28 +54,17 @@
                             
                             <div class="col-md-6">
                                 <h5>Datos del Acreedor y Transferencia</h5>
-                                <div class="form-group">
-                                    <label for="organization_id">Organización Destino *</label>
-                                    <select class="form-control" id="organization_id" name="organization_id" required>
-                                        <option value="">Seleccionar organización...</option>
-                                        <?php if (isset($organizations) && is_array($organizations)): ?>
-                                            <?php foreach ($organizations as $org): ?>
-                                                <option value="<?= $org['id'] ?>" data-cci="<?= esc($org['cci'] ?? '') ?>" data-code="<?= esc($org['code']) ?>">
-                                                    <?= esc($org['name']) ?> (<?= esc($org['code']) ?>)
-                                                    <?php if (empty($org['cci'])): ?>
-                                                        - Sin CCI configurado
-                                                    <?php endif; ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </select>
-                                    <small class="form-text text-muted">Seleccione la organización que recibirá la transferencia</small>
+                                <div class="alert alert-success">
+                                    <i class="fas fa-building"></i> 
+                                    <strong>Organización Destino:</strong><br>
+                                    <?= esc($organization['name']) ?> (<?= esc($organization['code']) ?>)
                                 </div>
+                                
                                 <div class="form-group">
                                     <label for="creditorCCI">CCI del Acreedor *</label>
                                     <input type="text" class="form-control" id="creditorCCI" name="creditorCCI" 
-                                           placeholder="Se cargará automáticamente al seleccionar organización" maxlength="20" readonly required>
-                                    <small class="form-text text-muted">CCI de 20 dígitos de la organización seleccionada</small>
+                                           value="<?= esc($organization['cci']) ?>" maxlength="20" readonly required>
+                                    <small class="form-text text-muted">CCI de 20 dígitos de la organización: <?= esc($organization['name']) ?></small>
                                 </div>
                                 <div class="form-group">
                                     <label for="amount">Monto *</label>
@@ -92,7 +81,7 @@
                                 <div class="form-group">
                                     <label for="unstructuredInformation">Concepto de la Transferencia</label>
                                     <textarea class="form-control" id="unstructuredInformation" name="unstructuredInformation" 
-                                              rows="3" placeholder="Pago de comisiones/cuotas a organización"></textarea>
+                                              rows="3" placeholder="Pago de comisiones a <?= esc($organization['code']) ?>">Pago de comisiones a organización <?= esc($organization['code']) ?></textarea>
                                 </div>
                             </div>
                         </div>
@@ -236,42 +225,19 @@ $(document).ready(function() {
         processTransfer();
     });
     
-    // Validar solo números en CCI
+    // Validar solo números en CCI (aunque sea readonly, por si se modifica)
     $('#creditorCCI').on('input', function() {
         this.value = this.value.replace(/[^0-9]/g, '');
-    });
-    
-    // Cargar CCI automáticamente al seleccionar organización
-    $('#organization_id').on('change', function() {
-        const selectedOption = $(this).find('option:selected');
-        const cci = selectedOption.data('cci');
-        const organizationCode = selectedOption.data('code');
-        
-        if (cci) {
-            $('#creditorCCI').val(cci);
-            // Auto-completar el concepto
-            $('#unstructuredInformation').val(`Pago de comisiones a organización ${organizationCode}`);
-        } else {
-            $('#creditorCCI').val('');
-            alert('La organización seleccionada no tiene CCI configurado. Configure el CCI en la edición de la organización.');
-        }
     });
 });
 
 function processTransfer() {
     const formData = {
-        organization_id: $('#organization_id').val(),
         creditorCCI: $('#creditorCCI').val(),
         amount: $('#amount').val(),
         currency: $('#currency').val(),
         unstructuredInformation: $('#unstructuredInformation').val()
     };
-    
-    // Validaciones básicas
-    if (!formData.organization_id) {
-        alert('Debe seleccionar una organización destino');
-        return;
-    }
     
     if (!formData.creditorCCI || formData.creditorCCI.length !== 20) {
         alert('El CCI del acreedor debe tener exactamente 20 dígitos');

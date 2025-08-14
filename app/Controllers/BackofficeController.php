@@ -166,15 +166,25 @@ class BackofficeController extends Controller
 
     public function transfer()
     {
-        // Cargar datos para el formulario
+        // Obtener organización seleccionada del contexto (solo para superadmin)
+        $selectedOrgId = session()->get('selected_organization_id');
+        if (!$selectedOrgId) {
+            return redirect()->to('organizations')->with('error', 'Debe seleccionar una organización primero');
+        }
+        
         $organizationModel = new \App\Models\OrganizationModel();
         $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
         
-        // Obtener organizaciones con CCI configurado
-        $organizations = $organizationModel->where('status', 'active')
-                                           ->where('cci IS NOT NULL')
-                                           ->where('cci !=', '')
-                                           ->findAll();
+        // Obtener la organización seleccionada
+        $organization = $organizationModel->find($selectedOrgId);
+        if (!$organization || $organization['status'] !== 'active') {
+            return redirect()->to('organizations')->with('error', 'Organización no válida o inactiva');
+        }
+        
+        // Validar que la organización tenga CCI configurado
+        if (empty($organization['cci'])) {
+            return redirect()->back()->with('error', 'La organización seleccionada no tiene CCI configurado. Configure el CCI en la edición de la organización.');
+        }
         
         // Obtener configuración activa del superadmin
         $superadminConfig = $superadminLigoConfigModel->where('enabled', 1)
@@ -184,7 +194,7 @@ class BackofficeController extends Controller
         $data = [
             'title' => 'Transferencia Ordinaria - Ligo',
             'breadcrumb' => 'Transferencia Ordinaria',
-            'organizations' => $organizations,
+            'organization' => $organization,
             'superadminConfig' => $superadminConfig
         ];
 
@@ -196,22 +206,10 @@ class BackofficeController extends Controller
                 }
                 return redirect()->back()->with('error', 'No hay configuración de Ligo del superadmin disponible');
             }
-            
-            // Obtener datos de la organización destino
-            $organizationId = $this->request->getPost('organization_id');
-            $organization = $organizationModel->find($organizationId);
-            
-            if (!$organization || !$organization['cci']) {
-                if ($this->request->isAJAX()) {
-                    return $this->fail('Organización no válida o sin CCI configurado', 400);
-                }
-                return redirect()->back()->with('error', 'Organización no válida o sin CCI configurado');
-            }
 
-            // Construir datos de transferencia usando configuración centralizada
+            // Construir datos de transferencia usando la organización del contexto
             $transferData = [
-                // Los datos del deudor ahora vienen de la configuración del superadmin
-                'organization_id' => $organizationId,
+                'organization_id' => $selectedOrgId,
                 'creditorCCI' => $this->request->getPost('creditorCCI'),
                 'amount' => $this->request->getPost('amount'),
                 'currency' => $this->request->getPost('currency') ?: 'PEN',
