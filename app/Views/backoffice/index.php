@@ -57,14 +57,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <?php 
-                    // Show hashes section for superadmin
-                    $user = session()->get('user');
-                    $isSuperadmin = isset($user) && $user['role'] === 'superadmin';
-                    if ($isSuperadmin): ?>
-                    <div class="row mt-3">
+                        
                         <div class="col-md-3 mb-3">
                             <div class="card text-center">
                                 <div class="card-body">
@@ -75,20 +68,8 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <?php 
-                    // Only show configuration section for superadmin
-                    $user = session()->get('user');
-                    $isSuperadmin = isset($user) && $user['role'] === 'superadmin';
-                    if ($isSuperadmin): ?>
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <h4><i class="bi bi-gear-wide-connected"></i> Gestión del Sistema (Superadmin)</h4>
-                            <hr>
-                        </div>
-                        <div class="col-md-6 mb-3">
+                        
+                        <div class="col-md-3 mb-3">
                             <div class="card text-center">
                                 <div class="card-body">
                                     <i class="bi bi-gear-wide-connected fa-3x text-danger mb-3"></i>
@@ -101,7 +82,6 @@
                             </div>
                         </div>
                     </div>
-                    <?php endif; ?>
                 </div>
             </div>
         </div>

@@ -254,8 +254,8 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('(:num)/retry', 'WebhookController::retry/$1');
     });
 
-    // Backoffice Routes
-    $routes->group('backoffice', function ($routes) {
+    // Backoffice Routes - Superadmin only
+    $routes->group('backoffice', ['filter' => 'superadmin'], function ($routes) {
         $routes->get('/', 'BackofficeController::index');
         $routes->get('balance', 'BackofficeController::balance');
         $routes->post('balance', 'BackofficeController::balance');

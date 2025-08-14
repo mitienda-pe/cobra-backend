@@ -225,12 +225,6 @@ class BackofficeController extends Controller
 
     public function hashes()
     {
-        // Solo superadmin puede acceder
-        $user = session()->get('user');
-        if (!$user || $user['role'] !== 'superadmin') {
-            throw new \CodeIgniter\Exceptions\PageNotFoundException('Página no encontrada');
-        }
-
         $ligoQRHashModel = new \App\Models\LigoQRHashModel();
         $paymentModel = new \App\Models\PaymentModel();
         
