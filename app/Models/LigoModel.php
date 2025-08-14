@@ -915,11 +915,12 @@ class LigoModel extends Model
                 }
             }
 
-            // Build creditor data
+            // Build creditor data - use organization CCI if available, otherwise use provided CCI
+            $finalCreditorCCI = $organization['cci'] ?? $creditorCCI;
             $creditorData = [
-                'participantCode' => substr($creditorCCI, 0, 3),  // First 3 digits of CCI
-                'cci' => $creditorCCI,
-                'name' => 'Cuenta Destino'  // Generic name for now
+                'participantCode' => substr($finalCreditorCCI, 0, 3),  // First 3 digits of CCI
+                'cci' => $finalCreditorCCI,
+                'name' => $organization['name'] ?? 'Cuenta Destino'
             ];
 
             // Account Inquiry API call
@@ -940,7 +941,8 @@ class LigoModel extends Model
                 'currency' => $currency === 'PEN' ? '604' : '840'
             ];
 
-            log_message('info', 'LigoModel: Performing account inquiry for CCI: ' . $creditorCCI);
+            log_message('info', 'LigoModel: Performing account inquiry for CCI: ' . $finalCreditorCCI);
+            log_message('debug', 'LigoModel: AccountInquiry data: ' . json_encode($accountInquiryData));
             
             $response = $this->makeApiRequest('/v1/accountInquiry', 'POST', $accountInquiryData);
             
