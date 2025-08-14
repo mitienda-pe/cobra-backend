@@ -915,8 +915,8 @@ class LigoModel extends Model
                 }
             }
 
-            // Build creditor data - use organization CCI if available, otherwise use provided CCI
-            $finalCreditorCCI = $organization['cci'] ?? $creditorCCI;
+            // Build creditor data - use the CCI provided by user (destination account)
+            $finalCreditorCCI = $creditorCCI;
             $creditorData = [
                 'participantCode' => '0049',  // Fixed creditor participant code for Mi Banco
                 'cci' => $finalCreditorCCI,
