@@ -994,7 +994,7 @@ class LigoModel extends Model
                 log_message('debug', 'LigoModel: Attempt ' . $attempt . '/' . $maxAttempts . ' for endpoint: ' . $endpoint);
                 
                 if ($attempt > 1) {
-                    sleep(2); // Additional delay between attempts
+                    sleep(3); // Longer delay between attempts - production might be slower
                 }
                 
                 $response = $this->makeApiRequest($endpoint, 'GET');
@@ -1005,13 +1005,24 @@ class LigoModel extends Model
                     continue;
                 }
                 
-                // Check if we have valid data (accept any response format for now)
+                // Check if we have valid data
                 $data = $response['data'] ?? [];
                 log_message('debug', 'LigoModel: Attempt ' . $attempt . ' response data: ' . json_encode($data));
                 
-                // Success if we get any response without error
-                log_message('info', 'LigoModel: Success on attempt ' . $attempt);
-                break;
+                // Check if data contains actual account information
+                if (!empty($data) && (isset($data['debtorCCI']) || isset($data['creditorCCI']) || isset($data['creditorName']))) {
+                    log_message('info', 'LigoModel: Success on attempt ' . $attempt . ' with account data');
+                    break;
+                } elseif (empty($data) || (is_array($data) && count($data) === 0)) {
+                    log_message('debug', 'LigoModel: Attempt ' . $attempt . ' returned empty data, retrying...');
+                    $lastError = 'Empty data response after ' . $attempt . ' attempts';
+                    if ($attempt < $maxAttempts) {
+                        continue;
+                    }
+                } else {
+                    log_message('info', 'LigoModel: Success on attempt ' . $attempt . ' (partial data)');
+                    break;
+                }
             }
             
             if (isset($response['error']) || empty($response)) {
@@ -1022,10 +1033,31 @@ class LigoModel extends Model
             $data = $response['data'] ?? [];
             log_message('debug', 'LigoModel: getAccountInquiryResult - Raw response data: ' . json_encode($data));
             
-            $debtorCCI = $data['debtorCCI'] ?? null;
-            $creditorName = $data['creditorName'] ?? 'Nombre no disponible';
-            $messageTypeId = $data['messageTypeId'] ?? '320';
-            $instructionId = $data['instructionId'] ?? uniqid();
+            // Try different data extraction methods
+            $debtorCCI = null;
+            $creditorCCI = null;
+            $creditorName = 'Nombre no disponible';
+            $messageTypeId = '320';
+            $instructionId = uniqid();
+            
+            if (is_array($data) && !empty($data)) {
+                // Direct field access
+                $debtorCCI = $data['debtorCCI'] ?? null;
+                $creditorCCI = $data['creditorCCI'] ?? null;
+                $creditorName = $data['creditorName'] ?? $creditorName;
+                $messageTypeId = $data['messageTypeId'] ?? $messageTypeId;
+                $instructionId = $data['instructionId'] ?? $instructionId;
+                
+                // If data is array of objects, try first element
+                if (empty($debtorCCI) && isset($data[0]) && is_array($data[0])) {
+                    $firstItem = $data[0];
+                    $debtorCCI = $firstItem['debtorCCI'] ?? null;
+                    $creditorCCI = $firstItem['creditorCCI'] ?? null;
+                    $creditorName = $firstItem['creditorName'] ?? $creditorName;
+                    $messageTypeId = $firstItem['messageTypeId'] ?? $messageTypeId;
+                    $instructionId = $firstItem['instructionId'] ?? $instructionId;
+                }
+            }
 
             log_message('debug', 'LigoModel: getAccountInquiryResult - Extracted values: debtorCCI=' . ($debtorCCI ?? 'NULL') . ', creditorName=' . $creditorName . ', messageTypeId=' . $messageTypeId);
 
