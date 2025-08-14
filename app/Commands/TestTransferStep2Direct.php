@@ -38,8 +38,8 @@ class TestTransferStep2Direct extends BaseCommand
         CLI::write('Step 1: Testing account inquiry...', 'cyan');
         
         $accountInquiryData = [
-            'debtorParticipantCode' => '0123',
-            'creditorParticipantCode' => '049', // Use a known bank code
+            'debtorParticipantCode' => '0921',
+            'creditorParticipantCode' => '0049', // Use a known bank code
             'debtorName' => $config['debtor_name'],
             'debtorId' => $config['debtor_id'],
             'debtorIdCode' => $config['debtor_id_code'],

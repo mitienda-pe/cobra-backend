@@ -751,7 +751,7 @@ class LigoModel extends Model
             
             // Los datos del acreedor vienen de la organización
             $creditorData = [
-                'participantCode' => substr($organization['cci'], 0, 3),  // Primeros 3 dígitos del CCI
+                'participantCode' => '0049',  // Fixed creditor participant code for Mi Banco
                 'cci' => $organization['cci'],
                 'name' => $organization['name']
             ];
@@ -918,7 +918,7 @@ class LigoModel extends Model
             // Build creditor data - use organization CCI if available, otherwise use provided CCI
             $finalCreditorCCI = $organization['cci'] ?? $creditorCCI;
             $creditorData = [
-                'participantCode' => substr($finalCreditorCCI, 0, 3),  // First 3 digits of CCI
+                'participantCode' => '0049',  // Fixed creditor participant code for Mi Banco
                 'cci' => $finalCreditorCCI,
                 'name' => $organization['name'] ?? 'Cuenta Destino'
             ];
@@ -1077,7 +1077,7 @@ class LigoModel extends Model
 
             // Build creditor data
             $creditorData = [
-                'participantCode' => substr($transferData['creditorCCI'], 0, 3),
+                'participantCode' => '0049',  // Fixed creditor participant code for Mi Banco
                 'cci' => $transferData['creditorCCI'],
                 'name' => $organization['name']
             ];
