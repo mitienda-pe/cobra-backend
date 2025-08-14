@@ -268,6 +268,12 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->post('transfer', 'BackofficeController::transfer');
         $routes->get('transfer-status/(:segment)', 'BackofficeController::transferStatus/$1');
         $routes->get('hashes', 'BackofficeController::hashes');
+        
+        // Step-by-step transfer endpoints
+        $routes->post('transfer/step1', 'BackofficeController::transferStep1');
+        $routes->post('transfer/step2', 'BackofficeController::transferStep2');
+        $routes->post('transfer/step3', 'BackofficeController::transferStep3');
+        $routes->post('transfer/step4', 'BackofficeController::transferStep4');
     });
 
     // Debug Routes
