@@ -223,9 +223,15 @@ class LigoModel extends Model
         $environment = $ligoConfig['environment'];
         log_message('debug', 'LigoModel: Auth using centralized config for environment: ' . $environment);
         
+        // Ensure password is decrypted
+        $password = $ligoConfig['password'];
+        if (strpos($password, 'ENC:') === 0) {
+            $password = base64_decode(substr($password, 4));
+        }
+        
         $authData = [
             'username' => $ligoConfig['username'],
-            'password' => $ligoConfig['password']
+            'password' => $password
         ];
         $companyId = $ligoConfig['company_id'];
         $privateKey = $ligoConfig['private_key'];
