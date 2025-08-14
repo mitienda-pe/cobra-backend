@@ -238,6 +238,180 @@ class BackofficeController extends Controller
         return view('backoffice/transfer', $data);
     }
 
+    /**
+     * Step 1: Account Inquiry - Verify destination account
+     */
+    public function transferStep1()
+    {
+        if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
+            return $this->fail('Invalid request', 400);
+        }
+
+        $selectedOrgId = session()->get('selected_organization_id');
+        if (!$selectedOrgId) {
+            return $this->fail('Debe seleccionar una organización primero', 400);
+        }
+
+        $organizationModel = new \App\Models\OrganizationModel();
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+
+        $organization = $organizationModel->find($selectedOrgId);
+        if (!$organization || $organization['status'] !== 'active') {
+            return $this->fail('Organización no válida o inactiva', 400);
+        }
+
+        if (empty($organization['cci'])) {
+            return $this->fail('La organización no tiene CCI configurado', 400);
+        }
+
+        $superadminConfig = $superadminLigoConfigModel->where('enabled', 1)
+                                                      ->where('is_active', 1)
+                                                      ->first();
+
+        if (!$superadminConfig) {
+            return $this->fail('No hay configuración de Ligo del superadmin disponible', 400);
+        }
+
+        $creditorCCI = $this->request->getPost('creditorCCI');
+        $currency = $this->request->getPost('currency') ?: 'PEN';
+
+        if (empty($creditorCCI)) {
+            return $this->fail('CCI del acreedor es requerido', 400);
+        }
+
+        $response = $this->ligoModel->performAccountInquiry($superadminConfig, $organization, $creditorCCI, $currency);
+
+        if (isset($response['error'])) {
+            return $this->fail($response['error'], 400);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data' => $response,
+            'message' => 'Cuenta verificada exitosamente'
+        ]);
+    }
+
+    /**
+     * Step 2: Get Account Inquiry Result by ID
+     */
+    public function transferStep2()
+    {
+        if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
+            return $this->fail('Invalid request', 400);
+        }
+
+        $accountInquiryId = $this->request->getPost('accountInquiryId');
+        
+        if (empty($accountInquiryId)) {
+            return $this->fail('Account Inquiry ID es requerido', 400);
+        }
+
+        $response = $this->ligoModel->getAccountInquiryResult($accountInquiryId);
+
+        if (isset($response['error'])) {
+            return $this->fail($response['error'], 400);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data' => $response,
+            'message' => 'Información de cuenta obtenida exitosamente'
+        ]);
+    }
+
+    /**
+     * Step 3: Calculate Transfer Fee
+     */
+    public function transferStep3()
+    {
+        if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
+            return $this->fail('Invalid request', 400);
+        }
+
+        $debtorCCI = $this->request->getPost('debtorCCI');
+        $creditorCCI = $this->request->getPost('creditorCCI');
+        $amount = $this->request->getPost('amount');
+        $currency = $this->request->getPost('currency') ?: 'PEN';
+
+        if (empty($debtorCCI) || empty($creditorCCI) || empty($amount)) {
+            return $this->fail('Todos los campos son requeridos (debtorCCI, creditorCCI, amount)', 400);
+        }
+
+        if (!is_numeric($amount) || $amount <= 0) {
+            return $this->fail('El monto debe ser un número válido mayor a 0', 400);
+        }
+
+        $response = $this->ligoModel->calculateTransferFee($debtorCCI, $creditorCCI, $amount, $currency);
+
+        if (isset($response['error'])) {
+            return $this->fail($response['error'], 400);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data' => $response,
+            'message' => 'Comisión calculada exitosamente'
+        ]);
+    }
+
+    /**
+     * Step 4: Execute Transfer
+     */
+    public function transferStep4()
+    {
+        if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
+            return $this->fail('Invalid request', 400);
+        }
+
+        $selectedOrgId = session()->get('selected_organization_id');
+        if (!$selectedOrgId) {
+            return $this->fail('Debe seleccionar una organización primero', 400);
+        }
+
+        $organizationModel = new \App\Models\OrganizationModel();
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+
+        $organization = $organizationModel->find($selectedOrgId);
+        $superadminConfig = $superadminLigoConfigModel->where('enabled', 1)
+                                                      ->where('is_active', 1)
+                                                      ->first();
+
+        // Recoger todos los datos necesarios del frontend
+        $transferData = [
+            'debtorCCI' => $this->request->getPost('debtorCCI'),
+            'creditorCCI' => $this->request->getPost('creditorCCI'),
+            'amount' => $this->request->getPost('amount'),
+            'currency' => $this->request->getPost('currency') ?: 'PEN',
+            'feeAmount' => $this->request->getPost('feeAmount'),
+            'feeCode' => $this->request->getPost('feeCode'),
+            'applicationCriteria' => $this->request->getPost('applicationCriteria'),
+            'messageTypeId' => $this->request->getPost('messageTypeId'),
+            'instructionId' => $this->request->getPost('instructionId'),
+            'unstructuredInformation' => $this->request->getPost('unstructuredInformation')
+        ];
+
+        // Validar campos requeridos
+        $requiredFields = ['debtorCCI', 'creditorCCI', 'amount', 'feeAmount', 'feeCode'];
+        foreach ($requiredFields as $field) {
+            if (empty($transferData[$field]) && $transferData[$field] !== '0') {
+                return $this->fail("Campo requerido: {$field}", 400);
+            }
+        }
+
+        $response = $this->ligoModel->executeTransfer($superadminConfig, $organization, $transferData);
+
+        if (isset($response['error'])) {
+            return $this->fail($response['error'], 400);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data' => $response,
+            'message' => 'Transferencia ejecutada exitosamente'
+        ]);
+    }
+
     public function transferStatus($transferId)
     {
         if ($this->request->isAJAX()) {
