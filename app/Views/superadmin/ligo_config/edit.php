@@ -279,6 +279,118 @@
                             </div>
                         </div>
 
+                        <div class="row mt-3">
+                            <!-- Debtor Configuration -->
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="bi bi-person-badge"></i> Configuración del Deudor (Cuenta Superadmin)</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="debtor_name" class="form-label">Nombre del Deudor <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" id="debtor_name" name="debtor_name" 
+                                                           value="<?= esc($config['debtor_name'] ?? '') ?>" required>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label for="debtor_id" class="form-label">ID/RUC del Deudor <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" id="debtor_id" name="debtor_id" 
+                                                           value="<?= esc($config['debtor_id'] ?? '') ?>" required>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label for="debtor_id_code" class="form-label">Código de ID <span class="text-danger">*</span></label>
+                                                    <select class="form-control" id="debtor_id_code" name="debtor_id_code" required>
+                                                        <option value="1" <?= ($config['debtor_id_code'] ?? '') === '1' ? 'selected' : '' ?>>1 - DNI</option>
+                                                        <option value="2" <?= ($config['debtor_id_code'] ?? '') === '2' ? 'selected' : '' ?>>2 - CE</option>
+                                                        <option value="6" <?= ($config['debtor_id_code'] ?? '') === '6' ? 'selected' : '' ?>>6 - RUC</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label for="debtor_participant_code" class="form-label">Código de Participante <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" id="debtor_participant_code" name="debtor_participant_code" 
+                                                           value="<?= esc($config['debtor_participant_code'] ?? '') ?>" required>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="debtor_address_line" class="form-label">Dirección <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" id="debtor_address_line" name="debtor_address_line" 
+                                                           value="<?= esc($config['debtor_address_line'] ?? '') ?>" required>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label for="debtor_mobile_number" class="form-label">Número Móvil</label>
+                                                    <input type="text" class="form-control" id="debtor_mobile_number" name="debtor_mobile_number" 
+                                                           value="<?= esc($config['debtor_mobile_number'] ?? '') ?>">
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label for="debtor_phone_number" class="form-label">Número de Teléfono</label>
+                                                    <input type="text" class="form-control" id="debtor_phone_number" name="debtor_phone_number" 
+                                                           value="<?= esc($config['debtor_phone_number'] ?? '') ?>">
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label for="debtor_type_of_person" class="form-label">Tipo de Persona</label>
+                                                    <select class="form-control" id="debtor_type_of_person" name="debtor_type_of_person">
+                                                        <option value="N" <?= ($config['debtor_type_of_person'] ?? 'N') === 'N' ? 'selected' : '' ?>>N - Natural</option>
+                                                        <option value="J" <?= ($config['debtor_type_of_person'] ?? 'N') === 'J' ? 'selected' : '' ?>>J - Jurídica</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <!-- Transaction Configuration -->
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="bi bi-gear"></i> Configuración de Transacción</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label for="transaction_type" class="form-label">Tipo de Transacción</label>
+                                                    <input type="text" class="form-control" id="transaction_type" name="transaction_type" 
+                                                           value="<?= esc($config['transaction_type'] ?? '320') ?>">
+                                                    <div class="form-text">Por defecto: 320</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label for="channel" class="form-label">Canal</label>
+                                                    <input type="text" class="form-control" id="channel" name="channel" 
+                                                           value="<?= esc($config['channel'] ?? '15') ?>">
+                                                    <div class="form-text">Por defecto: 15</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label for="creditor_address_line" class="form-label">Dirección del Acreedor</label>
+                                                    <input type="text" class="form-control" id="creditor_address_line" name="creditor_address_line" 
+                                                           value="<?= esc($config['creditor_address_line'] ?? 'JR LIMA') ?>">
+                                                    <div class="form-text">Por defecto: JR LIMA</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="row mt-4">
                             <div class="col-12">
                                 <div class="d-flex justify-content-between">
