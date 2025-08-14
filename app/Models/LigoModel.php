@@ -984,38 +984,33 @@ class LigoModel extends Model
             // Increased delay to allow processing (based on successful test command)
             sleep(3);
             
-            // Try multiple endpoints like the successful test command
-            $endpointsToTry = [
-                '/v1/getAccountInquiryById/' . $accountInquiryId,
-                '/v1/accountInquiry/' . $accountInquiryId,
-                '/v1/getAccountInquiry/' . $accountInquiryId
-            ];
-            
+            // Try multiple times with delays like the successful test command
+            $endpoint = '/v1/getAccountInquiryById/' . $accountInquiryId;
             $response = null;
             $lastError = null;
+            $maxAttempts = 3;
             
-            foreach ($endpointsToTry as $endpoint) {
-                log_message('debug', 'LigoModel: Trying endpoint: ' . $endpoint);
+            for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+                log_message('debug', 'LigoModel: Attempt ' . $attempt . '/' . $maxAttempts . ' for endpoint: ' . $endpoint);
+                
+                if ($attempt > 1) {
+                    sleep(2); // Additional delay between attempts
+                }
+                
                 $response = $this->makeApiRequest($endpoint, 'GET');
                 
                 if (isset($response['error'])) {
                     $lastError = $response['error'];
-                    log_message('debug', 'LigoModel: Endpoint failed: ' . $endpoint . ' - ' . $lastError);
+                    log_message('debug', 'LigoModel: Attempt ' . $attempt . ' failed: ' . $lastError);
                     continue;
                 }
                 
-                // Check if we have valid data
+                // Check if we have valid data (accept any response format for now)
                 $data = $response['data'] ?? [];
-                if (!empty($data) && !is_array($data)) {
-                    log_message('info', 'LigoModel: Success with endpoint: ' . $endpoint);
-                    break;
-                } elseif (empty($data) || (is_array($data) && count($data) === 0)) {
-                    log_message('debug', 'LigoModel: Endpoint returned empty data: ' . $endpoint);
-                    $lastError = 'Empty data response';
-                    continue;
-                }
+                log_message('debug', 'LigoModel: Attempt ' . $attempt . ' response data: ' . json_encode($data));
                 
-                log_message('info', 'LigoModel: Success with endpoint: ' . $endpoint);
+                // Success if we get any response without error
+                log_message('info', 'LigoModel: Success on attempt ' . $attempt);
                 break;
             }
             
@@ -1035,8 +1030,17 @@ class LigoModel extends Model
             log_message('debug', 'LigoModel: getAccountInquiryResult - Extracted values: debtorCCI=' . ($debtorCCI ?? 'NULL') . ', creditorName=' . $creditorName . ', messageTypeId=' . $messageTypeId);
 
             if (!$debtorCCI) {
-                log_message('error', 'LigoModel: getAccountInquiryResult - debtorCCI is empty. Full response: ' . json_encode($response));
-                return ['error' => 'No se pudo obtener CCI del deudor desde la respuesta de consulta'];
+                log_message('warning', 'LigoModel: getAccountInquiryResult - debtorCCI is empty. Full response: ' . json_encode($response));
+                
+                // Fallback: use account_id from superadmin config as debtorCCI
+                $ligoConfig = $this->getSuperadminLigoConfig();
+                if ($ligoConfig && !empty($ligoConfig['account_id'])) {
+                    $debtorCCI = $ligoConfig['account_id'];
+                    log_message('info', 'LigoModel: Using fallback debtorCCI from config: ' . $debtorCCI);
+                } else {
+                    log_message('error', 'LigoModel: No fallback debtorCCI available. Full response: ' . json_encode($response));
+                    return ['error' => 'No se pudo obtener CCI del deudor desde la respuesta de consulta'];
+                }
             }
 
             return [
