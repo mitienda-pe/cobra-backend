@@ -25,13 +25,13 @@ class LigoQRController extends Controller
         // Use centralized superadmin configuration
         $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
         
-        // Determine environment
-        $environment = env('CI_ENVIRONMENT', 'development') === 'production' ? 'prod' : 'dev';
-        
-        $config = $superadminLigoConfigModel->getActiveConfig($environment);
+        // Get any active configuration regardless of environment (same as PaymentController and BackofficeController)
+        $config = $superadminLigoConfigModel->where('enabled', 1)
+                                            ->where('is_active', 1)
+                                            ->first();
         
         if (!$config || !$superadminLigoConfigModel->isConfigurationComplete($config)) {
-            log_message('error', 'LigoQRController: No valid centralized Ligo configuration found for environment: ' . $environment);
+            log_message('error', 'LigoQRController: No valid centralized Ligo configuration found');
             return [
                 'username' => null,
                 'password' => null,
@@ -43,7 +43,7 @@ class LigoQRController extends Controller
             ];
         }
 
-        log_message('debug', 'LigoQRController: Using centralized Ligo credentials for environment: ' . $environment);
+        log_message('debug', 'LigoQRController: Using centralized Ligo credentials for environment: ' . $config['environment']);
         
         return [
             'username' => $config['username'],
@@ -64,24 +64,26 @@ class LigoQRController extends Controller
         // Use centralized superadmin configuration
         $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
         
-        // Determine environment
-        $environment = env('CI_ENVIRONMENT', 'development') === 'production' ? 'prod' : 'dev';
-        
-        $config = $superadminLigoConfigModel->getActiveConfig($environment);
+        // Get active configuration (same as PaymentController and BackofficeController)
+        $config = $superadminLigoConfigModel->where('enabled', 1)
+                                            ->where('is_active', 1)
+                                            ->first();
         
         if (!$config) {
             // Fallback to default configuration
-            log_message('warning', 'LigoQRController: No centralized config found, using defaults for environment: ' . $environment);
+            log_message('warning', 'LigoQRController: No centralized config found, using defaults');
             return [
-                'environment' => $environment,
-                'auth_url' => "https://cce-auth-{$environment}.ligocloud.tech",
-                'api_url' => "https://cce-api-gateway-{$environment}.ligocloud.tech",
-                'ssl_verify' => $environment === 'prod',
-                'ssl_verify_host' => $environment === 'prod' ? 2 : 0,
-                'prefix' => $environment
+                'environment' => 'dev',
+                'auth_url' => "https://cce-auth-dev.ligocloud.tech",
+                'api_url' => "https://cce-api-gateway-dev.ligocloud.tech",
+                'ssl_verify' => false,
+                'ssl_verify_host' => 0,
+                'prefix' => 'dev'
             ];
         }
 
+        // Build URLs based on environment from centralized config
+        $environment = $config['environment'];
         $sslVerify = $config['ssl_verify'] ?? ($environment === 'prod');
         $urls = $superadminLigoConfigModel->getApiUrls($environment);
 
