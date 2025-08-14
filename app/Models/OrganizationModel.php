@@ -12,7 +12,7 @@ class OrganizationModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
-    protected $allowedFields    = ['uuid', 'name', 'code', 'description', 'status', 'ligo_api_key', 'ligo_api_secret', 'ligo_webhook_secret', 'ligo_enabled', 'ligo_auth_token', 'ligo_username', 'ligo_password', 'ligo_company_id', 'ligo_token', 'ligo_token_expiry', 'ligo_auth_error', 'ligo_private_key', 'ligo_account_id', 'ligo_merchant_code', 'ligo_dev_account_id', 'ligo_prod_account_id', 'ligo_dev_username', 'ligo_dev_password', 'ligo_dev_company_id', 'ligo_prod_username', 'ligo_prod_password', 'ligo_prod_company_id', 'ligo_environment'];
+    protected $allowedFields    = ['uuid', 'name', 'code', 'description', 'status', 'cci', 'ligo_api_key', 'ligo_api_secret', 'ligo_webhook_secret', 'ligo_enabled', 'ligo_auth_token', 'ligo_username', 'ligo_password', 'ligo_company_id', 'ligo_token', 'ligo_token_expiry', 'ligo_auth_error', 'ligo_private_key', 'ligo_account_id', 'ligo_merchant_code', 'ligo_dev_account_id', 'ligo_prod_account_id', 'ligo_dev_username', 'ligo_dev_password', 'ligo_dev_company_id', 'ligo_prod_username', 'ligo_prod_password', 'ligo_prod_company_id', 'ligo_environment'];
 
     // Dates
     protected $useTimestamps = true;
@@ -26,6 +26,7 @@ class OrganizationModel extends Model
         'name'     => 'required|min_length[3]|max_length[100]',
         'code'     => 'required|min_length[2]|max_length[50]',
         'status'   => 'required|in_list[active,inactive]',
+        'cci'      => 'permit_empty|exact_length[20]|numeric',
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;

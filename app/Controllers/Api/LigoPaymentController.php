@@ -23,74 +23,73 @@ class LigoPaymentController extends ResourceController
     }
     
     /**
-     * Get Ligo credentials based on active environment
+     * Get centralized Ligo credentials from superadmin configuration
      */
-    private function getLigoCredentials($organization)
+    private function getLigoCredentials($organization = null)
     {
-        $environment = $organization['ligo_environment'] ?? 'dev';
-        $prefix = $environment === 'prod' ? 'prod' : 'dev';
-
-        // Try to get environment-specific credentials first
-        $credentials = [
-            'username' => $organization["ligo_{$prefix}_username"] ?? null,
-            'password' => $organization["ligo_{$prefix}_password"] ?? null,
-            'company_id' => $organization["ligo_{$prefix}_company_id"] ?? null,
-            'account_id' => $organization["ligo_{$prefix}_account_id"] ?? null,
-            'merchant_code' => $organization["ligo_{$prefix}_merchant_code"] ?? null,
-            'private_key' => $organization["ligo_{$prefix}_private_key"] ?? null,
-            'webhook_secret' => $organization["ligo_{$prefix}_webhook_secret"] ?? null,
-        ];
-
-        // Fallback to legacy fields if environment-specific fields are empty
-        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
-            $credentials = [
-                'username' => $organization['ligo_username'] ?? null,
-                'password' => $organization['ligo_password'] ?? null,
-                'company_id' => $organization['ligo_company_id'] ?? null,
-                'account_id' => $organization['ligo_account_id'] ?? null,
-                'merchant_code' => $organization['ligo_merchant_code'] ?? null,
-                'private_key' => $organization['ligo_private_key'] ?? null,
-                'webhook_secret' => $organization['ligo_webhook_secret'] ?? null,
+        // Use centralized superadmin configuration
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+        
+        // Get any active configuration regardless of environment
+        $config = $superadminLigoConfigModel->where('enabled', 1)
+                                            ->where('is_active', 1)
+                                            ->first();
+        
+        if (!$config || !$superadminLigoConfigModel->isConfigurationComplete($config)) {
+            log_message('error', 'LigoPaymentController API: No valid centralized Ligo configuration found');
+            return [
+                'username' => null,
+                'password' => null,
+                'company_id' => null,
+                'account_id' => null,
+                'merchant_code' => null,
+                'private_key' => null,
+                'webhook_secret' => null,
             ];
         }
 
-        return $credentials;
+        log_message('debug', 'LigoPaymentController API: Using centralized Ligo credentials for environment: ' . $config['environment']);
+        
+        return [
+            'username' => $config['username'],
+            'password' => $config['password'],
+            'company_id' => $config['company_id'],
+            'account_id' => $config['account_id'],
+            'merchant_code' => $config['merchant_code'] ?? null,
+            'private_key' => $config['private_key'],
+            'webhook_secret' => $config['webhook_secret'] ?? null,
+        ];
+    }
+
+    /**
+     * Get centralized Ligo configuration for API endpoints URLs
+     * @return array|false Ligo configuration array or false if not found
+     */
+    private function getLigoConfig()
+    {
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+        
+        // Get active configuration
+        $config = $superadminLigoConfigModel->where('enabled', 1)
+                                            ->where('is_active', 1)
+                                            ->first();
+        
+        if (!$config) {
+            log_message('error', 'LigoPaymentController API: No active Ligo configuration found');
+            return false;
+        }
+
+        // Build URLs based on environment from centralized config
+        $environment = $config['environment'];
+        $prefix = $environment === 'prod' ? 'prod' : 'dev';
+        
+        return [
+            'environment' => $environment,
+            'api_base_url' => "https://cce-api-gateway-{$prefix}.ligocloud.tech",
+            'auth_base_url' => "https://cce-auth-{$prefix}.ligocloud.tech"
+        ];
     }
     
-    /**
-     * Get Ligo credentials based on active environment
-     */
-    private function getLigoCredentials($organization)
-    {
-        $environment = $organization['ligo_environment'] ?? 'dev';
-        $prefix = $environment === 'prod' ? 'prod' : 'dev';
-        
-        // Try to get environment-specific credentials first
-        $credentials = [
-            'username' => $organization["ligo_{$prefix}_username"] ?? null,
-            'password' => $organization["ligo_{$prefix}_password"] ?? null,
-            'company_id' => $organization["ligo_{$prefix}_company_id"] ?? null,
-            'account_id' => $organization["ligo_{$prefix}_account_id"] ?? null,
-            'merchant_code' => $organization["ligo_{$prefix}_merchant_code"] ?? null,
-            'private_key' => $organization["ligo_{$prefix}_private_key"] ?? null,
-            'webhook_secret' => $organization["ligo_{$prefix}_webhook_secret"] ?? null,
-        ];
-        
-        // Fallback to legacy fields if environment-specific fields are empty
-        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
-            $credentials = [
-                'username' => $organization['ligo_username'] ?? null,
-                'password' => $organization['ligo_password'] ?? null,
-                'company_id' => $organization['ligo_company_id'] ?? null,
-                'account_id' => $organization['ligo_account_id'] ?? null,
-                'merchant_code' => $organization['ligo_merchant_code'] ?? null,
-                'private_key' => $organization['ligo_private_key'] ?? null,
-                'webhook_secret' => $organization['ligo_webhook_secret'] ?? null,
-            ];
-        }
-        
-        return $credentials;
-    }
     
     /**
      * Generate QR code for invoice payment via mobile app
@@ -299,10 +298,14 @@ class LigoPaymentController extends ResourceController
             return $this->fail($authToken->error, 400);
         }
         
-        // URL para generar QR según la documentación
-        $environment = $organization['ligo_environment'] ?? 'dev';
-        $prefix = $environment === 'prod' ? 'prod' : 'dev';
-        $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
+        // Get centralized Ligo configuration for API URL
+        $ligoConfig = $this->getLigoConfig();
+        if (!$ligoConfig) {
+            log_message('error', 'LigoPaymentController API: No valid centralized Ligo URL configuration found');
+            return $this->fail('Error de configuración: configuración de Ligo no disponible', 500);
+        }
+        
+        $url = $ligoConfig['api_base_url'] . '/v1/createQr';
         
         // Asegurar que tenemos valores válidos para los campos requeridos
         // Get environment-specific credentials
@@ -596,10 +599,14 @@ class LigoPaymentController extends ResourceController
             return (object)['error' => $authToken->error];
         }
         
-        // URL para generar QR según la documentación
-        $environment = $organization['ligo_environment'] ?? 'dev';
-        $prefix = $environment === 'prod' ? 'prod' : 'dev';
-        $url = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1/createQr";
+        // Get centralized Ligo configuration for API URL
+        $ligoConfig = $this->getLigoConfig();
+        if (!$ligoConfig) {
+            log_message('error', 'LigoPaymentController API: No valid centralized Ligo URL configuration found');
+            return $this->fail('Error de configuración: configuración de Ligo no disponible', 500);
+        }
+        
+        $url = $ligoConfig['api_base_url'] . '/v1/createQr';
         
         // Asegurar que tenemos valores válidos para los campos requeridos
         // Get environment-specific credentials
@@ -789,20 +796,15 @@ class LigoPaymentController extends ResourceController
                 return (object)['error' => 'Incomplete Ligo credentials'];
             }
             
-            // Definir URLs de API basado en el entorno
-            if (empty($organization['ligo_api_url'])) {
-                // Get environment prefix for default API URL
-                $environment = $organization['ligo_environment'] ?? 'dev';
-                $prefix = $environment === 'prod' ? 'prod' : 'dev';
-                $organization['ligo_api_url'] = "https://cce-api-gateway-{$prefix}.ligocloud.tech/v1";
-                log_message('info', 'API: Usando URL de API por defecto: ' . $organization['ligo_api_url']);
+            // Get centralized Ligo configuration for auth URL
+            $ligoConfig = $this->getLigoConfig();
+            if (!$ligoConfig) {
+                log_message('error', 'API: Ligo URL configuration not available');
+                return (object)['error' => 'Ligo URL configuration not available'];
             }
             
-            // Get environment prefix for auth URL
-            $environment = $organization['ligo_environment'] ?? 'dev';
-            $prefix = $environment === 'prod' ? 'prod' : 'dev';
-            $authUrl = "https://cce-auth-{$prefix}.ligocloud.tech/v1/auth/sign-in?companyId=" . $credentials['company_id'];
-            log_message('info', 'API: Usando URL de autenticación: ' . $authUrl);
+            $authUrl = $ligoConfig['auth_base_url'] . "/v1/auth/sign-in?companyId=" . $credentials['company_id'];
+            log_message('info', 'API: Usando URL de autenticación centralizada: ' . $authUrl);
             
             // Intentar generar el token JWT usando la clave privada
             try {
@@ -998,10 +1000,14 @@ class LigoPaymentController extends ResourceController
         try {
             $curl = curl_init();
             
-            // URL para obtener detalles del QR según Postman
-            $environment = $organization['ligo_environment'] ?? 'dev';
-            $prefix = $environment === 'prod' ? 'prod' : 'dev';
-            $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
+            // Get centralized Ligo configuration for API URL
+            $ligoConfig = $this->getLigoConfig();
+            if (!$ligoConfig) {
+                log_message('error', 'LigoPaymentController - Ligo URL configuration not available');
+                return ['error' => 'Configuration error', 'message' => 'Ligo URL configuration not available'];
+            }
+            
+            $url = $ligoConfig['api_base_url'] . '/v1/getCreateQRById/' . $qrId;
             
             log_message('debug', 'URL para obtener detalles del QR: ' . $url);
             

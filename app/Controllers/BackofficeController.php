@@ -166,20 +166,52 @@ class BackofficeController extends Controller
 
     public function transfer()
     {
+        // Cargar datos para el formulario
+        $organizationModel = new \App\Models\OrganizationModel();
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+        
+        // Obtener organizaciones con CCI configurado
+        $organizations = $organizationModel->where('status', 'active')
+                                           ->where('cci IS NOT NULL')
+                                           ->where('cci !=', '')
+                                           ->findAll();
+        
+        // Obtener configuración activa del superadmin
+        $superadminConfig = $superadminLigoConfigModel->where('enabled', 1)
+                                                      ->where('is_active', 1)
+                                                      ->first();
+        
         $data = [
             'title' => 'Transferencia Ordinaria - Ligo',
-            'breadcrumb' => 'Transferencia Ordinaria'
+            'breadcrumb' => 'Transferencia Ordinaria',
+            'organizations' => $organizations,
+            'superadminConfig' => $superadminConfig
         ];
 
         if ($this->request->getMethod() === 'post') {
+            // Validar que hay configuración del superadmin
+            if (!$superadminConfig) {
+                if ($this->request->isAJAX()) {
+                    return $this->fail('No hay configuración de Ligo del superadmin disponible', 400);
+                }
+                return redirect()->back()->with('error', 'No hay configuración de Ligo del superadmin disponible');
+            }
+            
+            // Obtener datos de la organización destino
+            $organizationId = $this->request->getPost('organization_id');
+            $organization = $organizationModel->find($organizationId);
+            
+            if (!$organization || !$organization['cci']) {
+                if ($this->request->isAJAX()) {
+                    return $this->fail('Organización no válida o sin CCI configurado', 400);
+                }
+                return redirect()->back()->with('error', 'Organización no válida o sin CCI configurado');
+            }
+
+            // Construir datos de transferencia usando configuración centralizada
             $transferData = [
-                'debtorParticipantCode' => $this->request->getPost('debtorParticipantCode'),
-                'creditorParticipantCode' => $this->request->getPost('creditorParticipantCode'),
-                'debtorName' => $this->request->getPost('debtorName'),
-                'debtorId' => $this->request->getPost('debtorId'),
-                'debtorIdCode' => $this->request->getPost('debtorIdCode'),
-                'debtorAddressLine' => $this->request->getPost('debtorAddressLine'),
-                'debtorMobileNumber' => $this->request->getPost('debtorMobileNumber'),
+                // Los datos del deudor ahora vienen de la configuración del superadmin
+                'organization_id' => $organizationId,
                 'creditorCCI' => $this->request->getPost('creditorCCI'),
                 'amount' => $this->request->getPost('amount'),
                 'currency' => $this->request->getPost('currency') ?: 'PEN',
@@ -187,7 +219,7 @@ class BackofficeController extends Controller
             ];
 
             if ($this->request->isAJAX()) {
-                $response = $this->ligoModel->processOrdinaryTransfer($transferData);
+                $response = $this->ligoModel->processOrdinaryTransferFromSuperadmin($transferData, $superadminConfig, $organization);
                 
                 if (isset($response['error'])) {
                     return $this->fail($response['error'], 400);
@@ -195,7 +227,7 @@ class BackofficeController extends Controller
 
                 return $this->respond($response);
             } else {
-                $response = $this->ligoModel->processOrdinaryTransfer($transferData);
+                $response = $this->ligoModel->processOrdinaryTransferFromSuperadmin($transferData, $superadminConfig, $organization);
                 
                 if (isset($response['error'])) {
                     return redirect()->back()->with('error', $response['error']);

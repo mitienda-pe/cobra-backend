@@ -665,6 +665,160 @@ class LigoModel extends Model
         }
     }
 
+    /**
+     * Process ordinary transfer from superadmin account to organization
+     * Uses centralized superadmin Ligo configuration
+     */
+    public function processOrdinaryTransferFromSuperadmin($transferData, $superadminConfig, $organization)
+    {
+        try {
+            // Los datos del deudor vienen de la configuración del superadmin
+            // Por ahora usaremos datos predeterminados que deberían configurarse en el superadmin
+            $debtorData = [
+                'participantCode' => '0123',  // Código del banco del superadmin
+                'name' => 'CobraPepe SuperAdmin',
+                'id' => '20123456789',  // RUC del superadmin
+                'idCode' => '6', // RUC
+                'addressLine' => 'Av. Javier Prado Este 123, San Isidro, Lima',
+                'mobileNumber' => '999999999'
+            ];
+            
+            // Los datos del acreedor vienen de la organización
+            $creditorData = [
+                'participantCode' => substr($organization['cci'], 0, 3),  // Primeros 3 dígitos del CCI
+                'cci' => $organization['cci'],
+                'name' => $organization['name']
+            ];
+
+            // Paso 1: Consulta de cuenta
+            $accountInquiryData = [
+                'debtorParticipantCode' => $debtorData['participantCode'],
+                'creditorParticipantCode' => $creditorData['participantCode'],
+                'debtorName' => $debtorData['name'],
+                'debtorId' => $debtorData['id'],
+                'debtorIdCode' => $debtorData['idCode'],
+                'debtorPhoneNumber' => '',
+                'debtorAddressLine' => $debtorData['addressLine'],
+                'debtorMobileNumber' => $debtorData['mobileNumber'],
+                'transactionType' => '320',
+                'channel' => '15',
+                'creditorAddressLine' => 'JR LIMA',
+                'creditorCCI' => $creditorData['cci'],
+                'debtorTypeOfPerson' => 'N',
+                'currency' => $transferData['currency'] === 'PEN' ? '604' : '840'
+            ];
+
+            $step1Response = $this->makeApiRequest('/v1/accountInquiry', 'POST', $accountInquiryData);
+            
+            if (isset($step1Response['error'])) {
+                return ['error' => 'Error en consulta de cuenta: ' . $step1Response['error']];
+            }
+
+            $accountInquiryId = $step1Response['data']['id'] ?? null;
+            
+            if (!$accountInquiryId) {
+                return ['error' => 'No se recibió ID de consulta de cuenta'];
+            }
+
+            // Paso 2: Obtener respuesta de consulta
+            sleep(2); // Esperar un momento para que se procese
+            $step2Response = $this->makeApiRequest('/v1/getAccountInquiryById/' . $accountInquiryId, 'GET');
+            
+            if (isset($step2Response['error'])) {
+                return ['error' => 'Error al obtener respuesta de consulta: ' . $step2Response['error']];
+            }
+
+            // Obtener CCI del deudor de la respuesta (cuenta del superadmin)
+            $debtorCCI = $step2Response['data']['debtorCCI'] ?? null;
+            if (!$debtorCCI) {
+                return ['error' => 'No se pudo obtener CCI del deudor desde la respuesta de consulta'];
+            }
+
+            // Paso 3: Obtener código de comisión
+            $feeData = [
+                'debtorCCI' => $debtorCCI,
+                'creditorCCI' => $creditorData['cci'],
+                'currency' => $transferData['currency'],
+                'amount' => $transferData['amount']
+            ];
+
+            $step3Response = $this->makeApiRequest('/v1/infoFeeCodeNew', 'POST', $feeData);
+            
+            if (isset($step3Response['error'])) {
+                return ['error' => 'Error al obtener código de comisión: ' . $step3Response['error']];
+            }
+
+            // Paso 4: Ejecutar transferencia
+            $transferOrderData = [
+                'debtorParticipantCode' => $debtorData['participantCode'],
+                'creditorParticipantCode' => $creditorData['participantCode'],
+                'messageTypeId' => $step2Response['data']['messageTypeId'] ?? '320',
+                'channel' => '15',
+                'amount' => $transferData['amount'],
+                'currency' => $transferData['currency'] === 'PEN' ? '604' : '840',
+                'referenceTransactionId' => $step2Response['data']['instructionId'] ?? uniqid(),
+                'transactionType' => '320',
+                'feeAmount' => $step3Response['data']['feeAmount'] ?? 0,
+                'feeCode' => $step3Response['data']['feeCode'] ?? '',
+                'applicationCriteria' => $step3Response['data']['applicationCriteria'] ?? '',
+                'debtorTypeOfPerson' => 'N',
+                'debtorName' => $debtorData['name'],
+                'debtorAddressLine' => $debtorData['addressLine'],
+                'debtorIdCode' => $debtorData['idCode'],
+                'debtorId' => $debtorData['id'],
+                'debtorMobileNumber' => $debtorData['mobileNumber'],
+                'debtorCCI' => $debtorCCI,
+                'creditorName' => $creditorData['name'],
+                'creditorCCI' => $creditorData['cci'],
+                'sameCustomerFlag' => 'M',
+                'purposeCode' => '001',
+                'unstructuredInformation' => $transferData['unstructuredInformation'] ?? 'Pago de comisiones a organización',
+                'feeId' => $step3Response['data']['feeId'] ?? '',
+                'feeLigo' => $step3Response['data']['feeLigo'] ?? ''
+            ];
+
+            $step4Response = $this->makeApiRequest('/v1/orderTransferShipping', 'POST', $transferOrderData);
+            
+            if (isset($step4Response['error'])) {
+                return ['error' => 'Error al ejecutar transferencia: ' . $step4Response['error']];
+            }
+
+            $transferId = $step4Response['data']['id'] ?? null;
+            
+            if (!$transferId) {
+                return ['error' => 'No se recibió ID de transferencia'];
+            }
+
+            // Paso 5: Obtener respuesta de transferencia
+            sleep(3); // Esperar un momento para que se procese
+            $step5Response = $this->makeApiRequest('/v1/getOrderTransferShippingById/' . $transferId, 'GET');
+            
+            if (isset($step5Response['error'])) {
+                return ['error' => 'Error al obtener respuesta de transferencia: ' . $step5Response['error']];
+            }
+
+            return [
+                'success' => true,
+                'transfer_id' => $transferId,
+                'account_inquiry_id' => $accountInquiryId,
+                'organization_id' => $transferData['organization_id'],
+                'status' => $step5Response['data']['status'] ?? 'pending',
+                'details' => $step5Response['data'],
+                'steps' => [
+                    'account_inquiry' => $step1Response,
+                    'account_inquiry_response' => $step2Response,
+                    'fee_code' => $step3Response,
+                    'transfer_order' => $step4Response,
+                    'transfer_response' => $step5Response
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            log_message('error', 'Error en transferencia ordinaria desde superadmin: ' . $e->getMessage());
+            return ['error' => 'Error interno: ' . $e->getMessage()];
+        }
+    }
+
     public function getTransferStatus($transferId)
     {
         return $this->makeApiRequest('/v1/getOrderTransferShippingById/' . $transferId, 'GET');

@@ -26,48 +26,56 @@
                     <form id="transferForm">
                         <div class="row">
                             <div class="col-md-6">
-                                <h5>Datos del Deudor</h5>
-                                <div class="form-group">
-                                    <label for="debtorParticipantCode">Código Participante Deudor *</label>
-                                    <input type="text" class="form-control" id="debtorParticipantCode" name="debtorParticipantCode" required>
+                                <h5>Datos del Deudor (Cuenta Superadmin)</h5>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> 
+                                    <strong>Transferencia desde cuenta centralizada</strong><br>
+                                    Los datos del deudor se toman automáticamente de la configuración de Ligo del superadmin.
                                 </div>
-                                <div class="form-group">
-                                    <label for="debtorName">Nombre del Deudor *</label>
-                                    <input type="text" class="form-control" id="debtorName" name="debtorName" required>
+                                <?php if (isset($superadminConfig) && $superadminConfig): ?>
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Configuración Activa</h6>
+                                        <p class="card-text">
+                                            <strong>Entorno:</strong> <span class="badge bg-<?= $superadminConfig['environment'] === 'prod' ? 'danger' : 'warning' ?>"><?= strtoupper($superadminConfig['environment']) ?></span><br>
+                                            <strong>Company ID:</strong> <?= esc($superadminConfig['company_id']) ?><br>
+                                            <strong>Account ID:</strong> <?= esc($superadminConfig['account_id']) ?>
+                                        </p>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="debtorId">Documento del Deudor *</label>
-                                    <input type="text" class="form-control" id="debtorId" name="debtorId" required>
+                                <?php else: ?>
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> 
+                                    No hay configuración de Ligo disponible. Configure las credenciales en 
+                                    <a href="<?= site_url('superadmin/ligo-config') ?>">Configuración Ligo</a>.
                                 </div>
-                                <div class="form-group">
-                                    <label for="debtorIdCode">Tipo de Documento *</label>
-                                    <select class="form-control" id="debtorIdCode" name="debtorIdCode" required>
-                                        <option value="">Seleccionar...</option>
-                                        <option value="1">DNI</option>
-                                        <option value="6">RUC</option>
-                                        <option value="7">Pasaporte</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="debtorAddressLine">Dirección del Deudor *</label>
-                                    <input type="text" class="form-control" id="debtorAddressLine" name="debtorAddressLine" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="debtorMobileNumber">Teléfono del Deudor *</label>
-                                    <input type="text" class="form-control" id="debtorMobileNumber" name="debtorMobileNumber" required>
-                                </div>
+                                <?php endif; ?>
                             </div>
                             
                             <div class="col-md-6">
                                 <h5>Datos del Acreedor y Transferencia</h5>
                                 <div class="form-group">
-                                    <label for="creditorParticipantCode">Código Participante Acreedor *</label>
-                                    <input type="text" class="form-control" id="creditorParticipantCode" name="creditorParticipantCode" required>
+                                    <label for="organization_id">Organización Destino *</label>
+                                    <select class="form-control" id="organization_id" name="organization_id" required>
+                                        <option value="">Seleccionar organización...</option>
+                                        <?php if (isset($organizations) && is_array($organizations)): ?>
+                                            <?php foreach ($organizations as $org): ?>
+                                                <option value="<?= $org['id'] ?>" data-cci="<?= esc($org['cci'] ?? '') ?>" data-code="<?= esc($org['code']) ?>">
+                                                    <?= esc($org['name']) ?> (<?= esc($org['code']) ?>)
+                                                    <?php if (empty($org['cci'])): ?>
+                                                        - Sin CCI configurado
+                                                    <?php endif; ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                    <small class="form-text text-muted">Seleccione la organización que recibirá la transferencia</small>
                                 </div>
                                 <div class="form-group">
                                     <label for="creditorCCI">CCI del Acreedor *</label>
                                     <input type="text" class="form-control" id="creditorCCI" name="creditorCCI" 
-                                           placeholder="20 dígitos" maxlength="20" required>
+                                           placeholder="Se cargará automáticamente al seleccionar organización" maxlength="20" readonly required>
+                                    <small class="form-text text-muted">CCI de 20 dígitos de la organización seleccionada</small>
                                 </div>
                                 <div class="form-group">
                                     <label for="amount">Monto *</label>
@@ -84,7 +92,7 @@
                                 <div class="form-group">
                                     <label for="unstructuredInformation">Concepto de la Transferencia</label>
                                     <textarea class="form-control" id="unstructuredInformation" name="unstructuredInformation" 
-                                              rows="3" placeholder="Descripción opcional de la transferencia"></textarea>
+                                              rows="3" placeholder="Pago de comisiones/cuotas a organización"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -233,21 +241,26 @@ $(document).ready(function() {
         this.value = this.value.replace(/[^0-9]/g, '');
     });
     
-    // Validar solo números en teléfono
-    $('#debtorMobileNumber').on('input', function() {
-        this.value = this.value.replace(/[^0-9+]/g, '');
+    // Cargar CCI automáticamente al seleccionar organización
+    $('#organization_id').on('change', function() {
+        const selectedOption = $(this).find('option:selected');
+        const cci = selectedOption.data('cci');
+        const organizationCode = selectedOption.data('code');
+        
+        if (cci) {
+            $('#creditorCCI').val(cci);
+            // Auto-completar el concepto
+            $('#unstructuredInformation').val(`Pago de comisiones a organización ${organizationCode}`);
+        } else {
+            $('#creditorCCI').val('');
+            alert('La organización seleccionada no tiene CCI configurado. Configure el CCI en la edición de la organización.');
+        }
     });
 });
 
 function processTransfer() {
     const formData = {
-        debtorParticipantCode: $('#debtorParticipantCode').val(),
-        creditorParticipantCode: $('#creditorParticipantCode').val(),
-        debtorName: $('#debtorName').val(),
-        debtorId: $('#debtorId').val(),
-        debtorIdCode: $('#debtorIdCode').val(),
-        debtorAddressLine: $('#debtorAddressLine').val(),
-        debtorMobileNumber: $('#debtorMobileNumber').val(),
+        organization_id: $('#organization_id').val(),
         creditorCCI: $('#creditorCCI').val(),
         amount: $('#amount').val(),
         currency: $('#currency').val(),
@@ -255,6 +268,11 @@ function processTransfer() {
     };
     
     // Validaciones básicas
+    if (!formData.organization_id) {
+        alert('Debe seleccionar una organización destino');
+        return;
+    }
+    
     if (!formData.creditorCCI || formData.creditorCCI.length !== 20) {
         alert('El CCI del acreedor debe tener exactamente 20 dígitos');
         return;
