@@ -49,7 +49,7 @@ class TestTransferStep2Direct extends BaseCommand
             'transactionType' => '320',
             'channel' => '15',
             'creditorAddressLine' => 'JR LIMA',
-            'creditorCCI' => '04900100601812001010', // Use a test CCI
+            'creditorCCI' => '00110187020024637125', // Use real organization CCI
             'debtorTypeOfPerson' => 'N',
             'currency' => '604'
         ];
