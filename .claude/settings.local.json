@@ -37,6 +37,7 @@
       "WebFetch(domain:cobra.mitienda.host)",
       "Bash(git log:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

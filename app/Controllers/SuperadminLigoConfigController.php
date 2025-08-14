@@ -94,6 +94,12 @@ class SuperadminLigoConfigController extends BaseController
             'account_id' => 'permit_empty|max_length[100]',
             'merchant_code' => 'permit_empty|max_length[50]',
             'private_key' => 'permit_empty',
+            'debtor_name' => 'permit_empty|max_length[255]',
+            'debtor_id' => 'permit_empty|max_length[50]',
+            'debtor_id_code' => 'permit_empty|max_length[10]',
+            'debtor_address_line' => 'permit_empty|max_length[255]',
+            'debtor_mobile_number' => 'permit_empty|max_length[20]',
+            'debtor_participant_code' => 'permit_empty|max_length[10]',
             'auth_url' => 'permit_empty|valid_url',
             'api_url' => 'permit_empty|valid_url',
             'enabled' => 'permit_empty|in_list[0,1]',
@@ -108,7 +114,9 @@ class SuperadminLigoConfigController extends BaseController
         // Prepare data for update
         $updateData = [];
         $fields = ['username', 'password', 'company_id', 'account_id', 'merchant_code', 
-                  'private_key', 'webhook_secret', 'auth_url', 'api_url', 'notes'];
+                  'private_key', 'debtor_name', 'debtor_id', 'debtor_id_code', 
+                  'debtor_address_line', 'debtor_mobile_number', 'debtor_participant_code',
+                  'webhook_secret', 'auth_url', 'api_url', 'notes'];
 
         foreach ($fields as $field) {
             $value = $this->request->getPost($field);

@@ -673,15 +673,22 @@ class LigoModel extends Model
     {
         try {
             // Los datos del deudor vienen de la configuración del superadmin
-            // Por ahora usaremos datos predeterminados que deberían configurarse en el superadmin
             $debtorData = [
-                'participantCode' => '0123',  // Código del banco del superadmin
-                'name' => 'CobraPepe SuperAdmin',
-                'id' => '20123456789',  // RUC del superadmin
-                'idCode' => '6', // RUC
-                'addressLine' => 'Av. Javier Prado Este 123, San Isidro, Lima',
-                'mobileNumber' => '999999999'
+                'participantCode' => $superadminConfig['debtor_participant_code'] ?? '0123',
+                'name' => $superadminConfig['debtor_name'] ?? 'CobraPepe SuperAdmin',
+                'id' => $superadminConfig['debtor_id'] ?? '20123456789',
+                'idCode' => $superadminConfig['debtor_id_code'] ?? '6',
+                'addressLine' => $superadminConfig['debtor_address_line'] ?? 'Av. Javier Prado Este 123, San Isidro, Lima',
+                'mobileNumber' => $superadminConfig['debtor_mobile_number'] ?? '999999999'
             ];
+
+            // Verificar que los datos del deudor estén completos
+            $requiredDebtorFields = ['participantCode', 'name', 'id', 'idCode', 'addressLine'];
+            foreach ($requiredDebtorFields as $field) {
+                if (empty($debtorData[$field])) {
+                    return ['error' => "Configuración incompleta: falta campo de deudor '{$field}' en configuración del superadmin"];
+                }
+            }
             
             // Los datos del acreedor vienen de la organización
             $creditorData = [

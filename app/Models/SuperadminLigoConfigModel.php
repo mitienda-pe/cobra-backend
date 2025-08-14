@@ -14,7 +14,9 @@ class SuperadminLigoConfigModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'config_key', 'environment', 'username', 'password', 'company_id', 
-        'account_id', 'merchant_code', 'private_key', 'webhook_secret',
+        'account_id', 'debtor_name', 'debtor_id', 'debtor_id_code', 
+        'debtor_address_line', 'debtor_mobile_number', 'debtor_participant_code',
+        'merchant_code', 'private_key', 'webhook_secret',
         'auth_url', 'api_url', 'ssl_verify', 'enabled', 'is_active', 'notes'
     ];
 
@@ -174,14 +176,34 @@ class SuperadminLigoConfigModel extends Model
             return false;
         }
 
-        $requiredFields = ['username', 'password', 'company_id', 'private_key'];
+        // Campos básicos requeridos para autenticación
+        $basicRequiredFields = ['username', 'password', 'company_id', 'private_key'];
         
-        foreach ($requiredFields as $field) {
+        // Campos de deudor - solo verificar si al menos uno está presente
+        $debtorFields = ['debtor_name', 'debtor_id', 'debtor_id_code', 'debtor_address_line', 'debtor_participant_code'];
+        
+        // Verificar campos básicos
+        foreach ($basicRequiredFields as $field) {
             if (empty($config[$field])) {
                 return false;
             }
         }
-
+        
+        // Si no hay campos de deudor configurados, usar valores por defecto (temporal)
+        $hasDebtorData = false;
+        foreach ($debtorFields as $field) {
+            if (!empty($config[$field])) {
+                $hasDebtorData = true;
+                break;
+            }
+        }
+        
+        // Temporal: permitir configuración sin datos de deudor completos
+        // TODO: Hacer esto obligatorio cuando todas las configuraciones estén completas
+        if (!$hasDebtorData) {
+            log_message('warning', 'SuperadminLigoConfig: Configuration lacks debtor data, using defaults');
+        }
+        
         return true;
     }
 
