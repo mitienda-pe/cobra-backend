@@ -34,12 +34,22 @@ class TestLigoAuthStep extends BaseCommand
         $environment = $config['environment'];
 
         CLI::write('Step 1: Prepare auth data...', 'cyan');
+        CLI::write('Raw password from DB: ' . $password, 'white');
+        
+        // Manual decryption if needed
+        if (strpos($password, 'ENC:') === 0) {
+            $password = base64_decode(substr($password, 4));
+            CLI::write('✅ Password decrypted manually', 'green');
+        } else {
+            CLI::write('✅ Password already decrypted', 'green');
+        }
+        
         $authData = [
             'username' => $username,
-            'password' => $password // Already decrypted by the model
+            'password' => $password
         ];
         CLI::write('✅ Username: ' . $username, 'green');
-        CLI::write('✅ Password length: ' . strlen($password), 'green');
+        CLI::write('✅ Final password length: ' . strlen($password), 'green');
 
         CLI::write('Step 2: Generate JWT token...', 'cyan');
         try {
