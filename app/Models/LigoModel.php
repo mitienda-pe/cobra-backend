@@ -981,13 +981,46 @@ class LigoModel extends Model
         try {
             log_message('info', 'LigoModel: Getting account inquiry result for ID: ' . $accountInquiryId);
             
-            // Small delay to allow processing
-            sleep(2);
+            // Increased delay to allow processing (based on successful test command)
+            sleep(3);
             
-            $response = $this->makeApiRequest('/v1/getAccountInquiryById/' . $accountInquiryId, 'GET');
+            // Try multiple endpoints like the successful test command
+            $endpointsToTry = [
+                '/v1/getAccountInquiryById/' . $accountInquiryId,
+                '/v1/accountInquiry/' . $accountInquiryId,
+                '/v1/getAccountInquiry/' . $accountInquiryId
+            ];
             
-            if (isset($response['error'])) {
-                return ['error' => 'Error al obtener respuesta de consulta: ' . $response['error']];
+            $response = null;
+            $lastError = null;
+            
+            foreach ($endpointsToTry as $endpoint) {
+                log_message('debug', 'LigoModel: Trying endpoint: ' . $endpoint);
+                $response = $this->makeApiRequest($endpoint, 'GET');
+                
+                if (isset($response['error'])) {
+                    $lastError = $response['error'];
+                    log_message('debug', 'LigoModel: Endpoint failed: ' . $endpoint . ' - ' . $lastError);
+                    continue;
+                }
+                
+                // Check if we have valid data
+                $data = $response['data'] ?? [];
+                if (!empty($data) && !is_array($data)) {
+                    log_message('info', 'LigoModel: Success with endpoint: ' . $endpoint);
+                    break;
+                } elseif (empty($data) || (is_array($data) && count($data) === 0)) {
+                    log_message('debug', 'LigoModel: Endpoint returned empty data: ' . $endpoint);
+                    $lastError = 'Empty data response';
+                    continue;
+                }
+                
+                log_message('info', 'LigoModel: Success with endpoint: ' . $endpoint);
+                break;
+            }
+            
+            if (isset($response['error']) || empty($response)) {
+                return ['error' => 'Error al obtener respuesta de consulta: ' . ($lastError ?? 'Unknown error')];
             }
 
             // Extract important information
