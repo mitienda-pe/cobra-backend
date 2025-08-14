@@ -325,11 +325,16 @@ class BackofficeController extends Controller
      */
     public function transferStep3()
     {
-        log_message('info', 'BackofficeController: transferStep3 - Request received. Method: ' . $this->request->getMethod() . ', AJAX: ' . ($this->request->isAJAX() ? 'YES' : 'NO'));
-        
-        if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
-            log_message('error', 'BackofficeController: transferStep3 - Invalid request method or not AJAX');
-            return $this->fail('Invalid request', 400);
+        try {
+            log_message('info', 'BackofficeController: transferStep3 - Request received. Method: ' . $this->request->getMethod() . ', AJAX: ' . ($this->request->isAJAX() ? 'YES' : 'NO'));
+            
+            if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
+                log_message('error', 'BackofficeController: transferStep3 - Invalid request method or not AJAX');
+                return $this->fail('Invalid request', 400);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'BackofficeController: transferStep3 - Exception in initial checks: ' . $e->getMessage());
+            return $this->fail('Internal error', 500);
         }
 
         $debtorCCI = $this->request->getPost('debtorCCI');
@@ -347,17 +352,24 @@ class BackofficeController extends Controller
             return $this->fail('El monto debe ser un número válido mayor a 0', 400);
         }
 
-        $response = $this->ligoModel->calculateTransferFee($debtorCCI, $creditorCCI, $amount, $currency);
+        try {
+            $response = $this->ligoModel->calculateTransferFee($debtorCCI, $creditorCCI, $amount, $currency);
 
-        if (isset($response['error'])) {
-            return $this->fail($response['error'], 400);
+            if (isset($response['error'])) {
+                log_message('error', 'BackofficeController: transferStep3 - LigoModel error: ' . $response['error']);
+                return $this->fail($response['error'], 400);
+            }
+
+            log_message('info', 'BackofficeController: transferStep3 - Success');
+            return $this->respond([
+                'success' => true,
+                'data' => $response,
+                'message' => 'Comisión calculada exitosamente'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'BackofficeController: transferStep3 - Exception: ' . $e->getMessage());
+            return $this->fail('Internal error: ' . $e->getMessage(), 500);
         }
-
-        return $this->respond([
-            'success' => true,
-            'data' => $response,
-            'message' => 'Comisión calculada exitosamente'
-        ]);
     }
 
     /**
