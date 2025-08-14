@@ -61,6 +61,7 @@
                     </div>
                     
                     <form id="transferForm">
+                        <?= csrf_field() ?>
                         <div class="row">
                             <div class="col-md-6">
                                 <h5>Datos del Deudor (Cuenta Superadmin)</h5>
@@ -451,6 +452,7 @@ function makeRequest(url, method, data) {
         const xhr = new XMLHttpRequest();
         xhr.open(method, url, true);
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4) {
@@ -467,14 +469,48 @@ function makeRequest(url, method, data) {
             }
         };
         
-        // Convert data object to form data
+        // Convert data object to form data and add CSRF token
         const formData = new URLSearchParams();
+        
+        // Add CSRF token
+        const csrfToken = getCSRFToken();
+        if (csrfToken) {
+            formData.append('<?= csrf_token() ?>', csrfToken);
+        }
+        
+        // Add user data
         for (const key in data) {
             formData.append(key, data[key]);
         }
         
         xhr.send(formData.toString());
     });
+}
+
+function getCSRFToken() {
+    // Try to get CSRF token from meta tag first
+    const metaToken = document.querySelector('meta[name="<?= csrf_token() ?>"]');
+    if (metaToken) {
+        return metaToken.getAttribute('content');
+    }
+    
+    // Try to get from hidden input field
+    const inputToken = document.querySelector('input[name="<?= csrf_token() ?>"]');
+    if (inputToken) {
+        return inputToken.value;
+    }
+    
+    // Try to get from cookie
+    const cookieName = '<?= csrf_token() ?>';
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === cookieName) {
+            return decodeURIComponent(value);
+        }
+    }
+    
+    return null;
 }
 
 function executeStep1() {
