@@ -54,38 +54,91 @@ class LigoModel extends Model
      */
     protected function getSuperadminLigoConfig()
     {
+        log_message('info', 'LigoModel: Getting superadmin Ligo configuration...');
+        
         // First try to get any active configuration regardless of environment
         $config = $this->superadminLigoConfigModel->where('enabled', 1)
                                                   ->where('is_active', 1)
                                                   ->first();
         
+        log_message('debug', 'LigoModel: Active config query result: ' . ($config ? 'Found ID ' . $config['id'] : 'Not found'));
+        
         if (!$config) {
             // Fallback: try to determine environment from CI_ENVIRONMENT
             $environment = env('CI_ENVIRONMENT', 'development') === 'production' ? 'prod' : 'dev';
+            log_message('debug', 'LigoModel: Fallback to environment-specific config: ' . $environment);
+            
             $config = $this->superadminLigoConfigModel->getActiveConfig($environment);
             
             if (!$config) {
-                log_message('error', 'LigoModel: No active superadmin Ligo configuration found');
+                log_message('error', 'LigoModel: No active superadmin Ligo configuration found for environment: ' . $environment);
+                
+                // Debug: List all available configs
+                $allConfigs = $this->superadminLigoConfigModel->findAll();
+                log_message('debug', 'LigoModel: Available configurations: ' . json_encode(array_map(function($c) {
+                    return [
+                        'id' => $c['id'],
+                        'environment' => $c['environment'],
+                        'enabled' => $c['enabled'],
+                        'is_active' => $c['is_active'],
+                        'has_username' => !empty($c['username']),
+                        'has_company_id' => !empty($c['company_id'])
+                    ];
+                }, $allConfigs)));
+                
                 return null;
             }
         }
 
-        if (!$this->superadminLigoConfigModel->isConfigurationComplete($config)) {
+        log_message('info', 'LigoModel: Found config ID ' . $config['id'] . ' for environment: ' . $config['environment']);
+        
+        // Log config details (without sensitive data)
+        log_message('debug', 'LigoModel: Config details: ' . json_encode([
+            'id' => $config['id'],
+            'environment' => $config['environment'],
+            'enabled' => $config['enabled'],
+            'is_active' => $config['is_active'],
+            'has_username' => !empty($config['username']),
+            'has_password' => !empty($config['password']),
+            'has_company_id' => !empty($config['company_id']),
+            'has_account_id' => !empty($config['account_id']),
+            'has_private_key' => !empty($config['private_key']),
+            'has_debtor_name' => !empty($config['debtor_name']),
+            'has_debtor_id' => !empty($config['debtor_id'])
+        ]));
+
+        $isComplete = $this->superadminLigoConfigModel->isConfigurationComplete($config);
+        log_message('info', 'LigoModel: Configuration completeness check: ' . ($isComplete ? 'COMPLETE' : 'INCOMPLETE'));
+        
+        if (!$isComplete) {
             log_message('error', 'LigoModel: Superadmin Ligo configuration is incomplete for environment: ' . $config['environment']);
+            
+            // Log missing fields
+            $requiredFields = ['username', 'password', 'company_id', 'private_key'];
+            $missingFields = [];
+            foreach ($requiredFields as $field) {
+                if (empty($config[$field])) {
+                    $missingFields[] = $field;
+                }
+            }
+            log_message('error', 'LigoModel: Missing required fields: ' . implode(', ', $missingFields));
+            
             return null;
         }
 
-        log_message('debug', 'LigoModel: Using centralized Ligo config for environment: ' . $config['environment']);
+        log_message('info', 'LigoModel: Using centralized Ligo config ID ' . $config['id'] . ' for environment: ' . $config['environment']);
         return $config;
     }
 
     protected function makeApiRequest($endpoint, $method = 'GET', $data = null, $requiresAuth = true)
     {
+        log_message('info', "LigoModel: Making API request to {$endpoint} (method: {$method})");
+        
         // Get centralized Ligo configuration
         $ligoConfig = $this->getSuperadminLigoConfig();
         
         if (!$ligoConfig) {
-            log_message('error', 'LigoModel: No centralized Ligo configuration available');
+            log_message('error', 'LigoModel: No centralized Ligo configuration available for API request');
             return ['error' => 'Configuración de Ligo no disponible. Contacte al administrador.'];
         }
 
