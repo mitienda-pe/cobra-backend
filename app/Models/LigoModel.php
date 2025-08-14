@@ -1067,6 +1067,14 @@ class LigoModel extends Model
         try {
             log_message('info', 'LigoModel: Calculating transfer fee for amount: ' . $amount . ' ' . $currency);
             
+            // Validate CCI formats
+            if (strlen($debtorCCI) !== 20) {
+                log_message('warning', 'LigoModel: debtorCCI has invalid length: ' . strlen($debtorCCI) . ' (should be 20). Value: ' . $debtorCCI);
+            }
+            if (strlen($creditorCCI) !== 20) {
+                log_message('warning', 'LigoModel: creditorCCI has invalid length: ' . strlen($creditorCCI) . ' (should be 20). Value: ' . $creditorCCI);
+            }
+            
             $feeData = [
                 'debtorCCI' => $debtorCCI,
                 'creditorCCI' => $creditorCCI,

@@ -334,6 +334,8 @@ class BackofficeController extends Controller
         $amount = $this->request->getPost('amount');
         $currency = $this->request->getPost('currency') ?: 'PEN';
 
+        log_message('debug', 'BackofficeController: transferStep3 - debtorCCI: ' . ($debtorCCI ?? 'NULL') . ', creditorCCI: ' . ($creditorCCI ?? 'NULL') . ', amount: ' . ($amount ?? 'NULL') . ', currency: ' . $currency);
+
         if (empty($debtorCCI) || empty($creditorCCI) || empty($amount)) {
             return $this->fail('Todos los campos son requeridos (debtorCCI, creditorCCI, amount)', 400);
         }
