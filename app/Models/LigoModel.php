@@ -1123,15 +1123,23 @@ class LigoModel extends Model
             }
 
             $data = $response['data'] ?? [];
-            $feeAmount = $data['feeAmount'] ?? 0;
-            $feeCode = $data['feeCode'] ?? '';
+            
+            // Map API response fields correctly
+            $feeAmount = $data['feeAmount'] ?? $data['feeTotal'] ?? 0;
+            $feeCode = $data['feeCode'] ?? $data['rateCode'] ?? '';
             $applicationCriteria = $data['applicationCriteria'] ?? '';
+            $feeId = $data['feeId'] ?? $data['id'] ?? '';
+            $feeLigo = $data['feeLigo'] ?? 0;
+
+            log_message('debug', 'LigoModel: Fee calculation mapped values: feeAmount=' . $feeAmount . ', feeCode=' . $feeCode . ', feeId=' . $feeId);
 
             return [
                 'success' => true,
                 'feeAmount' => $feeAmount,
                 'feeCode' => $feeCode,
                 'applicationCriteria' => $applicationCriteria,
+                'feeId' => $feeId,
+                'feeLigo' => $feeLigo,
                 'totalAmount' => (float)$amount + (float)$feeAmount,
                 'rawResponse' => $response
             ];
