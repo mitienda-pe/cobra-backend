@@ -448,6 +448,8 @@ function scrollToElement(elementId) {
 }
 
 function makeRequest(url, method, data) {
+    console.log('🌐 makeRequest - URL:', url, 'Method:', method, 'Data:', data);
+    
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open(method, url, true);
@@ -456,14 +458,17 @@ function makeRequest(url, method, data) {
         
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4) {
+                console.log('📡 Response - Status:', xhr.status, 'Text:', xhr.responseText);
                 try {
                     const response = JSON.parse(xhr.responseText);
                     if (xhr.status === 200) {
                         resolve(response);
                     } else {
+                        console.error('❌ Request failed - Status:', xhr.status, 'Response:', response);
                         reject({ status: xhr.status, response: response });
                     }
                 } catch (e) {
+                    console.error('❌ JSON Parse error:', e, 'Raw response:', xhr.responseText);
                     reject({ status: xhr.status, response: { messages: { error: 'Error parsing response' } } });
                 }
             }
@@ -474,6 +479,7 @@ function makeRequest(url, method, data) {
         
         // Add CSRF token
         const csrfToken = getCSRFToken();
+        console.log('🔐 CSRF Token:', csrfToken);
         if (csrfToken) {
             formData.append('<?= csrf_token() ?>', csrfToken);
         }

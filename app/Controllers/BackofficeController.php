@@ -325,7 +325,10 @@ class BackofficeController extends Controller
      */
     public function transferStep3()
     {
+        log_message('info', 'BackofficeController: transferStep3 - Request received. Method: ' . $this->request->getMethod() . ', AJAX: ' . ($this->request->isAJAX() ? 'YES' : 'NO'));
+        
         if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
+            log_message('error', 'BackofficeController: transferStep3 - Invalid request method or not AJAX');
             return $this->fail('Invalid request', 400);
         }
 
