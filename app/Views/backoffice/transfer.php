@@ -346,24 +346,32 @@
 let transferData = {};
 let stepData = {};
 
-$(document).ready(function() {
-    $('#transferForm').on('submit', function(e) {
-        e.preventDefault();
-        startTransferProcess();
-    });
+// DOM Content Loaded
+document.addEventListener('DOMContentLoaded', function() {
+    const transferForm = document.getElementById('transferForm');
+    const creditorCCIInput = document.getElementById('creditorCCI');
+    
+    if (transferForm) {
+        transferForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            startTransferProcess();
+        });
+    }
     
     // Validar solo números en CCI
-    $('#creditorCCI').on('input', function() {
-        this.value = this.value.replace(/[^0-9]/g, '');
-    });
+    if (creditorCCIInput) {
+        creditorCCIInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    }
 });
 
 function startTransferProcess() {
     const formData = {
-        creditorCCI: $('#creditorCCI').val(),
-        amount: $('#amount').val(),
-        currency: $('#currency').val(),
-        unstructuredInformation: $('#unstructuredInformation').val()
+        creditorCCI: document.getElementById('creditorCCI').value,
+        amount: document.getElementById('amount').value,
+        currency: document.getElementById('currency').value,
+        unstructuredInformation: document.getElementById('unstructuredInformation').value
     };
     
     if (!validateForm(formData)) {
@@ -371,10 +379,10 @@ function startTransferProcess() {
     }
     
     transferData = formData;
-    $('#progressSteps').show();
-    $('#confirmationArea').hide();
-    $('#transferResult').hide();
-    $('#errorResult').hide();
+    showElement('progressSteps');
+    hideElement('confirmationArea');
+    hideElement('transferResult');
+    hideElement('errorResult');
     resetSteps();
     
     // Step 1: Account Inquiry
@@ -396,117 +404,169 @@ function validateForm(formData) {
 }
 
 function resetSteps() {
-    $('.step').removeClass('active completed error');
+    const steps = document.querySelectorAll('.step');
+    steps.forEach(step => {
+        step.classList.remove('active', 'completed', 'error');
+    });
 }
 
 function setStepStatus(stepNumber, status) {
-    const step = $('#step' + stepNumber);
-    step.removeClass('active completed error');
-    step.addClass(status);
+    const step = document.getElementById('step' + stepNumber);
+    if (step) {
+        step.classList.remove('active', 'completed', 'error');
+        step.classList.add(status);
+    }
+}
+
+function showElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.style.display = 'block';
+    }
+}
+
+function hideElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.style.display = 'none';
+    }
+}
+
+function setText(elementId, text) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = text;
+    }
+}
+
+function scrollToElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function makeRequest(url, method, data) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, url, true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (xhr.status === 200) {
+                        resolve(response);
+                    } else {
+                        reject({ status: xhr.status, response: response });
+                    }
+                } catch (e) {
+                    reject({ status: xhr.status, response: { messages: { error: 'Error parsing response' } } });
+                }
+            }
+        };
+        
+        // Convert data object to form data
+        const formData = new URLSearchParams();
+        for (const key in data) {
+            formData.append(key, data[key]);
+        }
+        
+        xhr.send(formData.toString());
+    });
 }
 
 function executeStep1() {
     setStepStatus(1, 'active');
     
-    $.ajax({
-        url: '<?= base_url('backoffice/transfer/step1') ?>',
-        type: 'POST',
-        data: {
-            creditorCCI: transferData.creditorCCI,
-            currency: transferData.currency
-        },
-        success: function(response) {
-            if (response.success) {
-                setStepStatus(1, 'completed');
-                stepData.step1 = response.data;
-                setTimeout(() => executeStep2(), 1000);
-            } else {
-                setStepStatus(1, 'error');
-                showError('Error en Paso 1: ' + (response.message || 'Error desconocido'));
-            }
-        },
-        error: function(xhr) {
+    makeRequest('<?= base_url('backoffice/transfer/step1') ?>', 'POST', {
+        creditorCCI: transferData.creditorCCI,
+        currency: transferData.currency
+    })
+    .then(response => {
+        if (response.success) {
+            setStepStatus(1, 'completed');
+            stepData.step1 = response.data;
+            setTimeout(() => executeStep2(), 1000);
+        } else {
             setStepStatus(1, 'error');
-            const response = xhr.responseJSON;
-            showError('Error en Paso 1: ' + (response?.messages?.error || 'Error al consultar cuenta'));
+            showError('Error en Paso 1: ' + (response.message || 'Error desconocido'));
         }
+    })
+    .catch(error => {
+        setStepStatus(1, 'error');
+        const errorMsg = error.response?.messages?.error || 'Error al consultar cuenta';
+        showError('Error en Paso 1: ' + errorMsg);
     });
 }
 
 function executeStep2() {
     setStepStatus(2, 'active');
     
-    $.ajax({
-        url: '<?= base_url('backoffice/transfer/step2') ?>',
-        type: 'POST',
-        data: {
-            accountInquiryId: stepData.step1.accountInquiryId
-        },
-        success: function(response) {
-            if (response.success) {
-                setStepStatus(2, 'completed');
-                stepData.step2 = response.data;
-                setTimeout(() => executeStep3(), 1000);
-            } else {
-                setStepStatus(2, 'error');
-                showError('Error en Paso 2: ' + (response.message || 'Error desconocido'));
-            }
-        },
-        error: function(xhr) {
+    makeRequest('<?= base_url('backoffice/transfer/step2') ?>', 'POST', {
+        accountInquiryId: stepData.step1.accountInquiryId
+    })
+    .then(response => {
+        if (response.success) {
+            setStepStatus(2, 'completed');
+            stepData.step2 = response.data;
+            setTimeout(() => executeStep3(), 1000);
+        } else {
             setStepStatus(2, 'error');
-            const response = xhr.responseJSON;
-            showError('Error en Paso 2: ' + (response?.messages?.error || 'Error al obtener información de cuenta'));
+            showError('Error en Paso 2: ' + (response.message || 'Error desconocido'));
         }
+    })
+    .catch(error => {
+        setStepStatus(2, 'error');
+        const errorMsg = error.response?.messages?.error || 'Error al obtener información de cuenta';
+        showError('Error en Paso 2: ' + errorMsg);
     });
 }
 
 function executeStep3() {
     setStepStatus(3, 'active');
     
-    $.ajax({
-        url: '<?= base_url('backoffice/transfer/step3') ?>',
-        type: 'POST',
-        data: {
-            debtorCCI: stepData.step2.debtorCCI,
-            creditorCCI: transferData.creditorCCI,
-            amount: transferData.amount,
-            currency: transferData.currency
-        },
-        success: function(response) {
-            if (response.success) {
-                setStepStatus(3, 'completed');
-                stepData.step3 = response.data;
-                setTimeout(() => showConfirmation(), 1000);
-            } else {
-                setStepStatus(3, 'error');
-                showError('Error en Paso 3: ' + (response.message || 'Error desconocido'));
-            }
-        },
-        error: function(xhr) {
+    makeRequest('<?= base_url('backoffice/transfer/step3') ?>', 'POST', {
+        debtorCCI: stepData.step2.debtorCCI,
+        creditorCCI: transferData.creditorCCI,
+        amount: transferData.amount,
+        currency: transferData.currency
+    })
+    .then(response => {
+        if (response.success) {
+            setStepStatus(3, 'completed');
+            stepData.step3 = response.data;
+            setTimeout(() => showConfirmation(), 1000);
+        } else {
             setStepStatus(3, 'error');
-            const response = xhr.responseJSON;
-            showError('Error en Paso 3: ' + (response?.messages?.error || 'Error al calcular comisión'));
+            showError('Error en Paso 3: ' + (response.message || 'Error desconocido'));
         }
+    })
+    .catch(error => {
+        setStepStatus(3, 'error');
+        const errorMsg = error.response?.messages?.error || 'Error al calcular comisión';
+        showError('Error en Paso 3: ' + errorMsg);
     });
 }
 
 function showConfirmation() {
     // Populate confirmation data
-    $('#confirmCreditorName').text(stepData.step2.creditorName);
-    $('#confirmCreditorCCI').text(transferData.creditorCCI);
-    $('#confirmAmount').text(transferData.amount + ' ' + transferData.currency);
-    $('#confirmCurrency').text(transferData.currency);
-    $('#confirmFeeAmount').text(stepData.step3.feeAmount + ' ' + transferData.currency);
-    $('#confirmTotalAmount').text(stepData.step3.totalAmount + ' ' + transferData.currency);
-    $('#confirmFeeCode').text(stepData.step3.feeCode);
+    setText('confirmCreditorName', stepData.step2.creditorName);
+    setText('confirmCreditorCCI', transferData.creditorCCI);
+    setText('confirmAmount', transferData.amount + ' ' + transferData.currency);
+    setText('confirmCurrency', transferData.currency);
+    setText('confirmFeeAmount', stepData.step3.feeAmount + ' ' + transferData.currency);
+    setText('confirmTotalAmount', stepData.step3.totalAmount + ' ' + transferData.currency);
+    setText('confirmFeeCode', stepData.step3.feeCode);
     
-    $('#confirmationArea').show();
-    $('html, body').animate({scrollTop: $('#confirmationArea').offset().top}, 500);
+    showElement('confirmationArea');
+    setTimeout(() => scrollToElement('confirmationArea'), 100);
 }
 
 function executeTransfer() {
     setStepStatus(4, 'active');
-    $('#confirmationArea').hide();
+    hideElement('confirmationArea');
     
     const executeData = {
         debtorCCI: stepData.step2.debtorCCI,
@@ -521,68 +581,71 @@ function executeTransfer() {
         unstructuredInformation: transferData.unstructuredInformation
     };
     
-    $.ajax({
-        url: '<?= base_url('backoffice/transfer/step4') ?>',
-        type: 'POST',
-        data: executeData,
-        success: function(response) {
-            if (response.success) {
-                setStepStatus(4, 'completed');
-                stepData.step4 = response.data;
-                displayTransferSuccess(response.data);
-            } else {
-                setStepStatus(4, 'error');
-                showError('Error en Paso 4: ' + (response.message || 'Error desconocido'));
-            }
-        },
-        error: function(xhr) {
+    makeRequest('<?= base_url('backoffice/transfer/step4') ?>', 'POST', executeData)
+    .then(response => {
+        if (response.success) {
+            setStepStatus(4, 'completed');
+            stepData.step4 = response.data;
+            displayTransferSuccess(response.data);
+        } else {
             setStepStatus(4, 'error');
-            const response = xhr.responseJSON;
-            showError('Error en Paso 4: ' + (response?.messages?.error || 'Error al ejecutar transferencia'));
+            showError('Error en Paso 4: ' + (response.message || 'Error desconocido'));
         }
+    })
+    .catch(error => {
+        setStepStatus(4, 'error');
+        const errorMsg = error.response?.messages?.error || 'Error al ejecutar transferencia';
+        showError('Error en Paso 4: ' + errorMsg);
     });
 }
 
 function cancelTransfer() {
-    $('#confirmationArea').hide();
-    $('#progressSteps').hide();
+    hideElement('confirmationArea');
+    hideElement('progressSteps');
     resetSteps();
 }
 
 function displayTransferSuccess(data) {
-    $('#resultTransferId').text(data.transferId || 'N/A');
-    $('#resultAccountInquiryId').text(stepData.step1.accountInquiryId || 'N/A');
-    $('#resultStatus').text(data.status || 'Completado');
-    $('#resultAmount').text(transferData.amount + ' ' + transferData.currency);
-    $('#resultDate').text(new Date().toLocaleString());
+    setText('resultTransferId', data.transferId || 'N/A');
+    setText('resultAccountInquiryId', stepData.step1.accountInquiryId || 'N/A');
+    setText('resultStatus', data.status || 'Completado');
+    setText('resultAmount', transferData.amount + ' ' + transferData.currency);
+    setText('resultDate', new Date().toLocaleString());
     
     // Llenar detalles de pasos
-    $('#step1Details').text(JSON.stringify(stepData.step1, null, 2));
-    $('#step2Details').text(JSON.stringify(stepData.step2, null, 2));
-    $('#step3Details').text(JSON.stringify(stepData.step3, null, 2));
-    $('#step4Details').text(JSON.stringify(data, null, 2));
+    setText('step1Details', JSON.stringify(stepData.step1, null, 2));
+    setText('step2Details', JSON.stringify(stepData.step2, null, 2));
+    setText('step3Details', JSON.stringify(stepData.step3, null, 2));
+    setText('step4Details', JSON.stringify(data, null, 2));
     
-    $('#transferResult').show();
-    $('html, body').animate({scrollTop: $('#transferResult').offset().top}, 500);
+    showElement('transferResult');
+    setTimeout(() => scrollToElement('transferResult'), 100);
 }
 
 function showError(message) {
-    $('#errorMessage').text(message);
-    $('#errorResult').show();
-    $('html, body').animate({scrollTop: $('#errorResult').offset().top}, 500);
+    setText('errorMessage', message);
+    showElement('errorResult');
+    setTimeout(() => scrollToElement('errorResult'), 100);
 }
 
 function showTransferDetails() {
-    $('#transferDetails').toggle();
+    const details = document.getElementById('transferDetails');
+    if (details) {
+        details.style.display = details.style.display === 'none' ? 'block' : 'none';
+    }
 }
 
 function clearTransferForm() {
-    $('#transferForm')[0].reset();
-    $('#transferResult').hide();
-    $('#errorResult').hide();
-    $('#transferDetails').hide();
-    $('#confirmationArea').hide();
-    $('#progressSteps').hide();
+    const form = document.getElementById('transferForm');
+    if (form) {
+        form.reset();
+    }
+    
+    hideElement('transferResult');
+    hideElement('errorResult');
+    hideElement('transferDetails');
+    hideElement('confirmationArea');
+    hideElement('progressSteps');
     resetSteps();
     transferData = {};
     stepData = {};
