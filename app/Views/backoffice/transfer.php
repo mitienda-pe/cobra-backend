@@ -516,17 +516,25 @@ function getCSRFToken() {
 function executeStep1() {
     setStepStatus(1, 'active');
     
-    makeRequest('<?= base_url('backoffice/transfer/step1') ?>', 'POST', {
+    const step1Data = {
         creditorCCI: transferData.creditorCCI,
         currency: transferData.currency
-    })
+    };
+    
+    console.log('🚀 STEP 1 - Datos enviados:', step1Data);
+    console.log('📋 STEP 1 - transferData completo:', transferData);
+    
+    makeRequest('<?= base_url('backoffice/transfer/step1') ?>', 'POST', step1Data)
     .then(response => {
+        console.log('✅ STEP 1 - Respuesta recibida:', response);
         if (response.success) {
             setStepStatus(1, 'completed');
             stepData.step1 = response.data;
+            console.log('📦 STEP 1 - Data guardada:', stepData.step1);
             setTimeout(() => executeStep2(), 1000);
         } else {
             setStepStatus(1, 'error');
+            console.error('❌ STEP 1 - Error:', response);
             showError('Error en Paso 1: ' + (response.message || 'Error desconocido'));
         }
     })
@@ -540,16 +548,24 @@ function executeStep1() {
 function executeStep2() {
     setStepStatus(2, 'active');
     
-    makeRequest('<?= base_url('backoffice/transfer/step2') ?>', 'POST', {
+    const step2Data = {
         accountInquiryId: stepData.step1.accountInquiryId
-    })
+    };
+    
+    console.log('⚡ STEP 2 - Datos enviados:', step2Data);
+    console.log('📋 STEP 2 - stepData.step1:', stepData.step1);
+    
+    makeRequest('<?= base_url('backoffice/transfer/step2') ?>', 'POST', step2Data)
     .then(response => {
+        console.log('✅ STEP 2 - Respuesta recibida:', response);
         if (response.success) {
             setStepStatus(2, 'completed');
             stepData.step2 = response.data;
+            console.log('📦 STEP 2 - Data guardada:', stepData.step2);
             setTimeout(() => executeStep3(), 1000);
         } else {
             setStepStatus(2, 'error');
+            console.error('❌ STEP 2 - Error:', response);
             showError('Error en Paso 2: ' + (response.message || 'Error desconocido'));
         }
     })
@@ -563,19 +579,28 @@ function executeStep2() {
 function executeStep3() {
     setStepStatus(3, 'active');
     
-    makeRequest('<?= base_url('backoffice/transfer/step3') ?>', 'POST', {
+    const step3Data = {
         debtorCCI: stepData.step2.debtorCCI,
         creditorCCI: transferData.creditorCCI,
         amount: transferData.amount,
         currency: transferData.currency
-    })
+    };
+    
+    console.log('🔥 STEP 3 - Datos enviados:', step3Data);
+    console.log('📋 STEP 3 - stepData.step2:', stepData.step2);
+    console.log('📋 STEP 3 - transferData:', transferData);
+    
+    makeRequest('<?= base_url('backoffice/transfer/step3') ?>', 'POST', step3Data)
     .then(response => {
+        console.log('✅ STEP 3 - Respuesta recibida:', response);
         if (response.success) {
             setStepStatus(3, 'completed');
             stepData.step3 = response.data;
+            console.log('📦 STEP 3 - Data guardada:', stepData.step3);
             setTimeout(() => showConfirmation(), 1000);
         } else {
             setStepStatus(3, 'error');
+            console.error('❌ STEP 3 - Error:', response);
             showError('Error en Paso 3: ' + (response.message || 'Error desconocido'));
         }
     })
