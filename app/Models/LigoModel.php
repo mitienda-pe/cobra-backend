@@ -946,6 +946,8 @@ class LigoModel extends Model
             
             $response = $this->makeApiRequest('/v1/accountInquiry', 'POST', $accountInquiryData);
             
+            log_message('debug', 'LigoModel: AccountInquiry response: ' . json_encode($response));
+            
             if (isset($response['error'])) {
                 return ['error' => 'Error en consulta de cuenta: ' . $response['error']];
             }
@@ -990,12 +992,17 @@ class LigoModel extends Model
 
             // Extract important information
             $data = $response['data'] ?? [];
+            log_message('debug', 'LigoModel: getAccountInquiryResult - Raw response data: ' . json_encode($data));
+            
             $debtorCCI = $data['debtorCCI'] ?? null;
             $creditorName = $data['creditorName'] ?? 'Nombre no disponible';
             $messageTypeId = $data['messageTypeId'] ?? '320';
             $instructionId = $data['instructionId'] ?? uniqid();
 
+            log_message('debug', 'LigoModel: getAccountInquiryResult - Extracted values: debtorCCI=' . ($debtorCCI ?? 'NULL') . ', creditorName=' . $creditorName . ', messageTypeId=' . $messageTypeId);
+
             if (!$debtorCCI) {
+                log_message('error', 'LigoModel: getAccountInquiryResult - debtorCCI is empty. Full response: ' . json_encode($response));
                 return ['error' => 'No se pudo obtener CCI del deudor desde la respuesta de consulta'];
             }
 
