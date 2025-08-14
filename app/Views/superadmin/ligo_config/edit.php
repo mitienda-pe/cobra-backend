@@ -192,6 +192,61 @@
                                 </div>
                             </div>
 
+                            <!-- Debtor Configuration -->
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="bi bi-person-badge"></i> Configuración del Deudor</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="debtor_participant_code" class="form-label">Código de Participante <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="debtor_participant_code" name="debtor_participant_code" 
+                                                   value="<?= esc($config['debtor_participant_code'] ?? '0921') ?>" required
+                                                   placeholder="ej: 0921">
+                                            <div class="form-text">Código del participante deudor en el sistema Ligo</div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="debtor_name" class="form-label">Nombre del Deudor</label>
+                                            <input type="text" class="form-control" id="debtor_name" name="debtor_name" 
+                                                   value="<?= esc($config['debtor_name'] ?? '') ?>"
+                                                   placeholder="Nombre completo o razón social">
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="debtor_id" class="form-label">ID/RUC del Deudor</label>
+                                            <input type="text" class="form-control" id="debtor_id" name="debtor_id" 
+                                                   value="<?= esc($config['debtor_id'] ?? '') ?>"
+                                                   placeholder="20123456789">
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="debtor_id_code" class="form-label">Código de ID</label>
+                                            <select class="form-control" id="debtor_id_code" name="debtor_id_code">
+                                                <option value="6" <?= ($config['debtor_id_code'] ?? '') === '6' ? 'selected' : '' ?>>6 - RUC</option>
+                                                <option value="1" <?= ($config['debtor_id_code'] ?? '') === '1' ? 'selected' : '' ?>>1 - DNI</option>
+                                                <option value="4" <?= ($config['debtor_id_code'] ?? '') === '4' ? 'selected' : '' ?>>4 - Carnet de Extranjería</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="debtor_address_line" class="form-label">Dirección</label>
+                                            <input type="text" class="form-control" id="debtor_address_line" name="debtor_address_line" 
+                                                   value="<?= esc($config['debtor_address_line'] ?? '') ?>"
+                                                   placeholder="Av. Ejemplo 123, Distrito, Ciudad">
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="debtor_mobile_number" class="form-label">Número Móvil</label>
+                                            <input type="text" class="form-control" id="debtor_mobile_number" name="debtor_mobile_number" 
+                                                   value="<?= esc($config['debtor_mobile_number'] ?? '') ?>"
+                                                   placeholder="999999999">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Webhook Configuration -->
                             <div class="col-md-6">
                                 <div class="card">
