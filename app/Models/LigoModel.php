@@ -1070,9 +1070,11 @@ class LigoModel extends Model
             $feeData = [
                 'debtorCCI' => $debtorCCI,
                 'creditorCCI' => $creditorCCI,
-                'currency' => $currency,
+                'currency' => $currency === 'PEN' ? '604' : '840',
                 'amount' => (float)$amount
             ];
+            
+            log_message('debug', 'LigoModel: Fee calculation data: ' . json_encode($feeData));
 
             $response = $this->makeApiRequest('/v1/infoFeeCodeNew', 'POST', $feeData);
             
