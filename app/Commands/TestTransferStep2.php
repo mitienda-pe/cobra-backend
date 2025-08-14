@@ -45,17 +45,40 @@ class TestTransferStep2 extends BaseCommand
         
         CLI::write('Using organization: ' . $organization['name'] . ' (CCI: ' . $organization['cci'] . ')', 'white');
         
-        // Test account inquiry first
-        $step1Response = $ligoModel->performAccountInquiry($config, $organization, $organization['cci'], 'PEN');
+        // Test account inquiry directly via makeApiRequest to avoid session dependency
+        CLI::write('Testing account inquiry directly...', 'white');
+        
+        // Build the request data manually
+        $accountInquiryData = [
+            'debtorParticipantCode' => '0123',
+            'creditorParticipantCode' => substr($organization['cci'], 0, 3),
+            'debtorName' => $config['debtor_name'] ?? 'CobraPepe SuperAdmin',
+            'debtorId' => $config['debtor_id'] ?? '20123456789',
+            'debtorIdCode' => $config['debtor_id_code'] ?? '6',
+            'debtorPhoneNumber' => '',
+            'debtorAddressLine' => $config['debtor_address_line'] ?? 'Av. Javier Prado Este 123',
+            'debtorMobileNumber' => $config['debtor_mobile_number'] ?? '999999999',
+            'transactionType' => '320',
+            'channel' => '15',
+            'creditorAddressLine' => 'JR LIMA',
+            'creditorCCI' => $organization['cci'],
+            'debtorTypeOfPerson' => 'N',
+            'currency' => '604'
+        ];
+        
+        CLI::write('Account inquiry data: ' . json_encode($accountInquiryData, JSON_PRETTY_PRINT), 'white');
+        
+        $step1Response = $ligoModel->makeApiRequest('/v1/accountInquiry', 'POST', $accountInquiryData);
         
         if (isset($step1Response['error'])) {
             CLI::write('❌ Step 1 failed: ' . $step1Response['error'], 'red');
             return;
         }
         
-        $accountInquiryId = $step1Response['accountInquiryId'] ?? null;
+        $accountInquiryId = $step1Response['data']['id'] ?? null;
         if (!$accountInquiryId) {
             CLI::write('❌ No account inquiry ID received from step 1', 'red');
+            CLI::write('Step 1 response: ' . json_encode($step1Response), 'red');
             return;
         }
         
