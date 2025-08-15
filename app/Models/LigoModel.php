@@ -1177,34 +1177,38 @@ class LigoModel extends Model
                 'name' => $organization['name']
             ];
 
-            // Execute transfer with complete API payload matching successful response structure
+            // Convert amounts to required format (multiply by 100 for 2 decimal places)
+            $amountFormatted = intval(floatval($transferData['amount']) * 100);
+            $feeAmountFormatted = intval(floatval($transferData['feeAmount']) * 100);
+            
+            // Execute transfer with complete API payload matching Ligo documentation exactly
             $transferOrderData = [
                 'debtorParticipantCode' => $debtorData['participantCode'],
                 'creditorParticipantCode' => $creditorData['participantCode'],
-                'messageTypeId' => $transferData['messageTypeId'] ?? '320',
-                'channel' => $superadminConfig['channel'] ?? '15',
-                'amount' => (float)$transferData['amount'],
-                'currency' => $transferData['currency'] === 'PEN' ? '604' : '840',
+                'messageTypeId' => $transferData['messageTypeId'] ?? '0200',
+                'channel' => $superadminConfig['channel'] ?? '015',
+                'amount' => $amountFormatted,
+                'currency' => $transferData['currency'] === 'PEN' ? 'PEN' : 'USD',
                 'referenceTransactionId' => $transferData['instructionId'] ?? uniqid(),
                 'transactionType' => '320',
-                'feeAmount' => (float)$transferData['feeAmount'],
+                'feeAmount' => $feeAmountFormatted,
                 'feeCode' => $transferData['feeCode'],
-                'applicationCriteria' => $transferData['applicationCriteria'] ?? '',
+                'applicationCriteria' => $transferData['applicationCriteria'] ?? 'M',
                 'debtorTypeOfPerson' => $superadminConfig['debtor_type_of_person'] ?? 'N',
                 'debtorName' => $debtorData['name'],
+                'debtorAddressLine' => $debtorData['addressLine'],
                 'debtorId' => $debtorData['id'],
                 'debtorIdCode' => $debtorData['idCode'],
-                'debtorPhoneNumber' => $superadminConfig['debtor_phone_number'] ?? '',
-                'debtorAddressLine' => $debtorData['addressLine'],
                 'debtorMobileNumber' => $debtorData['mobileNumber'],
                 'debtorCCI' => $transferData['debtorCCI'] ?? $superadminConfig['account_id'] ?? '',
+                'creditorName' => $creditorData['name'],
                 'creditorAddressLine' => $superadminConfig['creditor_address_line'] ?? 'JR LIMA',
                 'creditorCCI' => $creditorData['cci'],
-                'creditorName' => $creditorData['name'],
-                'sameCustomerFlag' => 'M',
-                'purposeCode' => 'IPAY',
-                'userId' => $superadminConfig['debtor_id'] ?? '20123456789',
-                'unstructuredInformation' => $transferData['unstructuredInformation'] ?? 'Transferencia Ordinaria'
+                'sameCustomerFlag' => 'O',
+                'purposeCode' => $transferData['purposeCode'] ?? '0105',
+                'unstructuredInformation' => $transferData['unstructuredInformation'] ?? 'Transferencia Ordinaria',
+                'feeId' => $transferData['feeId'] ?? '',
+                'feeLigo' => $transferData['feeLigo'] ?? str_pad($feeAmountFormatted, 8, '0', STR_PAD_LEFT)
             ];
 
             log_message('info', 'LigoModel: Sending transfer order with data: ' . json_encode($transferOrderData));

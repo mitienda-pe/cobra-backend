@@ -405,7 +405,9 @@ class BackofficeController extends Controller
             'applicationCriteria' => $this->request->getPost('applicationCriteria'),
             'messageTypeId' => $this->request->getPost('messageTypeId'),
             'instructionId' => $this->request->getPost('instructionId'),
-            'unstructuredInformation' => $this->request->getPost('unstructuredInformation')
+            'unstructuredInformation' => $this->request->getPost('unstructuredInformation'),
+            'feeId' => $this->request->getPost('feeId'),
+            'feeLigo' => $this->request->getPost('feeLigo')
         ];
 
         // Validar campos requeridos

@@ -645,7 +645,9 @@ function executeTransfer() {
         applicationCriteria: stepData.step3.applicationCriteria,
         messageTypeId: stepData.step2.messageTypeId,
         instructionId: stepData.step2.instructionId,
-        unstructuredInformation: transferData.unstructuredInformation
+        unstructuredInformation: transferData.unstructuredInformation,
+        feeId: stepData.step3.feeId,
+        feeLigo: stepData.step3.feeLigo
     };
     
     makeRequest('<?= base_url('backoffice/transfer/step4') ?>', 'POST', executeData)
