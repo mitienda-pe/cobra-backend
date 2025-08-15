@@ -1187,11 +1187,11 @@ class LigoModel extends Model
                 'creditorParticipantCode' => (string)$creditorData['participantCode'],
                 'messageTypeId' => (string)($transferData['messageTypeId'] ?? '320'),
                 'channel' => (string)($superadminConfig['channel'] ?? '015'),
-                'amount' => (string)$amountFormatted,
+                'amount' => $amountFormatted,
                 'currency' => (string)($transferData['currency'] === 'PEN' ? 'PEN' : 'USD'),
-                'referenceTransactionId' => intval($transferData['instructionId'] ?? time() . rand(1000, 9999)),
+                'referenceTransactionId' => (string)($transferData['instructionId'] ?? time() . rand(1000, 9999)),
                 'transactionType' => (string)'320',
-                'feeAmount' => (string)$feeAmountFormatted,
+                'feeAmount' => $feeAmountFormatted,
                 'feeCode' => (string)($transferData['feeCode'] ?? ''),
                 'applicationCriteria' => (string)(!empty($transferData['applicationCriteria']) ? $transferData['applicationCriteria'] : 'M'),
                 'debtorTypeOfPerson' => (string)($superadminConfig['debtor_type_of_person'] ?? 'N'),
@@ -1208,7 +1208,7 @@ class LigoModel extends Model
                 'purposeCode' => (string)($transferData['purposeCode'] ?? '0105'),
                 'unstructuredInformation' => (string)($transferData['unstructuredInformation'] ?? 'Transferencia Ordinaria'),
                 'feeId' => (string)($transferData['feeId'] ?? ''),
-                'feeLigo' => (string)($transferData['feeLigo'] ?? '0')
+                'feeLigo' => intval($transferData['feeLigo'] ?? 0)
             ];
 
             log_message('info', 'LigoModel: Sending transfer order with data: ' . json_encode($transferOrderData));
