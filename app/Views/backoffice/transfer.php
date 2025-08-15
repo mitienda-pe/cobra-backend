@@ -205,71 +205,67 @@
                         <div id="transferDetails" style="display: none;">
                             <div class="card">
                                 <div class="card-header">
-                                    <h6>Detalles del Proceso (5 Pasos)</h6>
+                                    <h6>Detalles del Proceso (4 Pasos)</h6>
+                                    <small class="text-muted">Información técnica de la transferencia enviada y recibida de Ligo</small>
                                 </div>
                                 <div class="card-body">
                                     <div class="accordion" id="stepsAccordion">
                                         <div class="card">
-                                            <div class="card-header" id="step1Header">
-                                                <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#step1">
+                                            <div class="card-header" id="stepDetail1Header">
+                                                <button class="btn btn-link w-100 text-left" type="button" data-toggle="collapse" data-target="#stepDetail1">
                                                     <i class="fas fa-search text-primary"></i> Paso 1: Consulta de Cuenta
+                                                    <i class="fas fa-chevron-down float-right"></i>
                                                 </button>
                                             </div>
-                                            <div id="step1" class="collapse" data-parent="#stepsAccordion">
+                                            <div id="stepDetail1" class="collapse" data-parent="#stepsAccordion">
                                                 <div class="card-body">
-                                                    <pre id="step1Details"></pre>
+                                                    <h6>Datos enviados a Ligo:</h6>
+                                                    <pre id="step1Details" class="bg-light p-2 rounded"></pre>
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         <div class="card">
-                                            <div class="card-header" id="step2Header">
-                                                <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#step2">
+                                            <div class="card-header" id="stepDetail2Header">
+                                                <button class="btn btn-link w-100 text-left" type="button" data-toggle="collapse" data-target="#stepDetail2">
                                                     <i class="fas fa-reply text-info"></i> Paso 2: Respuesta de Consulta
+                                                    <i class="fas fa-chevron-down float-right"></i>
                                                 </button>
                                             </div>
-                                            <div id="step2" class="collapse" data-parent="#stepsAccordion">
+                                            <div id="stepDetail2" class="collapse" data-parent="#stepsAccordion">
                                                 <div class="card-body">
-                                                    <pre id="step2Details"></pre>
+                                                    <h6>Información obtenida de la cuenta:</h6>
+                                                    <pre id="step2Details" class="bg-light p-2 rounded"></pre>
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         <div class="card">
-                                            <div class="card-header" id="step3Header">
-                                                <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#step3">
-                                                    <i class="fas fa-percentage text-warning"></i> Paso 3: Código de Comisión
+                                            <div class="card-header" id="stepDetail3Header">
+                                                <button class="btn btn-link w-100 text-left" type="button" data-toggle="collapse" data-target="#stepDetail3">
+                                                    <i class="fas fa-percentage text-warning"></i> Paso 3: Cálculo de Comisión
+                                                    <i class="fas fa-chevron-down float-right"></i>
                                                 </button>
                                             </div>
-                                            <div id="step3" class="collapse" data-parent="#stepsAccordion">
+                                            <div id="stepDetail3" class="collapse" data-parent="#stepsAccordion">
                                                 <div class="card-body">
-                                                    <pre id="step3Details"></pre>
+                                                    <h6>Comisiones calculadas por Ligo:</h6>
+                                                    <pre id="step3Details" class="bg-light p-2 rounded"></pre>
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         <div class="card">
-                                            <div class="card-header" id="step4Header">
-                                                <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#step4">
+                                            <div class="card-header" id="stepDetail4Header">
+                                                <button class="btn btn-link w-100 text-left" type="button" data-toggle="collapse" data-target="#stepDetail4">
                                                     <i class="fas fa-paper-plane text-success"></i> Paso 4: Ejecución de Transferencia
+                                                    <i class="fas fa-chevron-down float-right"></i>
                                                 </button>
                                             </div>
-                                            <div id="step4" class="collapse" data-parent="#stepsAccordion">
+                                            <div id="stepDetail4" class="collapse" data-parent="#stepsAccordion">
                                                 <div class="card-body">
-                                                    <pre id="step4Details"></pre>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="card">
-                                            <div class="card-header" id="step5Header">
-                                                <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#step5">
-                                                    <i class="fas fa-check text-success"></i> Paso 5: Confirmación
-                                                </button>
-                                            </div>
-                                            <div id="step5" class="collapse" data-parent="#stepsAccordion">
-                                                <div class="card-body">
-                                                    <pre id="step5Details"></pre>
+                                                    <h6>Respuesta de ejecución de Ligo:</h6>
+                                                    <pre id="step4Details" class="bg-light p-2 rounded"></pre>
                                                 </div>
                                             </div>
                                         </div>
@@ -340,6 +336,32 @@
 .step.error .step-text {
     color: #dc3545;
     font-weight: bold;
+}
+
+/* Accordion styles */
+#stepsAccordion .card {
+    border: 1px solid #dee2e6;
+    margin-bottom: 0.5rem;
+}
+
+#stepsAccordion .btn-link {
+    color: #495057;
+    text-decoration: none;
+}
+
+#stepsAccordion .btn-link:hover {
+    color: #007bff;
+    text-decoration: none;
+}
+
+#stepsAccordion .btn-link:focus {
+    box-shadow: none;
+}
+
+#stepsAccordion pre {
+    font-size: 12px;
+    max-height: 400px;
+    overflow-y: auto;
 }
 </style>
 
@@ -767,11 +789,8 @@ function displayTransferResult(data) {
         statusSpan.innerHTML = `${data.status || 'Desconocido'} (Código: ${data.responseCode})`;
     }
     
-    // Llenar detalles de pasos
-    setText('step1Details', JSON.stringify(stepData.step1 || {}, null, 2));
-    setText('step2Details', JSON.stringify(stepData.step2 || {}, null, 2));
-    setText('step3Details', JSON.stringify(stepData.step3 || {}, null, 2));
-    setText('step4Details', JSON.stringify(data, null, 2));
+    // Llenar detalles de pasos de forma más legible
+    populateStepDetails(stepData.step1 || {}, stepData.step2 || {}, stepData.step3 || {}, data);
     
     showElement('transferResult');
     setTimeout(() => scrollToElement('transferResult'), 100);
@@ -788,6 +807,71 @@ function showTransferDetails() {
     if (details) {
         details.style.display = details.style.display === 'none' ? 'block' : 'none';
     }
+}
+
+function populateStepDetails(step1, step2, step3, step4) {
+    // Paso 1: Consulta de Cuenta - mostrar datos enviados
+    const step1Content = formatStepDetails('Paso 1: Consulta de Cuenta', {
+        'CCI Acreedor': transferData.creditorCCI,
+        'Moneda': transferData.currency,
+        'Account Inquiry ID': step1.accountInquiryId || 'N/A',
+        'Datos del Deudor': step1.debtorData ? JSON.stringify(step1.debtorData, null, 2) : 'N/A',
+        'Datos del Acreedor': step1.creditorData ? JSON.stringify(step1.creditorData, null, 2) : 'N/A',
+        'Respuesta Cruda': step1.rawResponse ? JSON.stringify(step1.rawResponse, null, 2) : 'N/A'
+    });
+    setText('step1Details', step1Content);
+
+    // Paso 2: Respuesta de Consulta - mostrar información obtenida
+    const step2Content = formatStepDetails('Paso 2: Respuesta de Consulta', {
+        'CCI Deudor Obtenido': step2.debtorCCI || 'N/A',
+        'Nombre Acreedor': step2.creditorName || 'N/A', 
+        'Message Type ID': step2.messageTypeId || 'N/A',
+        'Instruction ID': step2.instructionId || 'N/A',
+        'Respuesta Cruda': step2.rawResponse ? JSON.stringify(step2.rawResponse, null, 2) : 'N/A'
+    });
+    setText('step2Details', step2Content);
+
+    // Paso 3: Cálculo de Comisión - mostrar comisiones
+    const step3Content = formatStepDetails('Paso 3: Cálculo de Comisión', {
+        'Monto Original': transferData.amount + ' ' + transferData.currency,
+        'Comisión Calculada': (step3.feeAmount || 0) + ' ' + transferData.currency,
+        'Código de Comisión': step3.feeCode || 'N/A',
+        'Criterio de Aplicación': step3.applicationCriteria || 'N/A',
+        'Fee ID': step3.feeId || 'N/A',
+        'Fee Ligo': step3.feeLigo || 'N/A',
+        'Total a Debitar': (step3.totalAmount || 0) + ' ' + transferData.currency,
+        'Respuesta Cruda': step3.rawResponse ? JSON.stringify(step3.rawResponse, null, 2) : 'N/A'
+    });
+    setText('step3Details', step3Content);
+
+    // Paso 4: Ejecución - mostrar resultado final
+    const step4Content = formatStepDetails('Paso 4: Ejecución de Transferencia', {
+        'Transfer ID': step4.transferId || 'N/A',
+        'Estado Final': step4.status || 'N/A',
+        'Código de Respuesta': step4.responseCode || 'N/A',
+        'Mensaje': step4.message || 'N/A',
+        'Trace': step4.trace || 'N/A',
+        'Reference Number': step4.retrievalReferenceNumber || 'N/A',
+        'Settlement Date': step4.settlementDate || 'N/A',
+        'Interbankk Amount': step4.interbankSettlementAmount || 'N/A',
+        'Instrucciones de Reintento': step4.retry_instructions || 'No requerido',
+        'Respuesta Completa': step4.transferResponse ? JSON.stringify(step4.transferResponse, null, 2) : 'N/A'
+    });
+    setText('step4Details', step4Content);
+}
+
+function formatStepDetails(stepTitle, data) {
+    let content = `=== ${stepTitle} ===\n\n`;
+    
+    for (const [key, value] of Object.entries(data)) {
+        if (key === 'Respuesta Cruda' || key === 'Respuesta Completa') {
+            content += `${key}:\n${value}\n\n`;
+        } else {
+            content += `${key}: ${value}\n`;
+        }
+    }
+    
+    return content;
 }
 
 function clearTransferForm() {
