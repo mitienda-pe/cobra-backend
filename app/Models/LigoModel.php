@@ -1194,7 +1194,7 @@ class LigoModel extends Model
                 'channel' => (string)($superadminConfig['channel'] ?? '15'),
                 'amount' => $amountFormatted,
                 'currency' => (string)($transferData['currency'] === 'PEN' ? '604' : '840'),
-                'referenceTransactionId' => (string)(isset($transferData['instructionId']) ? hexdec($transferData['instructionId']) : date('YmdHis') . str_pad(mt_rand(0, 999999999), 9, '0', STR_PAD_LEFT) . str_pad(mt_rand(0, 999999999), 9, '0', STR_PAD_LEFT) . str_pad(mt_rand(0, 999), 3, '0', STR_PAD_LEFT)),
+                'referenceTransactionId' => $this->generateReferenceTransactionId($transferData),
                 'transactionType' => (string)'320',
                 'feeAmount' => $feeAmountFormatted,
                 'feeCode' => (string)($transferData['feeCode'] ?? ''),
@@ -1344,6 +1344,69 @@ class LigoModel extends Model
         } catch (\Exception $e) {
             log_message('error', 'Error en executeTransfer: ' . $e->getMessage());
             return ['error' => 'Error interno: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Generate reference transaction ID from transfer data
+     */
+    protected function generateReferenceTransactionId($transferData)
+    {
+        if (isset($transferData['instructionId'])) {
+            $hexValue = $transferData['instructionId'];
+            log_message('error', '🔢 LigoModel: Converting hex instructionId: ' . $hexValue);
+            
+            $decimalValue = $this->convertHexToDecimalString($hexValue);
+            log_message('error', '🔢 LigoModel: Converted to decimal: ' . $decimalValue . ' (length: ' . strlen($decimalValue) . ')');
+            
+            // Ensure it's a string and check if it's too large for Ligo API
+            if (strlen($decimalValue) > 20) {
+                // If decimal is too large, use a truncated version or fallback
+                log_message('error', '⚠️ LigoModel: Decimal too large (' . strlen($decimalValue) . ' digits), using fallback');
+                $fallbackId = date('YmdHis') . str_pad(mt_rand(100000, 999999), 6, '0', STR_PAD_LEFT);
+                log_message('error', '🔢 LigoModel: Using fallback ID: ' . $fallbackId);
+                return $fallbackId;
+            }
+            
+            return $decimalValue;
+        } else {
+            // Generate random reference ID
+            $randomId = date('YmdHis') . str_pad(mt_rand(0, 999999999), 9, '0', STR_PAD_LEFT) . str_pad(mt_rand(0, 999999999), 9, '0', STR_PAD_LEFT) . str_pad(mt_rand(0, 999), 3, '0', STR_PAD_LEFT);
+            log_message('error', '🔢 LigoModel: Generated random ID: ' . $randomId);
+            return $randomId;
+        }
+    }
+
+    /**
+     * Convert large hexadecimal string to decimal string without scientific notation
+     */
+    protected function convertHexToDecimalString($hex)
+    {
+        // Remove any '0x' prefix if present
+        $hex = ltrim($hex, '0x');
+        
+        // For large hex values, use GMP (GNU Multiple Precision) if available, otherwise use bcmath
+        if (function_exists('gmp_strval')) {
+            return gmp_strval(gmp_init($hex, 16), 10);
+        } elseif (function_exists('bcdiv')) {
+            // Fallback using bcmath for arbitrary precision arithmetic
+            $dec = '0';
+            $hex = strtoupper($hex);
+            $len = strlen($hex);
+            
+            for ($i = 0; $i < $len; $i++) {
+                $digit = $hex[$i];
+                $value = is_numeric($digit) ? $digit : (ord($digit) - ord('A') + 10);
+                $dec = bcadd(bcmul($dec, '16'), (string)$value);
+            }
+            return $dec;
+        } else {
+            // Fallback: if hex is too large for standard conversion, just use first 15 characters as timestamp-based ID
+            if (strlen($hex) > 15) {
+                log_message('warning', 'LigoModel: Hex value too large, using timestamp-based fallback: ' . $hex);
+                return date('YmdHis') . substr(str_replace(['a','b','c','d','e','f'], ['1','2','3','4','5','6'], strtolower($hex)), 0, 9);
+            }
+            return (string)hexdec($hex);
         }
     }
 
