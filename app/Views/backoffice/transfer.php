@@ -450,6 +450,14 @@ function scrollToElement(elementId) {
 function makeRequest(url, method, data) {
     console.log('🌐 makeRequest - URL:', url, 'Method:', method, 'Data:', data);
     
+    // Refresh CSRF token before request
+    const csrfToken = getCSRFToken();
+    if (!csrfToken) {
+        console.error('❌ No CSRF token available, refreshing page...');
+        location.reload();
+        return Promise.reject('No CSRF token');
+    }
+    
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open(method, url, true);
@@ -477,12 +485,9 @@ function makeRequest(url, method, data) {
         // Convert data object to form data and add CSRF token
         const formData = new URLSearchParams();
         
-        // Add CSRF token
-        const csrfToken = getCSRFToken();
-        console.log('🔐 CSRF Token:', csrfToken);
-        if (csrfToken) {
-            formData.append('<?= csrf_token() ?>', csrfToken);
-        }
+        // Add CSRF token (already obtained above)
+        console.log('🔐 Using CSRF Token:', csrfToken);
+        formData.append('<?= csrf_token() ?>', csrfToken);
         
         // Add user data
         for (const key in data) {
@@ -497,12 +502,14 @@ function getCSRFToken() {
     // Try to get CSRF token from meta tag first
     const metaToken = document.querySelector('meta[name="<?= csrf_token() ?>"]');
     if (metaToken) {
+        console.log('🔐 CSRF token found in meta tag:', metaToken.getAttribute('content'));
         return metaToken.getAttribute('content');
     }
     
     // Try to get from hidden input field
     const inputToken = document.querySelector('input[name="<?= csrf_token() ?>"]');
     if (inputToken) {
+        console.log('🔐 CSRF token found in input field:', inputToken.value);
         return inputToken.value;
     }
     
@@ -512,10 +519,12 @@ function getCSRFToken() {
     for (let cookie of cookies) {
         const [name, value] = cookie.trim().split('=');
         if (name === cookieName) {
+            console.log('🔐 CSRF token found in cookie:', decodeURIComponent(value));
             return decodeURIComponent(value);
         }
     }
     
+    console.error('❌ CSRF token not found anywhere!');
     return null;
 }
 
