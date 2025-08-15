@@ -1189,7 +1189,7 @@ class LigoModel extends Model
                 'channel' => (string)($superadminConfig['channel'] ?? '15'),
                 'amount' => $amountFormatted,
                 'currency' => (string)($transferData['currency'] === 'PEN' ? '604' : '840'),
-                'referenceTransactionId' => (string)($transferData['instructionId'] ?? date('YmdHis') . rand(100000, 999999)),
+                'referenceTransactionId' => intval($transferData['instructionId'] ?? time() . rand(1000, 9999)),
                 'transactionType' => (string)'320',
                 'feeAmount' => $feeAmountFormatted,
                 'feeCode' => (string)($transferData['feeCode'] ?? ''),
@@ -1219,6 +1219,9 @@ class LigoModel extends Model
                 $dataTypes[$key] = gettype($value) . ' (' . $value . ')';
             }
             log_message('debug', 'LigoModel: Payload data types: ' . json_encode($dataTypes));
+            
+            // Log payload count and keys for debugging
+            log_message('info', 'LigoModel: Payload has ' . count($transferOrderData) . ' fields: ' . implode(', ', array_keys($transferOrderData)));
 
             $response = $this->makeApiRequest('/v1/orderTransferShipping', 'POST', $transferOrderData);
             
