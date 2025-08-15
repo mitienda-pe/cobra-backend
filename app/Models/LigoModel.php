@@ -1033,6 +1033,23 @@ class LigoModel extends Model
             $data = $response['data'] ?? [];
             log_message('debug', 'LigoModel: getAccountInquiryResult - Raw response data: ' . json_encode($data));
             
+            // CRITICAL: Validate responseCode from step 2 (Account Inquiry Result)
+            $responseCode = $data['responseCode'] ?? '';
+            log_message('error', '🔍 LigoModel: Step 2 - Account Inquiry responseCode: ' . $responseCode);
+            
+            // Check if account inquiry was successful
+            if ($responseCode !== '00') {
+                $errorMessage = $data['errorMessage'] ?? 'Error en consulta de cuenta';
+                log_message('error', '❌ LigoModel: Account Inquiry FAILED - responseCode: ' . $responseCode . ', errorMessage: ' . $errorMessage);
+                return [
+                    'error' => 'Error en consulta de cuenta (responseCode: ' . $responseCode . '): ' . $errorMessage,
+                    'responseCode' => $responseCode,
+                    'step' => 'account_inquiry_validation'
+                ];
+            }
+            
+            log_message('error', '✅ LigoModel: Account Inquiry SUCCESSFUL - responseCode: 00');
+            
             // Try different data extraction methods
             $debtorCCI = null;
             $creditorCCI = null;
