@@ -1158,9 +1158,9 @@ class LigoModel extends Model
     {
         try {
             log_message('error', '🚀 LigoModel: executeTransfer START - Executing transfer for amount: ' . $transferData['amount'] . ' - DEBUG LOG');
-            log_message('info', '📋 LigoModel: executeTransfer input data: ' . json_encode($transferData));
-            log_message('info', '🏢 LigoModel: organization data: ' . json_encode($organization));
-            log_message('info', '⚙️ LigoModel: superadminConfig data: ' . json_encode($superadminConfig));
+            log_message('error', '📋 LigoModel: executeTransfer input data: ' . json_encode($transferData) . ' - DEBUG LOG');
+            log_message('error', '🏢 LigoModel: organization data: ' . json_encode($organization) . ' - DEBUG LOG');
+            log_message('error', '⚙️ LigoModel: superadminConfig data: ' . json_encode($superadminConfig) . ' - DEBUG LOG');
             
             // Build debtor data from superadmin config
             $debtorData = [
@@ -1183,8 +1183,8 @@ class LigoModel extends Model
             $amountFormatted = intval(floatval($transferData['amount']) * 100);
             $feeAmountFormatted = intval(floatval($transferData['feeAmount']) * 100);
             
-            log_message('info', '💰 LigoModel: Amount formatting - Original: ' . $transferData['amount'] . ', Formatted: ' . $amountFormatted);
-            log_message('info', '💰 LigoModel: Fee formatting - Original: ' . $transferData['feeAmount'] . ', Formatted: ' . $feeAmountFormatted);
+            log_message('error', '💰 LigoModel: Amount formatting - Original: ' . $transferData['amount'] . ', Formatted: ' . $amountFormatted . ' - DEBUG LOG');
+            log_message('error', '💰 LigoModel: Fee formatting - Original: ' . $transferData['feeAmount'] . ', Formatted: ' . $feeAmountFormatted . ' - DEBUG LOG');
             
             // Execute transfer with complete API payload matching Ligo documentation exactly
             $transferOrderData = [
@@ -1216,17 +1216,17 @@ class LigoModel extends Model
                 'feeLigo' => (string)($transferData['feeLigo'] ?? '0')
             ];
 
-            log_message('info', 'LigoModel: Sending transfer order with data: ' . json_encode($transferOrderData));
+            log_message('error', '📤 LigoModel: Sending transfer order with data: ' . json_encode($transferOrderData) . ' - DEBUG LOG');
             
             // Log data types for debugging
             $dataTypes = [];
             foreach ($transferOrderData as $key => $value) {
                 $dataTypes[$key] = gettype($value) . ' (' . $value . ')';
             }
-            log_message('debug', 'LigoModel: Payload data types: ' . json_encode($dataTypes));
+            log_message('error', '🔍 LigoModel: Payload data types: ' . json_encode($dataTypes) . ' - DEBUG LOG');
             
             // Log payload count and keys for debugging
-            log_message('info', 'LigoModel: Payload has ' . count($transferOrderData) . ' fields: ' . implode(', ', array_keys($transferOrderData)));
+            log_message('error', '📊 LigoModel: Payload has ' . count($transferOrderData) . ' fields: ' . implode(', ', array_keys($transferOrderData)) . ' - DEBUG LOG');
 
             $response = $this->makeApiRequest('/v1/orderTransferShipping', 'POST', $transferOrderData);
             
