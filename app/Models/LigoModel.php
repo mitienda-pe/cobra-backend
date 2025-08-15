@@ -1127,7 +1127,7 @@ class LigoModel extends Model
             // Map API response fields correctly
             $feeAmount = $data['feeAmount'] ?? $data['feeTotal'] ?? 0;
             $feeCode = $data['feeCode'] ?? $data['rateCode'] ?? '';
-            $applicationCriteria = $data['applicationCriteria'] ?? '';
+            $applicationCriteria = !empty($data['applicationCriteria']) ? $data['applicationCriteria'] : 'M';
             $feeId = $data['feeId'] ?? $data['id'] ?? '';
             $feeLigo = $data['feeLigo'] ?? 0;
 
@@ -1189,11 +1189,11 @@ class LigoModel extends Model
                 'channel' => $superadminConfig['channel'] ?? '015',
                 'amount' => $amountFormatted,
                 'currency' => $transferData['currency'] === 'PEN' ? 'PEN' : 'USD',
-                'referenceTransactionId' => $transferData['instructionId'] ?? uniqid(),
+                'referenceTransactionId' => intval($transferData['instructionId'] ?? time() . rand(1000, 9999)),
                 'transactionType' => '320',
                 'feeAmount' => $feeAmountFormatted,
                 'feeCode' => $transferData['feeCode'],
-                'applicationCriteria' => $transferData['applicationCriteria'] ?? 'M',
+                'applicationCriteria' => !empty($transferData['applicationCriteria']) ? $transferData['applicationCriteria'] : 'M',
                 'debtorTypeOfPerson' => $superadminConfig['debtor_type_of_person'] ?? 'N',
                 'debtorName' => $debtorData['name'],
                 'debtorAddressLine' => $debtorData['addressLine'],
