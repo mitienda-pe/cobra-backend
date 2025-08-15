@@ -1208,7 +1208,7 @@ class LigoModel extends Model
                 'purposeCode' => (string)($transferData['purposeCode'] ?? '0105'),
                 'unstructuredInformation' => (string)($transferData['unstructuredInformation'] ?? 'Transferencia Ordinaria'),
                 'feeId' => (string)($transferData['feeId'] ?? ''),
-                'feeLigo' => (string)($transferData['feeLigo'] ?? str_pad($feeAmountFormatted, 8, '0', STR_PAD_LEFT))
+                'feeLigo' => (string)str_pad(intval($transferData['feeLigo'] ?? $feeAmountFormatted), 8, '0', STR_PAD_LEFT)
             ];
 
             log_message('info', 'LigoModel: Sending transfer order with data: ' . json_encode($transferOrderData));
