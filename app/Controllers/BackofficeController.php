@@ -377,12 +377,18 @@ class BackofficeController extends Controller
      */
     public function transferStep4()
     {
+        log_message('info', '🎯 BackofficeController: transferStep4 START');
+        
         if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
+            log_message('error', 'BackofficeController: transferStep4 - Invalid request method or not AJAX');
             return $this->fail('Invalid request', 400);
         }
 
         $selectedOrgId = session()->get('selected_organization_id');
+        log_message('info', '🏢 BackofficeController: transferStep4 - Selected org ID: ' . ($selectedOrgId ?? 'null'));
+        
         if (!$selectedOrgId) {
+            log_message('error', 'BackofficeController: transferStep4 - No organization selected');
             return $this->fail('Debe seleccionar una organización primero', 400);
         }
 
@@ -393,6 +399,9 @@ class BackofficeController extends Controller
         $superadminConfig = $superadminLigoConfigModel->where('enabled', 1)
                                                       ->where('is_active', 1)
                                                       ->first();
+
+        log_message('info', '🏢 BackofficeController: transferStep4 - Organization found: ' . ($organization ? 'Yes' : 'No'));
+        log_message('info', '⚙️ BackofficeController: transferStep4 - SuperadminConfig found: ' . ($superadminConfig ? 'Yes' : 'No'));
 
         // Recoger todos los datos necesarios del frontend
         $transferData = [
@@ -410,14 +419,18 @@ class BackofficeController extends Controller
             'feeLigo' => $this->request->getPost('feeLigo')
         ];
 
+        log_message('info', '📦 BackofficeController: transferStep4 - Transfer data received: ' . json_encode($transferData));
+
         // Validar campos requeridos
         $requiredFields = ['debtorCCI', 'creditorCCI', 'amount', 'feeAmount', 'feeCode'];
         foreach ($requiredFields as $field) {
             if (empty($transferData[$field]) && $transferData[$field] !== '0') {
+                log_message('error', 'BackofficeController: transferStep4 - Missing required field: ' . $field);
                 return $this->fail("Campo requerido: {$field}", 400);
             }
         }
 
+        log_message('info', '✅ BackofficeController: transferStep4 - All required fields validated, calling executeTransfer');
         $response = $this->ligoModel->executeTransfer($superadminConfig, $organization, $transferData);
 
         if (isset($response['error'])) {
