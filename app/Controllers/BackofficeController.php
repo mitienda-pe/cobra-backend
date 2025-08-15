@@ -377,7 +377,7 @@ class BackofficeController extends Controller
      */
     public function transferStep4()
     {
-        log_message('info', '🎯 BackofficeController: transferStep4 START');
+        log_message('error', '🎯 BackofficeController: transferStep4 START - DEBUG LOG');
         
         if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
             log_message('error', 'BackofficeController: transferStep4 - Invalid request method or not AJAX');
@@ -385,7 +385,7 @@ class BackofficeController extends Controller
         }
 
         $selectedOrgId = session()->get('selected_organization_id');
-        log_message('info', '🏢 BackofficeController: transferStep4 - Selected org ID: ' . ($selectedOrgId ?? 'null'));
+        log_message('error', '🏢 BackofficeController: transferStep4 - Selected org ID: ' . ($selectedOrgId ?? 'null') . ' - DEBUG LOG');
         
         if (!$selectedOrgId) {
             log_message('error', 'BackofficeController: transferStep4 - No organization selected');

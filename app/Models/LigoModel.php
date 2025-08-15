@@ -1157,7 +1157,7 @@ class LigoModel extends Model
     public function executeTransfer($superadminConfig, $organization, $transferData)
     {
         try {
-            log_message('info', '🚀 LigoModel: executeTransfer START - Executing transfer for amount: ' . $transferData['amount']);
+            log_message('error', '🚀 LigoModel: executeTransfer START - Executing transfer for amount: ' . $transferData['amount'] . ' - DEBUG LOG');
             log_message('info', '📋 LigoModel: executeTransfer input data: ' . json_encode($transferData));
             log_message('info', '🏢 LigoModel: organization data: ' . json_encode($organization));
             log_message('info', '⚙️ LigoModel: superadminConfig data: ' . json_encode($superadminConfig));
