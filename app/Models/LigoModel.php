@@ -1190,7 +1190,7 @@ class LigoModel extends Model
             $transferOrderData = [
                 'debtorParticipantCode' => (string)$debtorData['participantCode'],
                 'creditorParticipantCode' => (string)$creditorData['participantCode'],
-                'messageTypeId' => (string)($transferData['messageTypeId'] ?? '0200'),
+                'messageTypeId' => '0200',
                 'channel' => (string)($superadminConfig['channel'] ?? '15'),
                 'amount' => $amountFormatted,
                 'currency' => (string)($transferData['currency'] === 'PEN' ? '604' : '840'),
