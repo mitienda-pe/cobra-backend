@@ -1239,7 +1239,7 @@ class LigoModel extends Model
 
             // Check if response has the expected structure from successful API calls
             if (isset($response['status']) && $response['status'] == 1 && isset($response['data'])) {
-                // Successful response similar to the example provided
+                // Successful API call (but not necessarily successful transfer)
                 $responseData = $response['data'];
                 
                 $transferId = $responseData['instructionId'] ?? $responseData['id'] ?? null;
@@ -1249,25 +1249,44 @@ class LigoModel extends Model
                     return ['error' => 'No se recibió ID de transferencia en la respuesta'];
                 }
 
-                log_message('info', 'LigoModel: Transfer executed successfully with ID: ' . $transferId);
+                // Get responseCode to determine actual transfer status
+                $responseCode = $responseData['responseCode'] ?? '';
+                log_message('error', '🔍 LigoModel: Transfer responseCode received: ' . $responseCode . ' for transferId: ' . $transferId);
+                
+                // Interpret the Ligo response code
+                $interpretation = $this->interpretLigoResponseCode($responseCode);
+                $actualStatus = $interpretation['status'];
+                $isSuccessful = $interpretation['success'];
+                
+                log_message('error', '📊 LigoModel: Transfer interpretation - Status: ' . $actualStatus . ', Success: ' . ($isSuccessful ? 'YES' : 'NO') . ', Message: ' . $interpretation['message']);
 
-                // Save transfer to database
-                $this->saveTransferToDatabase($transferData, $superadminConfig, $organization, $transferOrderData, $response, 'completed');
+                // Save transfer to database with correct status
+                $this->saveTransferToDatabase($transferData, $superadminConfig, $organization, $transferOrderData, $response, $actualStatus, $responseCode);
 
-                return [
-                    'success' => true,
+                // Return response with correct success status
+                $returnData = [
+                    'success' => $isSuccessful,
                     'transferId' => $transferId,
-                    'status' => 'completed',
+                    'status' => $actualStatus,
+                    'message' => $interpretation['message'],
+                    'responseCode' => $responseCode,
                     'retrievalReferenceNumber' => $responseData['retrievalReferenteNumber'] ?? '',
                     'trace' => $responseData['trace'] ?? '',
                     'transactionReference' => $responseData['transactionReference'] ?? '',
-                    'responseCode' => $responseData['responseCode'] ?? '',
                     'settlementDate' => $responseData['settlementDate'] ?? '',
                     'debtorCCI' => $responseData['debtorCCI'] ?? '',
                     'creditorCCI' => $responseData['creditorCCI'] ?? '',
                     'interbankSettlementAmount' => $responseData['interbankSettlementAmount'] ?? 0,
                     'transferResponse' => $response
                 ];
+                
+                // Add retry information if needed
+                if (isset($interpretation['retry_required']) && $interpretation['retry_required']) {
+                    $returnData['retry_required'] = true;
+                    $returnData['retry_instructions'] = 'Reenviar misma información con messageTypeId "0201"';
+                }
+                
+                return $returnData;
             } else {
                 // Fallback for different response structure
                 $transferId = $response['data']['id'] ?? null;
@@ -1281,17 +1300,45 @@ class LigoModel extends Model
                 sleep(3);
                 $statusResponse = $this->makeApiRequest('/v1/getOrderTransferShippingById/' . $transferId, 'GET');
 
-                // Save transfer to database
-                $status = $statusResponse['data']['status'] ?? 'pending';
-                $this->saveTransferToDatabase($transferData, $superadminConfig, $organization, $transferOrderData, $response, $status);
+                // Check responseCode in status response
+                $responseCode = '';
+                if (isset($statusResponse['data']['responseCode'])) {
+                    $responseCode = $statusResponse['data']['responseCode'];
+                    log_message('error', '🔍 LigoModel: Status responseCode received: ' . $responseCode . ' for transferId: ' . $transferId);
+                    
+                    // Interpret the response code
+                    $interpretation = $this->interpretLigoResponseCode($responseCode);
+                    $actualStatus = $interpretation['status'];
+                    $isSuccessful = $interpretation['success'];
+                    
+                    log_message('error', '📊 LigoModel: Status interpretation - Status: ' . $actualStatus . ', Success: ' . ($isSuccessful ? 'YES' : 'NO') . ', Message: ' . $interpretation['message']);
+                } else {
+                    // No response code, treat as pending
+                    $actualStatus = 'pending';
+                    $isSuccessful = false;
+                    $interpretation = ['message' => 'No se recibió código de respuesta'];
+                }
 
-                return [
-                    'success' => true,
+                // Save transfer to database with correct status
+                $this->saveTransferToDatabase($transferData, $superadminConfig, $organization, $transferOrderData, $response, $actualStatus, $responseCode);
+
+                $returnData = [
+                    'success' => $isSuccessful,
                     'transferId' => $transferId,
-                    'status' => $status,
+                    'status' => $actualStatus,
+                    'message' => $interpretation['message'],
+                    'responseCode' => $responseCode,
                     'transferResponse' => $response,
                     'statusResponse' => $statusResponse
                 ];
+                
+                // Add retry information if needed
+                if (isset($interpretation['retry_required']) && $interpretation['retry_required']) {
+                    $returnData['retry_required'] = true;
+                    $returnData['retry_instructions'] = 'Reenviar misma información con messageTypeId "0201"';
+                }
+                
+                return $returnData;
             }
 
         } catch (\Exception $e) {
@@ -1301,9 +1348,68 @@ class LigoModel extends Model
     }
 
     /**
+     * Interpret Ligo response code to determine actual transfer status
+     */
+    protected function interpretLigoResponseCode($responseCode, $statusResponse = null)
+    {
+        $responseCode = (string)$responseCode;
+        
+        switch ($responseCode) {
+            case '00':
+                log_message('info', '✅ Ligo Response Code 00: Transfer ACCEPTED (Successful)');
+                return [
+                    'status' => 'completed',
+                    'message' => 'Transferencia aceptada y completada exitosamente',
+                    'success' => true
+                ];
+                
+            case '05':
+                log_message('warning', '❌ Ligo Response Code 05: Transfer REJECTED');
+                return [
+                    'status' => 'failed',
+                    'message' => 'Transferencia rechazada por Ligo',
+                    'success' => false
+                ];
+                
+            case 'T97':
+                log_message('warning', '⏳ Ligo Response Code T97: Transfer PENDING (Retry required with messageTypeId 0201)');
+                return [
+                    'status' => 'pending',
+                    'message' => 'Transferencia pendiente - se requiere reintento con messageTypeId 0201',
+                    'success' => false,
+                    'retry_required' => true
+                ];
+                
+            case 'T98':
+                log_message('error', '❌ Ligo Response Code T98: Information validation ERROR (Rejected)');
+                return [
+                    'status' => 'failed',
+                    'message' => 'Error en validación de información - transferencia rechazada',
+                    'success' => false
+                ];
+                
+            case 'T95':
+                log_message('warning', '⏳ Ligo Response Code T95: Invalid content for CCE (Pending)');
+                return [
+                    'status' => 'pending',
+                    'message' => 'Contenido de información inválida para CCE - transferencia pendiente',
+                    'success' => false
+                ];
+                
+            default:
+                log_message('warning', '🤔 Ligo Response Code ' . $responseCode . ': Unknown response code - treating as pending');
+                return [
+                    'status' => 'pending',
+                    'message' => 'Código de respuesta desconocido: ' . $responseCode,
+                    'success' => false
+                ];
+        }
+    }
+
+    /**
      * Save transfer information to database
      */
-    protected function saveTransferToDatabase($transferData, $superadminConfig, $organization, $transferOrderData, $ligoResponse, $status)
+    protected function saveTransferToDatabase($transferData, $superadminConfig, $organization, $transferOrderData, $ligoResponse, $status, $responseCode = null)
     {
         try {
             // Get user from session for audit
@@ -1313,6 +1419,11 @@ class LigoModel extends Model
             
             // Create TransferModel instance
             $transferModel = new \App\Models\TransferModel();
+            
+            // Extract response code from Ligo response if not provided
+            if ($responseCode === null && isset($ligoResponse['data']['responseCode'])) {
+                $responseCode = $ligoResponse['data']['responseCode'];
+            }
             
             // Prepare data for database insert
             $dbData = [
@@ -1334,6 +1445,7 @@ class LigoModel extends Model
                 'transaction_type' => $transferOrderData['transactionType'] ?? '320',
                 'channel' => $transferOrderData['channel'] ?? '15',
                 'status' => $status,
+                'response_code' => $responseCode,
                 'ligo_response' => json_encode($ligoResponse),
                 'error_message' => null
             ];

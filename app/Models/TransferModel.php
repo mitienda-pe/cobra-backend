@@ -31,6 +31,7 @@ class TransferModel extends Model
         'transaction_type',
         'channel',
         'status',
+        'response_code',
         'ligo_response',
         'error_message'
     ];

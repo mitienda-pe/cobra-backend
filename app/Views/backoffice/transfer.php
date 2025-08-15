@@ -667,10 +667,19 @@ function executeTransfer() {
     
     makeRequest('<?= base_url('backoffice/transfer/step4') ?>', 'POST', executeData)
     .then(response => {
-        if (response.success) {
-            setStepStatus(4, 'completed');
+        // Check if API call succeeded (response.data exists)
+        if (response.data) {
             stepData.step4 = response.data;
-            displayTransferSuccess(response.data);
+            
+            // Check the actual transfer success status
+            if (response.data.success) {
+                setStepStatus(4, 'completed');
+                displayTransferSuccess(response.data);
+            } else {
+                // Transfer was processed but failed/pending
+                setStepStatus(4, 'error');
+                displayTransferResult(response.data);
+            }
         } else {
             setStepStatus(4, 'error');
             showError('Error en Paso 4: ' + (response.message || 'Error desconocido'));
@@ -690,16 +699,78 @@ function cancelTransfer() {
 }
 
 function displayTransferSuccess(data) {
+    displayTransferResult(data);
+}
+
+function displayTransferResult(data) {
+    // Update result area with status-specific styling
+    const resultDiv = document.getElementById('transferResult');
+    const alertDiv = resultDiv.querySelector('.alert');
+    
+    // Clear existing classes
+    alertDiv.classList.remove('alert-success', 'alert-warning', 'alert-danger');
+    
+    // Determine status styling and messages
+    let statusClass = 'alert-success';
+    let statusIcon = 'fas fa-check-circle';
+    let statusTitle = 'Transferencia Procesada Exitosamente';
+    
+    if (data.status === 'failed') {
+        statusClass = 'alert-danger';
+        statusIcon = 'fas fa-exclamation-triangle';
+        statusTitle = 'Transferencia Rechazada';
+    } else if (data.status === 'pending') {
+        statusClass = 'alert-warning';
+        statusIcon = 'fas fa-clock';
+        statusTitle = 'Transferencia Pendiente';
+    }
+    
+    // Apply appropriate styling
+    alertDiv.classList.add(statusClass);
+    
+    // Update content
+    const titleElement = alertDiv.querySelector('h5');
+    titleElement.innerHTML = `<i class="${statusIcon}"></i> ${statusTitle}`;
+    
+    // Add status message if available
+    if (data.message && data.message !== 'Transferencia aceptada y completada exitosamente') {
+        const existingMessage = alertDiv.querySelector('.status-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'status-message mt-2 p-2 bg-light border-left border-primary';
+        messageDiv.innerHTML = `<strong>Detalle:</strong> ${data.message}`;
+        
+        // Add retry instructions if available
+        if (data.retry_required && data.retry_instructions) {
+            const retryDiv = document.createElement('div');
+            retryDiv.className = 'retry-instructions mt-2 p-2 bg-warning text-dark rounded';
+            retryDiv.innerHTML = `<strong>Instrucción de reintento:</strong> ${data.retry_instructions}`;
+            messageDiv.appendChild(retryDiv);
+        }
+        
+        titleElement.parentNode.appendChild(messageDiv);
+    }
+    
+    // Update standard fields
     setText('resultTransferId', data.transferId || 'N/A');
-    setText('resultAccountInquiryId', stepData.step1.accountInquiryId || 'N/A');
-    setText('resultStatus', data.status || 'Completado');
+    setText('resultAccountInquiryId', stepData.step1?.accountInquiryId || 'N/A');
+    setText('resultStatus', data.status || 'Desconocido');
     setText('resultAmount', transferData.amount + ' ' + transferData.currency);
     setText('resultDate', new Date().toLocaleString());
     
+    // Add response code if available
+    const statusSpan = document.getElementById('resultStatus');
+    if (data.responseCode) {
+        statusSpan.innerHTML = `${data.status || 'Desconocido'} (Código: ${data.responseCode})`;
+    }
+    
     // Llenar detalles de pasos
-    setText('step1Details', JSON.stringify(stepData.step1, null, 2));
-    setText('step2Details', JSON.stringify(stepData.step2, null, 2));
-    setText('step3Details', JSON.stringify(stepData.step3, null, 2));
+    setText('step1Details', JSON.stringify(stepData.step1 || {}, null, 2));
+    setText('step2Details', JSON.stringify(stepData.step2 || {}, null, 2));
+    setText('step3Details', JSON.stringify(stepData.step3 || {}, null, 2));
     setText('step4Details', JSON.stringify(data, null, 2));
     
     showElement('transferResult');

@@ -149,6 +149,9 @@ Historial de Transferencias Ligo
                                                 }
                                                 ?>
                                                 <span class="badge badge-<?= $badgeClass ?>"><?= $statusText ?></span>
+                                                <?php if (!empty($transfer['response_code'])): ?>
+                                                    <small class="d-block text-muted">Código: <?= esc($transfer['response_code']) ?></small>
+                                                <?php endif; ?>
                                             </td>
                                             <td>
                                                 <?= isset($transfer['user_name']) ? esc($transfer['user_name']) : 'Sistema' ?>
