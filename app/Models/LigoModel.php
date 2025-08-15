@@ -1316,6 +1316,8 @@ class LigoModel extends Model
                 // Get transfer status
                 sleep(3);
                 $statusResponse = $this->makeApiRequest('/v1/getOrderTransferShippingById/' . $transferId, 'GET');
+                
+                log_message('error', '🔍 LigoModel: Status query response for transferId ' . $transferId . ': ' . json_encode($statusResponse));
 
                 // Check responseCode in status response
                 $responseCode = '';
