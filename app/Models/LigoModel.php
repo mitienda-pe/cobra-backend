@@ -1191,7 +1191,7 @@ class LigoModel extends Model
                 'currency' => (string)($transferData['currency'] === 'PEN' ? 'PEN' : 'USD'),
                 'referenceTransactionId' => intval($transferData['instructionId'] ?? time() . rand(1000, 9999)),
                 'transactionType' => (string)'320',
-                'feeAmount' => $feeAmountFormatted,
+                'feeAmount' => (string)$feeAmountFormatted,
                 'feeCode' => (string)($transferData['feeCode'] ?? ''),
                 'applicationCriteria' => (string)(!empty($transferData['applicationCriteria']) ? $transferData['applicationCriteria'] : 'M'),
                 'debtorTypeOfPerson' => (string)($superadminConfig['debtor_type_of_person'] ?? 'N'),
