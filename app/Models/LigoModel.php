@@ -1194,7 +1194,7 @@ class LigoModel extends Model
                 'channel' => (string)($superadminConfig['channel'] ?? '15'),
                 'amount' => $amountFormatted,
                 'currency' => (string)($transferData['currency'] === 'PEN' ? '604' : '840'),
-                'referenceTransactionId' => intval($transferData['instructionId'] ?? time() . rand(1000, 9999)),
+                'referenceTransactionId' => (string)($transferData['instructionId'] ?? date('YmdHis') . rand(10000000, 99999999)),
                 'transactionType' => (string)'320',
                 'feeAmount' => $feeAmountFormatted,
                 'feeCode' => (string)($transferData['feeCode'] ?? ''),
