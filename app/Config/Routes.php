@@ -269,6 +269,11 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('transfer-status/(:segment)', 'BackofficeController::transferStatus/$1');
         $routes->get('hashes', 'BackofficeController::hashes');
         
+        // Transfers management
+        $routes->get('transfers', 'BackofficeController::transfers');
+        $routes->get('transfer/details/(:num)', 'BackofficeController::transferDetails/$1');
+        $routes->get('transfer/ligo-response/(:num)', 'BackofficeController::transferLigoResponse/$1');
+        
         // Step-by-step transfer endpoints
         $routes->post('transfer/step1', 'BackofficeController::transferStep1');
         $routes->post('transfer/step2', 'BackofficeController::transferStep2');

@@ -52,8 +52,11 @@
                                 <div class="card-body">
                                     <i class="fas fa-exchange-alt fa-3x text-warning mb-3"></i>
                                     <h5 class="card-title">Transferencias</h5>
-                                    <p class="card-text">Realiza transferencias ordinarias</p>
-                                    <a href="<?= base_url('backoffice/transfer') ?>" class="btn btn-warning">Nueva Transferencia</a>
+                                    <p class="card-text">Realiza y consulta transferencias ordinarias</p>
+                                    <div class="btn-group" role="group">
+                                        <a href="<?= base_url('backoffice/transfer') ?>" class="btn btn-warning btn-sm">Nueva</a>
+                                        <a href="<?= base_url('backoffice/transfers') ?>" class="btn btn-outline-warning btn-sm">Historial</a>
+                                    </div>
                                 </div>
                             </div>
                         </div>

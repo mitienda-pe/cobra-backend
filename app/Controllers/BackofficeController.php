@@ -504,4 +504,96 @@ class BackofficeController extends Controller
 
         return view('backoffice/hashes', $data);
     }
+
+    /**
+     * List transfers with statistics
+     */
+    public function transfers()
+    {
+        $selectedOrgId = session()->get('selected_organization_id');
+        if (!$selectedOrgId) {
+            return redirect()->to('organizations')->with('error', 'Debe seleccionar una organización primero');
+        }
+
+        $transferModel = new \App\Models\TransferModel();
+        $db = \Config\Database::connect();
+
+        // Get transfers with user information
+        $query = $db->table('transfers t')
+                   ->select('t.*, u.name as user_name')
+                   ->join('users u', 't.user_id = u.id', 'left')
+                   ->where('t.organization_id', $selectedOrgId)
+                   ->orderBy('t.created_at', 'DESC')
+                   ->limit(50);
+
+        $transfers = $query->get()->getResultArray();
+
+        // Get statistics
+        $stats = $transferModel->getTransferStats($selectedOrgId);
+
+        $data = [
+            'title' => 'Historial de Transferencias Ligo',
+            'transfers' => $transfers,
+            'stats' => $stats
+        ];
+
+        return view('backoffice/transfers', $data);
+    }
+
+    /**
+     * Get transfer details
+     */
+    public function transferDetails($transferId)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->fail('Invalid request', 400);
+        }
+
+        $selectedOrgId = session()->get('selected_organization_id');
+        if (!$selectedOrgId) {
+            return $this->fail('Debe seleccionar una organización primero', 400);
+        }
+
+        $transferModel = new \App\Models\TransferModel();
+        $transfer = $transferModel->where('organization_id', $selectedOrgId)
+                                 ->find($transferId);
+
+        if (!$transfer) {
+            return $this->fail('Transferencia no encontrada', 404);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data' => $transfer
+        ]);
+    }
+
+    /**
+     * Get Ligo response for transfer
+     */
+    public function transferLigoResponse($transferId)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->fail('Invalid request', 400);
+        }
+
+        $selectedOrgId = session()->get('selected_organization_id');
+        if (!$selectedOrgId) {
+            return $this->fail('Debe seleccionar una organización primero', 400);
+        }
+
+        $transferModel = new \App\Models\TransferModel();
+        $transfer = $transferModel->select('ligo_response')
+                                 ->where('organization_id', $selectedOrgId)
+                                 ->find($transferId);
+
+        if (!$transfer) {
+            return $this->fail('Transferencia no encontrada', 404);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data' => $transfer
+        ]);
+    }
 }

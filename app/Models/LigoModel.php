@@ -1251,6 +1251,9 @@ class LigoModel extends Model
 
                 log_message('info', 'LigoModel: Transfer executed successfully with ID: ' . $transferId);
 
+                // Save transfer to database
+                $this->saveTransferToDatabase($transferData, $superadminConfig, $organization, $transferOrderData, $response, 'completed');
+
                 return [
                     'success' => true,
                     'transferId' => $transferId,
@@ -1278,10 +1281,14 @@ class LigoModel extends Model
                 sleep(3);
                 $statusResponse = $this->makeApiRequest('/v1/getOrderTransferShippingById/' . $transferId, 'GET');
 
+                // Save transfer to database
+                $status = $statusResponse['data']['status'] ?? 'pending';
+                $this->saveTransferToDatabase($transferData, $superadminConfig, $organization, $transferOrderData, $response, $status);
+
                 return [
                     'success' => true,
                     'transferId' => $transferId,
-                    'status' => $statusResponse['data']['status'] ?? 'pending',
+                    'status' => $status,
                     'transferResponse' => $response,
                     'statusResponse' => $statusResponse
                 ];
@@ -1290,6 +1297,62 @@ class LigoModel extends Model
         } catch (\Exception $e) {
             log_message('error', 'Error en executeTransfer: ' . $e->getMessage());
             return ['error' => 'Error interno: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Save transfer information to database
+     */
+    protected function saveTransferToDatabase($transferData, $superadminConfig, $organization, $transferOrderData, $ligoResponse, $status)
+    {
+        try {
+            // Get user from session for audit
+            $session = session();
+            $user = $session->get('user');
+            $userId = $user['id'] ?? null;
+            
+            // Create TransferModel instance
+            $transferModel = new \App\Models\TransferModel();
+            
+            // Prepare data for database insert
+            $dbData = [
+                'organization_id' => $organization['id'],
+                'user_id' => $userId,
+                'reference_transaction_id' => $transferOrderData['referenceTransactionId'] ?? '',
+                'account_inquiry_id' => $transferData['accountInquiryId'] ?? '',
+                'instruction_id' => $transferData['instructionId'] ?? '',
+                'debtor_cci' => $transferOrderData['debtorCCI'] ?? '',
+                'creditor_cci' => $transferOrderData['creditorCCI'] ?? '',
+                'creditor_name' => $transferOrderData['creditorName'] ?? $organization['name'],
+                'amount' => floatval($transferData['amount'] ?? 0),
+                'currency' => $transferData['currency'] === 'PEN' ? 'PEN' : 'USD',
+                'fee_amount' => floatval($transferData['feeAmount'] ?? 0),
+                'fee_code' => $transferData['feeCode'] ?? '',
+                'fee_id' => $transferData['feeId'] ?? '',
+                'unstructured_information' => $transferData['unstructuredInformation'] ?? '',
+                'message_type_id' => $transferOrderData['messageTypeId'] ?? '0200',
+                'transaction_type' => $transferOrderData['transactionType'] ?? '320',
+                'channel' => $transferOrderData['channel'] ?? '15',
+                'status' => $status,
+                'ligo_response' => json_encode($ligoResponse),
+                'error_message' => null
+            ];
+            
+            log_message('error', '💾 LigoModel: Guardando transferencia en base de datos - Data: ' . json_encode($dbData));
+            
+            $result = $transferModel->createTransfer($dbData);
+            
+            if ($result) {
+                log_message('error', '✅ LigoModel: Transferencia guardada exitosamente en BD - ID: ' . $result);
+                return $result;
+            } else {
+                log_message('error', '❌ LigoModel: Error al guardar transferencia en BD');
+                return false;
+            }
+            
+        } catch (\Exception $e) {
+            log_message('error', '❌ LigoModel: Exception al guardar transferencia en BD: ' . $e->getMessage());
+            return false;
         }
     }
 }
