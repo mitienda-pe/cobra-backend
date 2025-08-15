@@ -1158,10 +1158,11 @@ class LigoModel extends Model
     {
         try {
             log_message('info', 'LigoModel: Executing transfer for amount: ' . $transferData['amount']);
+            log_message('debug', 'LigoModel: executeTransfer input data: ' . json_encode($transferData));
             
             // Build debtor data from superadmin config
             $debtorData = [
-                'participantCode' => $superadminConfig['debtor_participant_code'] ?? '0123',
+                'participantCode' => $superadminConfig['debtor_participant_code'] ?? '0921',
                 'name' => $superadminConfig['debtor_name'] ?? 'CobraPepe SuperAdmin',
                 'id' => $superadminConfig['debtor_id'] ?? '20123456789',
                 'idCode' => $superadminConfig['debtor_id_code'] ?? '6',
@@ -1176,19 +1177,19 @@ class LigoModel extends Model
                 'name' => $organization['name']
             ];
 
-            // Execute transfer
+            // Execute transfer with complete API payload matching successful response structure
             $transferOrderData = [
                 'debtorParticipantCode' => $debtorData['participantCode'],
                 'creditorParticipantCode' => $creditorData['participantCode'],
-                'messageTypeId' => $transferData['messageTypeId'] ?? $superadminConfig['transaction_type'] ?? '320',
+                'messageTypeId' => $transferData['messageTypeId'] ?? '320',
                 'channel' => $superadminConfig['channel'] ?? '15',
                 'amount' => (float)$transferData['amount'],
                 'currency' => $transferData['currency'] === 'PEN' ? '604' : '840',
                 'referenceTransactionId' => $transferData['instructionId'] ?? uniqid(),
-                'transactionType' => $superadminConfig['transaction_type'] ?? '320',
+                'transactionType' => '320',
                 'feeAmount' => (float)$transferData['feeAmount'],
                 'feeCode' => $transferData['feeCode'],
-                'applicationCriteria' => $transferData['applicationCriteria'],
+                'applicationCriteria' => $transferData['applicationCriteria'] ?? '',
                 'debtorTypeOfPerson' => $superadminConfig['debtor_type_of_person'] ?? 'N',
                 'debtorName' => $debtorData['name'],
                 'debtorId' => $debtorData['id'],
@@ -1196,35 +1197,76 @@ class LigoModel extends Model
                 'debtorPhoneNumber' => $superadminConfig['debtor_phone_number'] ?? '',
                 'debtorAddressLine' => $debtorData['addressLine'],
                 'debtorMobileNumber' => $debtorData['mobileNumber'],
+                'debtorCCI' => $transferData['debtorCCI'] ?? $superadminConfig['account_id'] ?? '',
                 'creditorAddressLine' => $superadminConfig['creditor_address_line'] ?? 'JR LIMA',
                 'creditorCCI' => $creditorData['cci'],
                 'creditorName' => $creditorData['name'],
+                'sameCustomerFlag' => 'M',
+                'purposeCode' => 'IPAY',
+                'userId' => $superadminConfig['debtor_id'] ?? '20123456789',
                 'unstructuredInformation' => $transferData['unstructuredInformation'] ?? 'Transferencia Ordinaria'
             ];
 
+            log_message('info', 'LigoModel: Sending transfer order with data: ' . json_encode($transferOrderData));
+
             $response = $this->makeApiRequest('/v1/orderTransferShipping', 'POST', $transferOrderData);
             
+            log_message('debug', 'LigoModel: executeTransfer API response: ' . json_encode($response));
+            
             if (isset($response['error'])) {
+                log_message('error', 'LigoModel: executeTransfer API error: ' . $response['error']);
                 return ['error' => 'Error al ejecutar transferencia: ' . $response['error']];
             }
 
-            $transferId = $response['data']['id'] ?? null;
-            
-            if (!$transferId) {
-                return ['error' => 'No se recibió ID de transferencia'];
+            // Check if response has the expected structure from successful API calls
+            if (isset($response['status']) && $response['status'] == 1 && isset($response['data'])) {
+                // Successful response similar to the example provided
+                $responseData = $response['data'];
+                
+                $transferId = $responseData['instructionId'] ?? $responseData['id'] ?? null;
+                
+                if (!$transferId) {
+                    log_message('error', 'LigoModel: No transfer ID found in response: ' . json_encode($response));
+                    return ['error' => 'No se recibió ID de transferencia en la respuesta'];
+                }
+
+                log_message('info', 'LigoModel: Transfer executed successfully with ID: ' . $transferId);
+
+                return [
+                    'success' => true,
+                    'transferId' => $transferId,
+                    'status' => 'completed',
+                    'retrievalReferenceNumber' => $responseData['retrievalReferenteNumber'] ?? '',
+                    'trace' => $responseData['trace'] ?? '',
+                    'transactionReference' => $responseData['transactionReference'] ?? '',
+                    'responseCode' => $responseData['responseCode'] ?? '',
+                    'settlementDate' => $responseData['settlementDate'] ?? '',
+                    'debtorCCI' => $responseData['debtorCCI'] ?? '',
+                    'creditorCCI' => $responseData['creditorCCI'] ?? '',
+                    'interbankSettlementAmount' => $responseData['interbankSettlementAmount'] ?? 0,
+                    'transferResponse' => $response
+                ];
+            } else {
+                // Fallback for different response structure
+                $transferId = $response['data']['id'] ?? null;
+                
+                if (!$transferId) {
+                    log_message('error', 'LigoModel: Unexpected response structure: ' . json_encode($response));
+                    return ['error' => 'Respuesta inesperada de la API - no se encontró ID de transferencia'];
+                }
+
+                // Get transfer status
+                sleep(3);
+                $statusResponse = $this->makeApiRequest('/v1/getOrderTransferShippingById/' . $transferId, 'GET');
+
+                return [
+                    'success' => true,
+                    'transferId' => $transferId,
+                    'status' => $statusResponse['data']['status'] ?? 'pending',
+                    'transferResponse' => $response,
+                    'statusResponse' => $statusResponse
+                ];
             }
-
-            // Get transfer status
-            sleep(3);
-            $statusResponse = $this->makeApiRequest('/v1/getOrderTransferShippingById/' . $transferId, 'GET');
-
-            return [
-                'success' => true,
-                'transferId' => $transferId,
-                'status' => $statusResponse['data']['status'] ?? 'pending',
-                'transferResponse' => $response,
-                'statusResponse' => $statusResponse
-            ];
 
         } catch (\Exception $e) {
             log_message('error', 'Error en executeTransfer: ' . $e->getMessage());
