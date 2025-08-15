@@ -1266,9 +1266,23 @@ class LigoModel extends Model
                     return ['error' => 'No se recibió ID de transferencia en la respuesta'];
                 }
 
-                // Get responseCode to determine actual transfer status
-                $responseCode = $responseData['responseCode'] ?? '';
-                log_message('error', '🔍 LigoModel: Transfer responseCode received: ' . $responseCode . ' for transferId: ' . $transferId);
+                // The immediate response doesn't contain responseCode, we need to query the status
+                log_message('error', '🔍 LigoModel: Transfer submitted successfully, querying status for transferId: ' . $transferId);
+                
+                // Get transfer status to obtain the real responseCode
+                sleep(3);
+                $statusResponse = $this->makeApiRequest('/v1/getOrderTransferShippingById/' . $transferId, 'GET');
+                
+                log_message('error', '🔍 LigoModel: Status query response for transferId ' . $transferId . ': ' . json_encode($statusResponse));
+
+                // Extract responseCode from status response
+                $responseCode = '';
+                if (isset($statusResponse['data']['responseCode'])) {
+                    $responseCode = $statusResponse['data']['responseCode'];
+                    log_message('error', '🔍 LigoModel: Status responseCode received: ' . $responseCode . ' for transferId: ' . $transferId);
+                } else {
+                    log_message('error', '❌ LigoModel: No responseCode found in status response for transferId: ' . $transferId);
+                }
                 
                 // Interpret the Ligo response code
                 $interpretation = $this->interpretLigoResponseCode($responseCode);
