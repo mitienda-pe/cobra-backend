@@ -751,7 +751,7 @@ class LigoModel extends Model
             
             // Los datos del acreedor vienen de la organización
             $creditorData = [
-                'participantCode' => '0049',  // Fixed creditor participant code for Mi Banco
+                'participantCode' => $this->generateCreditorParticipantCode($organization['cci']),
                 'cci' => $organization['cci'],
                 'name' => $organization['name']
             ];
@@ -918,7 +918,7 @@ class LigoModel extends Model
             // Build creditor data - use the CCI provided by user (destination account)
             $finalCreditorCCI = $creditorCCI;
             $creditorData = [
-                'participantCode' => '0049',  // Fixed creditor participant code for Mi Banco
+                'participantCode' => $this->generateCreditorParticipantCode($finalCreditorCCI),
                 'cci' => $finalCreditorCCI,
                 'name' => $organization['name'] ?? 'Cuenta Destino'
             ];
@@ -1174,7 +1174,7 @@ class LigoModel extends Model
 
             // Build creditor data
             $creditorData = [
-                'participantCode' => '0049',  // Fixed creditor participant code for Mi Banco
+                'participantCode' => $this->generateCreditorParticipantCode($transferData['creditorCCI']),
                 'cci' => $transferData['creditorCCI'],
                 'name' => $organization['name']
             ];
@@ -1345,6 +1345,24 @@ class LigoModel extends Model
             log_message('error', 'Error en executeTransfer: ' . $e->getMessage());
             return ['error' => 'Error interno: ' . $e->getMessage()];
         }
+    }
+
+    /**
+     * Generate creditor participant code from CCI (first 3 digits with leading zero)
+     */
+    protected function generateCreditorParticipantCode($creditorCCI)
+    {
+        if (empty($creditorCCI) || strlen($creditorCCI) < 3) {
+            log_message('warning', 'LigoModel: Invalid CCI for participant code generation: ' . $creditorCCI);
+            return '0000'; // Default fallback
+        }
+        
+        $first3Digits = substr($creditorCCI, 0, 3);
+        $participantCode = '0' . $first3Digits;
+        
+        log_message('info', 'LigoModel: Generated creditorParticipantCode: ' . $participantCode . ' from CCI: ' . $creditorCCI);
+        
+        return $participantCode;
     }
 
     /**
