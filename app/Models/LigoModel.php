@@ -1190,7 +1190,7 @@ class LigoModel extends Model
                 'amount' => $amountFormatted,
                 'currency' => (string)($transferData['currency'] === 'PEN' ? 'PEN' : 'USD'),
                 'referenceTransactionId' => intval($transferData['instructionId'] ?? time() . rand(1000, 9999)),
-                'transactionType' => '320',
+                'transactionType' => (string)'320',
                 'feeAmount' => $feeAmountFormatted,
                 'feeCode' => (string)($transferData['feeCode'] ?? ''),
                 'applicationCriteria' => (string)(!empty($transferData['applicationCriteria']) ? $transferData['applicationCriteria'] : 'M'),
@@ -1204,7 +1204,7 @@ class LigoModel extends Model
                 'creditorName' => (string)$creditorData['name'],
                 'creditorAddressLine' => (string)($superadminConfig['creditor_address_line'] ?? 'JR LIMA'),
                 'creditorCCI' => (string)$creditorData['cci'],
-                'sameCustomerFlag' => 'O',
+                'sameCustomerFlag' => (string)'O',
                 'purposeCode' => (string)($transferData['purposeCode'] ?? '0105'),
                 'unstructuredInformation' => (string)($transferData['unstructuredInformation'] ?? 'Transferencia Ordinaria'),
                 'feeId' => (string)($transferData['feeId'] ?? ''),
@@ -1212,6 +1212,13 @@ class LigoModel extends Model
             ];
 
             log_message('info', 'LigoModel: Sending transfer order with data: ' . json_encode($transferOrderData));
+            
+            // Log data types for debugging
+            $dataTypes = [];
+            foreach ($transferOrderData as $key => $value) {
+                $dataTypes[$key] = gettype($value) . ' (' . $value . ')';
+            }
+            log_message('debug', 'LigoModel: Payload data types: ' . json_encode($dataTypes));
 
             $response = $this->makeApiRequest('/v1/orderTransferShipping', 'POST', $transferOrderData);
             
