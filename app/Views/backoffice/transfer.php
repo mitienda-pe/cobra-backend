@@ -650,6 +650,12 @@ function executeTransfer() {
         feeLigo: stepData.step3.feeLigo
     };
     
+    console.log('🚀 STEP 4 - PAYLOAD COMPLETO enviado al backend:', JSON.stringify(executeData, null, 2));
+    console.log('🔍 STEP 4 - Tipos de datos del payload:');
+    Object.keys(executeData).forEach(key => {
+        console.log(`   ${key}: ${typeof executeData[key]} (${executeData[key]})`);
+    });
+    
     makeRequest('<?= base_url('backoffice/transfer/step4') ?>', 'POST', executeData)
     .then(response => {
         if (response.success) {
