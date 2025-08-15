@@ -1187,7 +1187,7 @@ class LigoModel extends Model
                 'creditorParticipantCode' => (string)$creditorData['participantCode'],
                 'messageTypeId' => (string)($transferData['messageTypeId'] ?? '320'),
                 'channel' => (string)($superadminConfig['channel'] ?? '015'),
-                'amount' => $amountFormatted,
+                'amount' => (string)$amountFormatted,
                 'currency' => (string)($transferData['currency'] === 'PEN' ? 'PEN' : 'USD'),
                 'referenceTransactionId' => intval($transferData['instructionId'] ?? time() . rand(1000, 9999)),
                 'transactionType' => (string)'320',
