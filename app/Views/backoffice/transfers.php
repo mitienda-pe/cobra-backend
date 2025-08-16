@@ -61,6 +61,21 @@ Historial de Transferencias Ligo
                                     </div>
                                 </div>
                                 <div class="col-xl-3 col-md-6 mb-4">
+                                    <div class="card border-left-info shadow h-100 py-2">
+                                        <div class="card-body">
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-2">
+                                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Procesando</div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($stats['processing'] ?? 0) ?></div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <i class="fas fa-spinner fa-2x text-gray-300"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-md-6 mb-4">
                                     <div class="card border-left-warning shadow h-100 py-2">
                                         <div class="card-body">
                                             <div class="row no-gutters align-items-center">
@@ -76,11 +91,28 @@ Historial de Transferencias Ligo
                                     </div>
                                 </div>
                                 <div class="col-xl-3 col-md-6 mb-4">
-                                    <div class="card border-left-info shadow h-100 py-2">
+                                    <div class="card border-left-danger shadow h-100 py-2">
                                         <div class="card-body">
                                             <div class="row no-gutters align-items-center">
                                                 <div class="col mr-2">
-                                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Monto Total</div>
+                                                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Fallidas</div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($stats['failed'] ?? 0) ?></div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-4">
+                                <div class="col-xl-12 mb-4">
+                                    <div class="card border-left-primary shadow h-100 py-2">
+                                        <div class="card-body">
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-2">
+                                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Monto Total Transferido</div>
                                                     <div class="h5 mb-0 font-weight-bold text-gray-800">S/ <?= number_format($stats['total_amount'], 2) ?></div>
                                                 </div>
                                                 <div class="col-auto">
@@ -137,6 +169,10 @@ Historial de Transferencias Ligo
                                                     case 'completed':
                                                         $badgeClass = 'success';
                                                         $statusText = 'Completada';
+                                                        break;
+                                                    case 'processing':
+                                                        $badgeClass = 'info';
+                                                        $statusText = 'Procesando';
                                                         break;
                                                     case 'pending':
                                                         $badgeClass = 'warning';
@@ -221,8 +257,43 @@ Historial de Transferencias Ligo
 </div>
 
 <script>
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = 'block';
+    modal.classList.add('show');
+    document.body.classList.add('modal-open');
+    
+    // Create backdrop
+    const backdrop = document.createElement('div');
+    backdrop.classList.add('modal-backdrop', 'fade', 'show');
+    backdrop.id = modalId + 'Backdrop';
+    document.body.appendChild(backdrop);
+}
+
+function hideModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = 'none';
+    modal.classList.remove('show');
+    document.body.classList.remove('modal-open');
+    
+    // Remove backdrop
+    const backdrop = document.getElementById(modalId + 'Backdrop');
+    if (backdrop) {
+        backdrop.remove();
+    }
+}
+
 function showTransferDetails(transferId) {
-    $('#transferDetailsModal').modal('show');
+    showModal('transferDetailsModal');
+    
+    // Reset content to loading
+    document.getElementById('transferDetailsContent').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Cargando...</span>
+            </div>
+        </div>
+    `;
     
     fetch('<?= base_url('backoffice/transfer/details') ?>/' + transferId)
         .then(response => response.json())
@@ -277,7 +348,16 @@ function showTransferDetails(transferId) {
 }
 
 function showLigoResponse(transferId) {
-    $('#ligoResponseModal').modal('show');
+    showModal('ligoResponseModal');
+    
+    // Reset content to loading
+    document.getElementById('ligoResponseContent').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Cargando...</span>
+            </div>
+        </div>
+    `;
     
     fetch('<?= base_url('backoffice/transfer/ligo-response') ?>/' + transferId)
         .then(response => response.json())
@@ -294,6 +374,36 @@ function showLigoResponse(transferId) {
             document.getElementById('ligoResponseContent').innerHTML = '<div class="alert alert-danger">Error de conexión</div>';
         });
 }
+
+// Event listeners for closing modals
+document.addEventListener('DOMContentLoaded', function() {
+    // Close modal when clicking the X button
+    document.querySelectorAll('[data-dismiss="modal"]').forEach(function(closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            hideModal(modal.id);
+        });
+    });
+    
+    // Close modal when clicking outside the modal content
+    document.querySelectorAll('.modal').forEach(function(modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideModal(this.id);
+            }
+        });
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const openModals = document.querySelectorAll('.modal.show');
+            openModals.forEach(function(modal) {
+                hideModal(modal.id);
+            });
+        }
+    });
+});
 </script>
 
 <style>
@@ -301,5 +411,112 @@ function showLigoResponse(transferId) {
 .border-left-success { border-left: 0.25rem solid #1cc88a !important; }
 .border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
 .border-left-info { border-left: 0.25rem solid #36b9cc !important; }
+.border-left-danger { border-left: 0.25rem solid #e74a3b !important; }
+
+/* Modal styles for vanilla JS */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    outline: 0;
+}
+
+.modal.show {
+    display: block !important;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    opacity: 0.5;
+}
+
+.modal-backdrop.show {
+    opacity: 0.5;
+}
+
+.modal-open {
+    overflow: hidden;
+}
+
+.modal-dialog {
+    position: relative;
+    width: auto;
+    margin: 0.5rem;
+    pointer-events: none;
+}
+
+@media (min-width: 576px) {
+    .modal-dialog {
+        max-width: 500px;
+        margin: 1.75rem auto;
+    }
+}
+
+@media (min-width: 992px) {
+    .modal-lg {
+        max-width: 800px;
+    }
+    .modal-xl {
+        max-width: 1140px;
+    }
+}
+
+.modal-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    pointer-events: auto;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid rgba(0,0,0,.2);
+    border-radius: 0.3rem;
+    outline: 0;
+}
+
+.modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1rem 1rem;
+    border-bottom: 1px solid #dee2e6;
+    border-top-left-radius: calc(0.3rem - 1px);
+    border-top-right-radius: calc(0.3rem - 1px);
+}
+
+.modal-body {
+    position: relative;
+    flex: 1 1 auto;
+    padding: 1rem;
+}
+
+.close {
+    padding: 1rem 1rem;
+    margin: -1rem -1rem -1rem auto;
+    background-color: transparent;
+    border: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #000;
+    text-shadow: 0 1px 0 #fff;
+    opacity: .5;
+    cursor: pointer;
+}
+
+.close:hover {
+    opacity: .75;
+}
 </style>
 <?= $this->endSection() ?>

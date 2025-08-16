@@ -1269,19 +1269,35 @@ class LigoModel extends Model
                 // The immediate response doesn't contain responseCode, we need to query the status
                 log_message('error', '🔍 LigoModel: Transfer submitted successfully, querying status for transferId: ' . $transferId);
                 
-                // Get transfer status to obtain the real responseCode
-                sleep(3);
-                $statusResponse = $this->makeApiRequest('/v1/getOrderTransferShippingById/' . $transferId, 'GET');
-                
-                log_message('error', '🔍 LigoModel: Status query response for transferId ' . $transferId . ': ' . json_encode($statusResponse));
-
-                // Extract responseCode from status response
+                // Get transfer status to obtain the real responseCode - retry multiple times per Ligo recommendation
                 $responseCode = '';
-                if (isset($statusResponse['data']['responseCode'])) {
-                    $responseCode = $statusResponse['data']['responseCode'];
-                    log_message('error', '🔍 LigoModel: Status responseCode received: ' . $responseCode . ' for transferId: ' . $transferId);
-                } else {
-                    log_message('error', '❌ LigoModel: No responseCode found in status response for transferId: ' . $transferId);
+                $maxAttempts = 3;
+                
+                for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+                    $waitTime = 2; // 2 seconds per Ligo recommendation
+                    log_message('error', '🔍 LigoModel: Attempt ' . $attempt . '/' . $maxAttempts . ' - waiting ' . $waitTime . ' seconds before querying status (Ligo recommendation)');
+                    sleep($waitTime);
+                    
+                    $statusResponse = $this->makeApiRequest('/v1/getOrderTransferShippingById/' . $transferId, 'GET');
+                    log_message('error', '🔍 LigoModel: Status query response (attempt ' . $attempt . ') for transferId ' . $transferId . ': ' . json_encode($statusResponse));
+
+                    // Check if we have data in the response (per Ligo recommendation: check for non-empty data array)
+                    if (isset($statusResponse['data']) && !empty($statusResponse['data']) && is_array($statusResponse['data'])) {
+                        // We have data - look for responseCode
+                        if (isset($statusResponse['data']['responseCode'])) {
+                            $responseCode = $statusResponse['data']['responseCode'];
+                            log_message('error', '✅ LigoModel: Status responseCode found on attempt ' . $attempt . ': ' . $responseCode . ' for transferId: ' . $transferId);
+                            break;
+                        } else {
+                            log_message('error', '⚠️ LigoModel: Data found but no responseCode on attempt ' . $attempt . ' for transferId: ' . $transferId . ' - data: ' . json_encode($statusResponse['data']));
+                        }
+                    } else {
+                        log_message('error', '⏳ LigoModel: Empty data array on attempt ' . $attempt . ' for transferId: ' . $transferId . ' - data: ' . json_encode($statusResponse['data'] ?? 'null'));
+                    }
+                    
+                    if ($attempt === $maxAttempts) {
+                        log_message('error', '❌ LigoModel: No responseCode found after ' . $maxAttempts . ' attempts (as recommended by Ligo) for transferId: ' . $transferId);
+                    }
                 }
                 
                 // Interpret the Ligo response code
@@ -1327,8 +1343,8 @@ class LigoModel extends Model
                     return ['error' => 'Respuesta inesperada de la API - no se encontró ID de transferencia'];
                 }
 
-                // Get transfer status
-                sleep(3);
+                // Get transfer status (per Ligo recommendation: 2 second wait)
+                sleep(2);
                 $statusResponse = $this->makeApiRequest('/v1/getOrderTransferShippingById/' . $transferId, 'GET');
                 
                 log_message('error', '🔍 LigoModel: Status query response for transferId ' . $transferId . ': ' . json_encode($statusResponse));
@@ -1466,7 +1482,19 @@ class LigoModel extends Model
      */
     protected function interpretLigoResponseCode($responseCode, $statusResponse = null)
     {
+        log_message('error', '🔍 LigoModel: interpretLigoResponseCode - Input responseCode: "' . $responseCode . '" (type: ' . gettype($responseCode) . ', length: ' . strlen($responseCode) . ')');
         $responseCode = (string)$responseCode;
+        log_message('error', '🔍 LigoModel: interpretLigoResponseCode - After cast responseCode: "' . $responseCode . '" (length: ' . strlen($responseCode) . ')');
+        
+        // Handle empty responseCode first (before switch)
+        if (empty($responseCode) || $responseCode === '' || $responseCode === null) {
+            log_message('info', '⏳ Ligo Response Code empty/null: Transfer submitted successfully, awaiting processing');
+            return [
+                'status' => 'processing', 
+                'message' => 'Transferencia enviada exitosamente - procesando...',
+                'success' => true
+            ];
+        }
         
         switch ($responseCode) {
             case '00':

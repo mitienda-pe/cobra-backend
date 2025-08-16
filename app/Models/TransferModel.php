@@ -172,6 +172,7 @@ class TransferModel extends Model
         $stats = [
             'total' => $builder->countAllResults(false),
             'successful' => $builder->where('status', 'completed')->countAllResults(false),
+            'processing' => $builder->where('status', 'processing')->countAllResults(false),
             'pending' => $builder->where('status', 'pending')->countAllResults(false),
             'failed' => $builder->where('status', 'failed')->countAllResults(false)
         ];
