@@ -56,10 +56,10 @@ class OrganizationAccountController extends BaseController
         $balance = $this->balanceModel->getBalance($organizationId, $currency, $recalculate);
 
         // Get Ligo payments summary
-        $ligoSummary = $this->balanceModel->getLigoPaymentsSummary($organizationId, $dateStart, $dateEnd);
+        $ligoSummary = $this->balanceModel->getLigoPaymentsSummary($organizationId, $dateStart, $dateEnd, $currency);
 
         // Get monthly breakdown for current year
-        $monthlyBreakdown = $this->balanceModel->getMonthlyBreakdown($organizationId);
+        $monthlyBreakdown = $this->balanceModel->getMonthlyBreakdown($organizationId, null, $currency);
 
         return view('organizations/account_statement', [
             'organization' => $organization,
@@ -106,8 +106,9 @@ class OrganizationAccountController extends BaseController
             $dateStart = date('Y-m-d', strtotime('-30 days'));
         }
 
-        // Get movements
-        $movements = $this->balanceModel->getMovements($organizationId, $dateStart, $dateEnd, $paymentMethod);
+        // Get movements (default to PEN currency for now - can be enhanced later)
+        $currency = 'PEN';
+        $movements = $this->balanceModel->getMovements($organizationId, $dateStart, $dateEnd, $paymentMethod, $currency);
 
         // Paginate results
         $totalMovements = count($movements);
@@ -151,8 +152,9 @@ class OrganizationAccountController extends BaseController
         $dateEnd = $this->request->getGet('date_end');
         $paymentMethod = $this->request->getGet('payment_method');
 
-        // Get movements
-        $movements = $this->balanceModel->getMovements($organizationId, $dateStart, $dateEnd, $paymentMethod);
+        // Get movements (default to PEN currency)
+        $currency = 'PEN';
+        $movements = $this->balanceModel->getMovements($organizationId, $dateStart, $dateEnd, $paymentMethod, $currency);
 
         // Prepare CSV content
         $csv = "Fecha,Método de Pago,Monto,Estado,Factura,Concepto,Cliente,Documento,Cuota,Cobrador,Referencia\n";

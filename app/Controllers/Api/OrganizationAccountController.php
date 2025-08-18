@@ -49,7 +49,7 @@ class OrganizationAccountController extends ResourceController
             if ($includeSummary) {
                 $dateStart = date('Y-m-01'); // First day of current month
                 $dateEnd = date('Y-m-t');    // Last day of current month
-                $summary = $this->balanceModel->getLigoPaymentsSummary($organizationId, $dateStart, $dateEnd);
+                $summary = $this->balanceModel->getLigoPaymentsSummary($organizationId, $dateStart, $dateEnd, $currency);
             }
 
             return $this->respond([
@@ -110,8 +110,9 @@ class OrganizationAccountController extends ResourceController
                 return $this->failValidationError('Formato de fecha inválido. Use YYYY-MM-DD');
             }
 
-            // Get movements
-            $movements = $this->balanceModel->getMovements($organizationId, $dateStart, $dateEnd, $paymentMethod);
+            // Get movements (filter by currency)
+            $currency = $this->request->getGet('currency') ?: 'PEN';
+            $movements = $this->balanceModel->getMovements($organizationId, $dateStart, $dateEnd, $paymentMethod, $currency);
 
             // Calculate pagination
             $totalMovements = count($movements);
@@ -227,12 +228,13 @@ class OrganizationAccountController extends ResourceController
             }
 
             $year = $this->request->getGet('year') ?: date('Y');
+            $currency = $this->request->getGet('currency') ?: 'PEN';
 
             if (!is_numeric($year) || $year < 2020 || $year > date('Y') + 1) {
                 return $this->failValidationError('Año inválido');
             }
 
-            $breakdown = $this->balanceModel->getMonthlyBreakdown($organizationId, $year);
+            $breakdown = $this->balanceModel->getMonthlyBreakdown($organizationId, $year, $currency);
 
             return $this->respond([
                 'organization_id' => $organizationId,

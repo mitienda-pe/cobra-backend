@@ -47,7 +47,7 @@ class OrganizationBalanceModel extends Model
     {
         $db = \Config\Database::connect();
         
-        // Get all payments for this organization
+        // Get all payments for this organization (payments inherit currency from invoices)
         $builder = $db->table('payments p');
         $builder->select('
             SUM(CASE WHEN p.status = "completed" THEN p.amount ELSE 0 END) as total_collected,
@@ -60,13 +60,23 @@ class OrganizationBalanceModel extends Model
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
         $builder->where('p.deleted_at IS NULL');
+        $builder->where('i.deleted_at IS NULL');
         
         $result = $builder->get()->getRowArray();
         
-        // Get total pending amount
+        // Get total pending amount (calculate based on invoice amount vs payments)
         $pendingBuilder = $db->table('invoices i');
         $pendingBuilder->select('
-            SUM(CASE WHEN i.status IN ("pending", "partially_paid") THEN (i.total_amount - COALESCE(paid_amount, 0)) ELSE 0 END) as total_pending
+            SUM(CASE 
+                WHEN i.status IN ("pending", "partially_paid") THEN 
+                    COALESCE(
+                        CASE WHEN i.total_amount IS NOT NULL AND i.total_amount > 0 
+                             THEN i.total_amount 
+                             ELSE i.amount 
+                        END, 0
+                    )
+                ELSE 0 
+            END) as total_pending
         ');
         $pendingBuilder->where('i.organization_id', $organizationId);
         $pendingBuilder->where('i.currency', $currency);
@@ -116,7 +126,7 @@ class OrganizationBalanceModel extends Model
     /**
      * Get detailed movements for an organization
      */
-    public function getMovements($organizationId, $dateStart = null, $dateEnd = null, $paymentMethod = null)
+    public function getMovements($organizationId, $dateStart = null, $dateEnd = null, $paymentMethod = null, $currency = 'PEN')
     {
         $db = \Config\Database::connect();
         $builder = $db->table('payments p');
@@ -130,6 +140,7 @@ class OrganizationBalanceModel extends Model
             p.status,
             i.invoice_number,
             i.concept as invoice_concept,
+            i.currency,
             c.business_name as client_name,
             c.document_number as client_document,
             inst.number as instalment_number,
@@ -142,7 +153,9 @@ class OrganizationBalanceModel extends Model
         $builder->join('users u', 'p.user_id = u.id', 'left');
         
         $builder->where('i.organization_id', $organizationId);
+        $builder->where('i.currency', $currency);
         $builder->where('p.deleted_at IS NULL');
+        $builder->where('i.deleted_at IS NULL');
         
         if ($dateStart) {
             $builder->where('p.payment_date >=', $dateStart);
@@ -164,7 +177,7 @@ class OrganizationBalanceModel extends Model
     /**
      * Get Ligo payments summary for an organization
      */
-    public function getLigoPaymentsSummary($organizationId, $dateStart = null, $dateEnd = null)
+    public function getLigoPaymentsSummary($organizationId, $dateStart = null, $dateEnd = null, $currency = 'PEN')
     {
         $db = \Config\Database::connect();
         $builder = $db->table('payments p');
@@ -179,9 +192,11 @@ class OrganizationBalanceModel extends Model
         
         $builder->join('invoices i', 'p.invoice_id = i.id');
         $builder->where('i.organization_id', $organizationId);
+        $builder->where('i.currency', $currency);
         $builder->where('p.payment_method', 'ligo_qr');
         $builder->where('p.status', 'completed');
         $builder->where('p.deleted_at IS NULL');
+        $builder->where('i.deleted_at IS NULL');
         
         if ($dateStart) {
             $builder->where('p.payment_date >=', $dateStart);
@@ -197,7 +212,7 @@ class OrganizationBalanceModel extends Model
     /**
      * Get monthly Ligo payments breakdown
      */
-    public function getMonthlyBreakdown($organizationId, $year = null)
+    public function getMonthlyBreakdown($organizationId, $year = null, $currency = 'PEN')
     {
         if (!$year) {
             $year = date('Y');
@@ -215,10 +230,12 @@ class OrganizationBalanceModel extends Model
         
         $builder->join('invoices i', 'p.invoice_id = i.id');
         $builder->where('i.organization_id', $organizationId);
+        $builder->where('i.currency', $currency);
         $builder->where('p.payment_method', 'ligo_qr');
         $builder->where('p.status', 'completed');
         $builder->where('YEAR(p.payment_date)', $year);
         $builder->where('p.deleted_at IS NULL');
+        $builder->where('i.deleted_at IS NULL');
         
         $builder->groupBy('MONTH(p.payment_date), MONTHNAME(p.payment_date)');
         $builder->orderBy('MONTH(p.payment_date)', 'ASC');
