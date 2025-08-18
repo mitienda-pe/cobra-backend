@@ -75,9 +75,11 @@ class OrganizationBalanceModel extends Model
         $builder->where('i.deleted_at IS NULL');
         
         // DEBUG: Log the actual SQL query
-        log_message('info', 'Balance Query SQL: ' . $builder->getCompiledSelect());
+        $compiledSQL = $builder->getCompiledSelect();
+        log_message('error', 'DEBUG Balance Query SQL: ' . $compiledSQL);
         $result = $builder->get()->getRowArray();
-        log_message('info', 'Balance Query Result: ' . json_encode($result));
+        log_message('error', 'DEBUG Balance Query Result: ' . json_encode($result));
+        log_message('error', 'DEBUG Organization ID: ' . $organizationId . ', Currency: ' . $currency);
         
         // Get total pending amount (calculate based on invoice amount vs payments)
         $pendingBuilder = $db->table('invoices i');
