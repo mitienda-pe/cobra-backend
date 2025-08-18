@@ -83,7 +83,8 @@ class OrganizationController extends BaseController
             'name' => $this->request->getPost('name'),
             'code' => $this->request->getPost('code'),
             'status' => $this->request->getPost('status'),
-            'description' => $this->request->getPost('description')
+            'description' => $this->request->getPost('description'),
+            'cci' => $this->request->getPost('cci')
         ]);
         
         log_message('debug', 'Insert result: ' . json_encode($result));
@@ -155,7 +156,8 @@ class OrganizationController extends BaseController
         $data = [
             'name' => $postData['name'],
             'description' => $postData['description'] ?? null,
-            'status' => $postData['status']
+            'status' => $postData['status'],
+            'cci' => $postData['cci'] ?? null
         ];
         
         // Handle Ligo payment settings

@@ -52,8 +52,35 @@
                                 <div class="card-body">
                                     <i class="fas fa-exchange-alt fa-3x text-warning mb-3"></i>
                                     <h5 class="card-title">Transferencias</h5>
-                                    <p class="card-text">Realiza transferencias ordinarias</p>
-                                    <a href="<?= base_url('backoffice/transfer') ?>" class="btn btn-warning">Nueva Transferencia</a>
+                                    <p class="card-text">Realiza y consulta transferencias ordinarias</p>
+                                    <div class="btn-group" role="group">
+                                        <a href="<?= base_url('backoffice/transfer') ?>" class="btn btn-warning btn-sm">Nueva</a>
+                                        <a href="<?= base_url('backoffice/transfers') ?>" class="btn btn-outline-warning btn-sm">Historial</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-qrcode fa-3x text-secondary mb-3"></i>
+                                    <h5 class="card-title">Hashes QR</h5>
+                                    <p class="card-text">Gestiona los códigos QR generados por Ligo</p>
+                                    <a href="<?= base_url('backoffice/hashes') ?>" class="btn btn-secondary">Ver Hashes QR</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-gear-wide-connected fa-3x text-danger mb-3"></i>
+                                    <h5 class="card-title">Configuración Ligo</h5>
+                                    <p class="card-text">Administra las credenciales centralizadas de Ligo</p>
+                                    <a href="<?= site_url('superadmin/ligo-config') ?>" class="btn btn-danger">
+                                        <i class="bi bi-gear-wide-connected"></i> Configurar
+                                    </a>
                                 </div>
                             </div>
                         </div>

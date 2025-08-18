@@ -35,8 +35,11 @@
       "Bash(sudo chown:*)",
       "Bash(git check-ignore:*)",
       "WebFetch(domain:cobra.mitienda.host)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(scp:*)",
+      "Bash(git pull:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

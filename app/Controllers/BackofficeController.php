@@ -166,20 +166,50 @@ class BackofficeController extends Controller
 
     public function transfer()
     {
+        // Obtener organización seleccionada del contexto (solo para superadmin)
+        $selectedOrgId = session()->get('selected_organization_id');
+        if (!$selectedOrgId) {
+            return redirect()->to('organizations')->with('error', 'Debe seleccionar una organización primero');
+        }
+        
+        $organizationModel = new \App\Models\OrganizationModel();
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+        
+        // Obtener la organización seleccionada
+        $organization = $organizationModel->find($selectedOrgId);
+        if (!$organization || $organization['status'] !== 'active') {
+            return redirect()->to('organizations')->with('error', 'Organización no válida o inactiva');
+        }
+        
+        // Validar que la organización tenga CCI configurado
+        if (empty($organization['cci'])) {
+            return redirect()->back()->with('error', 'La organización seleccionada no tiene CCI configurado. Configure el CCI en la edición de la organización.');
+        }
+        
+        // Obtener configuración activa del superadmin
+        $superadminConfig = $superadminLigoConfigModel->where('enabled', 1)
+                                                      ->where('is_active', 1)
+                                                      ->first();
+        
         $data = [
             'title' => 'Transferencia Ordinaria - Ligo',
-            'breadcrumb' => 'Transferencia Ordinaria'
+            'breadcrumb' => 'Transferencia Ordinaria',
+            'organization' => $organization,
+            'superadminConfig' => $superadminConfig
         ];
 
         if ($this->request->getMethod() === 'post') {
+            // Validar que hay configuración del superadmin
+            if (!$superadminConfig) {
+                if ($this->request->isAJAX()) {
+                    return $this->fail('No hay configuración de Ligo del superadmin disponible', 400);
+                }
+                return redirect()->back()->with('error', 'No hay configuración de Ligo del superadmin disponible');
+            }
+
+            // Construir datos de transferencia usando la organización del contexto
             $transferData = [
-                'debtorParticipantCode' => $this->request->getPost('debtorParticipantCode'),
-                'creditorParticipantCode' => $this->request->getPost('creditorParticipantCode'),
-                'debtorName' => $this->request->getPost('debtorName'),
-                'debtorId' => $this->request->getPost('debtorId'),
-                'debtorIdCode' => $this->request->getPost('debtorIdCode'),
-                'debtorAddressLine' => $this->request->getPost('debtorAddressLine'),
-                'debtorMobileNumber' => $this->request->getPost('debtorMobileNumber'),
+                'organization_id' => $selectedOrgId,
                 'creditorCCI' => $this->request->getPost('creditorCCI'),
                 'amount' => $this->request->getPost('amount'),
                 'currency' => $this->request->getPost('currency') ?: 'PEN',
@@ -187,7 +217,7 @@ class BackofficeController extends Controller
             ];
 
             if ($this->request->isAJAX()) {
-                $response = $this->ligoModel->processOrdinaryTransfer($transferData);
+                $response = $this->ligoModel->processOrdinaryTransferFromSuperadmin($transferData, $superadminConfig, $organization);
                 
                 if (isset($response['error'])) {
                     return $this->fail($response['error'], 400);
@@ -195,7 +225,7 @@ class BackofficeController extends Controller
 
                 return $this->respond($response);
             } else {
-                $response = $this->ligoModel->processOrdinaryTransfer($transferData);
+                $response = $this->ligoModel->processOrdinaryTransferFromSuperadmin($transferData, $superadminConfig, $organization);
                 
                 if (isset($response['error'])) {
                     return redirect()->back()->with('error', $response['error']);
@@ -206,6 +236,212 @@ class BackofficeController extends Controller
         }
 
         return view('backoffice/transfer', $data);
+    }
+
+    /**
+     * Step 1: Account Inquiry - Verify destination account
+     */
+    public function transferStep1()
+    {
+        if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
+            return $this->fail('Invalid request', 400);
+        }
+
+        $selectedOrgId = session()->get('selected_organization_id');
+        if (!$selectedOrgId) {
+            return $this->fail('Debe seleccionar una organización primero', 400);
+        }
+
+        $organizationModel = new \App\Models\OrganizationModel();
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+
+        $organization = $organizationModel->find($selectedOrgId);
+        if (!$organization || $organization['status'] !== 'active') {
+            return $this->fail('Organización no válida o inactiva', 400);
+        }
+
+        if (empty($organization['cci'])) {
+            return $this->fail('La organización no tiene CCI configurado', 400);
+        }
+
+        $superadminConfig = $superadminLigoConfigModel->where('enabled', 1)
+                                                      ->where('is_active', 1)
+                                                      ->first();
+
+        if (!$superadminConfig) {
+            return $this->fail('No hay configuración de Ligo del superadmin disponible', 400);
+        }
+
+        $creditorCCI = $this->request->getPost('creditorCCI');
+        $currency = $this->request->getPost('currency') ?: 'PEN';
+
+        if (empty($creditorCCI)) {
+            return $this->fail('CCI del acreedor es requerido', 400);
+        }
+
+        $response = $this->ligoModel->performAccountInquiry($superadminConfig, $organization, $creditorCCI, $currency);
+
+        if (isset($response['error'])) {
+            return $this->fail($response['error'], 400);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data' => $response,
+            'message' => 'Cuenta verificada exitosamente'
+        ]);
+    }
+
+    /**
+     * Step 2: Get Account Inquiry Result by ID
+     */
+    public function transferStep2()
+    {
+        if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
+            return $this->fail('Invalid request', 400);
+        }
+
+        $accountInquiryId = $this->request->getPost('accountInquiryId');
+        
+        if (empty($accountInquiryId)) {
+            return $this->fail('Account Inquiry ID es requerido', 400);
+        }
+
+        $response = $this->ligoModel->getAccountInquiryResult($accountInquiryId);
+
+        if (isset($response['error'])) {
+            return $this->fail($response['error'], 400);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data' => $response,
+            'message' => 'Información de cuenta obtenida exitosamente'
+        ]);
+    }
+
+    /**
+     * Step 3: Calculate Transfer Fee
+     */
+    public function transferStep3()
+    {
+        try {
+            log_message('info', 'BackofficeController: transferStep3 - Request received. Method: ' . $this->request->getMethod() . ', AJAX: ' . ($this->request->isAJAX() ? 'YES' : 'NO'));
+            
+            if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
+                log_message('error', 'BackofficeController: transferStep3 - Invalid request method or not AJAX');
+                return $this->fail('Invalid request', 400);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'BackofficeController: transferStep3 - Exception in initial checks: ' . $e->getMessage());
+            return $this->fail('Internal error', 500);
+        }
+
+        $debtorCCI = $this->request->getPost('debtorCCI');
+        $creditorCCI = $this->request->getPost('creditorCCI');
+        $amount = $this->request->getPost('amount');
+        $currency = $this->request->getPost('currency') ?: 'PEN';
+
+        log_message('debug', 'BackofficeController: transferStep3 - debtorCCI: ' . ($debtorCCI ?? 'NULL') . ', creditorCCI: ' . ($creditorCCI ?? 'NULL') . ', amount: ' . ($amount ?? 'NULL') . ', currency: ' . $currency);
+
+        if (empty($debtorCCI) || empty($creditorCCI) || empty($amount)) {
+            return $this->fail('Todos los campos son requeridos (debtorCCI, creditorCCI, amount)', 400);
+        }
+
+        if (!is_numeric($amount) || $amount <= 0) {
+            return $this->fail('El monto debe ser un número válido mayor a 0', 400);
+        }
+
+        try {
+            $response = $this->ligoModel->calculateTransferFee($debtorCCI, $creditorCCI, $amount, $currency);
+
+            if (isset($response['error'])) {
+                log_message('error', 'BackofficeController: transferStep3 - LigoModel error: ' . $response['error']);
+                return $this->fail($response['error'], 400);
+            }
+
+            log_message('info', 'BackofficeController: transferStep3 - Success');
+            return $this->respond([
+                'success' => true,
+                'data' => $response,
+                'message' => 'Comisión calculada exitosamente'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'BackofficeController: transferStep3 - Exception: ' . $e->getMessage());
+            return $this->fail('Internal error: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Step 4: Execute Transfer
+     */
+    public function transferStep4()
+    {
+        log_message('error', '🎯 BackofficeController: transferStep4 START - DEBUG LOG');
+        
+        if (!$this->request->isAJAX() || $this->request->getMethod() !== 'post') {
+            log_message('error', 'BackofficeController: transferStep4 - Invalid request method or not AJAX');
+            return $this->fail('Invalid request', 400);
+        }
+
+        $selectedOrgId = session()->get('selected_organization_id');
+        log_message('error', '🏢 BackofficeController: transferStep4 - Selected org ID: ' . ($selectedOrgId ?? 'null') . ' - DEBUG LOG');
+        
+        if (!$selectedOrgId) {
+            log_message('error', 'BackofficeController: transferStep4 - No organization selected');
+            return $this->fail('Debe seleccionar una organización primero', 400);
+        }
+
+        $organizationModel = new \App\Models\OrganizationModel();
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+
+        $organization = $organizationModel->find($selectedOrgId);
+        $superadminConfig = $superadminLigoConfigModel->where('enabled', 1)
+                                                      ->where('is_active', 1)
+                                                      ->first();
+
+        log_message('info', '🏢 BackofficeController: transferStep4 - Organization found: ' . ($organization ? 'Yes' : 'No'));
+        log_message('info', '⚙️ BackofficeController: transferStep4 - SuperadminConfig found: ' . ($superadminConfig ? 'Yes' : 'No'));
+
+        // Recoger todos los datos necesarios del frontend
+        $transferData = [
+            'debtorCCI' => $this->request->getPost('debtorCCI'),
+            'creditorCCI' => $this->request->getPost('creditorCCI'),
+            'amount' => $this->request->getPost('amount'),
+            'currency' => $this->request->getPost('currency') ?: 'PEN',
+            'feeAmount' => $this->request->getPost('feeAmount'),
+            'feeCode' => $this->request->getPost('feeCode'),
+            'applicationCriteria' => $this->request->getPost('applicationCriteria'),
+            'messageTypeId' => $this->request->getPost('messageTypeId'),
+            'instructionId' => $this->request->getPost('instructionId'),
+            'unstructuredInformation' => $this->request->getPost('unstructuredInformation'),
+            'feeId' => $this->request->getPost('feeId'),
+            'feeLigo' => $this->request->getPost('feeLigo')
+        ];
+
+        log_message('info', '📦 BackofficeController: transferStep4 - Transfer data received: ' . json_encode($transferData));
+
+        // Validar campos requeridos
+        $requiredFields = ['debtorCCI', 'creditorCCI', 'amount', 'feeAmount', 'feeCode'];
+        foreach ($requiredFields as $field) {
+            if (empty($transferData[$field]) && $transferData[$field] !== '0') {
+                log_message('error', 'BackofficeController: transferStep4 - Missing required field: ' . $field);
+                return $this->fail("Campo requerido: {$field}", 400);
+            }
+        }
+
+        log_message('info', '✅ BackofficeController: transferStep4 - All required fields validated, calling executeTransfer');
+        $response = $this->ligoModel->executeTransfer($superadminConfig, $organization, $transferData);
+
+        if (isset($response['error'])) {
+            return $this->fail($response['error'], 400);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data' => $response,
+            'message' => 'Transferencia ejecutada exitosamente'
+        ]);
     }
 
     public function transferStatus($transferId)
@@ -221,5 +457,143 @@ class BackofficeController extends Controller
         }
 
         return $this->fail('Invalid request', 400);
+    }
+
+    public function hashes()
+    {
+        $ligoQRHashModel = new \App\Models\LigoQRHashModel();
+        $paymentModel = new \App\Models\PaymentModel();
+        
+        // Obtener hashes con información adicional
+        $hashes = $ligoQRHashModel->select('ligo_qr_hashes.*, invoices.invoice_number, invoices.uuid as invoice_uuid, instalments.number as instalment_number, instalments.status as instalment_status, instalments.amount as instalment_amount')
+                                  ->join('invoices', 'invoices.id = ligo_qr_hashes.invoice_id', 'left')
+                                  ->join('instalments', 'instalments.id = ligo_qr_hashes.instalment_id', 'left')
+                                  ->orderBy('ligo_qr_hashes.created_at', 'DESC')
+                                  ->findAll(100);
+        
+        // Calcular el estado real de pago para cada hash
+        foreach ($hashes as &$hash) {
+            if ($hash['instalment_id']) {
+                // Obtener pagos para esta cuota
+                $payments = $paymentModel->where('instalment_id', $hash['instalment_id'])->findAll();
+                
+                $totalPaid = 0;
+                foreach ($payments as $payment) {
+                    $paymentAmount = $payment['amount'];
+                    // Normalizar montos de Ligo QR (convertir centavos a soles)
+                    if ($payment['payment_method'] === 'ligo_qr' && $paymentAmount >= 100) {
+                        $paymentAmount = $paymentAmount / 100;
+                    }
+                    $totalPaid += $paymentAmount;
+                }
+                
+                // Determinar si está realmente pagado basándose en los pagos
+                $instalmentAmount = $hash['instalment_amount'] ?? 0;
+                $hash['is_actually_paid'] = $totalPaid >= $instalmentAmount;
+                $hash['total_paid'] = $totalPaid;
+            } else {
+                $hash['is_actually_paid'] = false;
+                $hash['total_paid'] = 0;
+            }
+        }
+
+        $data = [
+            'title' => 'Hashes QR Ligo',
+            'hashes' => $hashes
+        ];
+
+        return view('backoffice/hashes', $data);
+    }
+
+    /**
+     * List transfers with statistics
+     */
+    public function transfers()
+    {
+        $selectedOrgId = session()->get('selected_organization_id');
+        if (!$selectedOrgId) {
+            return redirect()->to('organizations')->with('error', 'Debe seleccionar una organización primero');
+        }
+
+        $transferModel = new \App\Models\TransferModel();
+        $db = \Config\Database::connect();
+
+        // Get transfers with user information
+        $query = $db->table('transfers t')
+                   ->select('t.*, u.name as user_name')
+                   ->join('users u', 't.user_id = u.id', 'left')
+                   ->where('t.organization_id', $selectedOrgId)
+                   ->orderBy('t.created_at', 'DESC')
+                   ->limit(50);
+
+        $transfers = $query->get()->getResultArray();
+
+        // Get statistics
+        $stats = $transferModel->getTransferStats($selectedOrgId);
+
+        $data = [
+            'title' => 'Historial de Transferencias Ligo',
+            'transfers' => $transfers,
+            'stats' => $stats
+        ];
+
+        return view('backoffice/transfers', $data);
+    }
+
+    /**
+     * Get transfer details
+     */
+    public function transferDetails($transferId)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->fail('Invalid request', 400);
+        }
+
+        $selectedOrgId = session()->get('selected_organization_id');
+        if (!$selectedOrgId) {
+            return $this->fail('Debe seleccionar una organización primero', 400);
+        }
+
+        $transferModel = new \App\Models\TransferModel();
+        $transfer = $transferModel->where('organization_id', $selectedOrgId)
+                                 ->find($transferId);
+
+        if (!$transfer) {
+            return $this->fail('Transferencia no encontrada', 404);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data' => $transfer
+        ]);
+    }
+
+    /**
+     * Get Ligo response for transfer
+     */
+    public function transferLigoResponse($transferId)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->fail('Invalid request', 400);
+        }
+
+        $selectedOrgId = session()->get('selected_organization_id');
+        if (!$selectedOrgId) {
+            return $this->fail('Debe seleccionar una organización primero', 400);
+        }
+
+        $transferModel = new \App\Models\TransferModel();
+        $transfer = $transferModel->select('ligo_response')
+                                 ->where('organization_id', $selectedOrgId)
+                                 ->find($transferId);
+
+        if (!$transfer) {
+            return $this->fail('Transferencia no encontrada', 404);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data' => $transfer
+        ]);
     }
 }

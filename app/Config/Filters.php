@@ -13,6 +13,7 @@ use App\Filters\AuthFilter;
 use App\Filters\ApiAuthFilter;
 use App\Filters\ApiLogFilter;
 use App\Filters\SuperadminRedirectFilter;
+use App\Filters\SuperadminFilter;
 
 class Filters extends BaseConfig
 {
@@ -27,6 +28,7 @@ class Filters extends BaseConfig
         'apiAuth'           => ApiAuthFilter::class,
         'apiLog'            => ApiLogFilter::class,
         'superadminRedirect' => SuperadminRedirectFilter::class,
+        'superadmin'        => SuperadminFilter::class,
     ];
 
     public array $globals = [

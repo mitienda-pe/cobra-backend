@@ -25,8 +25,10 @@ $routes->post('auth/forgot-password', 'Auth::forgot_password');
 $routes->get('auth/reset-password/(:segment)', 'Auth::reset_password/$1');
 $routes->post('auth/reset-password/(:segment)', 'Auth::reset_password/$1');
 
-// Ligo QR Hash Management (moved from debug section)
-$routes->get('ligo/hashes', 'LigoQRHashViewController::index', ['filter' => 'auth']);
+// Ligo QR Hash Management (deprecated - moved to backoffice, redirect to new location)
+$routes->get('ligo/hashes', function() {
+    return redirect()->to('backoffice/hashes');
+}, ['filter' => 'auth']);
 $routes->get('ligo/debug/(:num)', 'LigoDebugController::debug/$1');
 $routes->get('ligo/debug', 'LigoDebugController::debug');
 $routes->get('ligo/test-qr/(:num)', 'LigoDebugController::testQR/$1');
@@ -252,8 +254,8 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('(:num)/retry', 'WebhookController::retry/$1');
     });
 
-    // Backoffice Routes
-    $routes->group('backoffice', function ($routes) {
+    // Backoffice Routes - Superadmin only
+    $routes->group('backoffice', ['filter' => 'superadmin'], function ($routes) {
         $routes->get('/', 'BackofficeController::index');
         $routes->get('balance', 'BackofficeController::balance');
         $routes->post('balance', 'BackofficeController::balance');
@@ -265,6 +267,18 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('transfer', 'BackofficeController::transfer');
         $routes->post('transfer', 'BackofficeController::transfer');
         $routes->get('transfer-status/(:segment)', 'BackofficeController::transferStatus/$1');
+        $routes->get('hashes', 'BackofficeController::hashes');
+        
+        // Transfers management
+        $routes->get('transfers', 'BackofficeController::transfers');
+        $routes->get('transfer/details/(:num)', 'BackofficeController::transferDetails/$1');
+        $routes->get('transfer/ligo-response/(:num)', 'BackofficeController::transferLigoResponse/$1');
+        
+        // Step-by-step transfer endpoints
+        $routes->post('transfer/step1', 'BackofficeController::transferStep1');
+        $routes->post('transfer/step2', 'BackofficeController::transferStep2');
+        $routes->post('transfer/step3', 'BackofficeController::transferStep3');
+        $routes->post('transfer/step4', 'BackofficeController::transferStep4');
     });
 
     // Debug Routes
@@ -284,4 +298,14 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
 
     // Ruta para obtener clientes por organización
     $routes->get('organizations/(:segment)/clients', 'OrganizationController::getClientsByOrganization/$1');
+});
+
+// Superadmin Routes - Protected 
+$routes->group('superadmin', ['namespace' => 'App\Controllers', 'filter' => 'auth'], function ($routes) {
+    // Ligo Configuration Management
+    $routes->get('ligo-config', 'SuperadminLigoConfigController::index');
+    $routes->get('ligo-config/edit/(:num)', 'SuperadminLigoConfigController::edit/$1');
+    $routes->post('ligo-config/update/(:num)', 'SuperadminLigoConfigController::update/$1');
+    $routes->post('ligo-config/set-active/(:num)', 'SuperadminLigoConfigController::setActive/$1');
+    $routes->post('ligo-config/test/(:num)', 'SuperadminLigoConfigController::test/$1');
 });

@@ -52,6 +52,16 @@
                         <?php endif; ?>
                     </div>
 
+                    <div class="mb-3">
+                        <label for="cci" class="form-label">CCI (Cuenta Corriente Interbancaria)</label>
+                        <input type="text" class="form-control <?= session('errors.cci') ? 'is-invalid' : '' ?>" id="cci" name="cci" value="<?= old('cci', $organization['cci'] ?? '') ?>" 
+                               placeholder="Ingrese el número CCI de 20 dígitos" maxlength="20" pattern="[0-9]{20}">
+                        <small class="form-text text-muted">Número de 20 dígitos utilizado para recibir transferencias desde el backoffice</small>
+                        <?php if (session('errors.cci')): ?>
+                            <div class="invalid-feedback"><?= session('errors.cci') ?></div>
+                        <?php endif; ?>
+                    </div>
+
                     <!-- Ligo Payment Integration Settings -->
                     <div class="card mb-3">
                         <div class="card-header bg-light">

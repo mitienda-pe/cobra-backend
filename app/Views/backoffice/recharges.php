@@ -20,8 +20,27 @@
                 <div class="card-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> 
-                        Se listarán las recargas de la cuenta de la organización seleccionada automáticamente.
+                        Se listarán las recargas usando las credenciales centralizadas de Ligo.
                     </div>
+                    
+                    <?php
+                    // Show active Ligo configuration
+                    $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+                    $activeConfig = $superadminLigoConfigModel->where('enabled', 1)->where('is_active', 1)->first();
+                    ?>
+                    <?php if ($activeConfig): ?>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-gear-wide-connected"></i>
+                            <strong>Configuración Ligo activa:</strong> 
+                            <span class="badge bg-<?= $activeConfig['environment'] === 'prod' ? 'danger' : 'warning' ?> ms-1">
+                                <?= strtoupper($activeConfig['environment']) ?>
+                            </span>
+                            <small class="d-block mt-1">
+                                Usuario: <code><?= esc($activeConfig['username']) ?></code> | 
+                                Company: <code><?= esc(substr($activeConfig['company_id'], 0, 8)) ?>...</code>
+                            </small>
+                        </div>
+                    <?php endif; ?>
                     
                     <form id="rechargesForm">
                         <div class="row">
@@ -71,8 +90,8 @@
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5>Historial de Recargas</h5>
                             <div>
-                                <span class="badge badge-info" id="totalResults">0 resultados</span>
-                                <span class="badge badge-success" id="totalAmount">Total: S/ 0.00</span>
+                                <span class="badge bg-info text-white" id="totalResults">0 resultados</span>
+                                <span class="badge bg-success" id="totalAmount">Total: S/ 0.00</span>
                             </div>
                         </div>
                         
@@ -282,10 +301,7 @@ function displayRecharges(data) {
                 </small>
             `;
             actionButtons = `
-                <button class="btn btn-sm btn-outline-primary" onclick="viewInstalment('${inst.uuid}')" title="Ver Cuota">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-info" onclick="viewInvoice('${inst.invoice_id}')" title="Ver Factura">
+                <button class="btn btn-sm btn-outline-primary" onclick="viewInvoice('${inst.uuid}')" title="Ver Factura con Cuota">
                     <i class="fas fa-file-invoice"></i>
                 </button>
             `;
@@ -294,13 +310,13 @@ function displayRecharges(data) {
         row.innerHTML = `
             <td><small>${recharge.transferId || recharge.instructionId || 'N/A'}</small></td>
             <td>${formatDate(recharge.createdAt)}</td>
-            <td><span class="badge badge-success">${typeLabel}</span></td>
+            <td><span class="badge bg-success">${typeLabel}</span></td>
             <td class="text-right font-weight-bold text-success">
                 + ${formatAmount(recharge.amount)} ${currency}
             </td>
             <td>${clientInfo}</td>
             <td>${invoiceInfo}</td>
-            <td><span class="badge badge-${getStatusBadge(recharge.responseCode)}">${status}</span></td>
+            <td><span class="badge bg-${getStatusBadge(recharge.responseCode)}">${status}</span></td>
             <td>${actionButtons}</td>
         `;
         if (tbody) tbody.appendChild(row);
@@ -359,11 +375,11 @@ function clearForm() {
 
 function viewInstalment(instalmentUuid) {
     // Redirigir a la página de detalle de la cuota
-    window.open(`<?= base_url('instalments/view') ?>/${instalmentUuid}`, '_blank');
+    window.open(`<?= base_url('instalments') ?>`, '_blank');
 }
 
 function viewInvoice(invoiceId) {
-    // Redirigir a la página de detalle de la factura
+    // Redirigir a la página de detalle de la factura  
     window.open(`<?= base_url('invoices/view') ?>/${invoiceId}`, '_blank');
 }
 </script>

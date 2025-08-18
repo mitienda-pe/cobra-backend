@@ -430,6 +430,10 @@
                                 <i class="bi bi-building"></i>
                                 <span class="sidebar-item-text">Organizaciones</span>
                             </a>
+                            <a href="<?= site_url('superadmin/ligo-config') ?>" class="sidebar-item <?= strpos($currentPath, '/superadmin/ligo-config') === 0 ? 'active' : '' ?>">
+                                <i class="bi bi-gear-wide-connected"></i>
+                                <span class="sidebar-item-text">Configuración Ligo</span>
+                            </a>
                             <?php if ($selectedOrgId): ?>
                                 <a href="<?= site_url('backoffice') ?>" class="sidebar-item <?= strpos($currentPath, '/backoffice') === 0 ? 'active' : '' ?>">
                                     <i class="bi bi-gear"></i>

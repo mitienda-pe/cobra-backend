@@ -32,6 +32,13 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label for="cci" class="form-label">CCI (Cuenta Corriente Interbancaria)</label>
+                        <input type="text" class="form-control" id="cci" name="cci" value="<?= old('cci') ?>" 
+                               placeholder="Ingrese el número CCI de 20 dígitos" maxlength="20" pattern="[0-9]{20}">
+                        <small class="form-text text-muted">Número de 20 dígitos utilizado para recibir transferencias</small>
+                    </div>
+                    
+                    <div class="mb-3">
                         <label for="status" class="form-label">Estado</label>
                         <select class="form-select" id="status" name="status" required>
                             <option value="active" <?= old('status') == 'active' ? 'selected' : '' ?>>Activo</option>
