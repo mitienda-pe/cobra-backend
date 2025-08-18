@@ -95,7 +95,7 @@ class OrganizationBalanceModel extends Model
             'total_other_payments' => $result['total_other_payments'] ?? 0,
             'total_pending' => $pendingResult['total_pending'] ?? 0,
             'currency' => $currency,
-            'last_payment_date' => $result['last_payment_date'],
+            'last_payment_date' => $result['last_payment_date'] ?? null,
             'last_calculated_at' => date('Y-m-d H:i:s')
         ];
         
