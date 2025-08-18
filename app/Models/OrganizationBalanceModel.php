@@ -221,9 +221,23 @@ class OrganizationBalanceModel extends Model
         $db = \Config\Database::connect();
         $builder = $db->table('payments p');
         
+        // SQLite-compatible date functions
         $builder->select('
-            MONTH(p.payment_date) as month,
-            MONTHNAME(p.payment_date) as month_name,
+            CAST(strftime("%m", p.payment_date) AS INTEGER) as month,
+            CASE CAST(strftime("%m", p.payment_date) AS INTEGER)
+                WHEN 1 THEN "January"
+                WHEN 2 THEN "February"
+                WHEN 3 THEN "March"
+                WHEN 4 THEN "April"
+                WHEN 5 THEN "May"
+                WHEN 6 THEN "June"
+                WHEN 7 THEN "July"
+                WHEN 8 THEN "August"
+                WHEN 9 THEN "September"
+                WHEN 10 THEN "October"
+                WHEN 11 THEN "November"
+                WHEN 12 THEN "December"
+            END as month_name,
             COUNT(*) as transaction_count,
             SUM(p.amount) as total_amount
         ');
@@ -233,12 +247,12 @@ class OrganizationBalanceModel extends Model
         $builder->where('i.currency', $currency);
         $builder->where('p.payment_method', 'ligo_qr');
         $builder->where('p.status', 'completed');
-        $builder->where('YEAR(p.payment_date)', $year);
+        $builder->where('strftime("%Y", p.payment_date)', $year); // SQLite year function
         $builder->where('p.deleted_at IS NULL');
         $builder->where('i.deleted_at IS NULL');
         
-        $builder->groupBy('MONTH(p.payment_date), MONTHNAME(p.payment_date)');
-        $builder->orderBy('MONTH(p.payment_date)', 'ASC');
+        $builder->groupBy('strftime("%m", p.payment_date)'); // SQLite month grouping
+        $builder->orderBy('CAST(strftime("%m", p.payment_date) AS INTEGER)', 'ASC');
         
         return $builder->get()->getResultArray();
     }
