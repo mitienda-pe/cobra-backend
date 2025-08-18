@@ -50,11 +50,23 @@ class OrganizationBalanceModel extends Model
         // Get ONLY Ligo production payments for this organization (exclude development/test payments)
         $builder = $db->table('payments p');
         $builder->select('
-            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" AND p.external_id NOT LIKE "test%" THEN p.amount ELSE 0 END) as total_collected,
-            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" AND p.external_id NOT LIKE "test%" THEN p.amount ELSE 0 END) as total_ligo_payments,
+            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" 
+                     AND p.external_id NOT LIKE "test%" 
+                     AND p.external_id NOT LIKE "TEST%" 
+                     AND p.external_id NOT LIKE "INST%" 
+                     THEN p.amount ELSE 0 END) as total_collected,
+            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" 
+                     AND p.external_id NOT LIKE "test%" 
+                     AND p.external_id NOT LIKE "TEST%" 
+                     AND p.external_id NOT LIKE "INST%" 
+                     THEN p.amount ELSE 0 END) as total_ligo_payments,
             0 as total_cash_payments,
             0 as total_other_payments,
-            MAX(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" AND p.external_id NOT LIKE "test%" THEN p.payment_date END) as last_payment_date
+            MAX(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" 
+                     AND p.external_id NOT LIKE "test%" 
+                     AND p.external_id NOT LIKE "TEST%" 
+                     AND p.external_id NOT LIKE "INST%" 
+                     THEN p.payment_date END) as last_payment_date
         ');
         $builder->join('invoices i', 'p.invoice_id = i.id');
         $builder->where('i.organization_id', $organizationId);
@@ -158,7 +170,10 @@ class OrganizationBalanceModel extends Model
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
         $builder->where('p.payment_method', 'ligo_qr'); // Only Ligo payments
-        $builder->where('p.external_id NOT LIKE', 'test%'); // Exclude test payments
+        // Exclude all test payments (multiple patterns)
+        $builder->where('p.external_id NOT LIKE', 'test%');
+        $builder->where('p.external_id NOT LIKE', 'TEST%');
+        $builder->where('p.external_id NOT LIKE', 'INST%');
         $builder->where('p.deleted_at IS NULL');
         $builder->where('i.deleted_at IS NULL');
         
@@ -205,7 +220,10 @@ class OrganizationBalanceModel extends Model
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
         $builder->where('p.payment_method', 'ligo_qr');
-        $builder->where('p.external_id NOT LIKE', 'test%'); // Exclude test payments
+        // Exclude all test payments (multiple patterns)
+        $builder->where('p.external_id NOT LIKE', 'test%');
+        $builder->where('p.external_id NOT LIKE', 'TEST%');
+        $builder->where('p.external_id NOT LIKE', 'INST%');
         $builder->where('p.status', 'completed');
         $builder->where('p.deleted_at IS NULL');
         $builder->where('i.deleted_at IS NULL');
@@ -258,7 +276,10 @@ class OrganizationBalanceModel extends Model
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
         $builder->where('p.payment_method', 'ligo_qr');
-        $builder->where('p.external_id NOT LIKE', 'test%'); // Exclude test payments
+        // Exclude all test payments (multiple patterns)
+        $builder->where('p.external_id NOT LIKE', 'test%');
+        $builder->where('p.external_id NOT LIKE', 'TEST%');
+        $builder->where('p.external_id NOT LIKE', 'INST%');
         $builder->where('p.status', 'completed');
         $builder->where('strftime("%Y", p.payment_date)', $year); // SQLite year function
         $builder->where('p.deleted_at IS NULL');
