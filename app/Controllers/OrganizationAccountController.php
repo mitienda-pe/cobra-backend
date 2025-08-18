@@ -260,13 +260,30 @@ class OrganizationAccountController extends BaseController
      */
     private function hasOrganizationAccess($organizationId)
     {
+        // DEBUG: Log all session data
+        log_message('info', 'hasOrganizationAccess DEBUG - organizationId: ' . $organizationId);
+        log_message('info', 'hasOrganizationAccess DEBUG - session role: ' . session('role'));
+        log_message('info', 'hasOrganizationAccess DEBUG - session user: ' . json_encode(session('user')));
+        log_message('info', 'hasOrganizationAccess DEBUG - all session: ' . json_encode(session()->get()));
+        
+        // Try both methods to get user role
+        $role1 = session('role');
+        $user = session('user');
+        $role2 = isset($user) && isset($user['role']) ? $user['role'] : null;
+        
+        log_message('info', 'hasOrganizationAccess DEBUG - role from session(role): ' . $role1);
+        log_message('info', 'hasOrganizationAccess DEBUG - role from user array: ' . $role2);
+        
         // Superadmin has access to all organizations
-        if (session('role') === 'superadmin') {
+        if ($role1 === 'superadmin' || $role2 === 'superadmin') {
+            log_message('info', 'hasOrganizationAccess DEBUG - SUPERADMIN ACCESS GRANTED');
             return true;
         }
 
         // Regular users can only access their own organization
         $userOrgId = session('organization_id');
-        return $userOrgId && $userOrgId == $organizationId;
+        $hasAccess = $userOrgId && $userOrgId == $organizationId;
+        log_message('info', 'hasOrganizationAccess DEBUG - Regular user access: ' . ($hasAccess ? 'GRANTED' : 'DENIED') . ' (userOrgId: ' . $userOrgId . ')');
+        return $hasAccess;
     }
 }
