@@ -487,6 +487,11 @@
                             <span class="sidebar-item-text">Reportes</span>
                         </a>
 
+                        <a href="<?= site_url('organizations/account/' . $selectedOrgId) ?>" class="sidebar-item <?= strpos($currentPath, '/organizations/account') === 0 ? 'active' : '' ?>">
+                            <i class="bi bi-wallet2"></i>
+                            <span class="sidebar-item-text">Estado de Cuenta</span>
+                        </a>
+
                         <a href="<?= site_url('webhooks') ?>" class="sidebar-item <?= $currentPath === '/webhooks' ? 'active' : '' ?>">
                             <i class="bi bi-link-45deg"></i>
                             <span class="sidebar-item-text">Webhooks</span>

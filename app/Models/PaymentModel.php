@@ -40,7 +40,7 @@ class PaymentModel extends Model
     
     // Callbacks
     protected $beforeInsert = ['generateExternalId', 'generateUuid', 'updateInvoiceStatus', 'updateInstalmentStatus'];
-    protected $afterInsert  = ['notifyWebhook'];
+    protected $afterInsert  = ['notifyWebhook', 'updateOrganizationBalance'];
 
     /**
      * Generate external UUID if not provided
@@ -322,5 +322,42 @@ class PaymentModel extends Model
         return $this->where('is_notified', false)
                    ->where('status', 'completed')
                    ->findAll($limit);
+    }
+    
+    /**
+     * Update organization balance after payment insertion
+     */
+    protected function updateOrganizationBalance(array $data)
+    {
+        if (!isset($data['id']) || !isset($data['data']['invoice_id']) || !isset($data['data']['status'])) {
+            return $data;
+        }
+        
+        // Only update balance for completed payments
+        if ($data['data']['status'] !== 'completed') {
+            return $data;
+        }
+        
+        // Get invoice to find organization
+        $invoiceModel = new InvoiceModel();
+        $invoice = $invoiceModel->find($data['data']['invoice_id']);
+        
+        if (!$invoice || !isset($invoice['organization_id'])) {
+            return $data;
+        }
+        
+        // Update organization balance
+        try {
+            $organizationBalanceModel = new OrganizationBalanceModel();
+            $currency = $invoice['currency'] ?? 'PEN';
+            $organizationBalanceModel->calculateBalance($invoice['organization_id'], $currency);
+            
+            log_message('info', 'Organization balance updated for org ID: ' . $invoice['organization_id'] . 
+                       ' after payment ID: ' . $data['id'] . ' (amount: ' . ($data['data']['amount'] ?? '0') . ' ' . $currency . ')');
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to update organization balance: ' . $e->getMessage());
+        }
+        
+        return $data;
     }
 }

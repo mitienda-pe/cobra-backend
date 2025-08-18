@@ -116,6 +116,11 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     $routes->match(['get', 'options'], 'ligo/generate-qr/(:num)', 'LigoPaymentController::generateQR/$1');
     $routes->match(['get', 'options'], 'ligo/generate-static-qr/(:segment)', 'LigoPaymentController::generateStaticQR/$1');
     
+    // Organization Account Statement API Routes
+    $routes->match(['get', 'options'], 'organizations/(:segment)/balance', 'OrganizationAccountController::getBalance/$1');
+    $routes->match(['get', 'options'], 'organizations/(:segment)/movements', 'OrganizationAccountController::movements/$1');
+    $routes->match(['post', 'options'], 'organizations/(:segment)/recalculate-balance', 'OrganizationAccountController::recalculateBalance/$1');
+    
     // Instalment QR code generation route for mobile app
     // NUEVO: endpoint principal apunta al PaymentController
     $routes->get('payments/generate-instalment-qr/(:num)', 'PaymentController::generateInstalmentQR/$1', ['namespace' => 'App\Controllers\Api']);
@@ -156,6 +161,13 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('(:segment)/edit', 'OrganizationController::edit/$1');
         $routes->post('(:segment)', 'OrganizationController::update/$1');
         $routes->post('(:segment)/delete', 'OrganizationController::delete/$1');
+        
+        // Organization Account Statement Routes
+        $routes->get('account/(:segment)', 'OrganizationAccountController::index/$1');
+        $routes->get('account/(:segment)/movements', 'OrganizationAccountController::movements/$1');
+        $routes->get('account/(:segment)/export', 'OrganizationAccountController::exportMovements/$1');
+        $routes->post('account/(:segment)/recalculate', 'OrganizationAccountController::recalculateBalance/$1');
+        $routes->get('account/(:segment)/balance', 'OrganizationAccountController::getBalance/$1');
     });
 
     // User Routes
