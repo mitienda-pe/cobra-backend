@@ -32,28 +32,42 @@ class OrganizationBalanceModel extends Model
 
     protected $paymentModel;
     protected $invoiceModel;
-    protected $ligoModel;
     
     public function __construct()
     {
         parent::__construct();
         $this->paymentModel = new PaymentModel();
         $this->invoiceModel = new InvoiceModel();
-        $this->ligoModel = new LigoModel();
     }
 
     /**
-     * Calculate and update balance for an organization using Ligo API
+     * Calculate and update balance for an organization
      */
     public function calculateBalance($organizationId, $currency = 'PEN')
     {
-        log_message('info', 'OrganizationBalanceModel: Calculating balance using Ligo API for org: ' . $organizationId . ', currency: ' . $currency);
-        
-        // Get Ligo recharges data for this organization
-        $ligoSummary = $this->getLigoRechargesSummary($organizationId, null, null, $currency);
-        
-        // Get total pending amount from invoices (still needed)
         $db = \Config\Database::connect();
+        
+        // Get ONLY Ligo production payments for this organization (exclude development/test payments)
+        $builder = $db->table('payments p');
+        $builder->select('
+            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" AND p.external_id NOT LIKE "test%" THEN p.amount ELSE 0 END) as total_collected,
+            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" AND p.external_id NOT LIKE "test%" THEN p.amount ELSE 0 END) as total_ligo_payments,
+            0 as total_cash_payments,
+            0 as total_other_payments,
+            MAX(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" AND p.external_id NOT LIKE "test%" THEN p.payment_date END) as last_payment_date
+        ');
+        $builder->join('invoices i', 'p.invoice_id = i.id');
+        $builder->where('i.organization_id', $organizationId);
+        $builder->where('i.currency', $currency);
+        $builder->where('p.deleted_at IS NULL');
+        $builder->where('i.deleted_at IS NULL');
+        
+        // DEBUG: Log the actual SQL query
+        log_message('info', 'Balance Query SQL: ' . $builder->getCompiledSelect());
+        $result = $builder->get()->getRowArray();
+        log_message('info', 'Balance Query Result: ' . json_encode($result));
+        
+        // Get total pending amount (calculate based on invoice amount vs payments)
         $pendingBuilder = $db->table('invoices i');
         $pendingBuilder->select('
             SUM(CASE 
@@ -75,17 +89,15 @@ class OrganizationBalanceModel extends Model
         
         $balanceData = [
             'organization_id' => $organizationId,
-            'total_collected' => $ligoSummary['total_amount'] ?? 0,
-            'total_ligo_payments' => $ligoSummary['total_amount'] ?? 0,
-            'total_cash_payments' => 0,
-            'total_other_payments' => 0,
+            'total_collected' => $result['total_collected'] ?? 0,
+            'total_ligo_payments' => $result['total_ligo_payments'] ?? 0,
+            'total_cash_payments' => $result['total_cash_payments'] ?? 0,
+            'total_other_payments' => $result['total_other_payments'] ?? 0,
             'total_pending' => $pendingResult['total_pending'] ?? 0,
             'currency' => $currency,
-            'last_payment_date' => $ligoSummary['last_payment'] ?? null,
+            'last_payment_date' => $result['last_payment_date'] ?? null,
             'last_calculated_at' => date('Y-m-d H:i:s')
         ];
-        
-        log_message('info', 'OrganizationBalanceModel: Balance data from Ligo API: ' . json_encode($balanceData));
         
         // Update or insert balance record
         $existingBalance = $this->where('organization_id', $organizationId)
@@ -115,32 +127,102 @@ class OrganizationBalanceModel extends Model
     }
 
     /**
-     * Get detailed movements for an organization using Ligo API
+     * Get detailed movements for an organization
      */
     public function getMovements($organizationId, $dateStart = null, $dateEnd = null, $paymentMethod = null, $currency = 'PEN')
     {
-        log_message('info', 'OrganizationBalanceModel: Getting movements using Ligo API for org: ' . $organizationId);
+        $db = \Config\Database::connect();
+        $builder = $db->table('payments p');
         
-        // Get Ligo recharges for the specified date range
-        $ligoMovements = $this->getLigoRechargesMovements($organizationId, $dateStart, $dateEnd, $currency);
+        $builder->select('
+            p.id,
+            p.amount,
+            p.payment_method,
+            p.payment_date,
+            p.reference_code,
+            p.status,
+            i.invoice_number,
+            i.concept as invoice_concept,
+            i.currency,
+            c.business_name as client_name,
+            c.document_number as client_document,
+            inst.number as instalment_number,
+            u.name as collector_name
+        ');
         
-        log_message('info', 'OrganizationBalanceModel: Ligo movements count: ' . count($ligoMovements));
-        log_message('info', 'OrganizationBalanceModel: Sample movements: ' . json_encode(array_slice($ligoMovements, 0, 3)));
+        $builder->join('invoices i', 'p.invoice_id = i.id');
+        $builder->join('clients c', 'i.client_id = c.id');
+        $builder->join('instalments inst', 'p.instalment_id = inst.id', 'left');
+        $builder->join('users u', 'p.user_id = u.id', 'left');
         
-        return $ligoMovements;
+        $builder->where('i.organization_id', $organizationId);
+        $builder->where('i.currency', $currency);
+        $builder->where('p.payment_method', 'ligo_qr'); // Only Ligo payments
+        $builder->where('p.external_id NOT LIKE', 'test%'); // Exclude test payments
+        $builder->where('p.deleted_at IS NULL');
+        $builder->where('i.deleted_at IS NULL');
+        
+        if ($dateStart) {
+            $builder->where('p.payment_date >=', $dateStart);
+        }
+        
+        if ($dateEnd) {
+            $builder->where('p.payment_date <=', $dateEnd . ' 23:59:59');
+        }
+        
+        if ($paymentMethod) {
+            $builder->where('p.payment_method', $paymentMethod);
+        }
+        
+        $builder->orderBy('p.payment_date', 'DESC');
+        
+        // DEBUG: Log movements query
+        log_message('info', 'Movements Query SQL: ' . $builder->getCompiledSelect());
+        $result = $builder->get()->getResultArray();
+        log_message('info', 'Movements Query Result Count: ' . count($result));
+        log_message('info', 'Movements Query Sample: ' . json_encode(array_slice($result, 0, 3)));
+        
+        return $result;
     }
 
     /**
-     * Get Ligo payments summary for an organization using Ligo API
+     * Get Ligo payments summary for an organization
      */
     public function getLigoPaymentsSummary($organizationId, $dateStart = null, $dateEnd = null, $currency = 'PEN')
     {
-        // Use the new Ligo API method
-        return $this->getLigoRechargesSummary($organizationId, $dateStart, $dateEnd, $currency);
+        $db = \Config\Database::connect();
+        $builder = $db->table('payments p');
+        
+        $builder->select('
+            COUNT(*) as total_transactions,
+            SUM(p.amount) as total_amount,
+            MIN(p.payment_date) as first_payment,
+            MAX(p.payment_date) as last_payment,
+            AVG(p.amount) as average_amount
+        ');
+        
+        $builder->join('invoices i', 'p.invoice_id = i.id');
+        $builder->where('i.organization_id', $organizationId);
+        $builder->where('i.currency', $currency);
+        $builder->where('p.payment_method', 'ligo_qr');
+        $builder->where('p.external_id NOT LIKE', 'test%'); // Exclude test payments
+        $builder->where('p.status', 'completed');
+        $builder->where('p.deleted_at IS NULL');
+        $builder->where('i.deleted_at IS NULL');
+        
+        if ($dateStart) {
+            $builder->where('p.payment_date >=', $dateStart);
+        }
+        
+        if ($dateEnd) {
+            $builder->where('p.payment_date <=', $dateEnd . ' 23:59:59');
+        }
+        
+        return $builder->get()->getRowArray();
     }
 
     /**
-     * Get monthly Ligo payments breakdown using Ligo API
+     * Get monthly Ligo payments breakdown
      */
     public function getMonthlyBreakdown($organizationId, $year = null, $currency = 'PEN')
     {
@@ -148,268 +230,44 @@ class OrganizationBalanceModel extends Model
             $year = date('Y');
         }
         
-        log_message('info', 'OrganizationBalanceModel: Getting monthly breakdown using Ligo API for year: ' . $year);
+        $db = \Config\Database::connect();
+        $builder = $db->table('payments p');
         
-        // Set organization context in session for LigoModel
-        $session = session();
-        $originalOrgId = $session->get('selected_organization_id');
-        $session->set('selected_organization_id', $organizationId);
+        // SQLite-compatible date functions
+        $builder->select('
+            CAST(strftime("%m", p.payment_date) AS INTEGER) as month,
+            CASE CAST(strftime("%m", p.payment_date) AS INTEGER)
+                WHEN 1 THEN "January"
+                WHEN 2 THEN "February"
+                WHEN 3 THEN "March"
+                WHEN 4 THEN "April"
+                WHEN 5 THEN "May"
+                WHEN 6 THEN "June"
+                WHEN 7 THEN "July"
+                WHEN 8 THEN "August"
+                WHEN 9 THEN "September"
+                WHEN 10 THEN "October"
+                WHEN 11 THEN "November"
+                WHEN 12 THEN "December"
+            END as month_name,
+            COUNT(*) as transaction_count,
+            SUM(p.amount) as total_amount
+        ');
         
-        try {
-            // Get data for the entire year
-            $dateStart = $year . '-01-01';
-            $dateEnd = $year . '-12-31';
-            
-            // Get recharges from Ligo API
-            $response = $this->ligoModel->listRecharges([
-                'startDate' => $dateStart,
-                'endDate' => $dateEnd,
-                'page' => 1
-            ]);
-            
-            if (isset($response['error'])) {
-                log_message('error', 'OrganizationBalanceModel: Ligo API error for monthly breakdown: ' . $response['error']);
-                return [];
-            }
-            
-            $recharges = $response['data']['records'] ?? [];
-            
-            // Initialize monthly data
-            $monthlyData = [];
-            $monthNames = [
-                1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
-                5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
-                9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
-            ];
-            
-            // Process recharges
-            foreach ($recharges as $recharge) {
-                // Only include successful recharges (responseCode = '00')
-                if (($recharge['responseCode'] ?? '') === '00') {
-                    // Filter by currency
-                    $rechargeCurrency = ($recharge['currency'] ?? '604') === '604' ? 'PEN' : 'USD';
-                    if ($rechargeCurrency === $currency) {
-                        // Only include recharges associated with this organization
-                        if (isset($recharge['instalment']) && !empty($recharge['instalment'])) {
-                            $createdAt = $recharge['createdAt'] ?? null;
-                            if ($createdAt) {
-                                $month = (int)date('n', strtotime($createdAt));
-                                $amount = floatval($recharge['amount'] ?? 0);
-                                
-                                if (!isset($monthlyData[$month])) {
-                                    $monthlyData[$month] = [
-                                        'month' => $month,
-                                        'month_name' => $monthNames[$month],
-                                        'transaction_count' => 0,
-                                        'total_amount' => 0
-                                    ];
-                                }
-                                
-                                $monthlyData[$month]['transaction_count']++;
-                                $monthlyData[$month]['total_amount'] += $amount;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Sort by month
-            ksort($monthlyData);
-            
-            log_message('info', 'OrganizationBalanceModel: Monthly breakdown data: ' . json_encode(array_values($monthlyData)));
-            
-            return array_values($monthlyData);
-            
-        } finally {
-            // Restore original organization context
-            if ($originalOrgId) {
-                $session->set('selected_organization_id', $originalOrgId);
-            } else {
-                $session->remove('selected_organization_id');
-            }
-        }
-    }
-
-    /**
-     * Get Ligo recharges summary for an organization using API
-     */
-    private function getLigoRechargesSummary($organizationId, $dateStart = null, $dateEnd = null, $currency = 'PEN')
-    {
-        // Set organization context in session for LigoModel
-        $session = session();
-        $originalOrgId = $session->get('selected_organization_id');
-        $session->set('selected_organization_id', $organizationId);
+        $builder->join('invoices i', 'p.invoice_id = i.id');
+        $builder->where('i.organization_id', $organizationId);
+        $builder->where('i.currency', $currency);
+        $builder->where('p.payment_method', 'ligo_qr');
+        $builder->where('p.external_id NOT LIKE', 'test%'); // Exclude test payments
+        $builder->where('p.status', 'completed');
+        $builder->where('strftime("%Y", p.payment_date)', $year); // SQLite year function
+        $builder->where('p.deleted_at IS NULL');
+        $builder->where('i.deleted_at IS NULL');
         
-        try {
-            // Use a wide date range if not specified (last 2 years)
-            if (!$dateStart) {
-                $dateStart = date('Y-m-d', strtotime('-2 years'));
-            }
-            if (!$dateEnd) {
-                $dateEnd = date('Y-m-d');
-            }
-            
-            log_message('info', 'OrganizationBalanceModel: Fetching Ligo recharges from ' . $dateStart . ' to ' . $dateEnd);
-            
-            // Get recharges from Ligo API
-            $response = $this->ligoModel->listRecharges([
-                'startDate' => $dateStart,
-                'endDate' => $dateEnd,
-                'page' => 1
-            ]);
-            
-            if (isset($response['error'])) {
-                log_message('error', 'OrganizationBalanceModel: Ligo API error: ' . $response['error']);
-                return [
-                    'total_transactions' => 0,
-                    'total_amount' => 0,
-                    'first_payment' => null,
-                    'last_payment' => null,
-                    'average_amount' => 0
-                ];
-            }
-            
-            $recharges = $response['data']['records'] ?? [];
-            
-            // Filter for this organization and successful transactions only
-            $filteredRecharges = [];
-            foreach ($recharges as $recharge) {
-                // Only include successful recharges (responseCode = '00')
-                if (($recharge['responseCode'] ?? '') === '00') {
-                    // Filter by currency if it matches
-                    $rechargeCurrency = ($recharge['currency'] ?? '604') === '604' ? 'PEN' : 'USD';
-                    if ($rechargeCurrency === $currency) {
-                        // Check if recharge is associated with this organization
-                        if (isset($recharge['instalment']) && !empty($recharge['instalment'])) {
-                            $filteredRecharges[] = $recharge;
-                        }
-                    }
-                }
-            }
-            
-            log_message('info', 'OrganizationBalanceModel: Filtered recharges count: ' . count($filteredRecharges));
-            
-            // Calculate summary
-            $totalAmount = 0;
-            $dates = [];
-            
-            foreach ($filteredRecharges as $recharge) {
-                $amount = floatval($recharge['amount'] ?? 0);
-                $totalAmount += $amount;
-                
-                if (!empty($recharge['createdAt'])) {
-                    $dates[] = $recharge['createdAt'];
-                }
-            }
-            
-            $summary = [
-                'total_transactions' => count($filteredRecharges),
-                'total_amount' => $totalAmount,
-                'first_payment' => !empty($dates) ? min($dates) : null,
-                'last_payment' => !empty($dates) ? max($dates) : null,
-                'average_amount' => count($filteredRecharges) > 0 ? ($totalAmount / count($filteredRecharges)) : 0
-            ];
-            
-            log_message('info', 'OrganizationBalanceModel: Ligo summary: ' . json_encode($summary));
-            
-            return $summary;
-            
-        } finally {
-            // Restore original organization context
-            if ($originalOrgId) {
-                $session->set('selected_organization_id', $originalOrgId);
-            } else {
-                $session->remove('selected_organization_id');
-            }
-        }
-    }
-    
-    /**
-     * Get Ligo recharges movements for an organization using API
-     */
-    private function getLigoRechargesMovements($organizationId, $dateStart = null, $dateEnd = null, $currency = 'PEN')
-    {
-        // Set organization context in session for LigoModel
-        $session = session();
-        $originalOrgId = $session->get('selected_organization_id');
-        $session->set('selected_organization_id', $organizationId);
+        $builder->groupBy('strftime("%m", p.payment_date)'); // SQLite month grouping
+        $builder->orderBy('month', 'ASC'); // Order by the selected alias
         
-        try {
-            // Use reasonable defaults if dates not specified
-            if (!$dateStart) {
-                $dateStart = date('Y-m-d', strtotime('-1 year'));
-            }
-            if (!$dateEnd) {
-                $dateEnd = date('Y-m-d');
-            }
-            
-            log_message('info', 'OrganizationBalanceModel: Fetching Ligo movements from ' . $dateStart . ' to ' . $dateEnd);
-            
-            // Get recharges from Ligo API
-            $response = $this->ligoModel->listRecharges([
-                'startDate' => $dateStart,
-                'endDate' => $dateEnd,
-                'page' => 1
-            ]);
-            
-            if (isset($response['error'])) {
-                log_message('error', 'OrganizationBalanceModel: Ligo API error for movements: ' . $response['error']);
-                return [];
-            }
-            
-            $recharges = $response['data']['records'] ?? [];
-            $movements = [];
-            
-            // Convert Ligo recharges to movements format
-            foreach ($recharges as $recharge) {
-                // Only include successful recharges (responseCode = '00')
-                if (($recharge['responseCode'] ?? '') === '00') {
-                    // Filter by currency
-                    $rechargeCurrency = ($recharge['currency'] ?? '604') === '604' ? 'PEN' : 'USD';
-                    if ($rechargeCurrency === $currency) {
-                        // Only include recharges associated with this organization
-                        if (isset($recharge['instalment']) && !empty($recharge['instalment'])) {
-                            $instalment = $recharge['instalment'];
-                            
-                            $movement = [
-                                'id' => $recharge['transferId'] ?? $recharge['instructionId'] ?? uniqid(),
-                                'amount' => floatval($recharge['amount'] ?? 0),
-                                'payment_method' => 'ligo_qr',
-                                'payment_date' => $recharge['createdAt'] ?? null,
-                                'reference_code' => $recharge['transferId'] ?? $recharge['instructionId'] ?? '',
-                                'status' => 'completed',
-                                'invoice_number' => $instalment['invoice_number'] ?? 'N/A',
-                                'invoice_concept' => $instalment['invoice_description'] ?? 'Pago de cuota',
-                                'currency' => $currency,
-                                'client_name' => $instalment['client_name'] ?? $recharge['debtorName'] ?? 'Cliente',
-                                'client_document' => '',
-                                'instalment_number' => $instalment['number'] ?? null,
-                                'collector_name' => 'Ligo QR'
-                            ];
-                            
-                            $movements[] = $movement;
-                        }
-                    }
-                }
-            }
-            
-            // Sort by payment date descending
-            usort($movements, function($a, $b) {
-                return strtotime($b['payment_date'] ?? '1970-01-01') - strtotime($a['payment_date'] ?? '1970-01-01');
-            });
-            
-            log_message('info', 'OrganizationBalanceModel: Ligo movements count: ' . count($movements));
-            
-            return $movements;
-            
-        } finally {
-            // Restore original organization context
-            if ($originalOrgId) {
-                $session->set('selected_organization_id', $originalOrgId);
-            } else {
-                $session->remove('selected_organization_id');
-            }
-        }
+        return $builder->get()->getResultArray();
     }
 
     /**
