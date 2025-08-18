@@ -27,7 +27,12 @@ class OrganizationAccountController extends BaseController
     {
         // Get current user's organization context
         if (!$organizationId) {
-            $organizationId = session('organization_id');
+            // For superadmin, use selected_organization_id, for regular users use organization_id
+            if (session('role') === 'superadmin') {
+                $organizationId = session('selected_organization_id');
+            } else {
+                $organizationId = session('organization_id');
+            }
         }
 
         // Verify access to organization
@@ -80,7 +85,12 @@ class OrganizationAccountController extends BaseController
     {
         // Get current user's organization context
         if (!$organizationId) {
-            $organizationId = session('organization_id');
+            // For superadmin, use selected_organization_id, for regular users use organization_id
+            if (session('role') === 'superadmin') {
+                $organizationId = session('selected_organization_id');
+            } else {
+                $organizationId = session('organization_id');
+            }
         }
 
         // Verify access to organization
