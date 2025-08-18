@@ -47,14 +47,14 @@ class OrganizationBalanceModel extends Model
     {
         $db = \Config\Database::connect();
         
-        // Get all payments for this organization (payments inherit currency from invoices)
+        // Get ONLY Ligo production payments for this organization (exclude development/test payments)
         $builder = $db->table('payments p');
         $builder->select('
-            SUM(CASE WHEN p.status = "completed" THEN p.amount ELSE 0 END) as total_collected,
-            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" THEN p.amount ELSE 0 END) as total_ligo_payments,
-            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "cash" THEN p.amount ELSE 0 END) as total_cash_payments,
-            SUM(CASE WHEN p.status = "completed" AND p.payment_method NOT IN ("ligo_qr", "cash") THEN p.amount ELSE 0 END) as total_other_payments,
-            MAX(CASE WHEN p.status = "completed" THEN p.payment_date END) as last_payment_date
+            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" AND p.external_id NOT LIKE "test%" THEN p.amount ELSE 0 END) as total_collected,
+            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" AND p.external_id NOT LIKE "test%" THEN p.amount ELSE 0 END) as total_ligo_payments,
+            0 as total_cash_payments,
+            0 as total_other_payments,
+            MAX(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" AND p.external_id NOT LIKE "test%" THEN p.payment_date END) as last_payment_date
         ');
         $builder->join('invoices i', 'p.invoice_id = i.id');
         $builder->where('i.organization_id', $organizationId);
@@ -154,6 +154,8 @@ class OrganizationBalanceModel extends Model
         
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
+        $builder->where('p.payment_method', 'ligo_qr'); // Only Ligo payments
+        $builder->where('p.external_id NOT LIKE', 'test%'); // Exclude test payments
         $builder->where('p.deleted_at IS NULL');
         $builder->where('i.deleted_at IS NULL');
         
@@ -194,6 +196,7 @@ class OrganizationBalanceModel extends Model
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
         $builder->where('p.payment_method', 'ligo_qr');
+        $builder->where('p.external_id NOT LIKE', 'test%'); // Exclude test payments
         $builder->where('p.status', 'completed');
         $builder->where('p.deleted_at IS NULL');
         $builder->where('i.deleted_at IS NULL');
@@ -246,6 +249,7 @@ class OrganizationBalanceModel extends Model
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
         $builder->where('p.payment_method', 'ligo_qr');
+        $builder->where('p.external_id NOT LIKE', 'test%'); // Exclude test payments
         $builder->where('p.status', 'completed');
         $builder->where('strftime("%Y", p.payment_date)', $year); // SQLite year function
         $builder->where('p.deleted_at IS NULL');

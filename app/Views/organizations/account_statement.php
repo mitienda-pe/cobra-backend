@@ -8,7 +8,7 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title">
                         <i class="fas fa-chart-line mr-2"></i>
-                        Estado de Cuenta - <?= esc($organization['name']) ?>
+                        Estado de Cuenta Ligo (Producción) - <?= esc($organization['name']) ?>
                     </h3>
                     <div class="btn-group">
                         <button type="button" class="btn btn-info btn-sm" onclick="recalculateBalance()">
@@ -50,32 +50,14 @@
 
                     <!-- Balance Summary Cards -->
                     <div class="row">
-                        <div class="col-lg-3 col-md-6">
+                        <div class="col-lg-4 col-md-6">
                             <div class="card bg-success text-white">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
-                                            <h5 class="card-title">Total Recaudado</h5>
+                                            <h5 class="card-title">Total Recaudado (Ligo Prod)</h5>
                                             <h3 class="mb-0">
                                                 <?= $currency ?> <?= number_format($balance['total_collected'] ?? 0, 2) ?>
-                                            </h3>
-                                        </div>
-                                        <div class="align-self-center">
-                                            <i class="fas fa-coins fa-2x opacity-75"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-3 col-md-6">
-                            <div class="card bg-primary text-white">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <h5 class="card-title">Pagos Ligo</h5>
-                                            <h3 class="mb-0">
-                                                <?= $currency ?> <?= number_format($balance['total_ligo_payments'] ?? 0, 2) ?>
                                             </h3>
                                         </div>
                                         <div class="align-self-center">
@@ -86,36 +68,36 @@
                             </div>
                         </div>
 
-                        <div class="col-lg-3 col-md-6">
-                            <div class="card bg-info text-white">
+                        <div class="col-lg-4 col-md-6">
+                            <div class="card bg-primary text-white">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
-                                            <h5 class="card-title">Pagos en Efectivo</h5>
+                                            <h5 class="card-title">Transacciones</h5>
                                             <h3 class="mb-0">
-                                                <?= $currency ?> <?= number_format($balance['total_cash_payments'] ?? 0, 2) ?>
+                                                <?= isset($ligoSummary['total_transactions']) ? number_format($ligoSummary['total_transactions']) : '0' ?>
                                             </h3>
                                         </div>
                                         <div class="align-self-center">
-                                            <i class="fas fa-money-bill fa-2x opacity-75"></i>
+                                            <i class="fas fa-list fa-2x opacity-75"></i>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="col-lg-3 col-md-6">
-                            <div class="card bg-warning text-white">
+                        <div class="col-lg-4 col-md-6">
+                            <div class="card bg-info text-white">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
-                                            <h5 class="card-title">Pendiente</h5>
+                                            <h5 class="card-title">Promedio por Pago</h5>
                                             <h3 class="mb-0">
-                                                <?= $currency ?> <?= number_format($balance['total_pending'] ?? 0, 2) ?>
+                                                <?= $currency ?> <?= isset($ligoSummary['average_amount']) ? number_format($ligoSummary['average_amount'], 2) : '0.00' ?>
                                             </h3>
                                         </div>
                                         <div class="align-self-center">
-                                            <i class="fas fa-clock fa-2x opacity-75"></i>
+                                            <i class="fas fa-calculator fa-2x opacity-75"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -127,7 +109,7 @@
                     <?php if ($ligoSummary && $ligoSummary['total_transactions'] > 0): ?>
                     <div class="row mt-4">
                         <div class="col-12">
-                            <h5>Resumen de Pagos Ligo (<?= esc($dateStart) ?> - <?= esc($dateEnd) ?>)</h5>
+                            <h5>Resumen de Pagos Ligo Producción (<?= esc($dateStart) ?> - <?= esc($dateEnd) ?>)</h5>
                             <div class="row">
                                 <div class="col-md-2 col-sm-6">
                                     <div class="info-box">
