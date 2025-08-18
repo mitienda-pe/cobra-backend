@@ -252,7 +252,7 @@ class OrganizationBalanceModel extends Model
         $builder->where('i.deleted_at IS NULL');
         
         $builder->groupBy('strftime("%m", p.payment_date)'); // SQLite month grouping
-        $builder->orderBy('CAST(strftime("%m", p.payment_date) AS INTEGER)', 'ASC');
+        $builder->orderBy('month', 'ASC'); // Order by the selected alias
         
         return $builder->get()->getResultArray();
     }
