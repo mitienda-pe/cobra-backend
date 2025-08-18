@@ -62,7 +62,10 @@ class OrganizationBalanceModel extends Model
         $builder->where('p.deleted_at IS NULL');
         $builder->where('i.deleted_at IS NULL');
         
+        // DEBUG: Log the actual SQL query
+        log_message('info', 'Balance Query SQL: ' . $builder->getCompiledSelect());
         $result = $builder->get()->getRowArray();
+        log_message('info', 'Balance Query Result: ' . json_encode($result));
         
         // Get total pending amount (calculate based on invoice amount vs payments)
         $pendingBuilder = $db->table('invoices i');
@@ -173,7 +176,13 @@ class OrganizationBalanceModel extends Model
         
         $builder->orderBy('p.payment_date', 'DESC');
         
-        return $builder->get()->getResultArray();
+        // DEBUG: Log movements query
+        log_message('info', 'Movements Query SQL: ' . $builder->getCompiledSelect());
+        $result = $builder->get()->getResultArray();
+        log_message('info', 'Movements Query Result Count: ' . count($result));
+        log_message('info', 'Movements Query Sample: ' . json_encode(array_slice($result, 0, 3)));
+        
+        return $result;
     }
 
     /**
