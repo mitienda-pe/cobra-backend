@@ -20,11 +20,11 @@ class LigoModel extends Model
         // URLs base de Ligo según el entorno
         $environment = env('CI_ENVIRONMENT', 'development');
         if ($environment === 'production') {
-            $this->ligoBaseUrl = env('LIGO_PROD_URL', 'https://api.ligo.pe');
-            $this->ligoAuthUrl = env('LIGO_PROD_AUTH_URL', 'https://auth.ligo.pe');
+            $this->ligoBaseUrl = env('LIGO_PROD_URL', 'https://cce-api-gateway-prod.ligocloud.tech');
+            $this->ligoAuthUrl = env('LIGO_PROD_AUTH_URL', 'https://cce-auth-prod.ligocloud.tech');
         } else {
-            $this->ligoBaseUrl = env('LIGO_DEV_URL', 'https://dev-api.ligo.pe');
-            $this->ligoAuthUrl = env('LIGO_DEV_AUTH_URL', 'https://dev-auth.ligo.pe');
+            $this->ligoBaseUrl = env('LIGO_DEV_URL', 'https://cce-api-gateway-dev.ligocloud.tech');
+            $this->ligoAuthUrl = env('LIGO_DEV_AUTH_URL', 'https://cce-auth-dev.ligocloud.tech');
         }
     }
 

@@ -177,7 +177,7 @@
                                             <label for="auth_url" class="form-label">URL de Autenticación</label>
                                             <input type="url" class="form-control" id="auth_url" name="auth_url" 
                                                    value="<?= esc($config['auth_url'] ?? '') ?>"
-                                                   placeholder="https://<?= $config['environment'] === 'prod' ? '' : 'dev-' ?>auth.ligo.pe">
+                                                   placeholder="https://cce-auth-<?= $config['environment'] === 'prod' ? 'prod' : 'dev' ?>.ligocloud.tech">
                                             <div class="form-text">URL base para autenticación. Si está vacío, se usa la por defecto.</div>
                                         </div>
 
@@ -185,7 +185,7 @@
                                             <label for="api_url" class="form-label">URL de API</label>
                                             <input type="url" class="form-control" id="api_url" name="api_url" 
                                                    value="<?= esc($config['api_url'] ?? '') ?>"
-                                                   placeholder="https://<?= $config['environment'] === 'prod' ? '' : 'dev-' ?>api.ligo.pe">
+                                                   placeholder="https://cce-api-gateway-<?= $config['environment'] === 'prod' ? 'prod' : 'dev' ?>.ligocloud.tech">
                                             <div class="form-text">URL base para operaciones API. Si está vacío, se usa la por defecto.</div>
                                         </div>
                                     </div>
