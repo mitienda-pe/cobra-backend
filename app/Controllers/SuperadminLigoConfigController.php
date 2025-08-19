@@ -13,6 +13,7 @@ class SuperadminLigoConfigController extends BaseController
     {
         $this->superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
         helper(['form', 'url']);
+        log_message('error', '🏗️ SuperadminLigoConfigController constructor called');
     }
 
     /**
@@ -33,6 +34,7 @@ class SuperadminLigoConfigController extends BaseController
      */
     public function index()
     {
+        log_message('error', '📋 SuperadminLigoConfigController::index() called');
         $this->checkSuperadminAccess();
 
         $data = [
