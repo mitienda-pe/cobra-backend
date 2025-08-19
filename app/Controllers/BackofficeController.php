@@ -31,9 +31,20 @@ class BackofficeController extends Controller
 
     public function balance()
     {
+        // Get session and organization for both GET and POST
+        $session = session();
+        $organizationId = $session->get('selected_organization_id');
+        
+        // Calculate available balance from transfers for this organization
+        $transferModel = new \App\Models\TransferModel();
+        $balanceData = $transferModel->calculateOrganizationBalance($organizationId);
+        $organization = $this->organizationModel->find($organizationId);
+        
         $data = [
             'title' => 'Balance de Cuenta - Ligo',
-            'breadcrumb' => 'Balance de Cuenta'
+            'breadcrumb' => 'Balance de Cuenta',
+            'accountBalance' => $balanceData['available_balance'],
+            'organization' => $organization
         ];
 
         if ($this->request->isAJAX() && $this->request->getMethod() === 'post') {
@@ -191,9 +202,14 @@ class BackofficeController extends Controller
                                                       ->where('is_active', 1)
                                                       ->first();
         
+        // Calculate available balance from transfers for this organization
+        $transferModel = new \App\Models\TransferModel();
+        $balanceData = $transferModel->calculateOrganizationBalance($selectedOrgId);
+        
         $data = [
             'title' => 'Transferencia Ordinaria - Ligo',
             'breadcrumb' => 'Transferencia Ordinaria',
+            'accountBalance' => $balanceData['available_balance'],
             'organization' => $organization,
             'superadminConfig' => $superadminConfig
         ];

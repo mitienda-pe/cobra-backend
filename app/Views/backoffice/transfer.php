@@ -98,6 +98,14 @@
                                     <?= esc($organization['name']) ?> (<?= esc($organization['code']) ?>)
                                 </div>
                                 
+                                <!-- Balance Disponible -->
+                                <div class="alert alert-info">
+                                    <i class="fas fa-wallet"></i> 
+                                    <strong>Balance Disponible:</strong><br>
+                                    <span class="h5 text-primary" id="availableBalance">S/. <?= number_format($accountBalance ?? 0, 2) ?></span>
+                                    <small class="text-muted d-block">Solo puedes transferir hasta este monto</small>
+                                </div>
+                                
                                 <div class="form-group">
                                     <label for="creditorCCI">CCI del Acreedor *</label>
                                     <input type="text" class="form-control" id="creditorCCI" name="creditorCCI" 
@@ -107,7 +115,8 @@
                                 <div class="form-group">
                                     <label for="amount">Monto *</label>
                                     <input type="number" class="form-control" id="amount" name="amount" 
-                                           step="0.01" min="0.01" required>
+                                           step="0.01" min="0.01" max="<?= $accountBalance ?? 0 ?>" required>
+                                    <small class="form-text text-muted">Máximo disponible: S/. <?= number_format($accountBalance ?? 0, 2) ?></small>
                                 </div>
                                 <div class="form-group">
                                     <label for="currency">Moneda *</label>
@@ -402,6 +411,25 @@ function startTransferProcess() {
     }
     
     transferData = formData;
+    
+    // Check if this is a withdrawal (coming from balance page)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('type') === 'withdrawal') {
+        transferData.transfer_type = 'withdrawal';
+        transferData.unstructuredInformation = urlParams.get('unstructuredInformation') || formData.unstructuredInformation;
+        // Pre-fill form if coming from withdrawal
+        if (urlParams.get('amount')) {
+            document.getElementById('amount').value = urlParams.get('amount');
+            transferData.amount = urlParams.get('amount');
+        }
+        if (urlParams.get('currency')) {
+            document.getElementById('currency').value = urlParams.get('currency');
+            transferData.currency = urlParams.get('currency');
+        }
+    } else {
+        transferData.transfer_type = 'regular';
+    }
+    
     showElement('progressSteps');
     hideElement('confirmationArea');
     hideElement('transferResult');
@@ -418,8 +446,16 @@ function validateForm(formData) {
         return false;
     }
     
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+    const amount = parseFloat(formData.amount);
+    const maxAmount = parseFloat(document.getElementById('amount').getAttribute('max'));
+    
+    if (!formData.amount || amount <= 0) {
         alert('El monto debe ser mayor a 0');
+        return false;
+    }
+    
+    if (amount > maxAmount) {
+        alert(`El monto no puede exceder el balance disponible: S/. ${maxAmount.toFixed(2)}`);
         return false;
     }
     
@@ -678,7 +714,8 @@ function executeTransfer() {
         instructionId: stepData.step2.instructionId,
         unstructuredInformation: transferData.unstructuredInformation,
         feeId: stepData.step3.feeId,
-        feeLigo: stepData.step3.feeLigo
+        feeLigo: stepData.step3.feeLigo,
+        transfer_type: transferData.transfer_type || 'regular'
     };
     
     console.log('🚀 STEP 4 - PAYLOAD COMPLETO enviado al backend:', JSON.stringify(executeData, null, 2));

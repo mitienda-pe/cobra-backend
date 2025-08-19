@@ -57,6 +57,13 @@
                                             <strong>Estado de la consulta:</strong> <span id="resultStatus" class="badge badge-success"></span><br>
                                             <strong>Última actualización:</strong> <span id="resultTimestamp"></span>
                                         </p>
+                                        
+                                        <!-- Botón de Retiro -->
+                                        <div class="mt-3">
+                                            <button class="btn btn-warning btn-lg" id="withdrawBtn" onclick="showWithdrawModal()" style="display: none;">
+                                                <i class="fas fa-money-bill-wave"></i> Retirar a mi CCI
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -83,6 +90,69 @@
                         <p id="errorMessage"></p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Retiro -->
+<div class="modal fade" id="withdrawModal" tabindex="-1" aria-labelledby="withdrawModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="withdrawModalLabel">
+                    <i class="fas fa-money-bill-wave"></i> Retirar Fondos a mi CCI
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Retiro de fondos:</strong> Los fondos serán transferidos directamente a la cuenta CCI de tu organización.
+                </div>
+                
+                <form id="withdrawForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="withdrawAmount">Monto a Retirar *</label>
+                                <input type="number" class="form-control" id="withdrawAmount" 
+                                       step="0.01" min="0.01" required>
+                                <small class="form-text text-muted">
+                                    Disponible: <span id="availableForWithdraw"></span>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="withdrawCurrency">Moneda *</label>
+                                <select class="form-control" id="withdrawCurrency" required>
+                                    <option value="PEN">PEN - Soles</option>
+                                    <option value="USD">USD - Dólares</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="withdrawConcept">Concepto del Retiro</label>
+                        <textarea class="form-control" id="withdrawConcept" rows="2" 
+                                  placeholder="Retiro de fondos disponibles">Retiro de fondos disponibles</textarea>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Información del Destino:</strong><br>
+                        CCI: <span id="organizationCCI"><?= esc($organization['cci'] ?? 'No disponible') ?></span><br>
+                        Organización: <span id="organizationName"><?= esc($organization['name'] ?? 'No disponible') ?></span>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" onclick="processWithdrawal()">
+                    <i class="fas fa-check"></i> Procesar Retiro
+                </button>
             </div>
         </div>
     </div>
@@ -142,6 +212,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (resultBalance) resultBalance.textContent = (data.data.amount || '0.00') + ' ' + (data.data.currency_symbol || 'PEN');
                     if (resultTimestamp) resultTimestamp.textContent = data.date || new Date().toLocaleString();
                     
+                    // Mostrar botón de retiro si hay balance disponible
+                    const balanceAmount = parseFloat(data.data.amount || 0);
+                    const withdrawBtn = document.getElementById('withdrawBtn');
+                    if (withdrawBtn && balanceAmount > 0) {
+                        withdrawBtn.style.display = 'block';
+                        // Guardar el balance para usar en el modal
+                        withdrawBtn.setAttribute('data-balance', balanceAmount);
+                        withdrawBtn.setAttribute('data-currency', data.data.currency_symbol || 'PEN');
+                    }
+                    
                     if (balanceResult) balanceResult.style.display = 'block';
                 } else {
                     const errorMessage = document.getElementById('errorMessage');
@@ -171,5 +251,72 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Funciones para el modal de retiro
+function showWithdrawModal() {
+    const withdrawBtn = document.getElementById('withdrawBtn');
+    const balance = parseFloat(withdrawBtn.getAttribute('data-balance') || 0);
+    const currency = withdrawBtn.getAttribute('data-currency') || 'PEN';
+    
+    // Configurar el modal con la información actual
+    const withdrawAmount = document.getElementById('withdrawAmount');
+    const availableForWithdraw = document.getElementById('availableForWithdraw');
+    const withdrawCurrency = document.getElementById('withdrawCurrency');
+    
+    if (withdrawAmount) {
+        withdrawAmount.max = balance;
+        withdrawAmount.value = '';
+    }
+    
+    if (availableForWithdraw) {
+        availableForWithdraw.textContent = balance.toFixed(2) + ' ' + currency;
+    }
+    
+    if (withdrawCurrency) {
+        withdrawCurrency.value = currency;
+    }
+    
+    // Mostrar el modal
+    const modal = new bootstrap.Modal(document.getElementById('withdrawModal'));
+    modal.show();
+}
+
+function processWithdrawal() {
+    const form = document.getElementById('withdrawForm');
+    const amount = document.getElementById('withdrawAmount').value;
+    const currency = document.getElementById('withdrawCurrency').value;
+    const concept = document.getElementById('withdrawConcept').value;
+    
+    // Validaciones
+    if (!amount || parseFloat(amount) <= 0) {
+        alert('Por favor ingresa un monto válido');
+        return;
+    }
+    
+    const withdrawBtn = document.getElementById('withdrawBtn');
+    const maxBalance = parseFloat(withdrawBtn.getAttribute('data-balance') || 0);
+    
+    if (parseFloat(amount) > maxBalance) {
+        alert(`El monto no puede exceder el balance disponible: ${maxBalance.toFixed(2)}`);
+        return;
+    }
+    
+    // Confirmar la transferencia
+    if (!confirm(`¿Confirmas el retiro de ${amount} ${currency} a tu cuenta CCI?`)) {
+        return;
+    }
+    
+    // Preparar datos para la transferencia
+    const withdrawData = {
+        amount: amount,
+        currency: currency,
+        unstructuredInformation: concept || 'Retiro de fondos disponibles',
+        type: 'withdrawal'
+    };
+    
+    // Redireccionar a la página de transferencias con los datos
+    const params = new URLSearchParams(withdrawData);
+    window.location.href = '<?= base_url('backoffice/transfer') ?>?' + params.toString();
+}
 </script>
 <?= $this->endSection() ?>

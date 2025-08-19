@@ -1591,7 +1591,8 @@ class LigoModel extends Model
                 'status' => $status,
                 'response_code' => $responseCode,
                 'ligo_response' => json_encode($ligoResponse),
-                'error_message' => null
+                'error_message' => null,
+                'transfer_type' => $transferData['transfer_type'] ?? 'regular'
             ];
             
             log_message('error', '💾 LigoModel: Guardando transferencia en base de datos - Data: ' . json_encode($dbData));

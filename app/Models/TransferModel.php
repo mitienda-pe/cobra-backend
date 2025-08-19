@@ -33,7 +33,8 @@ class TransferModel extends Model
         'status',
         'response_code',
         'ligo_response',
-        'error_message'
+        'error_message',
+        'transfer_type'
     ];
 
     // Dates
@@ -205,5 +206,86 @@ class TransferModel extends Model
                       ->limit($limit)
                       ->get()
                       ->getResultArray();
+    }
+
+    /**
+     * Get withdrawal transfers for an organization
+     */
+    public function getWithdrawalsByOrganization($organizationId, $limit = 50, $offset = 0)
+    {
+        return $this->where('organization_id', $organizationId)
+                    ->where('transfer_type', 'withdrawal')
+                    ->orderBy('created_at', 'DESC')
+                    ->findAll($limit, $offset);
+    }
+
+    /**
+     * Calculate organization's effective balance
+     * (incoming transfers minus outgoing transfers/withdrawals)
+     */
+    public function calculateOrganizationBalance($organizationId)
+    {
+        $db = \Config\Database::connect();
+        
+        // Sum of completed incoming transfers (to organization)
+        $incomingQuery = $db->table($this->table)
+            ->selectSum('amount', 'total_incoming')
+            ->where('organization_id', $organizationId)
+            ->where('status', 'completed')
+            ->where('transfer_type !=', 'withdrawal')
+            ->get();
+        
+        $incoming = $incomingQuery->getRowArray()['total_incoming'] ?? 0;
+        
+        // Sum of completed withdrawals (from organization)
+        $withdrawalQuery = $db->table($this->table)
+            ->selectSum('amount', 'total_withdrawals')
+            ->where('organization_id', $organizationId)
+            ->where('status', 'completed')
+            ->where('transfer_type', 'withdrawal')
+            ->get();
+        
+        $withdrawals = $withdrawalQuery->getRowArray()['total_withdrawals'] ?? 0;
+        
+        return [
+            'incoming' => floatval($incoming),
+            'withdrawals' => floatval($withdrawals),
+            'available_balance' => floatval($incoming) - floatval($withdrawals)
+        ];
+    }
+
+    /**
+     * Get transfer statistics including withdrawals
+     */
+    public function getDetailedTransferStats($organizationId = null)
+    {
+        $builder = $this->builder();
+        
+        if ($organizationId) {
+            $builder->where('organization_id', $organizationId);
+        }
+
+        $stats = [
+            'total' => $builder->countAllResults(false),
+            'successful' => $builder->where('status', 'completed')->countAllResults(false),
+            'processing' => $builder->where('status', 'processing')->countAllResults(false),
+            'pending' => $builder->where('status', 'pending')->countAllResults(false),
+            'failed' => $builder->where('status', 'failed')->countAllResults(false)
+        ];
+
+        // Separate by transfer type
+        $regularBuilder = $this->builder();
+        if ($organizationId) {
+            $regularBuilder->where('organization_id', $organizationId);
+        }
+        $stats['regular_transfers'] = $regularBuilder->where('transfer_type !=', 'withdrawal')->countAllResults(false);
+
+        $withdrawalBuilder = $this->builder();
+        if ($organizationId) {
+            $withdrawalBuilder->where('organization_id', $organizationId);
+        }
+        $stats['withdrawals'] = $withdrawalBuilder->where('transfer_type', 'withdrawal')->countAllResults(false);
+
+        return $stats;
     }
 }
