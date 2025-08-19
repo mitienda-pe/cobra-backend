@@ -1273,32 +1273,44 @@ class LigoModel extends Model
                 
                 // Get transfer status to obtain the real responseCode - retry multiple times per Ligo recommendation
                 $responseCode = '';
-                $maxAttempts = 3;
+                $maxAttempts = 6; // Increased attempts
                 
                 for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-                    $waitTime = 2; // 2 seconds per Ligo recommendation
-                    log_message('error', '🔍 LigoModel: Attempt ' . $attempt . '/' . $maxAttempts . ' - waiting ' . $waitTime . ' seconds before querying status (Ligo recommendation)');
+                    $waitTime = ($attempt <= 3) ? 2 : 3; // 2 seconds for first 3 attempts, then 3 seconds
+                    log_message('error', '🔍 LigoModel: Attempt ' . $attempt . '/' . $maxAttempts . ' - waiting ' . $waitTime . ' seconds before querying status');
                     sleep($waitTime);
                     
                     $statusResponse = $this->makeApiRequest('/v1/getOrderTransferShippingById/' . $transferId, 'GET');
                     log_message('error', '🔍 LigoModel: Status query response (attempt ' . $attempt . ') for transferId ' . $transferId . ': ' . json_encode($statusResponse));
 
-                    // Check if we have data in the response (per Ligo recommendation: check for non-empty data array)
-                    if (isset($statusResponse['data']) && !empty($statusResponse['data']) && is_array($statusResponse['data'])) {
-                        // We have data - look for responseCode
-                        if (isset($statusResponse['data']['responseCode'])) {
-                            $responseCode = $statusResponse['data']['responseCode'];
-                            log_message('error', '✅ LigoModel: Status responseCode found on attempt ' . $attempt . ': ' . $responseCode . ' for transferId: ' . $transferId);
-                            break;
+                    // Check if we have meaningful data in the response
+                    $hasData = false;
+                    if (isset($statusResponse['data']) && is_array($statusResponse['data'])) {
+                        // Check if data object has actual content (not just empty {})
+                        if (count($statusResponse['data']) > 0) {
+                            $hasData = true;
+                            log_message('error', '📦 LigoModel: Data object has ' . count($statusResponse['data']) . ' fields on attempt ' . $attempt);
+                            
+                            // Look for responseCode
+                            if (isset($statusResponse['data']['responseCode'])) {
+                                $responseCode = $statusResponse['data']['responseCode'];
+                                log_message('error', '✅ LigoModel: Status responseCode found on attempt ' . $attempt . ': ' . $responseCode . ' for transferId: ' . $transferId);
+                                break;
+                            } else {
+                                log_message('error', '⚠️ LigoModel: Data found but no responseCode on attempt ' . $attempt . ' for transferId: ' . $transferId . ' - data keys: ' . implode(', ', array_keys($statusResponse['data'])));
+                                // Even without responseCode, if we have data, we can proceed
+                                log_message('error', '📝 LigoModel: Proceeding with available data from attempt ' . $attempt);
+                                break;
+                            }
                         } else {
-                            log_message('error', '⚠️ LigoModel: Data found but no responseCode on attempt ' . $attempt . ' for transferId: ' . $transferId . ' - data: ' . json_encode($statusResponse['data']));
+                            log_message('error', '⏳ LigoModel: Empty data object {} on attempt ' . $attempt . ' for transferId: ' . $transferId);
                         }
                     } else {
-                        log_message('error', '⏳ LigoModel: Empty data array on attempt ' . $attempt . ' for transferId: ' . $transferId . ' - data: ' . json_encode($statusResponse['data'] ?? 'null'));
+                        log_message('error', '❌ LigoModel: Invalid or missing data on attempt ' . $attempt . ' for transferId: ' . $transferId . ' - data: ' . json_encode($statusResponse['data'] ?? 'null'));
                     }
                     
                     if ($attempt === $maxAttempts) {
-                        log_message('error', '❌ LigoModel: No responseCode found after ' . $maxAttempts . ' attempts (as recommended by Ligo) for transferId: ' . $transferId);
+                        log_message('error', '❌ LigoModel: No meaningful data found after ' . $maxAttempts . ' attempts for transferId: ' . $transferId);
                     }
                 }
                 
