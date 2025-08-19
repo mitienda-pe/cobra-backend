@@ -40,10 +40,21 @@ class BackofficeController extends Controller
         $balanceData = $transferModel->calculateOrganizationBalance($organizationId);
         $organization = $this->organizationModel->find($organizationId);
         
+        // If calculated balance is 0, try to get real balance from Ligo
+        $finalBalance = $balanceData['available_balance'];
+        if ($finalBalance <= 0) {
+            log_message('info', 'BackofficeController: Calculated balance is 0, checking Ligo balance...');
+            $ligoBalance = $this->ligoModel->getAccountBalanceForOrganization();
+            if (!isset($ligoBalance['error']) && isset($ligoBalance['data']['amount'])) {
+                $finalBalance = floatval($ligoBalance['data']['amount']);
+                log_message('info', 'BackofficeController: Using Ligo balance: ' . $finalBalance);
+            }
+        }
+        
         $data = [
             'title' => 'Balance de Cuenta - Ligo',
             'breadcrumb' => 'Balance de Cuenta',
-            'accountBalance' => $balanceData['available_balance'],
+            'accountBalance' => $finalBalance,
             'organization' => $organization
         ];
 
@@ -206,10 +217,23 @@ class BackofficeController extends Controller
         $transferModel = new \App\Models\TransferModel();
         $balanceData = $transferModel->calculateOrganizationBalance($selectedOrgId);
         
+        // If calculated balance is 0, try to get real balance from Ligo
+        $finalBalance = $balanceData['available_balance'];
+        if ($finalBalance <= 0) {
+            log_message('info', 'BackofficeController: Calculated balance is 0, checking Ligo balance...');
+            $ligoBalance = $this->ligoModel->getAccountBalanceForOrganization();
+            if (!isset($ligoBalance['error']) && isset($ligoBalance['data']['amount'])) {
+                $finalBalance = floatval($ligoBalance['data']['amount']);
+                log_message('info', 'BackofficeController: Using Ligo balance: ' . $finalBalance);
+            } else {
+                log_message('warning', 'BackofficeController: Could not get Ligo balance: ' . json_encode($ligoBalance));
+            }
+        }
+        
         $data = [
             'title' => 'Transferencia Ordinaria - Ligo',
             'breadcrumb' => 'Transferencia Ordinaria',
-            'accountBalance' => $balanceData['available_balance'],
+            'accountBalance' => $finalBalance,
             'organization' => $organization,
             'superadminConfig' => $superadminConfig
         ];
