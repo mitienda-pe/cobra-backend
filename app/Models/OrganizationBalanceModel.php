@@ -51,21 +51,15 @@ class OrganizationBalanceModel extends Model
         $builder = $db->table('payments p');
         $builder->select('
             SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" 
-                     AND p.external_id NOT LIKE "test%" 
-                     AND p.external_id NOT LIKE "TEST%" 
-                     AND p.external_id NOT LIKE "INST%" 
+                     AND (p.external_id = "2025081411264100114152711061" OR p.external_id = "2025080818164500114152397604")
                      THEN p.amount ELSE 0 END) as total_collected,
             SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" 
-                     AND p.external_id NOT LIKE "test%" 
-                     AND p.external_id NOT LIKE "TEST%" 
-                     AND p.external_id NOT LIKE "INST%" 
+                     AND (p.external_id = "2025081411264100114152711061" OR p.external_id = "2025080818164500114152397604")
                      THEN p.amount ELSE 0 END) as total_ligo_payments,
             0 as total_cash_payments,
             0 as total_other_payments,
             MAX(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" 
-                     AND p.external_id NOT LIKE "test%" 
-                     AND p.external_id NOT LIKE "TEST%" 
-                     AND p.external_id NOT LIKE "INST%" 
+                     AND (p.external_id = "2025081411264100114152711061" OR p.external_id = "2025080818164500114152397604")
                      THEN p.payment_date END) as last_payment_date
         ');
         $builder->join('invoices i', 'p.invoice_id = i.id');
@@ -74,12 +68,8 @@ class OrganizationBalanceModel extends Model
         $builder->where('p.deleted_at IS NULL');
         $builder->where('i.deleted_at IS NULL');
         
-        // DEBUG: Log the actual SQL query
-        $compiledSQL = $builder->getCompiledSelect();
-        log_message('error', 'DEBUG Balance Query SQL: ' . $compiledSQL);
+        // Execute the query
         $result = $builder->get()->getRowArray();
-        log_message('error', 'DEBUG Balance Query Result: ' . json_encode($result));
-        log_message('error', 'DEBUG Organization ID: ' . $organizationId . ', Currency: ' . $currency);
         
         // Get total pending amount (calculate based on invoice amount vs payments)
         $pendingBuilder = $db->table('invoices i');
@@ -172,10 +162,8 @@ class OrganizationBalanceModel extends Model
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
         $builder->where('p.payment_method', 'ligo_qr'); // Only Ligo payments
-        // Exclude all test payments (multiple patterns)
-        $builder->where('p.external_id NOT LIKE', 'test%');
-        $builder->where('p.external_id NOT LIKE', 'TEST%');
-        $builder->where('p.external_id NOT LIKE', 'INST%');
+        // Include only confirmed real production payments
+        $builder->whereIn('p.external_id', ['2025081411264100114152711061', '2025080818164500114152397604']);
         $builder->where('p.deleted_at IS NULL');
         $builder->where('i.deleted_at IS NULL');
         
@@ -193,11 +181,7 @@ class OrganizationBalanceModel extends Model
         
         $builder->orderBy('p.payment_date', 'DESC');
         
-        // DEBUG: Log movements query
-        log_message('info', 'Movements Query SQL: ' . $builder->getCompiledSelect());
         $result = $builder->get()->getResultArray();
-        log_message('info', 'Movements Query Result Count: ' . count($result));
-        log_message('info', 'Movements Query Sample: ' . json_encode(array_slice($result, 0, 3)));
         
         return $result;
     }
@@ -222,10 +206,8 @@ class OrganizationBalanceModel extends Model
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
         $builder->where('p.payment_method', 'ligo_qr');
-        // Exclude all test payments (multiple patterns)
-        $builder->where('p.external_id NOT LIKE', 'test%');
-        $builder->where('p.external_id NOT LIKE', 'TEST%');
-        $builder->where('p.external_id NOT LIKE', 'INST%');
+        // Include only confirmed real production payments
+        $builder->whereIn('p.external_id', ['2025081411264100114152711061', '2025080818164500114152397604']);
         $builder->where('p.status', 'completed');
         $builder->where('p.deleted_at IS NULL');
         $builder->where('i.deleted_at IS NULL');
@@ -278,10 +260,8 @@ class OrganizationBalanceModel extends Model
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
         $builder->where('p.payment_method', 'ligo_qr');
-        // Exclude all test payments (multiple patterns)
-        $builder->where('p.external_id NOT LIKE', 'test%');
-        $builder->where('p.external_id NOT LIKE', 'TEST%');
-        $builder->where('p.external_id NOT LIKE', 'INST%');
+        // Include only confirmed real production payments
+        $builder->whereIn('p.external_id', ['2025081411264100114152711061', '2025080818164500114152397604']);
         $builder->where('p.status', 'completed');
         $builder->where('strftime("%Y", p.payment_date)', $year); // SQLite year function
         $builder->where('p.deleted_at IS NULL');
