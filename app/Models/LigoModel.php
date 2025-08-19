@@ -330,8 +330,9 @@ class LigoModel extends Model
         curl_close($curl);
 
         if ($err) {
+            $detailedError = 'Error de conexión con Ligo Auth: ' . $err . ' (URL: ' . $authUrl . ')';
             log_message('error', 'Ligo Auth Error: ' . $err . ' for URL: ' . $authUrl);
-            return ['error' => 'Error de conexión con Ligo Auth: ' . $err];
+            return ['error' => $detailedError, 'auth_url' => $authUrl];
         }
 
         log_message('debug', 'Ligo Auth Response - HTTP Code: ' . $httpCode . ', Raw Response: ' . $response);
@@ -340,8 +341,9 @@ class LigoModel extends Model
         
         if ($httpCode >= 400) {
             $errorMessage = $decodedResponse['message'] ?? 'Error de autenticación con Ligo';
+            $detailedError = $errorMessage . ' (HTTP ' . $httpCode . ' - URL: ' . $authUrl . ')';
             log_message('error', 'Ligo Auth HTTP Error ' . $httpCode . ': ' . $response . ' for URL: ' . $authUrl);
-            return ['error' => $errorMessage, 'http_code' => $httpCode, 'raw_response' => $response];
+            return ['error' => $detailedError, 'http_code' => $httpCode, 'raw_response' => $response, 'auth_url' => $authUrl];
         }
 
         // Verificar si hay token en la respuesta (adaptado del formato de LigoQRController)

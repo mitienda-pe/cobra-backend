@@ -238,6 +238,9 @@ class SuperadminLigoConfigController extends BaseController
 
             if (isset($testResult['error'])) {
                 log_message('error', '[SuperadminLigoConfig] Test failed with error: ' . $testResult['error']);
+                log_message('error', '🔍 [SuperadminLigoConfig] Full test result: ' . json_encode($testResult));
+                log_message('error', '🌐 [SuperadminLigoConfig] Auth URL being used: ' . ($urls['auth_url'] ?? 'unknown'));
+                log_message('error', '🔗 [SuperadminLigoConfig] Full endpoint: ' . ($urls['auth_url'] ?? 'unknown') . '/v1/auth/sign-in?companyId=' . ($config['company_id'] ?? ''));
                 return $this->response->setJSON([
                     'success' => false, 
                     'message' => 'Error en prueba: ' . $testResult['error'],
