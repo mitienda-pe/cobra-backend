@@ -34,6 +34,7 @@ class SuperadminLigoConfigController extends BaseController
      */
     public function index()
     {
+        error_log('📋 DIRECT PHP LOG - SuperadminLigoConfigController::index() called - Page loading');
         log_message('error', '📋 SuperadminLigoConfigController::index() called');
         $this->checkSuperadminAccess();
 
