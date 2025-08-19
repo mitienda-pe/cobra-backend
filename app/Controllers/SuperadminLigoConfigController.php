@@ -166,9 +166,13 @@ class SuperadminLigoConfigController extends BaseController
      */
     public function test($id = null)
     {
+        // TEMPORARY DEBUG: Log that the test method was called
+        log_message('error', '🚀 SuperadminLigoConfigController::test() called with ID: ' . ($id ?? 'null'));
+        
         $this->checkSuperadminAccess();
 
         if (!$id) {
+            log_message('error', '❌ SuperadminLigoConfigController::test() - No ID provided');
             return $this->response->setJSON(['success' => false, 'message' => 'ID requerido']);
         }
 
