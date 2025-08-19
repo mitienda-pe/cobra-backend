@@ -169,6 +169,7 @@ class SuperadminLigoConfigController extends BaseController
     public function test($id = null)
     {
         // TEMPORARY DEBUG: Log that the test method was called
+        error_log('🚀 DIRECT PHP LOG - SuperadminLigoConfigController::test() called with ID: ' . ($id ?? 'null'));
         log_message('error', '🚀 SuperadminLigoConfigController::test() called with ID: ' . ($id ?? 'null'));
         
         $this->checkSuperadminAccess();
