@@ -501,6 +501,15 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
+            // Log complete response to console for debugging
+            console.log('🔍 Ligo Test Response:', data);
+            
+            // Also log debug info if available
+            if (data.debug_info) {
+                console.log('🐛 Debug Info:', data.debug_info);
+                console.log('🌐 Full Auth Endpoint:', data.debug_info.full_auth_endpoint);
+            }
+            
             let content = '';
             
             if (data.success) {
@@ -526,6 +535,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${data.message}
                     </div>
                 `;
+                
+                // Add debug information if available
+                if (data.debug_info) {
+                    content += `
+                        <h6>Información de Debug:</h6>
+                        <div class="bg-light p-3 rounded">
+                            <small>
+                                <strong>Entorno:</strong> ${data.debug_info.environment}<br>
+                                <strong>Usuario:</strong> ${data.debug_info.username}<br>
+                                <strong>Company ID:</strong> ${data.debug_info.company_id}<br>
+                                <strong>URL de Auth:</strong> ${data.debug_info.actual_auth_url}<br>
+                                <strong>URL de API:</strong> ${data.debug_info.actual_api_url}<br>
+                                <strong>Endpoint Completo:</strong> <code>${data.debug_info.full_auth_endpoint}</code>
+                            </small>
+                        </div>
+                    `;
+                }
             }
             
             document.getElementById('testResultsContent').innerHTML = content;

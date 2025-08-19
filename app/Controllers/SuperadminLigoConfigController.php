@@ -215,6 +215,10 @@ class SuperadminLigoConfigController extends BaseController
         
         log_message('info', '[SuperadminLigoConfig] Temporarily activated config ID: ' . $id . ' for testing');
 
+        // Get the actual URLs that will be used for testing
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+        $urls = $superadminLigoConfigModel->getApiUrls($config['environment']);
+        
         // Test authentication
         try {
             log_message('info', '[SuperadminLigoConfig] Starting authentication test...');
@@ -241,7 +245,10 @@ class SuperadminLigoConfigController extends BaseController
                         'environment' => $config['environment'],
                         'username' => $config['username'],
                         'company_id' => $config['company_id'],
-                        'auth_url' => $config['auth_url'] ?? 'default'
+                        'auth_url' => $config['auth_url'] ?? 'default',
+                        'actual_auth_url' => $urls['auth_url'] ?? 'unknown',
+                        'actual_api_url' => $urls['api_url'] ?? 'unknown',
+                        'full_auth_endpoint' => ($urls['auth_url'] ?? 'unknown') . '/v1/auth/sign-in?companyId=' . ($config['company_id'] ?? '')
                     ]
                 ]);
             } else {
@@ -271,7 +278,11 @@ class SuperadminLigoConfigController extends BaseController
                 'debug_info' => [
                     'environment' => $config['environment'],
                     'username' => $config['username'],
-                    'company_id' => $config['company_id']
+                    'company_id' => $config['company_id'],
+                    'auth_url' => $config['auth_url'] ?? 'default',
+                    'actual_auth_url' => $urls['auth_url'] ?? 'unknown',
+                    'actual_api_url' => $urls['api_url'] ?? 'unknown',
+                    'full_auth_endpoint' => ($urls['auth_url'] ?? 'unknown') . '/v1/auth/sign-in?companyId=' . ($config['company_id'] ?? '')
                 ]
             ]);
         }
