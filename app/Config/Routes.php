@@ -166,6 +166,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('account/(:segment)', 'OrganizationAccountController::index/$1');
         $routes->get('account/(:segment)/movements', 'OrganizationAccountController::movements/$1');
         $routes->get('account/(:segment)/export', 'OrganizationAccountController::exportMovements/$1');
+        $routes->get('account/(:segment)/export-statement', 'OrganizationAccountController::exportStatement/$1');
         $routes->post('account/(:segment)/recalculate', 'OrganizationAccountController::recalculateBalance/$1');
         $routes->get('account/(:segment)/balance', 'OrganizationAccountController::getBalance/$1');
         $routes->post('account/(:segment)/ligo-transactions', 'OrganizationAccountController::getLigoTransactions/$1');

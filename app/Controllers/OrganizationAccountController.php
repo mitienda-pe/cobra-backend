@@ -264,6 +264,189 @@ class OrganizationAccountController extends BaseController
     }
 
     /**
+     * Export Ligo account statement to CSV
+     */
+    public function exportStatement($organizationUuid = null)
+    {
+        // Get organization by UUID
+        if ($organizationUuid) {
+            $organization = $this->organizationModel->where('uuid', $organizationUuid)->first();
+            if (!$organization) {
+                return $this->response->setJSON(['error' => 'Organización no encontrada'])->setStatusCode(404);
+            }
+            $organizationId = $organization['id'];
+        } else {
+            if (session('role') === 'superadmin') {
+                $organizationId = session('selected_organization_id');
+            } else {
+                $organizationId = session('organization_id');
+            }
+            $organization = $this->organizationModel->find($organizationId);
+        }
+
+        // Verify access to organization
+        if (!$this->hasOrganizationAccess($organizationId)) {
+            return $this->response->setJSON(['error' => 'No tienes acceso a esta organización'])->setStatusCode(403);
+        }
+
+        // Get filters from request
+        $dateStart = $this->request->getGet('date_start');
+        $dateEnd = $this->request->getGet('date_end');
+
+        // Default to last 30 days if no dates provided
+        if (!$dateStart || !$dateEnd) {
+            $dateEnd = date('Y-m-d');
+            $dateStart = date('Y-m-d', strtotime('-30 days'));
+        }
+
+        // Get current month balance data (same as in account statement)
+        $currentMonth = date('n');
+        $currentYear = date('Y');
+        $transferBalance = $this->transferModel->calculateOrganizationBalance($organizationId, $currentMonth, $currentYear);
+
+        // Get recent transfers and Ligo payments (same logic as account statement)
+        $transfers = $this->transferModel->getTransfersByOrganization($organizationId, 100);
+        
+        // Get current active Ligo configuration
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+        $activeConfig = $superadminLigoConfigModel->where('enabled', 1)->where('is_active', 1)->first();
+        $isProduction = $activeConfig && $activeConfig['environment'] === 'prod';
+        
+        // Get individual Ligo payments (same query as account statement)
+        $db = \Config\Database::connect();
+        $query = $db->table('payments p')
+                   ->select('p.id, p.amount, p.payment_date, p.status, p.payment_method, p.created_at, p.invoice_id, p.instalment_id, p.external_id, p.ligo_environment')
+                   ->join('invoices i', 'p.invoice_id = i.id')
+                   ->where('i.organization_id', $organizationId)
+                   ->where('p.payment_method', 'ligo_qr')
+                   ->where('p.status', 'completed');
+        
+        // Filter based on current environment preference
+        if ($isProduction) {
+            $query->where('(p.ligo_environment = "prod" OR p.ligo_environment IS NULL)', null, false);
+        } else {
+            $query->where('p.ligo_environment', 'dev');
+        }
+        
+        $ligoPayments = $query->orderBy('p.created_at', 'DESC')
+                            ->limit(100)
+                            ->get()
+                            ->getResultArray();
+
+        // Build movements array (same logic as account statement view)
+        $allMovements = [];
+        
+        // Add completed transfers
+        if (!empty($transfers)) {
+            foreach ($transfers as $transfer) {
+                if ($transfer['status'] === 'completed') {
+                    $isWithdrawal = true;
+                    
+                    // Add main transfer
+                    $allMovements[] = [
+                        'date' => $transfer['created_at'],
+                        'type' => 'Transferencia Enviada',
+                        'description' => 'A: ' . $transfer['creditor_name'] . ' - ' . $transfer['unstructured_information'],
+                        'reference' => 'CCI: ' . $transfer['creditor_cci'],
+                        'amount' => $transfer['amount'],
+                        'status' => 'Completado',
+                        'is_withdrawal' => $isWithdrawal
+                    ];
+                    
+                    // Add fee as separate row if exists
+                    if (!empty($transfer['fee_amount']) && $transfer['fee_amount'] > 0) {
+                        $allMovements[] = [
+                            'date' => $transfer['created_at'],
+                            'type' => 'Comisión Transferencia',
+                            'description' => 'Comisión por envío a ' . $transfer['creditor_name'],
+                            'reference' => 'ID: ' . $transfer['id'],
+                            'amount' => $transfer['fee_amount'],
+                            'status' => 'Completado',
+                            'is_withdrawal' => true
+                        ];
+                    }
+                }
+            }
+        }
+        
+        // Add individual Ligo payments
+        if (!empty($ligoPayments)) {
+            foreach ($ligoPayments as $payment) {
+                $amount = floatval($payment['amount']);
+                if ($amount >= 100) {
+                    $normalizedAmount = $amount / 100;
+                } else {
+                    $normalizedAmount = $amount;
+                }
+                
+                $paymentDate = $payment['payment_date'] ?? $payment['created_at'];
+                $paymentEnv = $payment['ligo_environment'] ?? 'dev';
+                $envLabel = strtoupper($paymentEnv);
+                $envDescription = $paymentEnv === 'prod' ? 'Producción' : 'Desarrollo';
+                
+                $allMovements[] = [
+                    'date' => $paymentDate,
+                    'type' => 'Pago Ligo QR (' . $envLabel . ')',
+                    'description' => 'Pago de cuota recibido via QR Ligo ' . $envDescription,
+                    'reference' => 'ID: ' . $payment['id'] . (!empty($payment['external_id']) ? ' | Ext: ' . $payment['external_id'] : ''),
+                    'amount' => $normalizedAmount,
+                    'status' => 'Completado',
+                    'is_withdrawal' => false
+                ];
+            }
+        }
+        
+        // Sort by date (oldest first for running balance calculation)
+        usort($allMovements, function($a, $b) {
+            return strtotime($a['date']) - strtotime($b['date']);
+        });
+        
+        // Calculate running balance
+        $runningBalance = 0;
+        foreach ($allMovements as &$movement) {
+            if ($movement['is_withdrawal']) {
+                $runningBalance -= $movement['amount'];
+            } else {
+                $runningBalance += $movement['amount'];
+            }
+            $movement['balance'] = $runningBalance;
+        }
+        unset($movement);
+        
+        // Reverse to show newest first in CSV
+        $allMovements = array_reverse($allMovements);
+
+        // Prepare CSV content
+        $csv = "Fecha,Tipo,Descripción,Referencia,Monto,Saldo,Estado\n";
+        
+        foreach ($allMovements as $movement) {
+            $csv .= sprintf(
+                "%s,%s,%s,%s,%s%.2f,%.2f,%s\n",
+                date('d/m/Y H:i', strtotime($movement['date'])),
+                '"' . str_replace('"', '""', $movement['type']) . '"',
+                '"' . str_replace('"', '""', $movement['description']) . '"',
+                '"' . str_replace('"', '""', $movement['reference']) . '"',
+                $movement['is_withdrawal'] ? '-' : '+',
+                abs($movement['amount']),
+                $movement['balance'],
+                $movement['status']
+            );
+        }
+
+        // Set headers for CSV download
+        $filename = 'estado_cuenta_ligo_' . $organization['name'] . '_' . date('Y-m-d') . '.csv';
+        $filename = preg_replace('/[^A-Za-z0-9_\-.]/', '_', $filename);
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=utf-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->setHeader('Pragma', 'no-cache')
+            ->setHeader('Expires', '0')
+            ->setBody("\xEF\xBB\xBF" . $csv); // Add BOM for proper UTF-8 encoding
+    }
+
+    /**
      * Recalculate organization balance
      */
     public function recalculateBalance($organizationUuid = null)

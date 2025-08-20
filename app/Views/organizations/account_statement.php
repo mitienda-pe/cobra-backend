@@ -14,9 +14,9 @@
                         <button type="button" class="btn btn-info btn-sm" onclick="recalculateBalance()">
                             <i class="fas fa-sync-alt"></i> Recalcular
                         </button>
-                        <a href="<?= site_url('organizations/account/' . $organization['uuid'] . '/movements') ?>" class="btn btn-primary btn-sm">
-                            <i class="fas fa-list"></i> Ver Movimientos
-                        </a>
+                        <button type="button" class="btn btn-success btn-sm" onclick="exportLigoStatement()">
+                            <i class="fas fa-download"></i> Exportar CSV
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -395,6 +395,35 @@ function recalculateBalance() {
         console.error('Error:', error);
         alert('Error al recalcular el balance');
     });
+}
+
+// Export Ligo statement function
+function exportLigoStatement() {
+    $('#loadingModal').modal('show');
+    
+    // Build URL with current filters
+    const params = new URLSearchParams();
+    const dateStart = document.getElementById('date_start').value;
+    const dateEnd = document.getElementById('date_end').value;
+    
+    if (dateStart) params.append('date_start', dateStart);
+    if (dateEnd) params.append('date_end', dateEnd);
+    
+    const exportUrl = '<?= site_url('organizations/account/' . $organization['uuid'] . '/export-statement') ?>' + 
+                      (params.toString() ? '?' + params.toString() : '');
+    
+    // Create a temporary link to download the file
+    const link = document.createElement('a');
+    link.href = exportUrl;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Hide loading modal after a short delay
+    setTimeout(() => {
+        $('#loadingModal').modal('hide');
+    }, 1000);
 }
 
 // Simple initialization - no complex JavaScript needed for the unified table
