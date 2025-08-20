@@ -34,13 +34,6 @@
                                     <input type="date" class="form-control form-control-sm" id="date_end" name="date_end" 
                                            value="<?= esc($dateEnd) ?>">
                                 </div>
-                                <div class="form-group mr-3">
-                                    <label for="currency" class="mr-2">Moneda:</label>
-                                    <select class="form-control form-control-sm" id="currency" name="currency">
-                                        <option value="PEN" <?= $currency === 'PEN' ? 'selected' : '' ?>>Soles (PEN)</option>
-                                        <option value="USD" <?= $currency === 'USD' ? 'selected' : '' ?>>Dólares (USD)</option>
-                                    </select>
-                                </div>
                                 <button type="submit" class="btn btn-primary btn-sm">
                                     <i class="fas fa-filter"></i> Filtrar
                                 </button>

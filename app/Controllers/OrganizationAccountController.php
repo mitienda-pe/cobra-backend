@@ -57,7 +57,7 @@ class OrganizationAccountController extends BaseController
         // Get date range from request
         $dateStart = $this->request->getGet('date_start');
         $dateEnd = $this->request->getGet('date_end');
-        $currency = $this->request->getGet('currency') ?: 'PEN';
+        $currency = 'PEN'; // Fixed to PEN - in future could be determined by CCI
 
         // Default to last 30 days if no dates provided
         if (!$dateStart || !$dateEnd) {
@@ -123,7 +123,6 @@ class OrganizationAccountController extends BaseController
             'isProduction' => $isProduction,
             'dateStart' => $dateStart,
             'dateEnd' => $dateEnd,
-            'currency' => $currency,
             'title' => 'Estado de Cuenta - ' . $organization['name']
         ]);
     }
