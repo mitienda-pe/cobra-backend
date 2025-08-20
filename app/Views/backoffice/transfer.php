@@ -128,7 +128,7 @@
                                 <div class="form-group">
                                     <label for="unstructuredInformation">Concepto de la Transferencia</label>
                                     <textarea class="form-control" id="unstructuredInformation" name="unstructuredInformation" 
-                                              rows="3" placeholder="Pago de comisiones a <?= esc($organization['code']) ?>">Pago de comisiones a organización <?= esc($organization['code']) ?></textarea>
+                                              rows="3" placeholder="Pago de comisiones a <?= esc($organization['code']) ?>">Pago de comisiones a <?= esc($organization['code']) ?></textarea>
                                 </div>
                             </div>
                         </div>
