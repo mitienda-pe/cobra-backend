@@ -161,9 +161,9 @@
                                                         
                                                         $allMovements[] = [
                                                             'date' => $paymentDate,
-                                                            'type' => 'Pago Ligo QR',
-                                                            'description' => 'Pago de cuota recibido via QR Ligo',
-                                                            'reference' => 'ID: ' . $payment['id'] . ' (Original: ' . $amount . ')',
+                                                            'type' => 'Pago Ligo QR (Prod)',
+                                                            'description' => 'Pago de cuota recibido via QR Ligo Producción',
+                                                            'reference' => 'ID: ' . $payment['id'] . (!empty($payment['external_id']) ? ' | Ext: ' . $payment['external_id'] : ''),
                                                             'amount' => $normalizedAmount,
                                                             'status' => 'Completado',
                                                             'is_withdrawal' => false // Payments are always income

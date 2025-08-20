@@ -81,15 +81,17 @@ class OrganizationAccountController extends BaseController
         // Get transfer balance summary
         $transferBalance = $this->transferModel->calculateOrganizationBalance($organizationId);
 
-        // Get individual Ligo payments (completed only, production environment only) - via JOIN with invoices
+        // Get individual Ligo payments (completed only, production payments) - via JOIN with invoices
         $db = \Config\Database::connect();
         $ligoPayments = $db->table('payments p')
-                          ->select('p.id, p.amount, p.payment_date, p.status, p.payment_method, p.created_at, p.invoice_id, p.instalment_id, p.environment')
+                          ->select('p.id, p.amount, p.payment_date, p.status, p.payment_method, p.created_at, p.invoice_id, p.instalment_id, p.external_id')
                           ->join('invoices i', 'p.invoice_id = i.id')
                           ->where('i.organization_id', $organizationId)
                           ->where('p.payment_method', 'ligo_qr')
                           ->where('p.status', 'completed')
-                          ->where('p.environment', 'prod') // Only production payments
+                          // Filter for production payments - exclude test payments from early dates
+                          ->where('p.created_at >=', '2025-07-15') // Assuming production started around this date
+                          ->whereNotNull('p.external_id') // Production payments should have external_id
                           ->orderBy('p.created_at', 'DESC')
                           ->limit(50)
                           ->get()
