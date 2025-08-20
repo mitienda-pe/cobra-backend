@@ -8,48 +8,23 @@ class UpdateExistingLigoEnvironments extends Migration
 {
     public function up()
     {
-        // Update existing Ligo payments based on external_id patterns
-        // Production payments typically have long numeric external_ids
-        // Development/test payments contain "test" or have shorter IDs
+        // Conservative approach: Mark obvious test payments as 'dev'
+        // Leave unclear payments as NULL for manual review
         
         $db = \Config\Database::connect();
         
-        // Update payments that look like production (long numeric IDs, no "test")
-        $prodQuery = "UPDATE payments 
-                     SET ligo_environment = 'prod' 
+        // Only mark obvious test payments containing "test" or "TEST"
+        $testQuery = "UPDATE payments 
+                     SET ligo_environment = 'dev' 
                      WHERE payment_method = 'ligo_qr' 
                        AND ligo_environment IS NULL 
-                       AND external_id IS NOT NULL
-                       AND external_id NOT LIKE '%test%' 
-                       AND external_id NOT LIKE '%TEST%'
-                       AND LENGTH(external_id) > 20";
+                       AND (external_id LIKE '%test%' 
+                            OR external_id LIKE '%TEST%')";
         
-        $db->query($prodQuery);
-        $prodUpdated = $db->affectedRows();
+        $db->query($testQuery);
+        $testUpdated = $db->affectedRows();
         
-        // Update payments that look like development/test
-        $devQuery = "UPDATE payments 
-                    SET ligo_environment = 'dev' 
-                    WHERE payment_method = 'ligo_qr' 
-                      AND ligo_environment IS NULL 
-                      AND (external_id LIKE '%test%' 
-                           OR external_id LIKE '%TEST%' 
-                           OR LENGTH(external_id) <= 20
-                           OR external_id IS NULL)";
-        
-        $db->query($devQuery);
-        $devUpdated = $db->affectedRows();
-        
-        // Update any remaining NULL ligo_environment payments to 'dev' as default
-        $defaultQuery = "UPDATE payments 
-                        SET ligo_environment = 'dev' 
-                        WHERE payment_method = 'ligo_qr' 
-                          AND ligo_environment IS NULL";
-        
-        $db->query($defaultQuery);
-        $defaultUpdated = $db->affectedRows();
-        
-        // Update existing transfers (if any have NULL ligo_environment)
+        // Update existing transfers to default prod (safer assumption for transfers)
         $transferQuery = "UPDATE transfers 
                          SET ligo_environment = 'prod' 
                          WHERE ligo_environment IS NULL";
@@ -57,7 +32,7 @@ class UpdateExistingLigoEnvironments extends Migration
         $db->query($transferQuery);
         $transfersUpdated = $db->affectedRows();
         
-        log_message('info', "[Migration] Updated Ligo environments - Prod payments: {$prodUpdated}, Dev payments: {$devUpdated}, Default payments: {$defaultUpdated}, Transfers: {$transfersUpdated}");
+        log_message('info', "[Migration] Conservative Ligo environment update - Test payments: {$testUpdated}, Transfers: {$transfersUpdated}. Other payments left as NULL for manual review.");
     }
 
     public function down()
