@@ -145,17 +145,25 @@
                                                 // Add individual Ligo payments (recharges) - these are always income
                                                 if (!empty($ligoPayments)) {
                                                     foreach ($ligoPayments as $payment) {
-                                                        // Normalize Ligo amounts (they might be in centavos)
-                                                        $normalizedAmount = $payment['amount'];
-                                                        if ($normalizedAmount >= 100) {
-                                                            $normalizedAmount = $normalizedAmount / 100; // Convert centavos to soles
+                                                        // Normalize Ligo amounts based on patterns in the data
+                                                        $amount = floatval($payment['amount']);
+                                                        
+                                                        // If amount is >= 100, it's likely in centavos (like 500 = 5.00 soles)
+                                                        // If amount is < 100, it's likely already in soles (like 2, 3, 5)
+                                                        if ($amount >= 100) {
+                                                            $normalizedAmount = $amount / 100;
+                                                        } else {
+                                                            $normalizedAmount = $amount;
                                                         }
                                                         
+                                                        // Format payment date
+                                                        $paymentDate = $payment['payment_date'] ?? $payment['created_at'];
+                                                        
                                                         $allMovements[] = [
-                                                            'date' => $payment['created_at'],
+                                                            'date' => $paymentDate,
                                                             'type' => 'Pago Ligo QR',
-                                                            'description' => 'Pago de cuota recibido via QR',
-                                                            'reference' => 'Pago ID: ' . $payment['id'],
+                                                            'description' => 'Pago de cuota recibido via QR Ligo',
+                                                            'reference' => 'ID: ' . $payment['id'] . ' (Original: ' . $amount . ')',
                                                             'amount' => $normalizedAmount,
                                                             'status' => 'Completado',
                                                             'is_withdrawal' => false // Payments are always income
@@ -247,34 +255,47 @@
 <?= $this->section('styles') ?>
 <style>
 /* Custom badge styles with proper contrast */
+.badge {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    border-radius: 0.25rem !important;
+}
+
 .badge-info {
     background-color: #17a2b8 !important;
-    color: white !important;
+    color: #ffffff !important;
+    border: 1px solid #17a2b8 !important;
 }
 
 .badge-warning {
     background-color: #ffc107 !important;
-    color: #212529 !important;
+    color: #000000 !important;
+    border: 1px solid #ffc107 !important;
 }
 
 .badge-success {
     background-color: #28a745 !important;
-    color: white !important;
+    color: #ffffff !important;
+    border: 1px solid #28a745 !important;
 }
 
 .badge-danger {
     background-color: #dc3545 !important;
-    color: white !important;
+    color: #ffffff !important;
+    border: 1px solid #dc3545 !important;
 }
 
 .badge-primary {
     background-color: #007bff !important;
-    color: white !important;
+    color: #ffffff !important;
+    border: 1px solid #007bff !important;
 }
 
 .badge-secondary {
     background-color: #6c757d !important;
-    color: white !important;
+    color: #ffffff !important;
+    border: 1px solid #6c757d !important;
 }
 
 /* Text color classes for amounts */
