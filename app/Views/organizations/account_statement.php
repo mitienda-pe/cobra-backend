@@ -111,26 +111,28 @@
                                                 if (!empty($transfers)) {
                                                     foreach ($transfers as $transfer) {
                                                         if ($transfer['status'] === 'completed') {
-                                                            $isWithdrawal = $transfer['transfer_type'] === 'withdrawal';
+                                                            // For this organization, all transfers are outgoing (withdrawals)
+                                                            // The transfer_type "regular" means normal outgoing transfer
+                                                            $isWithdrawal = true; // All transfers from this org are outgoing
                                                             
                                                             // Add main transfer
                                                             $allMovements[] = [
                                                                 'date' => $transfer['created_at'],
-                                                                'type' => $isWithdrawal ? 'Retiro' : 'Ingreso por Transferencia',
-                                                                'description' => $transfer['creditor_name'] . ' - ' . $transfer['unstructured_information'],
+                                                                'type' => 'Transferencia Enviada',
+                                                                'description' => 'A: ' . $transfer['creditor_name'] . ' - ' . $transfer['unstructured_information'],
                                                                 'reference' => 'CCI: ' . $transfer['creditor_cci'],
                                                                 'amount' => $transfer['amount'],
                                                                 'status' => 'Completado',
                                                                 'is_withdrawal' => $isWithdrawal
                                                             ];
                                                             
-                                                            // Add fee as separate row if exists and transfer was outgoing
-                                                            if ($isWithdrawal && !empty($transfer['fee_amount']) && $transfer['fee_amount'] > 0) {
+                                                            // Add fee as separate row if exists
+                                                            if (!empty($transfer['fee_amount']) && $transfer['fee_amount'] > 0) {
                                                                 $allMovements[] = [
                                                                     'date' => $transfer['created_at'],
-                                                                    'type' => 'Comisión de Transferencia',
-                                                                    'description' => 'Comisión por transferencia a ' . $transfer['creditor_name'],
-                                                                    'reference' => 'Ref: ' . $transfer['reference_transaction_id'],
+                                                                    'type' => 'Comisión Transferencia',
+                                                                    'description' => 'Comisión por envío a ' . $transfer['creditor_name'],
+                                                                    'reference' => 'ID: ' . $transfer['id'],
                                                                     'amount' => $transfer['fee_amount'],
                                                                     'status' => 'Completado',
                                                                     'is_withdrawal' => true // Fees are always outgoing
