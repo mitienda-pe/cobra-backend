@@ -378,7 +378,7 @@ function recalculateBalance() {
             'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({
-            currency: '<?= esc($currency) ?>'
+            currency: 'PEN'
         })
     })
     .then(response => response.json())
