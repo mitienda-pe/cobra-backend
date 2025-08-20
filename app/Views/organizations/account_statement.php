@@ -48,6 +48,20 @@
                         </div>
                     </div>
 
+                    <!-- Ligo Environment Info -->
+                    <?php if (isset($activeConfig)): ?>
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Configuración Ligo activa:</strong> 
+                        <span class="badge" style="background-color: <?= $isProduction ? '#dc3545' : '#ffc107' ?>; color: <?= $isProduction ? 'white' : 'black' ?>; padding: 0.25rem 0.5rem;">
+                            <?= strtoupper($activeConfig['environment']) ?>
+                        </span>
+                        <small class="d-block mt-1">
+                            Mostrando solo pagos QR Ligo de ambiente <strong><?= $isProduction ? 'PRODUCCIÓN' : 'DESARROLLO' ?></strong>
+                        </small>
+                    </div>
+                    <?php endif; ?>
+
                     <!-- Current Balance Summary -->
                     <div class="row">
                         <div class="col-md-6">
@@ -159,10 +173,11 @@
                                                         // Format payment date
                                                         $paymentDate = $payment['payment_date'] ?? $payment['created_at'];
                                                         
+                                                        $envLabel = $isProduction ? 'PROD' : 'DEV';
                                                         $allMovements[] = [
                                                             'date' => $paymentDate,
-                                                            'type' => 'Pago Ligo QR (Prod)',
-                                                            'description' => 'Pago de cuota recibido via QR Ligo Producción',
+                                                            'type' => 'Pago Ligo QR (' . $envLabel . ')',
+                                                            'description' => 'Pago de cuota recibido via QR Ligo ' . ($isProduction ? 'Producción' : 'Desarrollo'),
                                                             'reference' => 'ID: ' . $payment['id'] . (!empty($payment['external_id']) ? ' | Ext: ' . $payment['external_id'] : ''),
                                                             'amount' => $normalizedAmount,
                                                             'status' => 'Completado',

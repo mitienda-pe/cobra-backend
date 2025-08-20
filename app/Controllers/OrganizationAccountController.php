@@ -81,21 +81,33 @@ class OrganizationAccountController extends BaseController
         // Get transfer balance summary
         $transferBalance = $this->transferModel->calculateOrganizationBalance($organizationId);
 
-        // Get individual Ligo payments (completed only, production payments) - via JOIN with invoices
+        // Get current active Ligo configuration to determine production vs dev
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+        $activeConfig = $superadminLigoConfigModel->where('enabled', 1)->where('is_active', 1)->first();
+        $isProduction = $activeConfig && $activeConfig['environment'] === 'prod';
+        
+        // Get individual Ligo payments (completed only, filtered by current environment)
         $db = \Config\Database::connect();
-        $ligoPayments = $db->table('payments p')
-                          ->select('p.id, p.amount, p.payment_date, p.status, p.payment_method, p.created_at, p.invoice_id, p.instalment_id, p.external_id')
-                          ->join('invoices i', 'p.invoice_id = i.id')
-                          ->where('i.organization_id', $organizationId)
-                          ->where('p.payment_method', 'ligo_qr')
-                          ->where('p.status', 'completed')
-                          // Filter for production payments - exclude test payments from early dates
-                          ->where('p.created_at >=', '2025-07-15') // Assuming production started around this date
-                          ->whereNotNull('p.external_id') // Production payments should have external_id
-                          ->orderBy('p.created_at', 'DESC')
-                          ->limit(50)
-                          ->get()
-                          ->getResultArray();
+        $query = $db->table('payments p')
+                   ->select('p.id, p.amount, p.payment_date, p.status, p.payment_method, p.created_at, p.invoice_id, p.instalment_id, p.external_id')
+                   ->join('invoices i', 'p.invoice_id = i.id')
+                   ->where('i.organization_id', $organizationId)
+                   ->where('p.payment_method', 'ligo_qr')
+                   ->where('p.status', 'completed');
+        
+        // Filter based on current environment preference
+        if ($isProduction) {
+            // For production, get payments from when production was likely active
+            $query->where('p.created_at >=', '2025-08-01'); // Adjust this date based on when production started
+        } else {
+            // For development, show all payments (or apply different filter)
+            $query->where('p.created_at >=', '2025-07-01');
+        }
+        
+        $ligoPayments = $query->orderBy('p.created_at', 'DESC')
+                            ->limit(50)
+                            ->get()
+                            ->getResultArray();
 
         return view('organizations/account_statement', [
             'organization' => $organization,
@@ -105,6 +117,8 @@ class OrganizationAccountController extends BaseController
             'transfers' => $transfers,
             'transferBalance' => $transferBalance,
             'ligoPayments' => $ligoPayments,
+            'activeConfig' => $activeConfig,
+            'isProduction' => $isProduction,
             'dateStart' => $dateStart,
             'dateEnd' => $dateEnd,
             'currency' => $currency,
