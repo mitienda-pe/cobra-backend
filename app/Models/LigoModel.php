@@ -679,7 +679,7 @@ class LigoModel extends Model
                 'creditorName' => $step2Response['data']['creditorName'] ?? 'Beneficiario',
                 'creditorCCI' => $transferData['creditorCCI'],
                 'sameCustomerFlag' => 'M',
-                'purposeCode' => '001',
+                'purposeCode' => 'IPAY', // Per Ligo support: use "IPAY" for transfers
                 'unstructuredInformation' => $this->formatUnstructuredInformation($transferData),
                 'feeId' => $step3Response['data']['feeId'] ?? '',
                 'feeLigo' => $step3Response['data']['feeLigo'] ?? ''
@@ -839,7 +839,7 @@ class LigoModel extends Model
                 'creditorName' => $creditorData['name'],
                 'creditorCCI' => $creditorData['cci'],
                 'sameCustomerFlag' => 'M',
-                'purposeCode' => '001',
+                'purposeCode' => 'IPAY', // Per Ligo support: use "IPAY" for transfers
                 'unstructuredInformation' => $this->formatUnstructuredInformation($transferData),
                 'feeId' => $step3Response['data']['feeId'] ?? '',
                 'feeLigo' => $step3Response['data']['feeLigo'] ?? ''
@@ -1218,7 +1218,7 @@ class LigoModel extends Model
                 'feeAmount' => $feeAmountFormatted,
                 'feeCode' => (string)($transferData['feeCode'] ?? ''),
                 'applicationCriteria' => (string)(!empty($transferData['applicationCriteria']) ? $transferData['applicationCriteria'] : 'M'),
-                'debtorTypeOfPerson' => (string)($superadminConfig['debtor_type_of_person'] ?? 'N'),
+                'debtorTypeOfPerson' => (string)'J', // Per Ligo support: use "J" for transfers
                 'debtorName' => (string)$debtorData['name'],
                 'debtorAddressLine' => (string)$debtorData['addressLine'],
                 'debtorId' => (string)$debtorData['id'],
@@ -1229,7 +1229,7 @@ class LigoModel extends Model
                 'creditorAddressLine' => (string)($superadminConfig['creditor_address_line'] ?? 'JR LIMA'),
                 'creditorCCI' => (string)$creditorData['cci'],
                 'sameCustomerFlag' => (string)'O',
-                'purposeCode' => (string)($transferData['purposeCode'] ?? '0105'),
+                'purposeCode' => (string)'IPAY', // Per Ligo support: use "IPAY" for transfers
                 'unstructuredInformation' => (string)($this->formatUnstructuredInformation($transferData)),
                 'feeId' => (string)($transferData['feeId'] ?? ''),
                 'feeLigo' => (string)($transferData['feeLigo'] ?? '0')
