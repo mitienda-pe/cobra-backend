@@ -182,7 +182,7 @@
                                                 <tr>
                                                     <td><?= date('d/m/Y H:i', strtotime($movement['date'])) ?></td>
                                                     <td>
-                                                        <span class="badge badge-<?= $movement['is_withdrawal'] ? 'warning' : 'info' ?>">
+                                                        <span class="badge" style="background-color: <?= $movement['is_withdrawal'] ? '#dc3545' : '#17a2b8' ?>; color: white; padding: 0.25rem 0.5rem; font-size: 0.75rem;">
                                                             <?= $movement['type'] ?>
                                                         </span>
                                                     </td>
@@ -194,7 +194,7 @@
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <span class="badge badge-success">
+                                                        <span class="badge" style="background-color: #28a745; color: white; padding: 0.25rem 0.5rem; font-size: 0.75rem;">
                                                             <?= $movement['status'] ?>
                                                         </span>
                                                     </td>
