@@ -78,8 +78,10 @@ class OrganizationAccountController extends BaseController
         // Get recent transfers for this organization
         $transfers = $this->transferModel->getTransfersByOrganization($organizationId, 20);
         
-        // Get transfer balance summary
-        $transferBalance = $this->transferModel->calculateOrganizationBalance($organizationId);
+        // Get transfer balance summary for current month (like banks do)
+        $currentMonth = date('n'); // 1-12
+        $currentYear = date('Y');
+        $transferBalance = $this->transferModel->calculateOrganizationBalance($organizationId, $currentMonth, $currentYear);
 
         // Get current active Ligo configuration to determine production vs dev
         $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();

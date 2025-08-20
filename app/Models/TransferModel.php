@@ -222,9 +222,10 @@ class TransferModel extends Model
 
     /**
      * Calculate organization's complete balance including Ligo payments
-     * (Ligo payments + incoming transfers - outgoing transfers/withdrawals - fees)
+     * (Ligo payments - outgoing transfers/withdrawals - fees)
+     * Can be calculated for a specific month (like banks do) or cumulative
      */
-    public function calculateOrganizationBalance($organizationId)
+    public function calculateOrganizationBalance($organizationId, $month = null, $year = null)
     {
         $db = \Config\Database::connect();
         
@@ -248,37 +249,54 @@ class TransferModel extends Model
             $ligoQuery->where('p.ligo_environment', 'dev');
         }
         
+        // Add date filters for monthly calculation
+        if ($month && $year) {
+            $startDate = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01';
+            $endDate = date('Y-m-t', strtotime($startDate)); // Last day of month
+            $ligoQuery->where('p.payment_date >=', $startDate)
+                     ->where('p.payment_date <=', $endDate . ' 23:59:59');
+        }
+        
         $ligoIncome = $ligoQuery->get()->getRowArray()['total_ligo_income'] ?? 0;
         
-        // Sum of completed incoming transfers (to organization) - usually should be 0 for most orgs
-        $incomingQuery = $db->table($this->table)
-            ->selectSum('amount', 'total_incoming')
-            ->where('organization_id', $organizationId)
-            ->where('status', 'completed')
-            ->where('transfer_type !=', 'withdrawal')
-            ->get();
-        
-        $incomingTransfers = $incomingQuery->getRowArray()['total_incoming'] ?? 0;
+        // For Ligo flow, organizations don't receive incoming transfers
+        // Money flow: Ligo payments -> Your CCI -> Transfer to organization
+        // So incoming transfers should be 0 for this balance calculation
+        $incomingTransfers = 0;
         
         // Sum of completed withdrawals (from organization)
         $withdrawalQuery = $db->table($this->table)
             ->selectSum('amount', 'total_withdrawals')
             ->where('organization_id', $organizationId)
             ->where('status', 'completed')
-            ->where('transfer_type', 'withdrawal')
-            ->get();
+            ->where('transfer_type', 'withdrawal');
+            
+        // Add date filters for monthly calculation
+        if ($month && $year) {
+            $startDate = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01';
+            $endDate = date('Y-m-t', strtotime($startDate)); // Last day of month
+            $withdrawalQuery->where('created_at >=', $startDate)
+                           ->where('created_at <=', $endDate . ' 23:59:59');
+        }
         
-        $withdrawals = $withdrawalQuery->getRowArray()['total_withdrawals'] ?? 0;
+        $withdrawals = $withdrawalQuery->get()->getRowArray()['total_withdrawals'] ?? 0;
         
         // Sum of transfer fees (additional outgoing costs)
         $feeQuery = $db->table($this->table)
             ->selectSum('fee_amount', 'total_fees')
             ->where('organization_id', $organizationId)
             ->where('status', 'completed')
-            ->where('fee_amount >', 0)
-            ->get();
+            ->where('fee_amount >', 0);
+            
+        // Add date filters for monthly calculation
+        if ($month && $year) {
+            $startDate = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01';
+            $endDate = date('Y-m-t', strtotime($startDate)); // Last day of month
+            $feeQuery->where('created_at >=', $startDate)
+                     ->where('created_at <=', $endDate . ' 23:59:59');
+        }
         
-        $fees = $feeQuery->getRowArray()['total_fees'] ?? 0;
+        $fees = $feeQuery->get()->getRowArray()['total_fees'] ?? 0;
         
         $totalIncome = floatval($ligoIncome) + floatval($incomingTransfers);
         $totalOutgoing = floatval($withdrawals) + floatval($fees);

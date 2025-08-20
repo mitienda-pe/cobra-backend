@@ -72,8 +72,9 @@
                                             <i class="fas fa-wallet"></i>
                                         </div>
                                     </div>
-                                    <h5 class="card-title text-muted mb-1">Balance Actual</h5>
+                                    <h5 class="card-title text-muted mb-1">Balance Mensual</h5>
                                     <h3 class="text-success mb-0">S/ <?= number_format($transferBalance['available_balance'] ?? 0, 2) ?></h3>
+                                    <small class="text-muted"><?= date('F Y') ?></small>
                                 </div>
                             </div>
                         </div>
