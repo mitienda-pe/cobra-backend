@@ -173,11 +173,15 @@
                                                         // Format payment date
                                                         $paymentDate = $payment['payment_date'] ?? $payment['created_at'];
                                                         
-                                                        $envLabel = $isProduction ? 'PROD' : 'DEV';
+                                                        // Use actual environment from payment record
+                                                        $paymentEnv = $payment['ligo_environment'] ?? 'dev';
+                                                        $envLabel = strtoupper($paymentEnv);
+                                                        $envDescription = $paymentEnv === 'prod' ? 'Producción' : 'Desarrollo';
+                                                        
                                                         $allMovements[] = [
                                                             'date' => $paymentDate,
                                                             'type' => 'Pago Ligo QR (' . $envLabel . ')',
-                                                            'description' => 'Pago de cuota recibido via QR Ligo ' . ($isProduction ? 'Producción' : 'Desarrollo'),
+                                                            'description' => 'Pago de cuota recibido via QR Ligo ' . $envDescription,
                                                             'reference' => 'ID: ' . $payment['id'] . (!empty($payment['external_id']) ? ' | Ext: ' . $payment['external_id'] : ''),
                                                             'amount' => $normalizedAmount,
                                                             'status' => 'Completado',

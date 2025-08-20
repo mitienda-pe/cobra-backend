@@ -34,7 +34,8 @@ class TransferModel extends Model
         'response_code',
         'ligo_response',
         'error_message',
-        'transfer_type'
+        'transfer_type',
+        'ligo_environment'
     ];
 
     // Dates

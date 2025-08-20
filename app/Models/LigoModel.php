@@ -1627,7 +1627,8 @@ class LigoModel extends Model
                 'response_code' => $responseCode,
                 'ligo_response' => json_encode($ligoResponse),
                 'error_message' => null,
-                'transfer_type' => $transferData['transfer_type'] ?? 'regular'
+                'transfer_type' => $transferData['transfer_type'] ?? 'regular',
+                'ligo_environment' => $superadminConfig['environment'] ?? 'dev' // Save Ligo credentials environment
             ];
             
             log_message('error', '💾 LigoModel: Guardando transferencia en base de datos - Data: ' . json_encode($dbData));

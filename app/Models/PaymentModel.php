@@ -14,7 +14,7 @@ class PaymentModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'invoice_id', 'instalment_id', 'user_id', 'uuid', 'external_id', 'amount', 'payment_method', 
-        'reference_code', 'payment_date', 'status', 'notes', 'latitude', 
+        'ligo_environment', 'reference_code', 'payment_date', 'status', 'notes', 'latitude', 
         'longitude', 'is_notified'
     ];
 

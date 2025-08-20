@@ -209,6 +209,7 @@ class LigoWebhookController extends ResourceController
             'external_id' => $instructionId,
             'payment_date' => $payload->transferDetails->transferDate ?? date('Y-m-d H:i:s'),
             'status' => 'completed',
+            'ligo_environment' => $environment, // Save which Ligo credentials environment was used
             'notes' => json_encode([
                 'instruction_id' => $instructionId,
                 'id_qr' => $idQr,

@@ -89,22 +89,19 @@ class OrganizationAccountController extends BaseController
         // Get individual Ligo payments (completed only, filtered by current environment)
         $db = \Config\Database::connect();
         $query = $db->table('payments p')
-                   ->select('p.id, p.amount, p.payment_date, p.status, p.payment_method, p.created_at, p.invoice_id, p.instalment_id, p.external_id')
+                   ->select('p.id, p.amount, p.payment_date, p.status, p.payment_method, p.created_at, p.invoice_id, p.instalment_id, p.external_id, p.ligo_environment')
                    ->join('invoices i', 'p.invoice_id = i.id')
                    ->where('i.organization_id', $organizationId)
                    ->where('p.payment_method', 'ligo_qr')
                    ->where('p.status', 'completed');
         
-        // Filter based on current environment preference using external_id patterns
+        // Filter based on current environment preference using ligo_environment field
         if ($isProduction) {
-            // Production payments have numeric external_ids without "test" or "TEST"
-            $query->whereNotNull('p.external_id')
-                  ->notLike('p.external_id', '%test%', 'none', false) // Case insensitive
-                  ->notLike('p.external_id', '%TEST%', 'none', false)
-                  ->where('LENGTH(p.external_id) > 20'); // Production IDs are long numeric strings
+            // Show only production payments
+            $query->where('p.ligo_environment', 'prod');
         } else {
-            // Development/test payments contain "test" or "TEST" in external_id
-            $query->where('(p.external_id LIKE "%test%" OR p.external_id LIKE "%TEST%" OR LENGTH(p.external_id) <= 20)', null, false);
+            // Show only development/test payments  
+            $query->where('p.ligo_environment', 'dev');
         }
         
         $ligoPayments = $query->orderBy('p.created_at', 'DESC')
