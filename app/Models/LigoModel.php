@@ -1417,16 +1417,10 @@ class LigoModel extends Model
     {
         if (isset($transferData['instructionId'])) {
             $instructionId = $transferData['instructionId'];
-            log_message('error', '🔢 LigoModel: Using instructionId directly: ' . $instructionId);
+            log_message('error', '🔢 LigoModel: Using instructionId directly (full): ' . $instructionId . ' (length: ' . strlen($instructionId) . ')');
             
-            // The instructionId from Ligo is already in the correct format - use it directly
-            if (strlen($instructionId) > 20) {
-                // If too long, truncate from the beginning to keep the most significant digits
-                $truncatedId = substr($instructionId, -20);
-                log_message('error', '✂️ LigoModel: Instruction ID too long (' . strlen($instructionId) . ' digits), truncated to: ' . $truncatedId);
-                return $truncatedId;
-            }
-            
+            // Use the complete instructionId from Ligo - no truncation
+            // Ligo provided this ID in step 2, so it should accept it back as referenceTransactionId
             return $instructionId;
         } else {
             // Generate random reference ID
