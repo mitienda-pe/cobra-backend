@@ -162,12 +162,13 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->post('(:segment)', 'OrganizationController::update/$1');
         $routes->post('(:segment)/delete', 'OrganizationController::delete/$1');
         
-        // Organization Account Statement Routes
+        // Organization Account Statement Routes - using UUID for security
         $routes->get('account/(:segment)', 'OrganizationAccountController::index/$1');
         $routes->get('account/(:segment)/movements', 'OrganizationAccountController::movements/$1');
         $routes->get('account/(:segment)/export', 'OrganizationAccountController::exportMovements/$1');
         $routes->post('account/(:segment)/recalculate', 'OrganizationAccountController::recalculateBalance/$1');
         $routes->get('account/(:segment)/balance', 'OrganizationAccountController::getBalance/$1');
+        $routes->post('account/(:segment)/ligo-transactions', 'OrganizationAccountController::getLigoTransactions/$1');
     });
 
     // User Routes

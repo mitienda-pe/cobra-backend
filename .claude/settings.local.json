@@ -38,7 +38,8 @@
       "Bash(git log:*)",
       "Bash(scp:*)",
       "Bash(git pull:*)",
-      "Bash(git revert:*)"
+      "Bash(git revert:*)",
+      "Bash(git tag:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

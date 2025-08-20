@@ -6,43 +6,52 @@ use App\Controllers\BaseController;
 use App\Models\OrganizationModel;
 use App\Models\OrganizationBalanceModel;
 use App\Models\PaymentModel;
+use App\Models\TransferModel;
+use App\Models\LigoModel;
 
 class OrganizationAccountController extends BaseController
 {
     protected $organizationModel;
     protected $balanceModel;
     protected $paymentModel;
+    protected $transferModel;
+    protected $ligoModel;
 
     public function __construct()
     {
         $this->organizationModel = new OrganizationModel();
         $this->balanceModel = new OrganizationBalanceModel();
         $this->paymentModel = new PaymentModel();
+        $this->transferModel = new TransferModel();
+        $this->ligoModel = new LigoModel();
     }
 
     /**
      * Display account statement for an organization
      */
-    public function index($organizationId = null)
+    public function index($organizationUuid = null)
     {
-        // Get current user's organization context
-        if (!$organizationId) {
+        // Get organization by UUID or user context
+        if ($organizationUuid) {
+            // Find organization by UUID for security
+            $organization = $this->organizationModel->where('uuid', $organizationUuid)->first();
+            if (!$organization) {
+                throw new \CodeIgniter\Exceptions\PageNotFoundException('Organización no encontrada');
+            }
+            $organizationId = $organization['id'];
+        } else {
             // For superadmin, use selected_organization_id, for regular users use organization_id
             if (session('role') === 'superadmin') {
                 $organizationId = session('selected_organization_id');
             } else {
                 $organizationId = session('organization_id');
             }
+            $organization = $this->organizationModel->find($organizationId);
         }
 
         // Verify access to organization
         if (!$this->hasOrganizationAccess($organizationId)) {
             return redirect()->back()->with('error', 'No tienes acceso a esta organización');
-        }
-
-        $organization = $this->organizationModel->find($organizationId);
-        if (!$organization) {
-            throw new \CodeIgniter\Exceptions\PageNotFoundException('Organización no encontrada');
         }
 
         // Get date range from request
@@ -66,11 +75,19 @@ class OrganizationAccountController extends BaseController
         // Get monthly breakdown for current year
         $monthlyBreakdown = $this->balanceModel->getMonthlyBreakdown($organizationId, null, $currency);
 
+        // Get recent transfers for this organization
+        $transfers = $this->transferModel->getTransfersByOrganization($organizationId, 20);
+        
+        // Get transfer balance summary
+        $transferBalance = $this->transferModel->calculateOrganizationBalance($organizationId);
+
         return view('organizations/account_statement', [
             'organization' => $organization,
             'balance' => $balance,
             'ligoSummary' => $ligoSummary,
             'monthlyBreakdown' => $monthlyBreakdown,
+            'transfers' => $transfers,
+            'transferBalance' => $transferBalance,
             'dateStart' => $dateStart,
             'dateEnd' => $dateEnd,
             'currency' => $currency,
@@ -81,26 +98,29 @@ class OrganizationAccountController extends BaseController
     /**
      * Display detailed movements for an organization
      */
-    public function movements($organizationId = null)
+    public function movements($organizationUuid = null)
     {
-        // Get current user's organization context
-        if (!$organizationId) {
+        // Get organization by UUID or user context
+        if ($organizationUuid) {
+            // Find organization by UUID for security
+            $organization = $this->organizationModel->where('uuid', $organizationUuid)->first();
+            if (!$organization) {
+                throw new \CodeIgniter\Exceptions\PageNotFoundException('Organización no encontrada');
+            }
+            $organizationId = $organization['id'];
+        } else {
             // For superadmin, use selected_organization_id, for regular users use organization_id
             if (session('role') === 'superadmin') {
                 $organizationId = session('selected_organization_id');
             } else {
                 $organizationId = session('organization_id');
             }
+            $organization = $this->organizationModel->find($organizationId);
         }
 
         // Verify access to organization
         if (!$this->hasOrganizationAccess($organizationId)) {
             return redirect()->back()->with('error', 'No tienes acceso a esta organización');
-        }
-
-        $organization = $this->organizationModel->find($organizationId);
-        if (!$organization) {
-            throw new \CodeIgniter\Exceptions\PageNotFoundException('Organización no encontrada');
         }
 
         // Get filters from request
@@ -145,16 +165,27 @@ class OrganizationAccountController extends BaseController
     /**
      * Export movements to CSV
      */
-    public function exportMovements($organizationId = null)
+    public function exportMovements($organizationUuid = null)
     {
+        // Get organization by UUID
+        if ($organizationUuid) {
+            $organization = $this->organizationModel->where('uuid', $organizationUuid)->first();
+            if (!$organization) {
+                return $this->response->setJSON(['error' => 'Organización no encontrada'])->setStatusCode(404);
+            }
+            $organizationId = $organization['id'];
+        } else {
+            if (session('role') === 'superadmin') {
+                $organizationId = session('selected_organization_id');
+            } else {
+                $organizationId = session('organization_id');
+            }
+            $organization = $this->organizationModel->find($organizationId);
+        }
+
         // Verify access to organization
         if (!$this->hasOrganizationAccess($organizationId)) {
             return $this->response->setJSON(['error' => 'No tienes acceso a esta organización'])->setStatusCode(403);
-        }
-
-        $organization = $this->organizationModel->find($organizationId);
-        if (!$organization) {
-            return $this->response->setJSON(['error' => 'Organización no encontrada'])->setStatusCode(404);
         }
 
         // Get filters from request
@@ -202,8 +233,23 @@ class OrganizationAccountController extends BaseController
     /**
      * Recalculate organization balance
      */
-    public function recalculateBalance($organizationId = null)
+    public function recalculateBalance($organizationUuid = null)
     {
+        // Get organization by UUID
+        if ($organizationUuid) {
+            $organization = $this->organizationModel->where('uuid', $organizationUuid)->first();
+            if (!$organization) {
+                return $this->response->setJSON(['error' => 'Organización no encontrada'])->setStatusCode(404);
+            }
+            $organizationId = $organization['id'];
+        } else {
+            if (session('role') === 'superadmin') {
+                $organizationId = session('selected_organization_id');
+            } else {
+                $organizationId = session('organization_id');
+            }
+        }
+
         // Verify access to organization
         if (!$this->hasOrganizationAccess($organizationId)) {
             return $this->response->setJSON(['error' => 'No tienes acceso a esta organización'])->setStatusCode(403);
@@ -228,8 +274,23 @@ class OrganizationAccountController extends BaseController
     /**
      * API endpoint to get organization balance
      */
-    public function getBalance($organizationId = null)
+    public function getBalance($organizationUuid = null)
     {
+        // Get organization by UUID
+        if ($organizationUuid) {
+            $organization = $this->organizationModel->where('uuid', $organizationUuid)->first();
+            if (!$organization) {
+                return $this->response->setJSON(['error' => 'Organización no encontrada'])->setStatusCode(404);
+            }
+            $organizationId = $organization['id'];
+        } else {
+            if (session('role') === 'superadmin') {
+                $organizationId = session('selected_organization_id');
+            } else {
+                $organizationId = session('organization_id');
+            }
+        }
+
         // Verify access to organization
         if (!$this->hasOrganizationAccess($organizationId)) {
             return $this->response->setJSON(['error' => 'No tienes acceso a esta organización'])->setStatusCode(403);
@@ -274,4 +335,55 @@ class OrganizationAccountController extends BaseController
         $userOrgId = session('organization_id');
         return $userOrgId && $userOrgId == $organizationId;
     }
+
+    /**
+     * Get Ligo transactions for organization (AJAX endpoint)
+     */
+    public function getLigoTransactions($organizationUuid = null)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['error' => 'Invalid request'])->setStatusCode(400);
+        }
+
+        // Get organization by UUID
+        if ($organizationUuid) {
+            $organization = $this->organizationModel->where('uuid', $organizationUuid)->first();
+            if (!$organization) {
+                return $this->response->setJSON(['error' => 'Organización no encontrada'])->setStatusCode(404);
+            }
+            $organizationId = $organization['id'];
+        } else {
+            if (session('role') === 'superadmin') {
+                $organizationId = session('selected_organization_id');
+            } else {
+                $organizationId = session('organization_id');
+            }
+        }
+
+        // Verify access
+        if (!$this->hasOrganizationAccess($organizationId)) {
+            return $this->response->setJSON(['error' => 'No tienes acceso a esta organización'])->setStatusCode(403);
+        }
+
+        // Get filters from request
+        $startDate = $this->request->getPost('startDate');
+        $endDate = $this->request->getPost('endDate');
+        $page = (int)$this->request->getPost('page') ?: 1;
+
+        $requestData = [
+            'page' => $page,
+            'startDate' => $startDate,
+            'endDate' => $endDate
+        ];
+
+        // Call Ligo API
+        $response = $this->ligoModel->listTransactionsForOrganization($requestData);
+
+        if (isset($response['error'])) {
+            return $this->response->setJSON(['error' => $response['error']])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON($response);
+    }
+}
 }
