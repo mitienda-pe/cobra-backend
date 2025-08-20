@@ -8,7 +8,7 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title">
                         <i class="fas fa-chart-line mr-2"></i>
-                        Estado de Cuenta Ligo (Producción) - <?= esc($organization['name']) ?>
+                        Estado de Cuenta - <?= esc($organization['name']) ?>
                     </h3>
                     <div class="btn-group">
                         <button type="button" class="btn btn-info btn-sm" onclick="recalculateBalance()">
@@ -23,16 +23,16 @@
                     <!-- Filters -->
                     <div class="row mb-4">
                         <div class="col-md-12">
-                            <form method="GET" class="form-inline">
-                                <div class="form-group mr-3">
-                                    <label for="date_start" class="mr-2">Desde:</label>
+                            <form method="GET" class="d-flex align-items-center">
+                                <div class="mr-3">
+                                    <label for="date_start" class="mr-2 mb-0">Desde:</label>
                                     <input type="date" class="form-control form-control-sm" id="date_start" name="date_start" 
-                                           value="<?= esc($dateStart) ?>">
+                                           value="<?= esc($dateStart) ?>" style="display: inline-block; width: auto;">
                                 </div>
-                                <div class="form-group mr-3">
-                                    <label for="date_end" class="mr-2">Hasta:</label>
+                                <div class="mr-3">
+                                    <label for="date_end" class="mr-2 mb-0">Hasta:</label>
                                     <input type="date" class="form-control form-control-sm" id="date_end" name="date_end" 
-                                           value="<?= esc($dateEnd) ?>">
+                                           value="<?= esc($dateEnd) ?>" style="display: inline-block; width: auto;">
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-sm">
                                     <i class="fas fa-filter"></i> Filtrar
@@ -41,8 +41,8 @@
                         </div>
                     </div>
 
-                    <!-- Ligo Environment Info -->
-                    <?php if (isset($activeConfig)): ?>
+                    <!-- Ligo Environment Info - Only for superadmins -->
+                    <?php if (isset($activeConfig) && $isSuperadmin): ?>
                     <div class="alert alert-info mb-3">
                         <i class="fas fa-info-circle"></i>
                         <strong>Configuración Ligo activa:</strong> 

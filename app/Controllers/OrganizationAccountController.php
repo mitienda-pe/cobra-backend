@@ -123,6 +123,7 @@ class OrganizationAccountController extends BaseController
             'isProduction' => $isProduction,
             'dateStart' => $dateStart,
             'dateEnd' => $dateEnd,
+            'isSuperadmin' => session('role') === 'superadmin',
             'title' => 'Estado de Cuenta - ' . $organization['name']
         ]);
     }
