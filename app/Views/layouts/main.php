@@ -363,6 +363,7 @@
         $isSuperadmin = isset($user) && $user['role'] === 'superadmin';
         $isAdmin = isset($user) && ($user['role'] === 'admin' || $user['role'] === 'superadmin');
         $selectedOrgId = session()->get('selected_organization_id');
+        $selectedOrgUuid = null;
         $selectedOrgName = 'Todas las organizaciones';
 
         if ($selectedOrgId && $isSuperadmin) {
@@ -370,6 +371,7 @@
             $org = $orgModel->find($selectedOrgId);
             if ($org) {
                 $selectedOrgName = $org['name'];
+                $selectedOrgUuid = $org['uuid']; // Get UUID for secure URLs
             }
         }
 
@@ -487,7 +489,7 @@
                             <span class="sidebar-item-text">Reportes</span>
                         </a>
 
-                        <a href="<?= site_url('organizations/account/' . $selectedOrgId) ?>" class="sidebar-item <?= strpos($currentPath, '/organizations/account') === 0 ? 'active' : '' ?>">
+                        <a href="<?= site_url('organizations/account/' . $selectedOrgUuid) ?>" class="sidebar-item <?= strpos($currentPath, '/organizations/account') === 0 ? 'active' : '' ?>">
                             <i class="bi bi-wallet2"></i>
                             <span class="sidebar-item-text">Estado de Cuenta</span>
                         </a>

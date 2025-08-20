@@ -11,7 +11,7 @@
                         Movimientos - <?= esc($organization['name']) ?>
                     </h3>
                     <div class="btn-group">
-                        <a href="<?= site_url('organizations/account/' . $organization['id']) ?>" class="btn btn-secondary btn-sm">
+                        <a href="<?= site_url('organizations/account/' . $organization['uuid']) ?>" class="btn btn-secondary btn-sm">
                             <i class="fas fa-chart-line"></i> Estado de Cuenta
                         </a>
                         <button type="button" class="btn btn-success btn-sm" onclick="exportMovements()">
@@ -239,7 +239,7 @@ function exportMovements() {
     if (dateEnd) params.append('date_end', dateEnd);
     if (paymentMethod) params.append('payment_method', paymentMethod);
     
-    const exportUrl = '<?= site_url('organizations/account/' . $organization['id'] . '/export') ?>' + 
+    const exportUrl = '<?= site_url('organizations/account/' . $organization['uuid'] . '/export') ?>' + 
                       (params.toString() ? '?' + params.toString() : '');
     
     // Create a temporary link to download the file
