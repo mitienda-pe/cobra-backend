@@ -95,13 +95,16 @@ class OrganizationAccountController extends BaseController
                    ->where('p.payment_method', 'ligo_qr')
                    ->where('p.status', 'completed');
         
-        // Filter based on current environment preference
+        // Filter based on current environment preference using external_id patterns
         if ($isProduction) {
-            // For production, get payments from when production was likely active
-            $query->where('p.created_at >=', '2025-08-01'); // Adjust this date based on when production started
+            // Production payments have numeric external_ids without "test" or "TEST"
+            $query->whereNotNull('p.external_id')
+                  ->notLike('p.external_id', '%test%', 'none', false) // Case insensitive
+                  ->notLike('p.external_id', '%TEST%', 'none', false)
+                  ->where('LENGTH(p.external_id) > 20'); // Production IDs are long numeric strings
         } else {
-            // For development, show all payments (or apply different filter)
-            $query->where('p.created_at >=', '2025-07-01');
+            // Development/test payments contain "test" or "TEST" in external_id
+            $query->where('(p.external_id LIKE "%test%" OR p.external_id LIKE "%TEST%" OR LENGTH(p.external_id) <= 20)', null, false);
         }
         
         $ligoPayments = $query->orderBy('p.created_at', 'DESC')
