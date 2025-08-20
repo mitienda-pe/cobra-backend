@@ -264,12 +264,12 @@ class TransferModel extends Model
         // So incoming transfers should be 0 for this balance calculation
         $incomingTransfers = 0;
         
-        // Sum of completed withdrawals (from organization)
+        // Sum of all outgoing transfers (from organization) 
+        // For Ligo flow, all transfers from organization are outgoing
         $withdrawalQuery = $db->table($this->table)
             ->selectSum('amount', 'total_withdrawals')
             ->where('organization_id', $organizationId)
-            ->where('status', 'completed')
-            ->where('transfer_type', 'withdrawal');
+            ->where('status', 'completed'); // Remove transfer_type filter - all completed transfers are outgoing
             
         // Add date filters for monthly calculation
         if ($month && $year) {

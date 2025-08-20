@@ -132,6 +132,7 @@
                                                     <th>Descripción</th>
                                                     <th>Referencia</th>
                                                     <th class="text-right">Monto</th>
+                                                    <th class="text-right">Saldo</th>
                                                     <th>Estado</th>
                                                 </tr>
                                             </thead>
@@ -209,10 +210,25 @@
                                                     }
                                                 }
                                                 
-                                                // Sort by date (newest first)
+                                                // Sort by date (oldest first for running balance calculation)
                                                 usort($allMovements, function($a, $b) {
-                                                    return strtotime($b['date']) - strtotime($a['date']);
+                                                    return strtotime($a['date']) - strtotime($b['date']);
                                                 });
+                                                
+                                                // Calculate running balance (like bank statements)
+                                                $runningBalance = 0;
+                                                foreach ($allMovements as &$movement) {
+                                                    if ($movement['is_withdrawal']) {
+                                                        $runningBalance -= $movement['amount'];
+                                                    } else {
+                                                        $runningBalance += $movement['amount'];
+                                                    }
+                                                    $movement['balance'] = $runningBalance;
+                                                }
+                                                unset($movement); // Break reference
+                                                
+                                                // Now reverse to show newest first
+                                                $allMovements = array_reverse($allMovements);
                                                 
                                                 if (!empty($allMovements)): 
                                                     foreach ($allMovements as $movement): 
@@ -231,6 +247,11 @@
                                                             <?= $movement['is_withdrawal'] ? '-' : '+' ?>S/ <?= number_format(abs($movement['amount']), 2) ?>
                                                         </span>
                                                     </td>
+                                                    <td class="text-right">
+                                                        <span class="font-weight-bold <?= $movement['balance'] >= 0 ? 'text-success' : 'text-danger' ?>">
+                                                            S/ <?= number_format($movement['balance'], 2) ?>
+                                                        </span>
+                                                    </td>
                                                     <td>
                                                         <span class="badge" style="background-color: #28a745; color: white; padding: 0.25rem 0.5rem; font-size: 0.75rem;">
                                                             <?= $movement['status'] ?>
@@ -242,7 +263,7 @@
                                                 else: 
                                                 ?>
                                                 <tr>
-                                                    <td colspan="6" class="text-center text-muted py-4">
+                                                    <td colspan="7" class="text-center text-muted py-4">
                                                         <i class="fas fa-info-circle mr-2"></i>
                                                         No hay movimientos registrados
                                                     </td>
