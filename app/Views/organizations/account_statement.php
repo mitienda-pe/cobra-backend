@@ -63,31 +63,49 @@
                     <?php endif; ?>
 
                     <!-- Current Balance Summary -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="info-box bg-success">
-                                <span class="info-box-icon"><i class="fas fa-wallet"></i></span>
-                                <div class="info-box-content">
-                                    <span class="info-box-text">Balance Actual</span>
-                                    <span class="info-box-number">S/ <?= number_format($transferBalance['available_balance'] ?? 0, 2) ?></span>
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-wallet"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title text-muted mb-1">Balance Actual</h5>
+                                    <h3 class="text-success mb-0">S/ <?= number_format($transferBalance['available_balance'] ?? 0, 2) ?></h3>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="info-box bg-info">
-                                <span class="info-box-icon"><i class="fas fa-arrow-down"></i></span>
-                                <div class="info-box-content">
-                                    <span class="info-box-text">Total Ingresos</span>
-                                    <span class="info-box-number">S/ <?= number_format($transferBalance['incoming'] ?? 0, 2) ?></span>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <div class="rounded-circle bg-info text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-arrow-down"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title text-muted mb-1">Total Ingresos</h5>
+                                    <h3 class="text-info mb-0">S/ <?= number_format($transferBalance['total_income'] ?? 0, 2) ?></h3>
+                                    <?php if (($transferBalance['ligo_income'] ?? 0) > 0): ?>
+                                    <small class="text-muted">Ligo: S/ <?= number_format($transferBalance['ligo_income'], 2) ?></small>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="info-box bg-warning">
-                                <span class="info-box-icon"><i class="fas fa-arrow-up"></i></span>
-                                <div class="info-box-content">
-                                    <span class="info-box-text">Total Salidas</span>
-                                    <span class="info-box-number">S/ <?= number_format($transferBalance['withdrawals'] ?? 0, 2) ?></span>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <div class="rounded-circle bg-warning text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-arrow-up"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title text-muted mb-1">Total Salidas</h5>
+                                    <h3 class="text-warning mb-0">S/ <?= number_format($transferBalance['total_outgoing'] ?? 0, 2) ?></h3>
+                                    <?php if (($transferBalance['fees'] ?? 0) > 0): ?>
+                                    <small class="text-muted">Comisiones: S/ <?= number_format($transferBalance['fees'], 2) ?></small>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

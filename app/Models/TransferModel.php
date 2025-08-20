@@ -221,14 +221,36 @@ class TransferModel extends Model
     }
 
     /**
-     * Calculate organization's effective balance
-     * (incoming transfers minus outgoing transfers/withdrawals)
+     * Calculate organization's complete balance including Ligo payments
+     * (Ligo payments + incoming transfers - outgoing transfers/withdrawals - fees)
      */
     public function calculateOrganizationBalance($organizationId)
     {
         $db = \Config\Database::connect();
         
-        // Sum of completed incoming transfers (to organization)
+        // Get current active Ligo configuration to determine which payments to include
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+        $activeConfig = $superadminLigoConfigModel->where('enabled', 1)->where('is_active', 1)->first();
+        $isProduction = $activeConfig && $activeConfig['environment'] === 'prod';
+        
+        // Sum of completed Ligo payments (income)
+        $ligoQuery = $db->table('payments p')
+            ->selectSum('p.amount', 'total_ligo_income')
+            ->join('invoices i', 'p.invoice_id = i.id')
+            ->where('i.organization_id', $organizationId)
+            ->where('p.payment_method', 'ligo_qr')
+            ->where('p.status', 'completed');
+            
+        // Filter by current environment
+        if ($isProduction) {
+            $ligoQuery->where('(p.ligo_environment = "prod" OR p.ligo_environment IS NULL)', null, false);
+        } else {
+            $ligoQuery->where('p.ligo_environment', 'dev');
+        }
+        
+        $ligoIncome = $ligoQuery->get()->getRowArray()['total_ligo_income'] ?? 0;
+        
+        // Sum of completed incoming transfers (to organization) - usually should be 0 for most orgs
         $incomingQuery = $db->table($this->table)
             ->selectSum('amount', 'total_incoming')
             ->where('organization_id', $organizationId)
@@ -236,7 +258,7 @@ class TransferModel extends Model
             ->where('transfer_type !=', 'withdrawal')
             ->get();
         
-        $incoming = $incomingQuery->getRowArray()['total_incoming'] ?? 0;
+        $incomingTransfers = $incomingQuery->getRowArray()['total_incoming'] ?? 0;
         
         // Sum of completed withdrawals (from organization)
         $withdrawalQuery = $db->table($this->table)
@@ -248,10 +270,27 @@ class TransferModel extends Model
         
         $withdrawals = $withdrawalQuery->getRowArray()['total_withdrawals'] ?? 0;
         
+        // Sum of transfer fees (additional outgoing costs)
+        $feeQuery = $db->table($this->table)
+            ->selectSum('fee_amount', 'total_fees')
+            ->where('organization_id', $organizationId)
+            ->where('status', 'completed')
+            ->where('fee_amount >', 0)
+            ->get();
+        
+        $fees = $feeQuery->getRowArray()['total_fees'] ?? 0;
+        
+        $totalIncome = floatval($ligoIncome) + floatval($incomingTransfers);
+        $totalOutgoing = floatval($withdrawals) + floatval($fees);
+        
         return [
-            'incoming' => floatval($incoming),
+            'ligo_income' => floatval($ligoIncome),
+            'incoming' => floatval($incomingTransfers), 
+            'total_income' => $totalIncome,
             'withdrawals' => floatval($withdrawals),
-            'available_balance' => floatval($incoming) - floatval($withdrawals)
+            'fees' => floatval($fees),
+            'total_outgoing' => $totalOutgoing,
+            'available_balance' => $totalIncome - $totalOutgoing
         ];
     }
 
