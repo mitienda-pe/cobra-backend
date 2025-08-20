@@ -1416,22 +1416,18 @@ class LigoModel extends Model
     protected function generateReferenceTransactionId($transferData)
     {
         if (isset($transferData['instructionId'])) {
-            $hexValue = $transferData['instructionId'];
-            log_message('error', '🔢 LigoModel: Converting hex instructionId: ' . $hexValue);
+            $instructionId = $transferData['instructionId'];
+            log_message('error', '🔢 LigoModel: Using instructionId directly: ' . $instructionId);
             
-            $decimalValue = $this->convertHexToDecimalString($hexValue);
-            log_message('error', '🔢 LigoModel: Converted to decimal: ' . $decimalValue . ' (length: ' . strlen($decimalValue) . ')');
-            
-            // Ensure it's a string and check if it's too large for Ligo API
-            if (strlen($decimalValue) > 20) {
-                // If decimal is too large, use a truncated version or fallback
-                log_message('error', '⚠️ LigoModel: Decimal too large (' . strlen($decimalValue) . ' digits), using fallback');
-                $fallbackId = date('YmdHis') . str_pad(mt_rand(100000, 999999), 6, '0', STR_PAD_LEFT);
-                log_message('error', '🔢 LigoModel: Using fallback ID: ' . $fallbackId);
-                return $fallbackId;
+            // The instructionId from Ligo is already in the correct format - use it directly
+            if (strlen($instructionId) > 20) {
+                // If too long, truncate from the beginning to keep the most significant digits
+                $truncatedId = substr($instructionId, -20);
+                log_message('error', '✂️ LigoModel: Instruction ID too long (' . strlen($instructionId) . ' digits), truncated to: ' . $truncatedId);
+                return $truncatedId;
             }
             
-            return $decimalValue;
+            return $instructionId;
         } else {
             // Generate random reference ID
             $randomId = date('YmdHis') . str_pad(mt_rand(0, 999999999), 9, '0', STR_PAD_LEFT) . str_pad(mt_rand(0, 999999999), 9, '0', STR_PAD_LEFT) . str_pad(mt_rand(0, 999), 3, '0', STR_PAD_LEFT);
