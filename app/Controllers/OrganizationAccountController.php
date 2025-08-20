@@ -97,10 +97,10 @@ class OrganizationAccountController extends BaseController
         
         // Filter based on current environment preference using ligo_environment field
         if ($isProduction) {
-            // Show only production payments
-            $query->where('p.ligo_environment', 'prod');
+            // Show production payments and NULL (for backward compatibility)
+            $query->where('(p.ligo_environment = "prod" OR p.ligo_environment IS NULL)', null, false);
         } else {
-            // Show only development/test payments  
+            // Show development/test payments
             $query->where('p.ligo_environment', 'dev');
         }
         
