@@ -680,7 +680,7 @@ class LigoModel extends Model
                 'creditorCCI' => $transferData['creditorCCI'],
                 'sameCustomerFlag' => 'M',
                 'purposeCode' => '001',
-                'unstructuredInformation' => $transferData['unstructuredInformation'] ?? 'Transferencia ordinaria',
+                'unstructuredInformation' => $this->formatUnstructuredInformation($transferData),
                 'feeId' => $step3Response['data']['feeId'] ?? '',
                 'feeLigo' => $step3Response['data']['feeLigo'] ?? ''
             ];
@@ -840,7 +840,7 @@ class LigoModel extends Model
                 'creditorCCI' => $creditorData['cci'],
                 'sameCustomerFlag' => 'M',
                 'purposeCode' => '001',
-                'unstructuredInformation' => $transferData['unstructuredInformation'] ?? 'Pago de comisiones a organización',
+                'unstructuredInformation' => $this->formatUnstructuredInformation($transferData),
                 'feeId' => $step3Response['data']['feeId'] ?? '',
                 'feeLigo' => $step3Response['data']['feeLigo'] ?? ''
             ];
@@ -1230,7 +1230,7 @@ class LigoModel extends Model
                 'creditorCCI' => (string)$creditorData['cci'],
                 'sameCustomerFlag' => (string)'O',
                 'purposeCode' => (string)($transferData['purposeCode'] ?? '0105'),
-                'unstructuredInformation' => (string)($transferData['unstructuredInformation'] ?? 'Transferencia Ordinaria'),
+                'unstructuredInformation' => (string)($this->formatUnstructuredInformation($transferData)),
                 'feeId' => (string)($transferData['feeId'] ?? ''),
                 'feeLigo' => (string)($transferData['feeLigo'] ?? '0')
             ];
@@ -1408,6 +1408,39 @@ class LigoModel extends Model
             log_message('error', 'Error en executeTransfer: ' . $e->getMessage());
             return ['error' => 'Error interno: ' . $e->getMessage()];
         }
+    }
+
+    /**
+     * Format unstructuredInformation field for non-QR transfers
+     * Based on Ligo manual requirements
+     */
+    protected function formatUnstructuredInformation($transferData)
+    {
+        // If user provided custom unstructuredInformation, validate and use it
+        if (!empty($transferData['unstructuredInformation'])) {
+            $userConcept = trim($transferData['unstructuredInformation']);
+            
+            // For non-QR transfers, use simple alphanumeric format without special characters
+            // that might cause "Concepto de cobro invalido" errors
+            $cleanConcept = preg_replace('/[^a-zA-Z0-9\s]/', '', $userConcept);
+            $cleanConcept = preg_replace('/\s+/', ' ', $cleanConcept); // normalize spaces
+            $cleanConcept = trim($cleanConcept);
+            
+            // Limit length to avoid issues (Ligo may have length restrictions)
+            if (strlen($cleanConcept) > 50) {
+                $cleanConcept = substr($cleanConcept, 0, 50);
+            }
+            
+            // Ensure it's not empty after cleaning
+            if (!empty($cleanConcept)) {
+                log_message('info', 'LigoModel: Using cleaned unstructuredInformation: ' . $cleanConcept);
+                return $cleanConcept;
+            }
+        }
+        
+        // Default format for non-QR transfers - simple and standardized
+        log_message('info', 'LigoModel: Using default unstructuredInformation for non-QR transfer');
+        return 'TRANSFERENCIA';
     }
 
     /**
