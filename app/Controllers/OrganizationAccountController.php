@@ -81,6 +81,14 @@ class OrganizationAccountController extends BaseController
         // Get transfer balance summary
         $transferBalance = $this->transferModel->calculateOrganizationBalance($organizationId);
 
+        // Get individual Ligo payments (completed only)
+        $ligoPayments = $this->paymentModel->where('organization_id', $organizationId)
+                                          ->where('payment_method', 'ligo_qr')
+                                          ->where('status', 'completed')
+                                          ->orderBy('created_at', 'DESC')
+                                          ->limit(50)
+                                          ->findAll();
+
         return view('organizations/account_statement', [
             'organization' => $organization,
             'balance' => $balance,
@@ -88,6 +96,7 @@ class OrganizationAccountController extends BaseController
             'monthlyBreakdown' => $monthlyBreakdown,
             'transfers' => $transfers,
             'transferBalance' => $transferBalance,
+            'ligoPayments' => $ligoPayments,
             'dateStart' => $dateStart,
             'dateEnd' => $dateEnd,
             'currency' => $currency,

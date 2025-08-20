@@ -112,31 +112,53 @@
                                                     foreach ($transfers as $transfer) {
                                                         if ($transfer['status'] === 'completed') {
                                                             $isWithdrawal = $transfer['transfer_type'] === 'withdrawal';
+                                                            
+                                                            // Add main transfer
                                                             $allMovements[] = [
                                                                 'date' => $transfer['created_at'],
                                                                 'type' => $isWithdrawal ? 'Retiro' : 'Ingreso por Transferencia',
                                                                 'description' => $transfer['creditor_name'] . ' - ' . $transfer['unstructured_information'],
                                                                 'reference' => 'CCI: ' . $transfer['creditor_cci'],
-                                                                'amount' => $isWithdrawal ? -$transfer['amount'] : $transfer['amount'],
+                                                                'amount' => $transfer['amount'],
                                                                 'status' => 'Completado',
                                                                 'is_withdrawal' => $isWithdrawal
                                                             ];
+                                                            
+                                                            // Add fee as separate row if exists and transfer was outgoing
+                                                            if ($isWithdrawal && !empty($transfer['fee_amount']) && $transfer['fee_amount'] > 0) {
+                                                                $allMovements[] = [
+                                                                    'date' => $transfer['created_at'],
+                                                                    'type' => 'Comisión de Transferencia',
+                                                                    'description' => 'Comisión por transferencia a ' . $transfer['creditor_name'],
+                                                                    'reference' => 'Ref: ' . $transfer['reference_transaction_id'],
+                                                                    'amount' => $transfer['fee_amount'],
+                                                                    'status' => 'Completado',
+                                                                    'is_withdrawal' => true // Fees are always outgoing
+                                                                ];
+                                                            }
                                                         }
                                                     }
                                                 }
                                                 
-                                                // Add Ligo payments (recharges) - these are always income
-                                                if (!empty($balance) && $balance['total_collected'] > 0) {
-                                                    // This is a simplified view - in reality you'd want to get individual payment records
-                                                    $allMovements[] = [
-                                                        'date' => $balance['last_payment_date'] ?? date('Y-m-d H:i:s'),
-                                                        'type' => 'Ingresos por Pagos Ligo',
-                                                        'description' => 'Pagos de cuotas recibidos via QR Ligo',
-                                                        'reference' => 'Sistema Ligo',
-                                                        'amount' => $balance['total_collected'],
-                                                        'status' => 'Completado',
-                                                        'is_withdrawal' => false
-                                                    ];
+                                                // Add individual Ligo payments (recharges) - these are always income
+                                                if (!empty($ligoPayments)) {
+                                                    foreach ($ligoPayments as $payment) {
+                                                        // Normalize Ligo amounts (they might be in centavos)
+                                                        $normalizedAmount = $payment['amount'];
+                                                        if ($normalizedAmount >= 100) {
+                                                            $normalizedAmount = $normalizedAmount / 100; // Convert centavos to soles
+                                                        }
+                                                        
+                                                        $allMovements[] = [
+                                                            'date' => $payment['created_at'],
+                                                            'type' => 'Pago Ligo QR',
+                                                            'description' => 'Pago de cuota recibido via QR',
+                                                            'reference' => 'Pago ID: ' . $payment['id'],
+                                                            'amount' => $normalizedAmount,
+                                                            'status' => 'Completado',
+                                                            'is_withdrawal' => false // Payments are always income
+                                                        ];
+                                                    }
                                                 }
                                                 
                                                 // Sort by date (newest first)
