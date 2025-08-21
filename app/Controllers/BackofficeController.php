@@ -31,11 +31,15 @@ class BackofficeController extends Controller
 
     public function balance()
     {
+        log_message('info', 'BackofficeController::balance() - Method called');
+        
         // Get session and check if superadmin has access without organization
         $session = session();
         $organizationId = $session->get('selected_organization_id');
         $auth = new \App\Libraries\Auth();
         $isSuperadmin = $auth->hasRole('superadmin');
+        
+        log_message('debug', 'BackofficeController::balance() - organizationId: ' . ($organizationId ?? 'null') . ', isSuperadmin: ' . ($isSuperadmin ? 'true' : 'false'));
         
         // For superadmin without organization, show general balance view
         if ($isSuperadmin && !$organizationId) {
