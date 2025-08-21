@@ -53,11 +53,19 @@ class BackofficeController extends Controller
             ];
             
             if ($this->request->isAJAX() && $this->request->getMethod() === 'post') {
-                // Return general balance info or summary for all organizations
-                return $this->respond([
-                    'message' => 'Vista general - seleccione una organización para ver balance específico',
-                    'general_view' => true
-                ]);
+                log_message('info', 'BackofficeController: Superadmin requesting general CCI balance');
+                
+                // Query the general CCI account balance using centralized configuration
+                $response = $this->ligoModel->getAccountBalanceForOrganization();
+                
+                log_message('debug', 'BackofficeController: General balance response: ' . json_encode($response));
+                
+                if (isset($response['error'])) {
+                    log_message('error', 'BackofficeController: General balance error: ' . $response['error']);
+                    return $this->fail($response['error'], 400);
+                }
+
+                return $this->respond($response);
             }
             
             return view('backoffice/balance', $data);
