@@ -127,18 +127,12 @@ class LigoQRHashController extends ResourceController
             }
             
             if (!$organization) {
-                // Si no hay invoice_id, buscar la primera organización con credenciales LIGO configuradas
-                $organization = $this->organizationModel
-                    ->where('ligo_enabled', 1)
-                    ->where('(ligo_username IS NOT NULL OR ligo_dev_username IS NOT NULL OR ligo_prod_username IS NOT NULL)')
-                    ->where('(ligo_password IS NOT NULL OR ligo_dev_password IS NOT NULL OR ligo_prod_password IS NOT NULL)')
-                    ->where('(ligo_company_id IS NOT NULL OR ligo_dev_company_id IS NOT NULL OR ligo_prod_company_id IS NOT NULL)')
-                    ->first();
-                    
-                if (!$organization) {
-                    return $this->fail('No organization with LIGO credentials found', 400);
-                }
+                return $this->fail('Organization not found', 400);
             }
+            
+            // DEPRECATED: Organization-specific Ligo credentials are no longer used
+            // Organizations now use centralized Ligo configuration from superadmin
+            return $this->fail('QR functionality deprecated - organizations no longer use individual Ligo credentials', 400);
             
             // Obtener token de autenticación
             $authToken = $this->getLigoAuthToken($organization);
