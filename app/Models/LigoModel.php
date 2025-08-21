@@ -56,7 +56,7 @@ class LigoModel extends Model
     /**
      * Get centralized Ligo configuration from superadmin
      */
-    protected function getSuperadminLigoConfig()
+    public function getSuperadminLigoConfig()
     {
         log_message('info', 'LigoModel: Getting superadmin Ligo configuration...');
         
