@@ -92,26 +92,65 @@
                             
                             <div class="col-md-6">
                                 <h5>Datos del Acreedor y Transferencia</h5>
-                                <div class="alert alert-success">
-                                    <i class="fas fa-building"></i> 
-                                    <strong>Organización Destino:</strong><br>
-                                    <?= esc($organization['name']) ?> (<?= esc($organization['code']) ?>)
-                                </div>
                                 
-                                <!-- Balance Disponible -->
-                                <div class="alert alert-info">
-                                    <i class="fas fa-wallet"></i> 
-                                    <strong>Balance Disponible:</strong><br>
-                                    <span class="h5 text-primary" id="availableBalance">S/. <?= number_format($accountBalance ?? 0, 2) ?></span>
-                                    <small class="text-muted d-block">Solo puedes transferir hasta este monto</small>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="creditorCCI">CCI del Acreedor *</label>
-                                    <input type="text" class="form-control" id="creditorCCI" name="creditorCCI" 
-                                           value="<?= esc($organization['cci']) ?>" maxlength="20" readonly required>
-                                    <small class="form-text text-muted">CCI de 20 dígitos de la organización: <?= esc($organization['name']) ?></small>
-                                </div>
+                                <?php if (isset($is_general_view) && $is_general_view): ?>
+                                    <!-- Vista general: selector de organizaciones -->
+                                    <div class="form-group">
+                                        <label for="organization_id">Seleccionar Organización Destino *</label>
+                                        <select class="form-control" id="organization_id" name="organization_id" required onchange="updateOrganizationData()">
+                                            <option value="">-- Seleccione una organización --</option>
+                                            <?php if (isset($organizations) && is_array($organizations)): ?>
+                                                <?php foreach ($organizations as $org): ?>
+                                                    <option value="<?= $org['id'] ?>" 
+                                                            data-cci="<?= esc($org['cci']) ?>" 
+                                                            data-name="<?= esc($org['name']) ?>"
+                                                            data-code="<?= esc($org['code']) ?>">
+                                                        <?= esc($org['name']) ?> (<?= esc($org['code']) ?>) - <?= esc($org['cci']) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </select>
+                                        <small class="form-text text-muted">Seleccione la organización que recibirá la transferencia</small>
+                                    </div>
+                                    
+                                    <!-- Balance Disponible -->
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-wallet"></i> 
+                                        <strong>Balance Disponible:</strong><br>
+                                        <span class="h5 text-primary" id="availableBalance">S/. 2.20</span>
+                                        <small class="text-muted d-block">Balance general de la cuenta CCI centralizada</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="creditorCCI">CCI del Acreedor *</label>
+                                        <input type="text" class="form-control" id="creditorCCI" name="creditorCCI" 
+                                               maxlength="20" readonly required placeholder="Seleccione una organización primero">
+                                        <small class="form-text text-muted" id="organizationInfo">Seleccione una organización para ver su CCI</small>
+                                    </div>
+                                    
+                                <?php else: ?>
+                                    <!-- Vista específica de organización -->
+                                    <div class="alert alert-success">
+                                        <i class="fas fa-building"></i> 
+                                        <strong>Organización Destino:</strong><br>
+                                        <?= esc($organization['name']) ?> (<?= esc($organization['code']) ?>)
+                                    </div>
+                                    
+                                    <!-- Balance Disponible -->
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-wallet"></i> 
+                                        <strong>Balance Disponible:</strong><br>
+                                        <span class="h5 text-primary" id="availableBalance">S/. <?= number_format($accountBalance ?? 0, 2) ?></span>
+                                        <small class="text-muted d-block">Solo puedes transferir hasta este monto</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="creditorCCI">CCI del Acreedor *</label>
+                                        <input type="text" class="form-control" id="creditorCCI" name="creditorCCI" 
+                                               value="<?= esc($organization['cci']) ?>" maxlength="20" readonly required>
+                                        <small class="form-text text-muted">CCI de 20 dígitos de la organización: <?= esc($organization['name']) ?></small>
+                                    </div>
+                                <?php endif; ?>
                                 <div class="form-group">
                                     <label for="amount">Monto *</label>
                                     <input type="number" class="form-control" id="amount" name="amount" 
@@ -405,6 +444,12 @@ function startTransferProcess() {
         currency: document.getElementById('currency').value,
         unstructuredInformation: document.getElementById('unstructuredInformation').value
     };
+    
+    // Add organization_id if we're in general view (superadmin with organization selector)
+    const organizationSelect = document.getElementById('organization_id');
+    if (organizationSelect && organizationSelect.value) {
+        formData.organization_id = organizationSelect.value;
+    }
     
     if (!validateForm(formData)) {
         return;
@@ -925,6 +970,36 @@ function clearTransferForm() {
     resetSteps();
     transferData = {};
     stepData = {};
+}
+
+// Function to update organization data when selected from dropdown
+function updateOrganizationData() {
+    const select = document.getElementById('organization_id');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption.value) {
+        const cci = selectedOption.getAttribute('data-cci');
+        const name = selectedOption.getAttribute('data-name');
+        const code = selectedOption.getAttribute('data-code');
+        
+        // Update CCI field
+        document.getElementById('creditorCCI').value = cci;
+        
+        // Update organization info text
+        document.getElementById('organizationInfo').textContent = `CCI de 20 dígitos de la organización: ${name} (${code})`;
+        
+        // Update the concept field with organization code
+        document.getElementById('unstructuredInformation').value = `Pago de comisiones a ${code}`;
+        document.getElementById('unstructuredInformation').placeholder = `Pago de comisiones a ${code}`;
+        
+        console.log('Organization selected:', { name, code, cci });
+    } else {
+        // Clear fields if no organization selected
+        document.getElementById('creditorCCI').value = '';
+        document.getElementById('organizationInfo').textContent = 'Seleccione una organización para ver su CCI';
+        document.getElementById('unstructuredInformation').value = '';
+        document.getElementById('unstructuredInformation').placeholder = 'Seleccione una organización primero';
+    }
 }
 </script>
 <?= $this->endSection() ?>

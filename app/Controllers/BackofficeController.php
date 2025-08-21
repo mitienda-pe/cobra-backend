@@ -299,8 +299,36 @@ class BackofficeController extends Controller
 
     public function transfer()
     {
-        // Obtener organización seleccionada del contexto (solo para superadmin)
-        $selectedOrgId = session()->get('selected_organization_id');
+        // Get session and check if superadmin has access without organization
+        $session = session();
+        $selectedOrgId = $session->get('selected_organization_id');
+        $auth = new \App\Libraries\Auth();
+        $isSuperadmin = $auth->hasRole('superadmin');
+        
+        log_message('debug', 'BackofficeController::transfer() - organizationId: ' . ($selectedOrgId ?? 'null') . ', isSuperadmin: ' . ($isSuperadmin ? 'true' : 'false'));
+        
+        // For superadmin without organization, show transfer form with organization selector
+        if ($isSuperadmin && !$selectedOrgId) {
+            // Get all active organizations for the select
+            $organizationModel = new \App\Models\OrganizationModel();
+            $organizations = $organizationModel->where('status', 'active')
+                                              ->where('cci IS NOT NULL')
+                                              ->where('cci !=', '')
+                                              ->findAll();
+            
+            $data = [
+                'title' => 'Nueva Transferencia - Ligo',
+                'breadcrumb' => 'Nueva Transferencia',
+                'organizations' => $organizations,
+                'is_general_view' => true,
+                'organization' => null,
+                'accountBalance' => null
+            ];
+            
+            return view('backoffice/transfer', $data);
+        }
+        
+        // Original organization-specific logic for when organization is selected
         if (!$selectedOrgId) {
             return redirect()->to('organizations')->with('error', 'Debe seleccionar una organización primero');
         }
@@ -346,6 +374,8 @@ class BackofficeController extends Controller
             'breadcrumb' => 'Transferencia Ordinaria',
             'accountBalance' => $finalBalance,
             'organization' => $organization,
+            'organizations' => null,
+            'is_general_view' => false,
             'superadminConfig' => $superadminConfig
         ];
 
@@ -535,7 +565,8 @@ class BackofficeController extends Controller
             return $this->fail('Invalid request', 400);
         }
 
-        $selectedOrgId = session()->get('selected_organization_id');
+        // Get organization ID from form submission (for superadmin) or session (for regular org users)
+        $selectedOrgId = $this->request->getPost('organization_id') ?: session()->get('selected_organization_id');
         log_message('error', '🏢 BackofficeController: transferStep4 - Selected org ID: ' . ($selectedOrgId ?? 'null') . ' - DEBUG LOG');
         
         if (!$selectedOrgId) {
