@@ -155,12 +155,40 @@ class BackofficeController extends Controller
             ];
             
             if ($this->request->isAJAX() && $this->request->getMethod() === 'post') {
-                // For general view, return message indicating organization selection needed for specific transactions
-                return $this->respond([
-                    'message' => 'Vista general - seleccione una organización para ver transacciones específicas',
-                    'general_view' => true,
-                    'data' => []
-                ]);
+                log_message('info', 'BackofficeController: Superadmin requesting general CCI transactions');
+                
+                // Get request parameters for date filtering
+                $startDate = $this->request->getPost('startDate');
+                $endDate = $this->request->getPost('endDate');
+                
+                log_message('debug', 'BackofficeController: Transaction date range: ' . $startDate . ' to ' . $endDate);
+                
+                // Get centralized CCI account ID for general transactions
+                $ligoConfig = $this->ligoModel->getSuperadminLigoConfig();
+                if (!$ligoConfig || empty($ligoConfig['account_id'])) {
+                    log_message('error', 'BackofficeController: No centralized CCI account configured');
+                    return $this->fail('Configuración de cuenta CCI no disponible', 400);
+                }
+                
+                // Query the general CCI transactions using centralized configuration
+                $params = [
+                    'startDate' => $startDate,
+                    'endDate' => $endDate,
+                    'debtorCCI' => $ligoConfig['account_id']
+                ];
+                
+                log_message('debug', 'BackofficeController: Using centralized CCI: ' . $ligoConfig['account_id']);
+                
+                $response = $this->ligoModel->listTransactions($params);
+                
+                log_message('debug', 'BackofficeController: General transactions response: ' . json_encode($response));
+                
+                if (isset($response['error'])) {
+                    log_message('error', 'BackofficeController: General transactions error: ' . $response['error']);
+                    return $this->fail($response['error'], 400);
+                }
+
+                return $this->respond($response);
             }
             
             return view('backoffice/transactions', $data);
