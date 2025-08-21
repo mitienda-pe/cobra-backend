@@ -10,6 +10,10 @@ class LigoModel extends Model
     protected $superadminLigoConfigModel;
     protected $ligoBaseUrl;
     protected $ligoAuthUrl;
+    
+    // JWT Token caching properties
+    protected $cachedToken = null;
+    protected $tokenExpiry = null;
 
     public function __construct()
     {
@@ -56,22 +60,20 @@ class LigoModel extends Model
     {
         log_message('info', 'LigoModel: Getting superadmin Ligo configuration...');
         
-        // First try to get any active configuration regardless of environment
-        $config = $this->superadminLigoConfigModel->where('enabled', 1)
+        // FIXED: Always determine environment FIRST to avoid credential mixing
+        $environment = env('CI_ENVIRONMENT', 'development') === 'production' ? 'prod' : 'dev';
+        log_message('debug', 'LigoModel: Target environment: ' . $environment);
+        
+        // Get ENVIRONMENT-SPECIFIC active configuration
+        $config = $this->superadminLigoConfigModel->where('environment', $environment)
+                                                  ->where('enabled', 1)
                                                   ->where('is_active', 1)
                                                   ->first();
         
-        log_message('debug', 'LigoModel: Active config query result: ' . ($config ? 'Found ID ' . $config['id'] : 'Not found'));
+        log_message('debug', 'LigoModel: Environment-specific config result: ' . ($config ? 'Found ID ' . $config['id'] : 'Not found'));
         
         if (!$config) {
-            // Fallback: try to determine environment from CI_ENVIRONMENT
-            $environment = env('CI_ENVIRONMENT', 'development') === 'production' ? 'prod' : 'dev';
-            log_message('debug', 'LigoModel: Fallback to environment-specific config: ' . $environment);
-            
-            $config = $this->superadminLigoConfigModel->getActiveConfig($environment);
-            
-            if (!$config) {
-                log_message('error', 'LigoModel: No active superadmin Ligo configuration found for environment: ' . $environment);
+            log_message('error', 'LigoModel: No active superadmin Ligo configuration found for environment: ' . $environment);
                 
                 // Debug: List all available configs
                 $allConfigs = $this->superadminLigoConfigModel->findAll();
@@ -132,8 +134,29 @@ class LigoModel extends Model
 
     protected function makeApiRequest($endpoint, $method = 'GET', $data = null, $requiresAuth = true)
     {
-        log_message('info', "LigoModel: Making API request to {$endpoint} (method: {$method})");
+        $maxRetries = $requiresAuth ? 2 : 1; // Retry auth requests, single attempt for others
         
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            log_message('info', "LigoModel: Making API request to {$endpoint} (method: {$method}, attempt {$attempt}/{$maxRetries})");
+            
+            $result = $this->performSingleApiRequest($endpoint, $method, $data, $requiresAuth);
+            
+            // If 403 error and we have retries left, clear token cache and retry
+            if (isset($result['http_code']) && $result['http_code'] === 403 && $attempt < $maxRetries && $requiresAuth) {
+                log_message('warning', 'LigoModel: 403 error on attempt ' . $attempt . ', clearing token cache and retrying');
+                $this->cachedToken = null;
+                $this->tokenExpiry = null;
+                continue;
+            }
+            
+            return $result; // Success or final attempt
+        }
+        
+        return $result; // This should never be reached, but just in case
+    }
+    
+    protected function performSingleApiRequest($endpoint, $method = 'GET', $data = null, $requiresAuth = true)
+    {
         // Get centralized Ligo configuration
         $ligoConfig = $this->getSuperadminLigoConfig();
         
@@ -219,9 +242,15 @@ class LigoModel extends Model
 
     protected function getAuthToken($ligoConfig)
     {
+        // Check cached token first (5 minutes buffer before expiry)
+        if ($this->cachedToken && $this->tokenExpiry && time() < ($this->tokenExpiry - 300)) {
+            log_message('debug', 'LigoModel: Using cached auth token (expires at ' . date('Y-m-d H:i:s', $this->tokenExpiry) . ')');
+            return ['token' => $this->cachedToken];
+        }
+        
         // Use centralized credentials
         $environment = $ligoConfig['environment'];
-        log_message('debug', 'LigoModel: Auth using centralized config for environment: ' . $environment);
+        log_message('info', 'LigoModel: Generating new auth token for environment: ' . $environment);
         
         // Ensure password is decrypted
         $password = $ligoConfig['password'];
@@ -366,7 +395,11 @@ class LigoModel extends Model
         // Obtener el token (dar prioridad a access_token como en LigoQRController)
         $token = $decodedResponse['data']['access_token'] ?? $decodedResponse['data']['token'];
 
-        log_message('debug', 'Ligo Auth: Token received successfully');
+        // Cache the new token (expires in 1 hour)
+        $this->cachedToken = $token;
+        $this->tokenExpiry = time() + 3600;
+        
+        log_message('debug', 'Ligo Auth: Token received and cached successfully (expires at ' . date('Y-m-d H:i:s', $this->tokenExpiry) . ')');
         return ['token' => $token];
     }
 

@@ -80,42 +80,11 @@ class JwtGenerator
      */
     public static function formatPrivateKey(string $privateKey)
     {
-        // Usar una clave privada hardcodeada que sabemos que funciona para pruebas
-        // Esta es una clave de ejemplo para pruebas, NO usar en producción
-        $hardcodedKey = "-----BEGIN RSA PRIVATE KEY-----\n"
-        . "MIIEowIBAAKCAQEAsJfOoG5SgiY1cb+ECxZnYvFNr2aPAT4p6p+2Pp4GwQpt5cvJ\n"
-        . "nrGmtUmvvnRDMHriz4xUeAQUsAFwX63lpwSufHYlHexjvOL417nRF8sCZRBu6ivz\n"
-        . "j9nFnA5M55CY6oeNHmPjzadVsxT8ErHFsTJRlKy9D5zTXSXHH/Ny2KXZaQblfF/r\n"
-        . "/B1kEEH3isUcyWmDvwucwZKyRVxtihQLpDaPI6Jwb+WsY6QZaDy5CaLuqwuWtDSH\n"
-        . "em5kJTSiMezBVdCu8SPPOejK+eJjpRvsV0PDdj4LgwyKO/kUJHQBBmp4pBZbxxLR\n"
-        . "qPdFV/K2vPc0F4xFfJ76Ht3UwxkXz5nE/ww+MQIDAQABAoIBAD3dQL7FR1Re7FQo\n"
-        . "AqsbsyZfYJa0+B44V9jhEKhJFhakf7GEPeLBW6Sg5tdyxWMDede50pGk5FZwepya\n"
-        . "QBzNsA7cGM6t1JcEcKaqawzJytH6+tBAi3f2k5rDC8AH0PpAeHiQB+sw1v4AuPoX\n"
-        . "mykjdp7+ENGaYBV+uY6A69fn6g03jeFaePCmUUQ3NwVR/Ln+eKNeALFjV+vms/aT\n"
-        . "ubQrI3Q9hdgfBr09++5UauG/c4fdl6pnaKueeRnoq34bix0EY3pdSb7WizWN7Uzf\n"
-        . "Abokis6b367L9xOTNPHqCrjkDr5aLg1eqhR0MN399NdTNGJTgE9Fz5Z0JZQjR6zQ\n"
-        . "pxiQtl0CgYEA9CPI0uNS+gJllEC8+KpdwLhoxc/doZWvMDS7Lf33+dEUb+XIJkoh\n"
-        . "qRrS5JhxKn9ry8N7F4CrHUd3A2bmqJS38ENHXvz/UjcLYiHykN1Y0P3wA5GHYhvi\n"
-        . "oA3nhE5r2lIiWu2V9L8bIYq0PUpPAQiNgKA2+UZXGMoBkou+DmheqF8CgYEAuSv8\n"
-        . "LB4vP1qJRVKEYJnMKh+d5jzwItYSSQQK43iV8GTdH6+xfXGqvsCjB1G2noBJgXW2\n"
-        . "mrnCJ1y+zDjPM4UaNg6gSAGW0F408BB6KC7iYl9umQvOK57aOY8KCFf7UnAMdmxo\n"
-        . "S/gj9Jba03BcC8rbXu1l4uSjdQU5mRbaGPFr428CgYActdSZEEiixANkEtTmPUq3\n"
-        . "LjiMAqziorKubZURjItL4o2Ptyr5bcBVnaTtYwvz3nYzyTJBik0VLWFOkhxP+OVE\n"
-        . "qPTMs93msjhxeuKGrLEUKri+ArA0FmlpPxlZ0ssWKpCFtujqlkq/gAtAJevyiCnz\n"
-        . "1WOBnwcBEEhtDmf0U8vF6wKBgBdq2Jk7t/3rFTEPHm6ZBJjPJsjXLAc7y1Qwjq/1\n"
-        . "sACWwOAg9/FFTrKQ6g0i6FVjI+ibWlx24XbY48gv5wQ88POlJd/1U31GbKtvagNq\n"
-        . "6nZGW1Y/h/M8Q5zD2iDz/3SNdwYC762r0+A6s7HJo9pZ7SQ0IY5wG7vQzVfu6+X7\n"
-        . "oglBAoGBAIzAtjRtl3Ca88sSf6ZQZanEN3OEuHZ0WarfivX0CPWYUr85PJEG6oFW\n"
-        . "7WqWs+kARfpKBBp1Svl5mCe1pzBQKyEtoMxoAw0QVcPrUrlXTudlAXhNCwhReEkG\n"
-        . "HMUb/PKt/NO/zwumXY8lAtSYVvt8jQxrHhMYr+AoKUvxfuDbW+dl\n"
-        . "-----END RSA PRIVATE KEY-----";
-        
-        // Intentar usar la clave proporcionada
+        // SECURITY FIX: No hardcoded fallback keys - require valid configuration
         try {
-            // Si la clave está vacía, usar la hardcodeada para pruebas
+            // Validate that private key is provided
             if (empty($privateKey)) {
-                log_message('warning', 'Clave privada vacía, usando clave de prueba');
-                return $hardcodedKey;
+                throw new \Exception('Private key is required and cannot be empty. Please configure valid Ligo credentials.');
             }
             
             $privateKey = trim($privateKey);
@@ -169,14 +138,11 @@ class JwtGenerator
             }
             
             // Si llegamos aquí, ninguno de los formatos funcionó
-            log_message('warning', 'No se pudo formatear la clave privada: ' . openssl_error_string());
-            log_message('info', 'Usando clave privada hardcodeada para pruebas');
-            return $hardcodedKey;
+            throw new \Exception('Invalid private key format. Please check your Ligo configuration. OpenSSL error: ' . openssl_error_string());
             
         } catch (\Exception $e) {
             log_message('error', 'Error al formatear la clave privada: ' . $e->getMessage());
-            log_message('info', 'Usando clave privada hardcodeada para pruebas');
-            return $hardcodedKey;
+            throw $e; // Re-throw instead of using fallback
         }
     }
 }
