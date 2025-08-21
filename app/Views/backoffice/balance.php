@@ -169,14 +169,27 @@ document.addEventListener('DOMContentLoaded', function() {
             const loading = document.getElementById('loading');
             const balanceResult = document.getElementById('balanceResult');
             const errorResult = document.getElementById('errorResult');
+            const errorMessage = document.getElementById('errorMessage');
             
             if (loading) loading.style.display = 'block';
             if (balanceResult) balanceResult.style.display = 'none';
             if (errorResult) errorResult.style.display = 'none';
             
-            // Obtener token CSRF
-            const csrfToken = document.querySelector('meta[name="X-CSRF-TOKEN"]').getAttribute('content');
-            const csrfName = document.querySelector('meta[name="X-CSRF-NAME"]').getAttribute('content');
+            // Obtener token CSRF usando los nombres correctos de CodeIgniter 4
+            const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrfNameMeta = document.querySelector('meta[name="csrf-name"]');
+            
+            if (!csrfTokenMeta || !csrfNameMeta) {
+                console.error('CSRF meta tags not found');
+                console.log('Available meta tags:', Array.from(document.querySelectorAll('meta')).map(m => m.name));
+                if (errorMessage) errorMessage.textContent = 'Error: Token CSRF no encontrado';
+                if (errorResult) errorResult.style.display = 'block';
+                if (loading) loading.style.display = 'none';
+                return;
+            }
+            
+            const csrfToken = csrfTokenMeta.getAttribute('content');
+            const csrfName = csrfNameMeta.getAttribute('content');
             
             console.log('CSRF Token:', csrfToken);
             console.log('CSRF Name:', csrfName);
@@ -186,8 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': csrfToken
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: new URLSearchParams({
                     [csrfName]: csrfToken
