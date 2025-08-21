@@ -4,7 +4,6 @@ namespace App\Controllers;
 
 use App\Models\OrganizationModel;
 use App\Models\UserModel;
-use App\Models\ClientModel;
 use App\Models\PortfolioModel;
 use App\Libraries\Auth;
 
@@ -12,7 +11,6 @@ class OrganizationController extends BaseController
 {
     protected $organizationModel;
     protected $userModel;
-    protected $clientModel;
     protected $portfolioModel;
     protected $auth;
     protected $session;
@@ -21,7 +19,6 @@ class OrganizationController extends BaseController
     {
         $this->organizationModel = new OrganizationModel();
         $this->userModel = new UserModel();
-        $this->clientModel = new ClientModel();
         $this->portfolioModel = new PortfolioModel();
         $this->auth = new Auth();
         $this->session = \Config\Services::session();
@@ -264,8 +261,6 @@ class OrganizationController extends BaseController
         // Get users from this organization
         $users = $this->userModel->where('organization_id', $organization['id'])->findAll();
         
-        // Get clients from this organization
-        $clients = $this->clientModel->where('organization_id', $organization['id'])->findAll();
         
         // Get portfolios from this organization
         $portfolios = $this->portfolioModel->where('organization_id', $organization['id'])->findAll();
@@ -273,7 +268,6 @@ class OrganizationController extends BaseController
         $data = [
             'organization' => $organization,
             'users' => $users,
-            'clients' => $clients,
             'portfolios' => $portfolios,
             'auth' => $this->auth
         ];
