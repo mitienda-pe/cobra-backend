@@ -1085,65 +1085,47 @@ class LigoQRController extends Controller
      */
     private function getLigoAuthToken($organization)
     {
-        log_message('debug', 'Obteniendo token de autenticación de Ligo para organización ID: ' . $organization['id']);
+        log_message('debug', 'LigoQRController: Obteniendo token de autenticación usando LigoModel centralizado');
 
-        // Get credentials for this organization
-        $credentials = $this->getLigoCredentials($organization);
+        try {
+            // Use the centralized LigoModel for authentication
+            $ligoModel = new \App\Models\LigoModel();
+            $authResult = $ligoModel->authenticate();
 
-        // 🚀 CACHE MEJORADO: Verificar si hay un token almacenado y si aún es válido
-        if (!empty($organization['ligo_token']) && !empty($organization['ligo_token_expiry'])) {
-            $expiryDate = strtotime($organization['ligo_token_expiry']);
-            $now = time();
-            $marginMinutes = 10; // Aumentado de 5 a 10 minutos para mayor seguridad
-
-            // Si el token aún es válido (con margen ampliado), usarlo
-            if ($expiryDate > ($now + ($marginMinutes * 60))) {
-                $remainingMinutes = round(($expiryDate - $now) / 60, 1);
-                log_message('info', '🚀 TOKEN CACHE HIT: Usando token almacenado válido (queda ' . $remainingMinutes . ' min) - org_id=' . $organization['id']);
-
-                // Extraer el company ID del token JWT
-                $companyId = $credentials['company_id'];
-
-                // Verificar si podemos extraer el company ID del token
-                $tokenParts = explode('.', $organization['ligo_token']);
-                if (count($tokenParts) >= 2) {
-                    try {
-                        $payload = json_decode(base64_decode(str_replace('_', '/', str_replace('-', '+', $tokenParts[1]))), true);
-                        if (isset($payload['companyId'])) {
-                            $companyId = $payload['companyId'];
-                        }
-                    } catch (\Exception $e) {
-                        log_message('error', 'Error al decodificar token JWT: ' . $e->getMessage());
-                    }
-                }
-
+            if (isset($authResult['error'])) {
+                log_message('error', 'LigoQRController: Error de autenticación LigoModel: ' . $authResult['error']);
                 return (object)[
-                    'token' => $organization['ligo_token'],
-                    'userId' => 'stored-user',
-                    'companyId' => $companyId,
-                    'is_cached' => true,
-                    'remaining_minutes' => $remainingMinutes
+                    'error' => $authResult['error']
                 ];
-            } else {
-                $expiredMinutes = round(($now - $expiryDate) / 60, 1);
-                log_message('info', '❌ TOKEN CACHE MISS: Token expirado hace ' . $expiredMinutes . ' min, obteniendo nuevo token - org_id=' . $organization['id']);
             }
-        } else {
-            log_message('info', '❌ TOKEN CACHE MISS: No hay token almacenado - org_id=' . $organization['id']);
-        }
 
-        // Si no hay token válido almacenado, intentar obtener uno nuevo
-        // Get credentials if not already obtained
-        if (!isset($credentials)) {
-            $credentials = $this->getLigoCredentials($organization);
-        }
+            if (!isset($authResult['token'])) {
+                log_message('error', 'LigoQRController: No token received from LigoModel');
+                return (object)[
+                    'error' => 'No authentication token received'
+                ];
+            }
 
-        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
-            log_message('error', 'Credenciales de Ligo incompletas para organización ID: ' . $organization['id']);
-            return (object)['error' => 'Incomplete Ligo credentials'];
-        }
+            log_message('info', 'LigoQRController: Token obtenido exitosamente via LigoModel');
+            
+            return (object)[
+                'token' => $authResult['token'],
+                'userId' => $authResult['userId'] ?? 'centralized-user',
+                'companyId' => $authResult['companyId'] ?? 'centralized-company',
+                'is_cached' => $authResult['is_cached'] ?? false
+            ];
 
-        // Obtener configuración dinámica
+        } catch (\Exception $e) {
+            log_message('error', 'LigoQRController: Exception en getLigoAuthToken: ' . $e->getMessage());
+            return (object)[
+                'error' => 'Authentication error: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Generate QR in Ligo API (placeholder to maintain structure)
+     */
         $config = $this->getLigoConfig($organization);
 
         // URL específica para autenticación
