@@ -605,15 +605,29 @@ class LigoQRController extends Controller
     private function generateQRUsingPaymentControllerLogic($orderData, $authToken, $organization, $invoice, $instalment)
     {
         try {
-            // Step 1: Create QR (same as PaymentController)
+            // Step 1: Create QR using centralized configuration
+            $ligoModel = new \App\Models\LigoModel();
+            $config = $ligoModel->getSuperadminLigoConfig();
+            
+            if (!$config) {
+                return ['error' => 'No centralized Ligo configuration available for QR creation'];
+            }
+            
+            $environment = $config['environment'];
+            if ($environment === 'production') {
+                $apiUrl = env('LIGO_PROD_URL', 'https://cce-api-gateway-prod.ligocloud.tech');
+            } else {
+                $apiUrl = env('LIGO_DEV_URL', 'https://cce-api-gateway-dev.ligocloud.tech');
+            }
+            
             $curl = curl_init();
-            $config = $this->getLigoConfig($organization);
-            $url = $config['api_url'] . '/v1/createQr';
+            $url = $apiUrl . '/v1/createQr';
+            
+            log_message('debug', 'Creating QR with centralized config - Environment: ' . $environment . ', URL: ' . $url);
 
-            // Get credentials for environment-specific account and merchant info
-            $credentials = $this->getLigoCredentials($organization);
-            $idCuenta = !empty($credentials['account_id']) ? $credentials['account_id'] : '92100178794744781044';
-            $codigoComerciante = !empty($credentials['merchant_code']) ? $credentials['merchant_code'] : '4829';
+            // Use centralized credentials
+            $idCuenta = $config['account_id'] ?? '92100178794744781044';
+            $codigoComerciante = $config['merchant_code'] ?? '4829';
             $fechaVencimiento = date('Ymd', strtotime('+2 days'));
 
             $qrData = [
@@ -636,6 +650,9 @@ class LigoQRController extends Controller
                 ],
                 'type' => 'TEXT'
             ];
+
+            log_message('debug', 'QR Creation - Using token: ' . substr($authToken->token, 0, 20) . '...');
+            log_message('debug', 'QR Creation - Request data: ' . json_encode($qrData));
 
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
