@@ -787,6 +787,11 @@ function executeTransfer() {
         transfer_type: transferData.transfer_type || 'regular'
     };
     
+    // Add organization_id for superadmin transfers
+    if (transferData.organization_id) {
+        executeData.organization_id = transferData.organization_id;
+    }
+    
     console.log('🚀 STEP 4 - PAYLOAD COMPLETO enviado al backend:', JSON.stringify(executeData, null, 2));
     console.log('🔍 STEP 4 - Tipos de datos del payload:');
     Object.keys(executeData).forEach(key => {
