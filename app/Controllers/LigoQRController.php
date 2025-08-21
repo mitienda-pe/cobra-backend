@@ -570,7 +570,7 @@ class LigoQRController extends Controller
             }
 
             // Generate QR using the same logic
-            $result = $this->generateQRUsingPaymentControllerLogic($orderData, ['token' => $authToken->token], $organization, $invoice, $instalment);
+            $result = $this->generateQRUsingPaymentControllerLogic($orderData, $authToken, $organization, $invoice, $instalment);
 
             if (isset($result['error'])) {
                 return $this->response->setJSON([
@@ -665,10 +665,10 @@ class LigoQRController extends Controller
                 CURLOPT_POSTFIELDS => json_encode($qrData),
                 CURLOPT_HTTPHEADER => [
                     'Content-Type: application/json',
-                    'Authorization: Bearer ' . $authToken['token']
+                    'Authorization: Bearer ' . $authToken->token
                 ],
-                CURLOPT_SSL_VERIFYHOST => $config['ssl_verify_host'],
-                CURLOPT_SSL_VERIFYPEER => $config['ssl_verify'],
+                CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_SSL_VERIFYPEER => true,
             ]);
 
             $response = curl_exec($curl);
