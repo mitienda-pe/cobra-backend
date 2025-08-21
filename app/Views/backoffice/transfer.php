@@ -153,9 +153,15 @@
                                 <?php endif; ?>
                                 <div class="form-group">
                                     <label for="amount">Monto *</label>
-                                    <input type="number" class="form-control" id="amount" name="amount" 
-                                           step="0.01" min="0.01" max="<?= $accountBalance ?? 0 ?>" required>
-                                    <small class="form-text text-muted">Máximo disponible: S/. <?= number_format($accountBalance ?? 0, 2) ?></small>
+                                    <?php if (isset($is_general_view) && $is_general_view): ?>
+                                        <input type="number" class="form-control" id="amount" name="amount" 
+                                               step="0.01" min="0.01" max="2.20" required>
+                                        <small class="form-text text-muted">Máximo disponible: S/. 2.20 (balance CCI centralizada)</small>
+                                    <?php else: ?>
+                                        <input type="number" class="form-control" id="amount" name="amount" 
+                                               step="0.01" min="0.01" max="<?= $accountBalance ?? 0 ?>" required>
+                                        <small class="form-text text-muted">Máximo disponible: S/. <?= number_format($accountBalance ?? 0, 2) ?></small>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="form-group">
                                     <label for="currency">Moneda *</label>
@@ -166,8 +172,13 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="unstructuredInformation">Concepto de la Transferencia</label>
-                                    <textarea class="form-control" id="unstructuredInformation" name="unstructuredInformation" 
-                                              rows="3" placeholder="Pago de comisiones a <?= esc($organization['code']) ?>">Pago de comisiones a <?= esc($organization['code']) ?></textarea>
+                                    <?php if (isset($is_general_view) && $is_general_view): ?>
+                                        <textarea class="form-control" id="unstructuredInformation" name="unstructuredInformation" 
+                                                  rows="3" placeholder="Seleccione una organización primero"></textarea>
+                                    <?php else: ?>
+                                        <textarea class="form-control" id="unstructuredInformation" name="unstructuredInformation" 
+                                                  rows="3" placeholder="Pago de comisiones a <?= esc($organization['code']) ?>">Pago de comisiones a <?= esc($organization['code']) ?></textarea>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
