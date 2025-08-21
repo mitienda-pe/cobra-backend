@@ -570,7 +570,7 @@ function makeRequest(url, method, data) {
     
     // Refresh CSRF token before request
     const csrfToken = getCSRFToken();
-    if (!csrfToken) {
+    if (!csrfToken || !csrfToken.value) {
         console.error('❌ No CSRF token available, refreshing page...');
         location.reload();
         return Promise.reject('No CSRF token');
@@ -605,7 +605,7 @@ function makeRequest(url, method, data) {
         
         // Add CSRF token (already obtained above)
         console.log('🔐 Using CSRF Token:', csrfToken);
-        formData.append('<?= csrf_token() ?>', csrfToken);
+        formData.append(csrfToken.name, csrfToken.value);
         
         // Add user data
         for (const key in data) {
@@ -617,33 +617,37 @@ function makeRequest(url, method, data) {
 }
 
 function getCSRFToken() {
+    const tokenName = '<?= csrf_token() ?>';
+    
     // Try to get CSRF token from meta tag first
-    const metaToken = document.querySelector('meta[name="<?= csrf_token() ?>"]');
+    const metaToken = document.querySelector('meta[name="' + tokenName + '"]');
     if (metaToken) {
-        console.log('🔐 CSRF token found in meta tag:', metaToken.getAttribute('content'));
-        return metaToken.getAttribute('content');
+        const tokenValue = metaToken.getAttribute('content');
+        console.log('🔐 CSRF token found in meta tag:', tokenValue);
+        return { name: tokenName, value: tokenValue };
     }
     
     // Try to get from hidden input field
-    const inputToken = document.querySelector('input[name="<?= csrf_token() ?>"]');
+    const inputToken = document.querySelector('input[name="' + tokenName + '"]');
     if (inputToken) {
-        console.log('🔐 CSRF token found in input field:', inputToken.value);
-        return inputToken.value;
+        const tokenValue = inputToken.value;
+        console.log('🔐 CSRF token found in input field:', tokenValue);
+        return { name: tokenName, value: tokenValue };
     }
     
     // Try to get from cookie
-    const cookieName = '<?= csrf_token() ?>';
     const cookies = document.cookie.split(';');
     for (let cookie of cookies) {
         const [name, value] = cookie.trim().split('=');
-        if (name === cookieName) {
-            console.log('🔐 CSRF token found in cookie:', decodeURIComponent(value));
-            return decodeURIComponent(value);
+        if (name === tokenName) {
+            const tokenValue = decodeURIComponent(value);
+            console.log('🔐 CSRF token found in cookie:', tokenValue);
+            return { name: tokenName, value: tokenValue };
         }
     }
     
     console.error('❌ CSRF token not found anywhere!');
-    return null;
+    return { name: tokenName, value: '' };
 }
 
 function executeStep1() {
