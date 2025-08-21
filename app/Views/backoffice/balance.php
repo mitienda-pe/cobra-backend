@@ -188,8 +188,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const csrfToken = csrfTokenMeta.getAttribute('content');
-            // Para CodeIgniter 4, el nombre del campo CSRF por defecto es 'csrf_test_name'
-            const csrfName = 'csrf_test_name';
+            // El nombre del campo CSRF configurado en Security.php
+            const csrfName = 'csrf_token';
             
             console.log('CSRF Token:', csrfToken);
             console.log('CSRF Name:', csrfName);
