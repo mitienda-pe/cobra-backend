@@ -658,6 +658,11 @@ function executeStep1() {
         currency: transferData.currency
     };
     
+    // Add organization_id for superadmin transfers
+    if (transferData.organization_id) {
+        step1Data.organization_id = transferData.organization_id;
+    }
+    
     console.log('🚀 STEP 1 - Datos enviados:', step1Data);
     console.log('📋 STEP 1 - transferData completo:', transferData);
     

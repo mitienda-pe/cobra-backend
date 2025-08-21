@@ -495,10 +495,14 @@ class BackofficeController extends Controller
             return $this->fail('Invalid request', 400);
         }
 
-        $selectedOrgId = session()->get('selected_organization_id');
+        // Get organization ID from form data (for superadmin transfers) or session (for regular org users)
+        $selectedOrgId = $this->request->getPost('organization_id') ?: session()->get('selected_organization_id');
+        
         if (!$selectedOrgId) {
             return $this->fail('Debe seleccionar una organización primero', 400);
         }
+        
+        log_message('debug', 'BackofficeController::transferStep1 - Using organization ID: ' . $selectedOrgId);
 
         $organizationModel = new \App\Models\OrganizationModel();
         $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
