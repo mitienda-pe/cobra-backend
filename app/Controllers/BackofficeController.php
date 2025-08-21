@@ -31,9 +31,36 @@ class BackofficeController extends Controller
 
     public function balance()
     {
-        // Get session and organization for both GET and POST
+        // Get session and check if superadmin has access without organization
         $session = session();
         $organizationId = $session->get('selected_organization_id');
+        $auth = new \App\Libraries\Auth();
+        $isSuperadmin = $auth->hasRole('superadmin');
+        
+        // For superadmin without organization, show general balance view
+        if ($isSuperadmin && !$organizationId) {
+            $data = [
+                'title' => 'Balance General - Ligo',
+                'breadcrumb' => 'Balance General',
+                'is_general_view' => true,
+                'organization' => null
+            ];
+            
+            if ($this->request->isAJAX() && $this->request->getMethod() === 'post') {
+                // Return general balance info or summary for all organizations
+                return $this->respond([
+                    'message' => 'Vista general - seleccione una organización para ver balance específico',
+                    'general_view' => true
+                ]);
+            }
+            
+            return view('backoffice/balance', $data);
+        }
+        
+        // Original organization-specific logic
+        if (!$organizationId) {
+            return redirect()->to('organizations')->with('error', 'Debe seleccionar una organización primero');
+        }
         
         // Calculate available balance from transfers for this organization
         $transferModel = new \App\Models\TransferModel();
@@ -55,7 +82,8 @@ class BackofficeController extends Controller
             'title' => 'Balance de Cuenta - Ligo',
             'breadcrumb' => 'Balance de Cuenta',
             'accountBalance' => $finalBalance,
-            'organization' => $organization
+            'organization' => $organization,
+            'is_general_view' => false
         ];
 
         if ($this->request->isAJAX() && $this->request->getMethod() === 'post') {
@@ -89,9 +117,41 @@ class BackofficeController extends Controller
 
     public function transactions()
     {
+        // Get session and check if superadmin has access without organization
+        $session = session();
+        $organizationId = $session->get('selected_organization_id');
+        $auth = new \App\Libraries\Auth();
+        $isSuperadmin = $auth->hasRole('superadmin');
+        
+        // For superadmin without organization, show general transactions view
+        if ($isSuperadmin && !$organizationId) {
+            $data = [
+                'title' => 'Transacciones Generales - Ligo',
+                'breadcrumb' => 'Transacciones Generales',
+                'is_general_view' => true
+            ];
+            
+            if ($this->request->isAJAX() && $this->request->getMethod() === 'post') {
+                // For general view, return message indicating organization selection needed for specific transactions
+                return $this->respond([
+                    'message' => 'Vista general - seleccione una organización para ver transacciones específicas',
+                    'general_view' => true,
+                    'data' => []
+                ]);
+            }
+            
+            return view('backoffice/transactions', $data);
+        }
+        
+        // Original organization-specific logic
+        if (!$organizationId) {
+            return redirect()->to('organizations')->with('error', 'Debe seleccionar una organización primero');
+        }
+        
         $data = [
             'title' => 'Transacciones - Ligo',
-            'breadcrumb' => 'Transacciones'
+            'breadcrumb' => 'Transacciones',
+            'is_general_view' => false
         ];
 
         if ($this->request->isAJAX() && $this->request->getMethod() === 'post') {
@@ -501,15 +561,32 @@ class BackofficeController extends Controller
 
     public function hashes()
     {
+        // Get session and check if superadmin has access without organization
+        $session = session();
+        $organizationId = $session->get('selected_organization_id');
+        $auth = new \App\Libraries\Auth();
+        $isSuperadmin = $auth->hasRole('superadmin');
+        
         $ligoQRHashModel = new \App\Models\LigoQRHashModel();
         $paymentModel = new \App\Models\PaymentModel();
         
-        // Obtener hashes con información adicional
-        $hashes = $ligoQRHashModel->select('ligo_qr_hashes.*, invoices.invoice_number, invoices.uuid as invoice_uuid, instalments.number as instalment_number, instalments.status as instalment_status, instalments.amount as instalment_amount')
-                                  ->join('invoices', 'invoices.id = ligo_qr_hashes.invoice_id', 'left')
-                                  ->join('instalments', 'instalments.id = ligo_qr_hashes.instalment_id', 'left')
-                                  ->orderBy('ligo_qr_hashes.created_at', 'DESC')
-                                  ->findAll(100);
+        // Build query - if organization selected, filter by it; if superadmin without organization, show all
+        $hashQuery = $ligoQRHashModel->select('ligo_qr_hashes.*, invoices.invoice_number, invoices.uuid as invoice_uuid, invoices.organization_id, organizations.name as organization_name, instalments.number as instalment_number, instalments.status as instalment_status, instalments.amount as instalment_amount')
+                                    ->join('invoices', 'invoices.id = ligo_qr_hashes.invoice_id', 'left')
+                                    ->join('organizations', 'organizations.id = invoices.organization_id', 'left')
+                                    ->join('instalments', 'instalments.id = ligo_qr_hashes.instalment_id', 'left');
+        
+        // Filter by organization if one is selected, or if user is not superadmin
+        if ($organizationId) {
+            $hashQuery = $hashQuery->where('invoices.organization_id', $organizationId);
+        } else if (!$isSuperadmin) {
+            // Non-superadmin users must have an organization
+            return redirect()->to('organizations')->with('error', 'Debe seleccionar una organización primero');
+        }
+        
+        // Get hashes with information
+        $hashes = $hashQuery->orderBy('ligo_qr_hashes.created_at', 'DESC')
+                           ->findAll(100);
         
         // Calcular el estado real de pago para cada hash
         foreach ($hashes as &$hash) {
@@ -537,9 +614,15 @@ class BackofficeController extends Controller
             }
         }
 
+        $title = 'Hashes QR Ligo';
+        if ($isSuperadmin && !$organizationId) {
+            $title = 'Hashes QR Ligo - Todas las Organizaciones';
+        }
+
         $data = [
-            'title' => 'Hashes QR Ligo',
-            'hashes' => $hashes
+            'title' => $title,
+            'hashes' => $hashes,
+            'is_general_view' => ($isSuperadmin && !$organizationId)
         ];
 
         return view('backoffice/hashes', $data);
@@ -550,31 +633,49 @@ class BackofficeController extends Controller
      */
     public function transfers()
     {
-        $selectedOrgId = session()->get('selected_organization_id');
-        if (!$selectedOrgId) {
+        // Get session and check if superadmin has access without organization
+        $session = session();
+        $selectedOrgId = $session->get('selected_organization_id');
+        $auth = new \App\Libraries\Auth();
+        $isSuperadmin = $auth->hasRole('superadmin');
+        
+        // Non-superadmin users must have an organization selected
+        if (!$selectedOrgId && !$isSuperadmin) {
             return redirect()->to('organizations')->with('error', 'Debe seleccionar una organización primero');
         }
 
         $transferModel = new \App\Models\TransferModel();
         $db = \Config\Database::connect();
 
-        // Get transfers with user information
+        // Build query - if organization selected, filter by it; if superadmin without organization, show all
         $query = $db->table('transfers t')
-                   ->select('t.*, u.name as user_name')
+                   ->select('t.*, u.name as user_name, o.name as organization_name')
                    ->join('users u', 't.user_id = u.id', 'left')
-                   ->where('t.organization_id', $selectedOrgId)
-                   ->orderBy('t.created_at', 'DESC')
-                   ->limit(50);
+                   ->join('organizations o', 't.organization_id = o.id', 'left');
+                   
+        // Filter by organization if one is selected
+        if ($selectedOrgId) {
+            $query = $query->where('t.organization_id', $selectedOrgId);
+        }
+        
+        $transfers = $query->orderBy('t.created_at', 'DESC')
+                          ->limit(100) // Show more records for general view
+                          ->get()
+                          ->getResultArray();
 
-        $transfers = $query->get()->getResultArray();
-
-        // Get statistics
+        // Get statistics - pass organization ID if selected, null for all organizations
         $stats = $transferModel->getTransferStats($selectedOrgId);
 
+        $title = 'Historial de Transferencias Ligo';
+        if ($isSuperadmin && !$selectedOrgId) {
+            $title = 'Historial de Transferencias Ligo - Todas las Organizaciones';
+        }
+
         $data = [
-            'title' => 'Historial de Transferencias Ligo',
+            'title' => $title,
             'transfers' => $transfers,
-            'stats' => $stats
+            'stats' => $stats,
+            'is_general_view' => ($isSuperadmin && !$selectedOrgId)
         ];
 
         return view('backoffice/transfers', $data);
@@ -590,13 +691,24 @@ class BackofficeController extends Controller
         }
 
         $selectedOrgId = session()->get('selected_organization_id');
-        if (!$selectedOrgId) {
+        $auth = new \App\Libraries\Auth();
+        $isSuperadmin = $auth->hasRole('superadmin');
+        
+        // Non-superadmin users must have an organization selected
+        if (!$selectedOrgId && !$isSuperadmin) {
             return $this->fail('Debe seleccionar una organización primero', 400);
         }
 
         $transferModel = new \App\Models\TransferModel();
-        $transfer = $transferModel->where('organization_id', $selectedOrgId)
-                                 ->find($transferId);
+        
+        // Build query - if organization selected, filter by it; if superadmin without organization, allow access to any
+        if ($selectedOrgId) {
+            $transfer = $transferModel->where('organization_id', $selectedOrgId)
+                                     ->find($transferId);
+        } else {
+            // Superadmin can access any transfer
+            $transfer = $transferModel->find($transferId);
+        }
 
         if (!$transfer) {
             return $this->fail('Transferencia no encontrada', 404);
@@ -618,14 +730,26 @@ class BackofficeController extends Controller
         }
 
         $selectedOrgId = session()->get('selected_organization_id');
-        if (!$selectedOrgId) {
+        $auth = new \App\Libraries\Auth();
+        $isSuperadmin = $auth->hasRole('superadmin');
+        
+        // Non-superadmin users must have an organization selected
+        if (!$selectedOrgId && !$isSuperadmin) {
             return $this->fail('Debe seleccionar una organización primero', 400);
         }
 
         $transferModel = new \App\Models\TransferModel();
-        $transfer = $transferModel->select('ligo_response')
-                                 ->where('organization_id', $selectedOrgId)
-                                 ->find($transferId);
+        
+        // Build query - if organization selected, filter by it; if superadmin without organization, allow access to any
+        if ($selectedOrgId) {
+            $transfer = $transferModel->select('ligo_response')
+                                     ->where('organization_id', $selectedOrgId)
+                                     ->find($transferId);
+        } else {
+            // Superadmin can access any transfer
+            $transfer = $transferModel->select('ligo_response')
+                                     ->find($transferId);
+        }
 
         if (!$transfer) {
             return $this->fail('Transferencia no encontrada', 404);

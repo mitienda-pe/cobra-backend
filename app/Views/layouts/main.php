@@ -420,30 +420,32 @@
             <!-- Sidebar menu -->
             <div class="sidebar-menu">
                 <?php if ($isSuperadmin): ?>
-                    <!-- Superadmin dropdown for Organizations and Backoffice -->
-                    <div class="sidebar-dropdown <?= (strpos($currentPath, '/organizations') === 0 || strpos($currentPath, '/backoffice') === 0) ? 'show' : '' ?>">
-                        <div class="sidebar-dropdown-toggle">
-                            <i class="bi bi-gear-wide-connected menu-icon"></i>
-                            <span class="sidebar-item-text">Administración</span>
-                            <i class="bi bi-chevron-right dropdown-icon"></i>
-                        </div>
-                        <div class="sidebar-dropdown-menu">
-                            <a href="<?= site_url('organizations') ?>" class="sidebar-item <?= strpos($currentPath, '/organizations') === 0 ? 'active' : '' ?>">
-                                <i class="bi bi-building"></i>
-                                <span class="sidebar-item-text">Organizaciones</span>
-                            </a>
-                            <a href="<?= site_url('superadmin/ligo-config') ?>" class="sidebar-item <?= strpos($currentPath, '/superadmin/ligo-config') === 0 ? 'active' : '' ?>">
-                                <i class="bi bi-gear-wide-connected"></i>
-                                <span class="sidebar-item-text">Configuración Ligo</span>
-                            </a>
-                            <?php if ($selectedOrgId): ?>
-                                <a href="<?= site_url('backoffice') ?>" class="sidebar-item <?= strpos($currentPath, '/backoffice') === 0 ? 'active' : '' ?>">
-                                    <i class="bi bi-gear"></i>
-                                    <span class="sidebar-item-text">Backoffice Ligo</span>
+                    <?php if (!$selectedOrgId): ?>
+                        <!-- Superadmin dropdown for Organizations - only show when no org selected -->
+                        <div class="sidebar-dropdown <?= (strpos($currentPath, '/organizations') === 0) ? 'show' : '' ?>">
+                            <div class="sidebar-dropdown-toggle">
+                                <i class="bi bi-gear-wide-connected menu-icon"></i>
+                                <span class="sidebar-item-text">Administración</span>
+                                <i class="bi bi-chevron-right dropdown-icon"></i>
+                            </div>
+                            <div class="sidebar-dropdown-menu">
+                                <a href="<?= site_url('organizations') ?>" class="sidebar-item <?= strpos($currentPath, '/organizations') === 0 ? 'active' : '' ?>">
+                                    <i class="bi bi-building"></i>
+                                    <span class="sidebar-item-text">Organizaciones</span>
                                 </a>
-                            <?php endif; ?>
+                                <a href="<?= site_url('superadmin/ligo-config') ?>" class="sidebar-item <?= strpos($currentPath, '/superadmin/ligo-config') === 0 ? 'active' : '' ?>">
+                                    <i class="bi bi-gear-wide-connected"></i>
+                                    <span class="sidebar-item-text">Configuración Ligo</span>
+                                </a>
+                            </div>
                         </div>
-                    </div>
+                    <?php endif; ?>
+                    
+                    <!-- Backoffice Ligo - always visible for superadmin -->
+                    <a href="<?= site_url('backoffice') ?>" class="sidebar-item <?= strpos($currentPath, '/backoffice') === 0 ? 'active' : '' ?>">
+                        <i class="bi bi-gear"></i>
+                        <span class="sidebar-item-text">Backoffice Ligo</span>
+                    </a>
                     
                     <?php if ($selectedOrgId): ?>
                         <!-- Show full menu only when organization is selected -->
