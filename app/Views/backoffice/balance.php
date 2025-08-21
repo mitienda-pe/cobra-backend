@@ -176,6 +176,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Obtener token CSRF
             const csrfToken = document.querySelector('meta[name="X-CSRF-TOKEN"]').getAttribute('content');
+            const csrfName = document.querySelector('meta[name="X-CSRF-NAME"]').getAttribute('content');
+            
+            console.log('CSRF Token:', csrfToken);
+            console.log('CSRF Name:', csrfName);
+            console.log('Making POST request to:', '<?= base_url('backoffice/balance') ?>');
             
             fetch('<?= base_url('backoffice/balance') ?>', {
                 method: 'POST',
@@ -185,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-CSRF-TOKEN': csrfToken
                 },
                 body: new URLSearchParams({
-                    'csrf_token_name': csrfToken
+                    [csrfName]: csrfToken
                 })
             })
             .then(response => {
@@ -230,18 +235,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
+                console.error('Fetch error details:', error);
+                console.error('Error type:', typeof error);
+                console.error('Error message:', error.message);
+                
                 if (loading) loading.style.display = 'none';
                 const errorMessage = document.getElementById('errorMessage');
                 
                 // Intentar obtener el mensaje de error detallado
                 if (error instanceof Response) {
+                    console.log('Error is Response object, status:', error.status);
                     error.json().then(errorData => {
+                        console.log('Error response data:', errorData);
                         const message = errorData.messages?.error || errorData.message || 'Error al consultar el balance';
                         if (errorMessage) errorMessage.textContent = message;
                     }).catch(() => {
+                        console.log('Could not parse error response as JSON');
                         if (errorMessage) errorMessage.textContent = 'Error al consultar el balance';
                     });
                 } else {
+                    console.log('Error is not Response object');
                     if (errorMessage) errorMessage.textContent = 'Error al consultar el balance: ' + error.message;
                 }
                 
