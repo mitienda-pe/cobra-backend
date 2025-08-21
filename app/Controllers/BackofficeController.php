@@ -316,13 +316,29 @@ class BackofficeController extends Controller
                                               ->where('cci !=', '')
                                               ->findAll();
             
+            // Get general account balance using same logic as balance() method
+            $accountBalance = null;
+            try {
+                $response = $this->ligoModel->getAccountBalanceForOrganization();
+                if (isset($response['error'])) {
+                    log_message('error', 'BackofficeController::transfer() - Error getting balance: ' . $response['error']);
+                    $accountBalance = ['error' => $response['error']];
+                } else {
+                    $accountBalance = $response;
+                    log_message('debug', 'BackofficeController::transfer() - General balance obtained successfully');
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'BackofficeController::transfer() - Exception getting balance: ' . $e->getMessage());
+                $accountBalance = ['error' => 'Error al obtener el balance: ' . $e->getMessage()];
+            }
+            
             $data = [
                 'title' => 'Nueva Transferencia - Ligo',
                 'breadcrumb' => 'Nueva Transferencia',
                 'organizations' => $organizations,
                 'is_general_view' => true,
                 'organization' => null,
-                'accountBalance' => null
+                'accountBalance' => $accountBalance
             ];
             
             return view('backoffice/transfer', $data);
