@@ -35,10 +35,8 @@ class OrganizationController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para acceder a esta sección.');
         }
         
-        // Check if this is the organization selector context 
-        // (superadmin without organization selected OR forced selector param)
-        $forcedSelector = $this->request->getGet('selector') === '1';
-        $isOrgSelector = !$this->auth->organizationId() || $forcedSelector;
+        // Check if this is the organization selector context (superadmin without organization selected)
+        $isOrgSelector = !$this->auth->organizationId();
         
         return view('organizations/index', [
             'title' => $isOrgSelector ? 'Seleccionar Organización' : 'Gestión de Organizaciones',
@@ -458,6 +456,22 @@ class OrganizationController extends BaseController
         $this->session->set('selected_organization_id', $organization['id']);
         
         return redirect()->to('/dashboard')->with('message', 'Organización seleccionada: ' . $organization['name']);
+    }
+    
+    /**
+     * Deselect organization for superadmin and redirect to selector
+     */
+    public function deselect()
+    {
+        // Only superadmins can deselect organization context
+        if (!$this->auth->hasRole('superadmin')) {
+            return redirect()->to('/dashboard')->with('error', 'No tiene permisos para deseleccionar organizaciones.');
+        }
+        
+        // Remove organization context from session
+        $this->session->remove('selected_organization_id');
+        
+        return redirect()->to('/organizations')->with('info', 'Selecciona una organización para trabajar.');
     }
     
     public function view($uuid)
