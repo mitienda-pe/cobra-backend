@@ -60,20 +60,15 @@ class LigoModel extends Model
     {
         log_message('info', 'LigoModel: Getting superadmin Ligo configuration...');
         
-        // FIXED: Always determine environment FIRST to avoid credential mixing
-        $environment = env('CI_ENVIRONMENT', 'development') === 'production' ? 'prod' : 'dev';
-        log_message('debug', 'LigoModel: Target environment: ' . $environment);
-        
-        // Get ENVIRONMENT-SPECIFIC active configuration
-        $config = $this->superadminLigoConfigModel->where('environment', $environment)
-                                                  ->where('enabled', 1)
+        // Get the active configuration (environment is set in admin, not by CI_ENVIRONMENT)
+        $config = $this->superadminLigoConfigModel->where('enabled', 1)
                                                   ->where('is_active', 1)
                                                   ->first();
         
-        log_message('debug', 'LigoModel: Environment-specific config result: ' . ($config ? 'Found ID ' . $config['id'] : 'Not found'));
+        log_message('debug', 'LigoModel: Active config result: ' . ($config ? 'Found ID ' . $config['id'] . ' for environment ' . $config['environment'] : 'Not found'));
         
         if (!$config) {
-            log_message('error', 'LigoModel: No active superadmin Ligo configuration found for environment: ' . $environment);
+            log_message('error', 'LigoModel: No active superadmin Ligo configuration found');
                 
                 // Debug: List all available configs
                 $allConfigs = $this->superadminLigoConfigModel->findAll();
