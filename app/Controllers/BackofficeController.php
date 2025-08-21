@@ -325,7 +325,7 @@ class BackofficeController extends Controller
                     $accountBalance = ['error' => $response['error']];
                 } else {
                     $accountBalance = $response;
-                    log_message('debug', 'BackofficeController::transfer() - General balance obtained successfully');
+                    log_message('debug', 'BackofficeController::transfer() - General balance obtained successfully: ' . json_encode($response));
                 }
             } catch (\Exception $e) {
                 log_message('error', 'BackofficeController::transfer() - Exception getting balance: ' . $e->getMessage());

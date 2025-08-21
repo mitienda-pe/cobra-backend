@@ -117,8 +117,16 @@
                                     <div class="alert alert-info">
                                         <i class="fas fa-wallet"></i> 
                                         <strong>Balance Disponible:</strong><br>
-                                        <span class="h5 text-primary" id="availableBalance">S/. 2.20</span>
-                                        <small class="text-muted d-block">Balance general de la cuenta CCI centralizada</small>
+                                        <?php if (isset($accountBalance['error'])): ?>
+                                            <span class="h5 text-danger">Error al obtener balance</span>
+                                            <small class="text-muted d-block"><?= esc($accountBalance['error']) ?></small>
+                                        <?php elseif (isset($accountBalance['balance'])): ?>
+                                            <span class="h5 text-primary" id="availableBalance">S/. <?= number_format($accountBalance['balance'], 2) ?></span>
+                                            <small class="text-muted d-block">Balance general de la cuenta CCI centralizada</small>
+                                        <?php else: ?>
+                                            <span class="h5 text-warning" id="availableBalance">Cargando balance...</span>
+                                            <small class="text-muted d-block">Balance general de la cuenta CCI centralizada</small>
+                                        <?php endif; ?>
                                     </div>
                                     
                                     <div class="form-group">
@@ -154,9 +162,10 @@
                                 <div class="form-group">
                                     <label for="amount">Monto *</label>
                                     <?php if (isset($is_general_view) && $is_general_view): ?>
+                                        <?php $maxBalance = isset($accountBalance['balance']) ? $accountBalance['balance'] : 0; ?>
                                         <input type="number" class="form-control" id="amount" name="amount" 
-                                               step="0.01" min="0.01" max="2.20" required>
-                                        <small class="form-text text-muted">Máximo disponible: S/. 2.20 (balance CCI centralizada)</small>
+                                               step="0.01" min="0.01" max="<?= $maxBalance ?>" required>
+                                        <small class="form-text text-muted">Máximo disponible: S/. <?= number_format($maxBalance, 2) ?> (balance CCI centralizada)</small>
                                     <?php else: ?>
                                         <input type="number" class="form-control" id="amount" name="amount" 
                                                step="0.01" min="0.01" max="<?= $accountBalance ?? 0 ?>" required>
