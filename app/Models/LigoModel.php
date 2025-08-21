@@ -6,6 +6,7 @@ use CodeIgniter\Model;
 
 class LigoModel extends Model
 {
+    protected $table = 'organizations'; // Required by CodeIgniter Model base class
     protected $organizationModel;
     protected $superadminLigoConfigModel;
     protected $ligoBaseUrl;
