@@ -412,14 +412,13 @@ class LigoModel extends Model
     {
         log_message('debug', 'LigoModel: Getting account balance using centralized config');
         
-        // We still need organization for context
+        // Organization is optional for superadmin general queries
         $organization = $this->getOrganizationFromSession();
-        if (!$organization) {
-            log_message('error', 'LigoModel: No organization found in session');
-            return ['error' => 'No organization found in session'];
+        if ($organization) {
+            log_message('debug', 'LigoModel: Organization context: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
+        } else {
+            log_message('info', 'LigoModel: No organization selected - using superadmin general balance query');
         }
-
-        log_message('debug', 'LigoModel: Organization context: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
 
         // Get centralized account_id from superadmin config
         $ligoConfig = $this->getSuperadminLigoConfig();

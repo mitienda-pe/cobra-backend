@@ -110,7 +110,11 @@ class BackofficeController extends Controller
                 return $this->fail('No hay organización seleccionada', 400);
             }
             
-            // Usar el account_id de la organización automáticamente (o null para superadmin general query)
+            if (!$organizationId && $isSuperadmin) {
+                log_message('info', 'BackofficeController: Superadmin requesting general balance (no organization selected)');
+            }
+            
+            // Usar el account_id de la configuración centralizada (funciona con o sin organización seleccionada)
             $response = $this->ligoModel->getAccountBalanceForOrganization();
             
             log_message('debug', 'BackofficeController: Balance response: ' . json_encode($response));
