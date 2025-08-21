@@ -1056,9 +1056,11 @@ function refreshBalance() {
                     const response = JSON.parse(xhr.responseText);
                     console.log('Balance response:', response);
                     
-                    if (response.success && response.data && response.data.balance) {
-                        const balance = parseFloat(response.data.balance);
-                        balanceDisplay.textContent = 'S/. ' + balance.toFixed(2);
+                    if (response.success && response.data && response.data.amount !== undefined) {
+                        const balance = parseFloat(response.data.amount);
+                        const currencySymbol = response.data.currency_symbol || 'S/.';
+                        
+                        balanceDisplay.textContent = currencySymbol + ' ' + balance.toFixed(2);
                         statusDisplay.textContent = 'Balance general de la cuenta CCI centralizada';
                         
                         // Update amount field max value and helper text
@@ -1066,7 +1068,7 @@ function refreshBalance() {
                             amountField.setAttribute('max', balance);
                         }
                         if (maxAmountText) {
-                            maxAmountText.textContent = `Máximo disponible: S/. ${balance.toFixed(2)} (balance CCI centralizada)`;
+                            maxAmountText.textContent = `Máximo disponible: ${currencySymbol} ${balance.toFixed(2)} (balance CCI centralizada)`;
                         }
                     } else {
                         balanceDisplay.textContent = 'Error';
