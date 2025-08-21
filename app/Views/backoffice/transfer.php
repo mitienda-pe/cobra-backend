@@ -1031,9 +1031,9 @@ function refreshBalance() {
     balanceDisplay.textContent = '--';
     statusDisplay.textContent = 'Consultando balance...';
     
-    // Make AJAX request to balance endpoint
+    // Make AJAX request to getBalance endpoint
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '<?= base_url('backoffice/balance') ?>', true);
+    xhr.open('POST', '<?= base_url('backoffice/getBalance') ?>', true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     

@@ -138,6 +138,57 @@ class BackofficeController extends Controller
         return view('backoffice/balance', $data);
     }
 
+    /**
+     * AJAX endpoint to get current balance
+     */
+    public function getBalance()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->fail('Only AJAX requests allowed', 400);
+        }
+
+        // Get session and check if superadmin has access
+        $session = session();
+        $organizationId = $session->get('selected_organization_id');
+        $auth = new \App\Libraries\Auth();
+        $isSuperadmin = $auth->hasRole('superadmin');
+
+        log_message('debug', 'BackofficeController::getBalance() - organizationId: ' . ($organizationId ?? 'null') . ', isSuperadmin: ' . ($isSuperadmin ? 'true' : 'false'));
+
+        // For superadmin without organization, get general balance
+        if ($isSuperadmin && !$organizationId) {
+            log_message('info', 'BackofficeController::getBalance() - Superadmin requesting general CCI balance');
+            
+            try {
+                $response = $this->ligoModel->getAccountBalanceForOrganization();
+                
+                log_message('debug', 'BackofficeController::getBalance() - General balance response: ' . json_encode($response));
+                
+                if (isset($response['error'])) {
+                    log_message('error', 'BackofficeController::getBalance() - Balance error: ' . $response['error']);
+                    return $this->fail($response['error'], 400);
+                }
+
+                return $this->respond([
+                    'success' => true,
+                    'data' => $response,
+                    'message' => 'Balance obtenido exitosamente'
+                ]);
+            } catch (\Exception $e) {
+                log_message('error', 'BackofficeController::getBalance() - Exception: ' . $e->getMessage());
+                return $this->fail('Error al obtener el balance: ' . $e->getMessage(), 500);
+            }
+        }
+
+        // For regular users with organization
+        if (!$organizationId) {
+            return $this->fail('No hay organización seleccionada', 400);
+        }
+
+        // Organization-specific balance logic would go here if needed
+        return $this->fail('Balance por organización no implementado aún', 400);
+    }
+
     public function transactions()
     {
         // Get session and check if superadmin has access without organization

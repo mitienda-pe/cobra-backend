@@ -274,6 +274,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('/', 'BackofficeController::index');
         $routes->get('balance', 'BackofficeController::balance');
         $routes->post('balance', 'BackofficeController::balance');
+        $routes->post('getBalance', 'BackofficeController::getBalance');
         $routes->get('transactions', 'BackofficeController::transactions');
         $routes->post('transactions', 'BackofficeController::transactions');
         $routes->get('transaction-detail/(:num)', 'BackofficeController::transactionDetail/$1');
