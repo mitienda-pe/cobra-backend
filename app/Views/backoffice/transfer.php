@@ -116,17 +116,13 @@
                                     <!-- Balance Disponible -->
                                     <div class="alert alert-info">
                                         <i class="fas fa-wallet"></i> 
-                                        <strong>Balance Disponible:</strong><br>
-                                        <?php if (isset($accountBalance['error'])): ?>
-                                            <span class="h5 text-danger">Error al obtener balance</span>
-                                            <small class="text-muted d-block"><?= esc($accountBalance['error']) ?></small>
-                                        <?php elseif (isset($accountBalance['balance'])): ?>
-                                            <span class="h5 text-primary" id="availableBalance">S/. <?= number_format($accountBalance['balance'], 2) ?></span>
-                                            <small class="text-muted d-block">Balance general de la cuenta CCI centralizada</small>
-                                        <?php else: ?>
-                                            <span class="h5 text-warning" id="availableBalance">Cargando balance...</span>
-                                            <small class="text-muted d-block">Balance general de la cuenta CCI centralizada</small>
-                                        <?php endif; ?>
+                                        <strong>Balance Disponible:</strong>
+                                        <button type="button" class="btn btn-sm btn-outline-primary float-right" id="refreshBalanceBtn" onclick="refreshBalance()">
+                                            <i class="fas fa-sync-alt"></i> Actualizar Balance
+                                        </button>
+                                        <br>
+                                        <span class="h5 text-primary" id="availableBalance">--</span>
+                                        <small class="text-muted d-block" id="balanceStatus">Haz clic en "Actualizar Balance" para obtener el saldo actual</small>
                                     </div>
                                     
                                     <div class="form-group">
@@ -162,10 +158,9 @@
                                 <div class="form-group">
                                     <label for="amount">Monto *</label>
                                     <?php if (isset($is_general_view) && $is_general_view): ?>
-                                        <?php $maxBalance = isset($accountBalance['balance']) ? $accountBalance['balance'] : 0; ?>
                                         <input type="number" class="form-control" id="amount" name="amount" 
-                                               step="0.01" min="0.01" max="<?= $maxBalance ?>" required>
-                                        <small class="form-text text-muted">Máximo disponible: S/. <?= number_format($maxBalance, 2) ?> (balance CCI centralizada)</small>
+                                               step="0.01" min="0.01" max="999999" required>
+                                        <small class="form-text text-muted" id="maxAmountText">Actualiza el balance para ver el monto máximo disponible</small>
                                     <?php else: ?>
                                         <input type="number" class="form-control" id="amount" name="amount" 
                                                step="0.01" min="0.01" max="<?= $accountBalance ?? 0 ?>" required>
@@ -1020,6 +1015,72 @@ function updateOrganizationData() {
         document.getElementById('unstructuredInformation').value = '';
         document.getElementById('unstructuredInformation').placeholder = 'Seleccione una organización primero';
     }
+}
+
+// Function to refresh balance via AJAX
+function refreshBalance() {
+    const btn = document.getElementById('refreshBalanceBtn');
+    const balanceDisplay = document.getElementById('availableBalance');
+    const statusDisplay = document.getElementById('balanceStatus');
+    const amountField = document.getElementById('amount');
+    const maxAmountText = document.getElementById('maxAmountText');
+    
+    // Show loading state
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
+    btn.disabled = true;
+    balanceDisplay.textContent = '--';
+    statusDisplay.textContent = 'Consultando balance...';
+    
+    // Make AJAX request to balance endpoint
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '<?= base_url('backoffice/balance') ?>', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    
+    // Add CSRF token
+    const csrfToken = getCSRFToken();
+    const requestData = `${csrfToken.name}=${csrfToken.value}`;
+    
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            // Reset button state
+            btn.innerHTML = '<i class="fas fa-sync-alt"></i> Actualizar Balance';
+            btn.disabled = false;
+            
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    console.log('Balance response:', response);
+                    
+                    if (response.success && response.data && response.data.balance) {
+                        const balance = parseFloat(response.data.balance);
+                        balanceDisplay.textContent = 'S/. ' + balance.toFixed(2);
+                        statusDisplay.textContent = 'Balance general de la cuenta CCI centralizada';
+                        
+                        // Update amount field max value and helper text
+                        if (amountField) {
+                            amountField.setAttribute('max', balance);
+                        }
+                        if (maxAmountText) {
+                            maxAmountText.textContent = `Máximo disponible: S/. ${balance.toFixed(2)} (balance CCI centralizada)`;
+                        }
+                    } else {
+                        balanceDisplay.textContent = 'Error';
+                        statusDisplay.textContent = response.message || 'No se pudo obtener el balance';
+                    }
+                } catch (e) {
+                    console.error('Error parsing balance response:', e);
+                    balanceDisplay.textContent = 'Error';
+                    statusDisplay.textContent = 'Error al procesar la respuesta del servidor';
+                }
+            } else {
+                balanceDisplay.textContent = 'Error';
+                statusDisplay.textContent = 'Error de conexión al servidor';
+            }
+        }
+    };
+    
+    xhr.send(requestData);
 }
 </script>
 <?= $this->endSection() ?>
