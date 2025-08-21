@@ -631,6 +631,10 @@ class LigoQRController extends Controller
             // Use centralized credentials
             $idCuenta = $config['account_id'] ?? '92100178794744781044';
             $codigoComerciante = $config['merchant_code'] ?? '4829';
+            
+            log_message('debug', 'QR Creation - Credentials from DB: account_id=' . ($config['account_id'] ?? 'NULL') . ', merchant_code=' . ($config['merchant_code'] ?? 'NULL'));
+            log_message('debug', 'QR Creation - Using: idCuenta=' . $idCuenta . ', codigoComerciante=' . $codigoComerciante);
+            log_message('debug', 'QR Creation - Environment: ' . $environment);
             $fechaVencimiento = date('Ymd', strtotime('+2 days'));
 
             $qrData = [
