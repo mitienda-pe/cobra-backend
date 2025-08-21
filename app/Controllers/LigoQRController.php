@@ -1090,7 +1090,7 @@ class LigoQRController extends Controller
         try {
             // Use the centralized LigoModel for authentication
             $ligoModel = new \App\Models\LigoModel();
-            $authResult = $ligoModel->authenticate();
+            $authResult = $ligoModel->getAuthenticationToken();
 
             if (isset($authResult['error'])) {
                 log_message('error', 'LigoQRController: Error de autenticación LigoModel: ' . $authResult['error']);

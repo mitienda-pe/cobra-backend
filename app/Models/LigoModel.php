@@ -400,6 +400,34 @@ class LigoModel extends Model
         return ['token' => $token];
     }
 
+    /**
+     * Public method to get authentication token for external controllers
+     */
+    public function getAuthenticationToken()
+    {
+        // Get centralized Ligo configuration
+        $ligoConfig = $this->getSuperadminLigoConfig();
+        
+        if (!$ligoConfig) {
+            log_message('error', 'LigoModel: No centralized Ligo configuration available for authentication');
+            return ['error' => 'No centralized Ligo configuration available'];
+        }
+
+        // Get auth token using centralized config
+        $tokenResult = $this->getAuthToken($ligoConfig);
+        
+        if (isset($tokenResult['error'])) {
+            return ['error' => $tokenResult['error']];
+        }
+        
+        return [
+            'token' => $tokenResult['token'],
+            'userId' => $ligoConfig['username'] ?? 'centralized-user',
+            'companyId' => $ligoConfig['company_id'] ?? 'centralized-company',
+            'is_cached' => isset($this->cachedToken)
+        ];
+    }
+
     public function getAccountBalance($debtorCCI)
     {
         $data = [
