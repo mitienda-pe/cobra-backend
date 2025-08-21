@@ -11,9 +11,6 @@
                         Estado de Cuenta - <?= esc($organization['name']) ?>
                     </h3>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-info btn-sm" onclick="recalculateBalance()">
-                            <i class="fas fa-sync-alt"></i> Recalcular
-                        </button>
                         <button type="button" class="btn btn-success btn-sm" onclick="exportLigoStatement()">
                             <i class="fas fa-download"></i> Exportar CSV
                         </button>
@@ -367,35 +364,6 @@
 
 <?= $this->section('scripts') ?>
 <script>
-// Recalculate balance function
-function recalculateBalance() {
-    $('#loadingModal').modal('show');
-    
-    fetch('<?= site_url('organizations/account/' . $organization['uuid'] . '/recalculate') ?>', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({
-            currency: 'PEN'
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        $('#loadingModal').modal('hide');
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + (data.error || 'Error desconocido'));
-        }
-    })
-    .catch(error => {
-        $('#loadingModal').modal('hide');
-        console.error('Error:', error);
-        alert('Error al recalcular el balance');
-    });
-}
 
 // Export Ligo statement function
 function exportLigoStatement() {
