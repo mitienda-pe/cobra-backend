@@ -409,7 +409,7 @@
                                 <strong class="text-dark"><?= esc($selectedOrgName) ?></strong>
                             </div>
                         </div>
-                        <a href="<?= site_url('organizations') ?>" class="btn btn-sm btn-outline-primary">
+                        <a href="<?= site_url('organizations?selector=1') ?>" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-arrow-left-right"></i>
                             <span class="sidebar-item-text">Cambiar</span>
                         </a>

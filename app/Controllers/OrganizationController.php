@@ -35,8 +35,10 @@ class OrganizationController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'No tiene permisos para acceder a esta sección.');
         }
         
-        // Check if this is the organization selector context (superadmin without organization selected)
-        $isOrgSelector = !$this->auth->organizationId();
+        // Check if this is the organization selector context 
+        // (superadmin without organization selected OR forced selector param)
+        $forcedSelector = $this->request->getGet('selector') === '1';
+        $isOrgSelector = !$this->auth->organizationId() || $forcedSelector;
         
         return view('organizations/index', [
             'title' => $isOrgSelector ? 'Seleccionar Organización' : 'Gestión de Organizaciones',
