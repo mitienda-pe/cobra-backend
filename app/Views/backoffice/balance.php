@@ -214,6 +214,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
+                console.log('Response received:', data);
+                console.log('Response status:', data.status);
+                console.log('Response data:', data.data);
+                
                 if (loading) loading.style.display = 'none';
                 
                 if (data.data) {

@@ -41,6 +41,7 @@ class BackofficeController extends Controller
         $isSuperadmin = $auth->hasRole('superadmin');
         
         log_message('debug', 'BackofficeController::balance() - organizationId: ' . ($organizationId ?? 'null') . ', isSuperadmin: ' . ($isSuperadmin ? 'true' : 'false'));
+        log_message('debug', 'BackofficeController::balance() - Request method: ' . $this->request->getMethod() . ', isAJAX: ' . ($this->request->isAJAX() ? 'true' : 'false'));
         
         // For superadmin without organization, show general balance view
         if ($isSuperadmin && !$organizationId) {
@@ -97,14 +98,19 @@ class BackofficeController extends Controller
             // Verificar sesión y organización
             $session = session();
             $organizationId = $session->get('selected_organization_id');
-            log_message('debug', 'BackofficeController: Organization ID from session: ' . ($organizationId ?? 'null'));
+            $auth = new \App\Libraries\Auth();
+            $isSuperadmin = $auth->hasRole('superadmin');
             
-            if (!$organizationId) {
-                log_message('error', 'BackofficeController: No organization selected in session');
+            log_message('debug', 'BackofficeController: Organization ID from session: ' . ($organizationId ?? 'null'));
+            log_message('debug', 'BackofficeController: Is superadmin: ' . ($isSuperadmin ? 'true' : 'false'));
+            
+            // For superadmin, organization selection is not required for balance query
+            if (!$organizationId && !$isSuperadmin) {
+                log_message('error', 'BackofficeController: No organization selected and user is not superadmin');
                 return $this->fail('No hay organización seleccionada', 400);
             }
             
-            // Usar el account_id de la organización automáticamente
+            // Usar el account_id de la organización automáticamente (o null para superadmin general query)
             $response = $this->ligoModel->getAccountBalanceForOrganization();
             
             log_message('debug', 'BackofficeController: Balance response: ' . json_encode($response));
