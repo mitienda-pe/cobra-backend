@@ -616,13 +616,12 @@ class LigoQRController extends Controller
             $environment = $config['environment'];
             log_message('debug', 'QR Creation - Environment from config: "' . $environment . '"');
             
-            if ($environment === 'production' || $environment === 'prod') {
-                $apiUrl = env('LIGO_PROD_URL', 'https://cce-api-gateway-prod.ligocloud.tech');
-                log_message('debug', 'QR Creation - Using PRODUCTION URL: ' . $apiUrl);
-            } else {
-                $apiUrl = env('LIGO_DEV_URL', 'https://cce-api-gateway-dev.ligocloud.tech');
-                log_message('debug', 'QR Creation - Using DEVELOPMENT URL: ' . $apiUrl);
-            }
+            // Get URLs from database configuration, NOT from CI_ENVIRONMENT
+            $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+            $urls = $superadminLigoConfigModel->getApiUrls($environment);
+            $apiUrl = $urls['api_url'];
+            
+            log_message('debug', 'QR Creation - Using API URL from database: ' . $apiUrl);
             
             $curl = curl_init();
             $url = $apiUrl . '/v1/createQr';
@@ -1172,11 +1171,11 @@ class LigoQRController extends Controller
             $curl = curl_init();
             
             $environment = $config['environment'];
-            if ($environment === 'production') {
-                $apiUrl = env('LIGO_PROD_URL', 'https://cce-api-gateway-prod.ligocloud.tech');
-            } else {
-                $apiUrl = env('LIGO_DEV_URL', 'https://cce-api-gateway-dev.ligocloud.tech');
-            }
+            
+            // Get URLs from database configuration, NOT from CI_ENVIRONMENT  
+            $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+            $urls = $superadminLigoConfigModel->getApiUrls($environment);
+            $apiUrl = $urls['api_url'];
             
             $url = $apiUrl . '/v1/getCreateQRById/' . $qrId;
             log_message('debug', 'URL para obtener detalles del QR: ' . $url);
