@@ -431,6 +431,7 @@
                             <i class="bi bi-gear"></i>
                             <span class="sidebar-item-text">Backoffice Ligo</span>
                         </a>
+                    <?php endif; ?>
                     
                     <?php if ($selectedOrgId): ?>
                         <!-- Organization menu - completely separate from superadmin menu -->
