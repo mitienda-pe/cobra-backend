@@ -70,21 +70,20 @@ class LigoModel extends Model
         if (!$config) {
             log_message('error', 'LigoModel: No active superadmin Ligo configuration found');
                 
-                // Debug: List all available configs
-                $allConfigs = $this->superadminLigoConfigModel->findAll();
-                log_message('debug', 'LigoModel: Available configurations: ' . json_encode(array_map(function($c) {
-                    return [
-                        'id' => $c['id'],
-                        'environment' => $c['environment'],
-                        'enabled' => $c['enabled'],
-                        'is_active' => $c['is_active'],
-                        'has_username' => !empty($c['username']),
-                        'has_company_id' => !empty($c['company_id'])
-                    ];
-                }, $allConfigs)));
+            // Debug: List all available configs
+            $allConfigs = $this->superadminLigoConfigModel->findAll();
+            log_message('debug', 'LigoModel: Available configurations: ' . json_encode(array_map(function($c) {
+                return [
+                    'id' => $c['id'],
+                    'environment' => $c['environment'],
+                    'enabled' => $c['enabled'],
+                    'is_active' => $c['is_active'],
+                    'has_username' => !empty($c['username']),
+                    'has_company_id' => !empty($c['company_id'])
+                ];
+            }, $allConfigs)));
                 
-                return null;
-            }
+            return null;
         }
 
         log_message('info', 'LigoModel: Found config ID ' . $config['id'] . ' for environment: ' . $config['environment']);
