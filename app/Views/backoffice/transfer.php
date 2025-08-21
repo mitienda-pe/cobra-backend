@@ -1056,9 +1056,9 @@ function refreshBalance() {
                     const response = JSON.parse(xhr.responseText);
                     console.log('Balance response:', response);
                     
-                    if (response.success && response.data && response.data.amount !== undefined) {
-                        const balance = parseFloat(response.data.amount);
-                        const currencySymbol = response.data.currency_symbol || 'S/.';
+                    if (response.success && response.data && response.data.data && response.data.data.amount !== undefined) {
+                        const balance = parseFloat(response.data.data.amount);
+                        const currencySymbol = response.data.data.currency_symbol || 'S/.';
                         
                         balanceDisplay.textContent = currencySymbol + ' ' + balance.toFixed(2);
                         statusDisplay.textContent = 'Balance general de la cuenta CCI centralizada';
