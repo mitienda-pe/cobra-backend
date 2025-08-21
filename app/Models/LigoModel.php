@@ -159,16 +159,18 @@ class LigoModel extends Model
             return ['error' => 'Configuración de Ligo no disponible. Contacte al administrador.'];
         }
 
-        // We still need organization for context (but not for credentials)
+        // Organization is optional for superadmin general queries (balance, transactions, etc.)
+        // Only required for organization-specific operations like transfers
         $organization = $this->getOrganizationFromSession();
+        
         if (!$organization) {
-            log_message('error', 'LigoModel: No organization available for API request context');
-            return ['error' => 'No hay organización seleccionada'];
+            log_message('info', 'LigoModel: No organization selected - using superadmin context');
         }
 
         $useEnv = $ligoConfig['environment'];
         
-        log_message('debug', 'LigoModel: Using centralized Ligo config for environment: ' . $useEnv . ' with organization context: ' . $organization['name']);
+        $orgContext = $organization ? $organization['name'] : 'superadmin (no org selected)';
+        log_message('debug', 'LigoModel: Using centralized Ligo config for environment: ' . $useEnv . ' with context: ' . $orgContext);
         
         // Get API URLs from configuration
         $urls = $this->superadminLigoConfigModel->getApiUrls($useEnv);
