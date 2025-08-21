@@ -428,6 +428,16 @@ class LigoModel extends Model
         ];
     }
 
+    /**
+     * Clear cached token to force fresh authentication
+     */
+    public function clearTokenCache()
+    {
+        log_message('debug', 'LigoModel: Clearing cached token');
+        $this->cachedToken = null;
+        $this->tokenExpiry = null;
+    }
+
     public function getAccountBalance($debtorCCI)
     {
         $data = [

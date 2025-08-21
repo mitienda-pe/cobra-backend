@@ -1130,15 +1130,25 @@ class LigoQRController extends Controller
     {
         log_message('debug', "Obteniendo detalles de QR con ID: {$qrId} (Intento {$currentAttempt}/{$maxRetries})");
         try {
-            $curl = curl_init();
-            
-            // Use centralized LigoModel to get configuration
+            // Use centralized LigoModel to get configuration and fresh token
             $ligoModel = new \App\Models\LigoModel();
             $config = $ligoModel->getSuperadminLigoConfig();
             
             if (!$config) {
                 return (object)['error' => 'No centralized Ligo configuration available'];
             }
+            
+            // Get fresh token for this specific request to avoid authorization issues
+            $authResult = $ligoModel->getAuthenticationToken();
+            if (isset($authResult['error'])) {
+                log_message('error', 'Error getting fresh token for QR details: ' . $authResult['error']);
+                return (object)['error' => 'Authentication error for QR details: ' . $authResult['error']];
+            }
+            
+            $freshToken = $authResult['token'];
+            log_message('debug', 'Using fresh token for QR details request: ' . substr($freshToken, 0, 20) . '...');
+            
+            $curl = curl_init();
             
             $environment = $config['environment'];
             if ($environment === 'production') {
@@ -1161,7 +1171,7 @@ class LigoQRController extends Controller
                 CURLOPT_HTTPHEADER => [
                     'Content-Type: application/json',
                     'Accept: application/json',
-                    'Authorization: Bearer ' . $token
+                    'Authorization: Bearer ' . $freshToken
                 ],
                 CURLOPT_SSL_VERIFYHOST => 2,
                 CURLOPT_SSL_VERIFYPEER => true
@@ -1177,10 +1187,31 @@ class LigoQRController extends Controller
                 return (object)['error' => 'cURL Error: ' . $err];
             }
             
+            // Log detailed response information for debugging
+            log_message('debug', 'QR Details Response - HTTP Code: ' . $info['http_code'] . ', Content: ' . substr($response, 0, 500));
+            
             $decoded = json_decode($response);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 log_message('error', 'Error decodificando respuesta de detalles de QR: ' . json_last_error_msg());
                 return (object)['error' => 'Invalid JSON in QR details response: ' . json_last_error_msg()];
+            }
+            
+            // Check for specific Unauthorized error and retry with fresh authentication
+            if (isset($decoded->message) && $decoded->message === 'Unauthorized') {
+                log_message('warning', "Unauthorized error in QR details (attempt {$currentAttempt}/{$maxRetries})");
+                
+                // If not the last attempt, clear token cache and retry
+                if ($currentAttempt < $maxRetries) {
+                    log_message('info', 'Clearing token cache and retrying with fresh authentication...');
+                    // Clear the cached token in LigoModel to force fresh authentication
+                    $ligoModel->clearTokenCache();
+                    
+                    $waitTime = $currentAttempt * 2;
+                    log_message('info', "Waiting {$waitTime} seconds before retry...");
+                    sleep($waitTime);
+                    
+                    return $this->getQRDetailsById($qrId, $token, $organization, $maxRetries, $currentAttempt + 1);
+                }
             }
             
             // Verificar si hay errores en la respuesta
