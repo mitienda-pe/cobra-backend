@@ -14,6 +14,7 @@ class BackofficeController extends Controller
 
     public function __construct()
     {
+        log_message('info', 'BackofficeController::__construct() - Controller instantiated');
         $this->ligoModel = new \App\Models\LigoModel();
         $this->organizationModel = new \App\Models\OrganizationModel();
         helper(['form', 'url']);
