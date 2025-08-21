@@ -614,10 +614,14 @@ class LigoQRController extends Controller
             }
             
             $environment = $config['environment'];
-            if ($environment === 'production') {
+            log_message('debug', 'QR Creation - Environment from config: "' . $environment . '"');
+            
+            if ($environment === 'production' || $environment === 'prod') {
                 $apiUrl = env('LIGO_PROD_URL', 'https://cce-api-gateway-prod.ligocloud.tech');
+                log_message('debug', 'QR Creation - Using PRODUCTION URL: ' . $apiUrl);
             } else {
                 $apiUrl = env('LIGO_DEV_URL', 'https://cce-api-gateway-dev.ligocloud.tech');
+                log_message('debug', 'QR Creation - Using DEVELOPMENT URL: ' . $apiUrl);
             }
             
             $curl = curl_init();
