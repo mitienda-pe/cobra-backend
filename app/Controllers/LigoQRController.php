@@ -1121,4 +1121,5 @@ class LigoQRController extends Controller
                 'error' => 'Authentication error: ' . $e->getMessage()
             ];
         }
+    }
 }
