@@ -175,12 +175,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (balanceResult) balanceResult.style.display = 'none';
             if (errorResult) errorResult.style.display = 'none';
             
-            // Obtener token CSRF usando los nombres correctos de CodeIgniter 4
-            const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-            const csrfNameMeta = document.querySelector('meta[name="csrf-name"]');
+            // Obtener token CSRF - CodeIgniter 4 genera X-CSRF-TOKEN
+            const csrfTokenMeta = document.querySelector('meta[name="X-CSRF-TOKEN"]');
             
-            if (!csrfTokenMeta || !csrfNameMeta) {
-                console.error('CSRF meta tags not found');
+            if (!csrfTokenMeta) {
+                console.error('CSRF meta tag not found');
                 console.log('Available meta tags:', Array.from(document.querySelectorAll('meta')).map(m => m.name));
                 if (errorMessage) errorMessage.textContent = 'Error: Token CSRF no encontrado';
                 if (errorResult) errorResult.style.display = 'block';
@@ -189,7 +188,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const csrfToken = csrfTokenMeta.getAttribute('content');
-            const csrfName = csrfNameMeta.getAttribute('content');
+            // Para CodeIgniter 4, el nombre del campo CSRF por defecto es 'csrf_test_name'
+            const csrfName = 'csrf_test_name';
             
             console.log('CSRF Token:', csrfToken);
             console.log('CSRF Name:', csrfName);
