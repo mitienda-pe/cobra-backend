@@ -385,7 +385,8 @@ class PaymentController extends ResourceController
             'invoice_id' => $invoice['id']
         ];
         $qrDataJson = json_encode($qrDataArr);
-        $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($qrDataJson);
+        // Generate QR image URL using the LIGO hash, not metadata
+        $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($qrHash);
         
         // Guardar hash en la base de datos con las nuevas columnas
         log_message('error', '[LIGO] QR ID obtenido: ' . $qrId);
@@ -437,7 +438,17 @@ class PaymentController extends ResourceController
         log_message('info', '[LIGO] Hash insertado en ligo_qr_hashes: ' . json_encode($dataInsert) . ' | Resultado: ' . json_encode($insertResult));
         return $this->respond([
             'success' => true,
-            'qr_data' => $qrDataJson,
+            'qr_data' => [
+                'id' => $qrDataArr['id'],
+                'amount' => $qrDataArr['amount'],
+                'currency' => $qrDataArr['currency'],
+                'description' => $qrDataArr['description'],
+                'merchant' => $qrDataArr['merchant'],
+                'timestamp' => $qrDataArr['timestamp'],
+                'hash' => $qrHash, // The actual LIGO payment hash
+                'instalment_id' => $qrDataArr['instalment_id'],
+                'invoice_id' => $qrDataArr['invoice_id']
+            ],
             'qr_image_url' => $qrImageUrl,
             'order_id' => $decoded->data->id,
             'instalment_id' => $instalment['id'],
