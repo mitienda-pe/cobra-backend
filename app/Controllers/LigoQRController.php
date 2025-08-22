@@ -388,8 +388,8 @@ class LigoQRController extends Controller
                 ->orderBy('created_at', 'DESC')
                 ->first();
 
-            if ($existingQR && !empty($existingQR['real_hash'])) {
-                // ✅ Retornar QR desde cache
+            if (false && $existingQR && !empty($existingQR['real_hash'])) {
+                // ✅ Retornar QR desde cache - TEMPORALMENTE DESHABILITADO
                 log_message('info', '🚀 AJAX CACHE HIT: Usando QR en cache para invoice_id=' . $invoice['id'] . ', instalment_id=' . ($instalmentId ?? 'null'));
 
                 return $this->response->setJSON([
@@ -918,8 +918,8 @@ class LigoQRController extends Controller
                 ->orderBy('created_at', 'DESC')
                 ->first();
 
-            if ($existingQR && !empty($existingQR['real_hash'])) {
-                // ✅ Usar QR en cache
+            if (false && $existingQR && !empty($existingQR['real_hash'])) {
+                // ✅ Usar QR en cache - TEMPORALMENTE DESHABILITADO
                 log_message('info', '🚀 CACHE HIT: Usando QR en cache para invoice_id=' . $invoice['id'] . ', instalment_id=' . ($instalmentId ?? 'null') . ', age=' . (strtotime('now') - strtotime($existingQR['created_at'])) . 's');
 
                 $data['qr_data'] = $existingQR['real_hash'];
