@@ -166,7 +166,8 @@ class PaymentController extends ResourceController
             
         log_message('error', 'TEMP DEBUG - QR cache check result: ' . ($existingQR ? 'Found existing QR' : 'No cached QR'));
             
-        if ($existingQR && !empty($existingQR['hash'])) {
+        // TEMP FIX: Disable cache to force fresh QR generation
+        if (false && $existingQR && !empty($existingQR['hash'])) {
             log_message('error', 'TEMP DEBUG - Returning cached QR');
             // Devolver el QR guardado (mismo formato que respuesta normal)
             return $this->respond([
