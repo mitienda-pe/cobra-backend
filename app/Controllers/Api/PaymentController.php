@@ -485,99 +485,36 @@ class PaymentController extends ResourceController
      */
     private function getLigoAuthToken($organization)
     {
-        // Get credentials first
-        $credentials = $this->getLigoCredentials($organization);
+        log_message('debug', 'API PaymentController: Getting auth token using centralized LigoModel (same as web)');
         
-        // Basado en getAuthToken de LigoPaymentController, pero retorna array para compatibilidad
-        if (!empty($organization['ligo_token']) && !empty($organization['ligo_token_expiry'])) {
-            $tokenExpiry = strtotime($organization['ligo_token_expiry']);
-            if ($tokenExpiry > time()) {
-                return ['token' => $organization['ligo_token'], 'expiry' => $organization['ligo_token_expiry']];
-            }
-        }
         try {
-            if (empty($credentials['company_id'])) {
-                return ['error' => 'Incomplete Ligo credentials'];
-            }
-            // Get centralized Ligo configuration for auth URL
-            $ligoConfig = $this->getLigoConfig();
-            if (!$ligoConfig) {
-                return ['error' => 'Ligo URL configuration not available'];
+            // Use the same centralized LigoModel that the web uses
+            $ligoModel = new \App\Models\LigoModel();
+            $authResult = $ligoModel->getAuthenticationToken();
+            
+            if (isset($authResult['error'])) {
+                log_message('error', 'API PaymentController: Error from LigoModel authentication: ' . $authResult['error']);
+                return ['error' => $authResult['error']];
             }
             
-            $authUrl = $ligoConfig['auth_base_url'] . "/v1/auth/sign-in?companyId=" . $credentials['company_id'];
-            if (empty($credentials['private_key'])) {
-                return ['error' => 'Ligo private key not configured'];
+            if (!isset($authResult['token'])) {
+                log_message('error', 'API PaymentController: No token received from LigoModel');
+                return ['error' => 'No authentication token received'];
             }
-            $privateKey = $credentials['private_key'];
-            $formattedKey = \App\Libraries\JwtGenerator::formatPrivateKey($privateKey);
-            $payload = [ 'companyId' => $credentials['company_id'] ];
-            $authorizationToken = \App\Libraries\JwtGenerator::generateToken($payload, $formattedKey, [
-                'issuer' => 'ligo',
-                'audience' => 'ligo-calidad.com',
-                'subject' => 'ligo@gmail.com',
-                'expiresIn' => 3600
-            ]);
-            $authData = [
-                'username' => $credentials['username'] ?? '',
-                'password' => $credentials['password'] ?? ''
+            
+            log_message('info', 'API PaymentController: Token obtained successfully via centralized LigoModel');
+            
+            // Return in the format expected by this controller
+            return [
+                'token' => $authResult['token'],
+                'userId' => $authResult['userId'] ?? 'centralized-user',
+                'companyId' => $authResult['companyId'] ?? 'centralized-company',
+                'is_cached' => $authResult['is_cached'] ?? false
             ];
-            $requestBody = json_encode($authData);
-            $curl = curl_init();
-            curl_setopt_array($curl, [
-                CURLOPT_URL => $authUrl,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 30,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => $requestBody,
-                CURLOPT_HTTPHEADER => [
-                    'Authorization: Bearer ' . $authorizationToken,
-                    'Content-Type: application/json',
-                    'Content-Length: ' . strlen($requestBody)
-                ],
-                CURLOPT_SSL_VERIFYHOST => 0,
-                CURLOPT_SSL_VERIFYPEER => false
-            ]);
-            $response = curl_exec($curl);
-            $err = curl_error($curl);
-            $info = curl_getinfo($curl);
-            curl_close($curl);
-            if ($err) {
-                return ['error' => 'Error en solicitud de autenticación: ' . $err];
-            }
-            if ($info['http_code'] != 200) {
-                return ['error' => 'Error en autenticación. HTTP Code: ' . $info['http_code']];
-            }
-            $decoded = json_decode($response, true);
-            if (!$decoded || !isset($decoded['data']['access_token'])) {
-                $errorMsg = 'No token in auth response';
-                if (isset($decoded['message'])) {
-                    $errorMsg .= ': ' . $decoded['message'];
-                } elseif (isset($decoded['errors'])) {
-                    $errorMsg .= ': ' . (is_string($decoded['errors']) ? $decoded['errors'] : json_encode($decoded['errors']));
-                } elseif (isset($decoded['error'])) {
-                    $errorMsg .= ': ' . (is_string($decoded['error']) ? $decoded['error'] : json_encode($decoded['error']));
-                }
-                return ['error' => $errorMsg];
-            }
-            // Guardar el token en la base de datos para futuros usos
-            try {
-                $expiryDate = date('Y-m-d H:i:s', strtotime('+1 hour'));
-                $this->organizationModel->update($organization['id'], [
-                    'ligo_token' => $decoded['data']['access_token'],
-                    'ligo_token_expiry' => $expiryDate,
-                    'ligo_auth_error' => null,
-                    'ligo_enabled' => 1
-                ]);
-            } catch (\Exception $e) {
-                // Ignorar error de guardado
-            }
-            return ['token' => $decoded['data']['access_token'], 'expiry' => $expiryDate];
+            
         } catch (\Exception $e) {
-            return ['error' => 'Exception: ' . $e->getMessage()];
+            log_message('error', 'API PaymentController: Exception in getLigoAuthToken: ' . $e->getMessage());
+            return ['error' => 'Authentication error: ' . $e->getMessage()];
         }
     }
     
