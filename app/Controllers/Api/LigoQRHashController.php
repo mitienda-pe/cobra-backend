@@ -27,9 +27,10 @@ class LigoQRHashController extends ResourceController
         $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
         
         // Get any active configuration regardless of environment
-        $config = $superadminLigoConfigModel->where('enabled', 1)
-                                            ->where('is_active', 1)
-                                            ->first();
+        $configs = $superadminLigoConfigModel->where('enabled', 1)
+                                             ->where('is_active', 1)
+                                             ->findAll();
+        $config = !empty($configs) ? $configs[0] : null;
         
         if (!$config || !$superadminLigoConfigModel->isConfigurationComplete($config)) {
             log_message('error', 'LigoQRHashController API: No valid centralized Ligo configuration found');
@@ -66,9 +67,10 @@ class LigoQRHashController extends ResourceController
         $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
         
         // Get active configuration
-        $config = $superadminLigoConfigModel->where('enabled', 1)
-                                            ->where('is_active', 1)
-                                            ->first();
+        $configs = $superadminLigoConfigModel->where('enabled', 1)
+                                             ->where('is_active', 1)
+                                             ->findAll();
+        $config = !empty($configs) ? $configs[0] : null;
         
         if (!$config) {
             log_message('error', 'LigoQRHashController API: No active Ligo configuration found');
