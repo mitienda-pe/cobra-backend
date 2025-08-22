@@ -243,7 +243,9 @@ class PaymentController extends ResourceController
         log_message('debug', 'Instalment data: ' . json_encode($instalment));
         log_message('debug', 'Order data for QR generation: ' . json_encode($orderData));
         // Get auth token (reuse logic from LigoPaymentController)
+        log_message('error', 'TEMP DEBUG - About to call getLigoAuthToken');
         $authToken = $this->getLigoAuthToken($organization);
+        log_message('error', 'TEMP DEBUG - Auth token result: ' . json_encode($authToken));
         if (isset($authToken['error'])) {
             log_message('error', 'TEMP DEBUG - Auth token error: ' . $authToken['error']);
             log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Auth token error: ' . $authToken['error']);
@@ -288,6 +290,7 @@ class PaymentController extends ResourceController
             ],
             'type' => 'TEXT'
         ];
+        log_message('error', 'TEMP DEBUG - About to make CURL call to LIGO');
         log_message('error', 'SECRETO: ANTES DE LA LLAMADA CURL A LIGO');
         $curl = curl_init();
         // LOG DE DEPURACIÓN: payload y token
@@ -312,6 +315,7 @@ class PaymentController extends ResourceController
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
         $response = curl_exec($curl);
+        log_message('error', 'TEMP DEBUG - CURL response received: ' . substr($response, 0, 200) . '...');
         log_message('error', 'SECRETO: DESPUES DE LA LLAMADA CURL A LIGO');
         // Log de respuesta cruda de Ligo
         log_message('error', 'PaymentController LIGO RESPONSE: ' . $response);
