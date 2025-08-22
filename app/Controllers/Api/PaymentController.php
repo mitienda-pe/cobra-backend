@@ -151,6 +151,8 @@ class PaymentController extends ResourceController
             log_message('error', 'TEMP DEBUG - Ligo credentials validation failed. Credentials: ' . json_encode($credentials));
             return $this->fail('Ligo API credentials not configured', 400);
         }
+        
+        log_message('error', 'TEMP DEBUG - About to check QR cache');
         // --- NUEVO: Revisar si ya existe un hash válido para este instalment (cache de 60 min) ---
         $qrHashModel = new \App\Models\LigoQRHashModel();
         $cacheMinutes = 60; // Match QR expiration time (1 hour)
@@ -162,7 +164,10 @@ class PaymentController extends ResourceController
             ->orderBy('created_at', 'desc')
             ->first();
             
+        log_message('error', 'TEMP DEBUG - QR cache check result: ' . ($existingQR ? 'Found existing QR' : 'No cached QR'));
+            
         if ($existingQR && !empty($existingQR['hash'])) {
+            log_message('error', 'TEMP DEBUG - Returning cached QR');
             // Devolver el QR guardado (mismo formato que respuesta normal)
             return $this->respond([
                 'success' => true,
