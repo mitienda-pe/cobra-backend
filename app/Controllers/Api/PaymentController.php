@@ -296,9 +296,7 @@ class PaymentController extends ResourceController
                 'glosa' => $orderData['description'],
                 'info' => [
                     [ 'codigo' => 'instalment_id', 'valor' => $instalment['id'] ],
-                    [ 'codigo' => 'invoice_id', 'valor' => $invoice['id'] ],
-                    [ 'codigo' => 'nombreCliente', 'valor' => $organization['name'] ?? 'Cliente' ],
-                    [ 'codigo' => 'documentoIdentidad', 'valor' => $organization['tax_id'] ?? '00000000' ]
+                    [ 'codigo' => 'invoice_id', 'valor' => $invoice['id'] ]
                 ]
             ],
             'type' => 'TEXT'
