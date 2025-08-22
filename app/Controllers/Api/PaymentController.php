@@ -277,8 +277,9 @@ class PaymentController extends ResourceController
         $url = $ligoConfig['api_base_url'] . '/v1/createQr';
         $idCuenta = !empty($credentials['account_id']) ? $credentials['account_id'] : '92100178794744781044';
         $codigoComerciante = !empty($credentials['merchant_code']) ? $credentials['merchant_code'] : '4829';
-        // Calcular fecha de vencimiento: 2 días posteriores a hoy
-        $fechaVencimiento = date('Ymd', strtotime('+2 days'));
+        // Calcular fecha de vencimiento: 7 días posteriores a hoy
+        $fechaVencimiento = date('Ymd', strtotime('+7 days'));
+        log_message('error', 'TEMP DEBUG - QR expiration date: ' . $fechaVencimiento);
         
         $qrData = [
             'header' => [ 'sisOrigen' => '0921' ],
