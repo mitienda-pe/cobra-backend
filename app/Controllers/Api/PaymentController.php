@@ -74,6 +74,12 @@ class PaymentController extends ResourceController
             'webhook_secret' => $config['webhook_secret'] ?? null,
         ];
         
+        // Manual password decryption if needed
+        if (isset($credentials['password']) && strpos($credentials['password'], 'ENC:') === 0) {
+            $credentials['password'] = base64_decode(substr($credentials['password'], 4));
+            log_message('error', 'TEMP DEBUG - Password decrypted manually');
+        }
+        
         log_message('error', 'TEMP DEBUG - Credentials returned: ' . json_encode($credentials));
         
         return $credentials;

@@ -42,7 +42,7 @@ class LigoQRHashController extends ResourceController
 
         log_message('debug', 'LigoQRHashController API: Using centralized Ligo credentials for environment: ' . $config['environment']);
         
-        return [
+        $credentials = [
             'username' => $config['username'],
             'password' => $config['password'],
             'company_id' => $config['company_id'],
@@ -51,6 +51,14 @@ class LigoQRHashController extends ResourceController
             'private_key' => $config['private_key'],
             'webhook_secret' => $config['webhook_secret'] ?? null,
         ];
+        
+        // Manual password decryption if needed
+        if (isset($credentials['password']) && strpos($credentials['password'], 'ENC:') === 0) {
+            $credentials['password'] = base64_decode(substr($credentials['password'], 4));
+            log_message('error', 'TEMP DEBUG - LigoQRHashController password decrypted manually');
+        }
+        
+        return $credentials;
     }
 
     /**
