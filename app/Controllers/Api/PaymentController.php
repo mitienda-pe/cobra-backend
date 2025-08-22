@@ -196,9 +196,12 @@ class PaymentController extends ResourceController
             ]);
         }
         // --- FIN NUEVO ---
+        log_message('error', 'TEMP DEBUG - Reached cache check section, about to get auth token');
         // Obtener token de Ligo
         $authToken = $this->getLigoAuthToken($organization);
+        log_message('error', 'TEMP DEBUG - Auth token obtained: ' . json_encode($authToken));
         if (isset($authToken['error'])) {
+            log_message('error', 'TEMP DEBUG - Auth token has error: ' . $authToken['error']);
             return $this->fail($authToken['error'], 400);
         }
         // Preparar datos para Ligo (igual que antes)
@@ -212,10 +215,13 @@ class PaymentController extends ResourceController
         // ...
         // (El resto del método sigue igual)
 
+        log_message('error', 'TEMP DEBUG - About to check canAccessInvoice (second check)');
         if (method_exists($this, 'canAccessInvoice') && !$this->canAccessInvoice($invoice)) {
+            log_message('error', 'TEMP DEBUG - canAccessInvoice returned false (second check)');
             log_message('error', 'SECRETO: RETURN ANTES DE LIGO - No access to invoice');
             return $this->failForbidden('You do not have access to this invoice');
         }
+        log_message('error', 'TEMP DEBUG - canAccessInvoice passed (second check)');
         $organizationModel = new \App\Models\OrganizationModel();
         $organization = $organizationModel->find($invoice['organization_id']);
         if (!$organization) {
