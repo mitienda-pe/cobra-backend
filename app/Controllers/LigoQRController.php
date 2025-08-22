@@ -660,6 +660,8 @@ class LigoQRController extends Controller
 
             log_message('debug', 'QR Creation - Using token: ' . substr($authToken->token, 0, 20) . '...');
             log_message('debug', 'QR Creation - Request data: ' . json_encode($qrData));
+            log_message('error', 'TEMP DEBUG WEB - LIGO PAYLOAD: ' . json_encode($qrData));
+            log_message('error', 'TEMP DEBUG WEB - QR expiration date: ' . $fechaVencimiento);
 
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
@@ -688,6 +690,7 @@ class LigoQRController extends Controller
             }
 
             $decoded = json_decode($response);
+            log_message('error', 'TEMP DEBUG WEB - LIGO RESPONSE: ' . $response);
             if (!$decoded || !isset($decoded->data) || !isset($decoded->data->id)) {
                 log_message('error', 'LIGO QR CREATE ERROR - Raw response: ' . $response);
                 log_message('error', 'LIGO QR CREATE ERROR - Decoded: ' . json_encode($decoded));
