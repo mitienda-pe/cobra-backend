@@ -117,6 +117,8 @@ class PaymentController extends ResourceController
      */
     public function generateInstalmentQR($instalmentId = null)
     {
+        log_message('error', '[API QR] generateInstalmentQR llamado con instalmentId: ' . $instalmentId);
+        
         if (!$instalmentId) {
             return $this->fail('Instalment ID is required', 400);
         }
