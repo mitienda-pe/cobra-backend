@@ -233,6 +233,12 @@ class LigoQRController extends Controller
      */
     public function ajaxQR($invoiceIdentifier, $instalmentId = null, $qrType = 'dynamic')
     {
+        // MASSIVE DEBUG LOGGING - catch any call to this method
+        log_message('error', '🔥🔥🔥 [WEB QR] ajaxQR METHOD CALLED - invoiceId: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null') . ', qrType: ' . $qrType);
+        log_message('error', '🔥🔥🔥 [WEB QR] Request URI: ' . $_SERVER['REQUEST_URI'] ?? 'unknown');
+        log_message('error', '🔥🔥🔥 [WEB QR] User Agent: ' . $_SERVER['HTTP_USER_AGENT'] ?? 'unknown');
+        log_message('error', '🔥🔥🔥 [WEB QR] Timestamp: ' . date('Y-m-d H:i:s'));
+        
         // Registrar información de depuración
         log_message('error', '[WEB QR] ajaxQR llamado con identificador: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null') . ', qrType: ' . $qrType);
         log_message('debug', 'ajaxQR llamado con identificador: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null') . ', qrType: ' . $qrType);
