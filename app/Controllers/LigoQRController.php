@@ -43,7 +43,6 @@ class LigoQRController extends Controller
             ];
         }
 
-        log_message('debug', 'LigoQRController: Using centralized Ligo credentials for environment: ' . $config['environment']);
         
         return [
             'username' => $config['username'],
@@ -233,11 +232,6 @@ class LigoQRController extends Controller
      */
     public function ajaxQR($invoiceIdentifier, $instalmentId = null, $qrType = 'dynamic')
     {
-        // MASSIVE DEBUG LOGGING - catch any call to this method
-        log_message('error', '🔥🔥🔥 [WEB QR] ajaxQR METHOD CALLED - invoiceId: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null') . ', qrType: ' . $qrType);
-        log_message('error', '🔥🔥🔥 [WEB QR] Request URI: ' . $_SERVER['REQUEST_URI'] ?? 'unknown');
-        log_message('error', '🔥🔥🔥 [WEB QR] User Agent: ' . $_SERVER['HTTP_USER_AGENT'] ?? 'unknown');
-        log_message('error', '🔥🔥🔥 [WEB QR] Timestamp: ' . date('Y-m-d H:i:s'));
         
         // Registrar información de depuración
         log_message('error', '[WEB QR] ajaxQR llamado con identificador: ' . $invoiceIdentifier . ', instalmentId: ' . ($instalmentId ?? 'null') . ', qrType: ' . $qrType);
@@ -666,8 +660,6 @@ class LigoQRController extends Controller
 
             log_message('debug', 'QR Creation - Using token: ' . substr($authToken->token, 0, 20) . '...');
             log_message('debug', 'QR Creation - Request data: ' . json_encode($qrData));
-            log_message('error', 'TEMP DEBUG WEB - LIGO PAYLOAD: ' . json_encode($qrData));
-            log_message('error', 'TEMP DEBUG WEB - QR expiration date: ' . $fechaVencimiento);
 
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
@@ -696,7 +688,6 @@ class LigoQRController extends Controller
             }
 
             $decoded = json_decode($response);
-            log_message('error', 'TEMP DEBUG WEB - LIGO RESPONSE: ' . $response);
             if (!$decoded || !isset($decoded->data) || !isset($decoded->data->id)) {
                 log_message('error', 'LIGO QR CREATE ERROR - Raw response: ' . $response);
                 log_message('error', 'LIGO QR CREATE ERROR - Decoded: ' . json_encode($decoded));

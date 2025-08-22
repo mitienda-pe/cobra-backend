@@ -17,7 +17,6 @@ class PaymentController extends ResourceController
     
     public function __construct()
     {
-        log_message('error', 'PaymentController CONSTRUCTOR instanciado');
         $this->organizationModel = new \App\Models\OrganizationModel();
         // User will be set by the auth filter
         $this->user = session()->get('api_user');
@@ -49,7 +48,7 @@ class PaymentController extends ResourceController
         $config = $ligoModel->getSuperadminLigoConfig();
         
         if (!$config) {
-            log_message('error', 'PaymentController API: No valid centralized Ligo configuration found');
+            log_message('error', 'API PaymentController: No centralized Ligo config found');
             return [
                 'username' => null,
                 'password' => null,
@@ -61,8 +60,7 @@ class PaymentController extends ResourceController
             ];
         }
 
-        log_message('debug', 'PaymentController API: Using centralized Ligo credentials for environment: ' . $config['environment']);
-        log_message('error', 'TEMP DEBUG - Full config: ' . json_encode($config));
+        log_message('debug', 'API PaymentController: Using centralized credentials (' . $config['environment'] . ')');
         
         $credentials = [
             'username' => $config['username'],
@@ -77,10 +75,7 @@ class PaymentController extends ResourceController
         // Manual password decryption if needed
         if (isset($credentials['password']) && strpos($credentials['password'], 'ENC:') === 0) {
             $credentials['password'] = base64_decode(substr($credentials['password'], 4));
-            log_message('error', 'TEMP DEBUG - Password decrypted manually');
         }
-        
-        log_message('error', 'TEMP DEBUG - Credentials returned: ' . json_encode($credentials));
         
         return $credentials;
     }
@@ -96,7 +91,7 @@ class PaymentController extends ResourceController
         $config = $ligoModel->getSuperadminLigoConfig();
         
         if (!$config) {
-            log_message('error', 'PaymentController API: No active Ligo configuration found');
+            log_message('error', 'API PaymentController: No active Ligo configuration found');
             return false;
         }
 
@@ -148,11 +143,9 @@ class PaymentController extends ResourceController
         }
         $credentials = $this->getLigoCredentials($organization);
         if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
-            log_message('error', 'TEMP DEBUG - Ligo credentials validation failed. Credentials: ' . json_encode($credentials));
             return $this->fail('Ligo API credentials not configured', 400);
         }
         
-        log_message('error', 'TEMP DEBUG - About to check QR cache');
         // --- NUEVO: Revisar si ya existe un hash válido para este instalment (cache de 60 min) ---
         $qrHashModel = new \App\Models\LigoQRHashModel();
         $cacheMinutes = 60; // Match QR expiration time (1 hour)
@@ -164,11 +157,9 @@ class PaymentController extends ResourceController
             ->orderBy('created_at', 'desc')
             ->first();
             
-        log_message('error', 'TEMP DEBUG - QR cache check result: ' . ($existingQR ? 'Found existing QR' : 'No cached QR'));
             
         // TEMP FIX: Disable cache to force fresh QR generation
         if (false && $existingQR && !empty($existingQR['hash'])) {
-            log_message('error', 'TEMP DEBUG - Returning cached QR');
             // Devolver el QR guardado (mismo formato que respuesta normal)
             return $this->respond([
                 'success' => true,
@@ -202,12 +193,9 @@ class PaymentController extends ResourceController
             ]);
         }
         // --- FIN NUEVO ---
-        log_message('error', 'TEMP DEBUG - Reached cache check section, about to get auth token');
         // Obtener token de Ligo
         $authToken = $this->getLigoAuthToken($organization);
-        log_message('error', 'TEMP DEBUG - Auth token obtained: ' . json_encode($authToken));
         if (isset($authToken['error'])) {
-            log_message('error', 'TEMP DEBUG - Auth token has error: ' . $authToken['error']);
             return $this->fail($authToken['error'], 400);
         }
         // Preparar datos para Ligo (igual que antes)
@@ -221,26 +209,19 @@ class PaymentController extends ResourceController
         // ...
         // (El resto del método sigue igual)
 
-        log_message('error', 'TEMP DEBUG - About to check canAccessInvoice (second check)');
         if (method_exists($this, 'canAccessInvoice') && !$this->canAccessInvoice($invoice)) {
-            log_message('error', 'TEMP DEBUG - canAccessInvoice returned false (second check)');
-            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - No access to invoice');
             return $this->failForbidden('You do not have access to this invoice');
         }
-        log_message('error', 'TEMP DEBUG - canAccessInvoice passed (second check)');
         $organizationModel = new \App\Models\OrganizationModel();
         $organization = $organizationModel->find($invoice['organization_id']);
         if (!$organization) {
-            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Organization not found');
             return $this->fail('Organization not found', 404);
         }
         if (!isset($organization['ligo_enabled']) || !$organization['ligo_enabled']) {
-            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Ligo payments not enabled');
             return $this->fail('Ligo payments not enabled for this organization', 400);
         }
         $credentials = $this->getLigoCredentials($organization);
         if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
-            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Ligo API credentials not configured');
             return $this->fail('Ligo API credentials not configured', 400);
         }
         $invoiceNumber = $invoice['invoice_number'] ?? 'N/A';
@@ -255,12 +236,8 @@ class PaymentController extends ResourceController
         log_message('debug', 'Instalment data: ' . json_encode($instalment));
         log_message('debug', 'Order data for QR generation: ' . json_encode($orderData));
         // Get auth token (reuse logic from LigoPaymentController)
-        log_message('error', 'TEMP DEBUG - About to call getLigoAuthToken');
         $authToken = $this->getLigoAuthToken($organization);
-        log_message('error', 'TEMP DEBUG - Auth token result: ' . json_encode($authToken));
         if (isset($authToken['error'])) {
-            log_message('error', 'TEMP DEBUG - Auth token error: ' . $authToken['error']);
-            log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Auth token error: ' . $authToken['error']);
             return $this->fail($authToken['error'], 400);
         }
         // Get centralized credentials and environment from superadmin config
@@ -269,7 +246,6 @@ class PaymentController extends ResourceController
         // Get centralized Ligo configuration for URL
         $ligoConfig = $this->getLigoConfig();
         if (!$ligoConfig) {
-            log_message('error', 'TEMP DEBUG - Ligo config not found');
             log_message('error', 'PaymentController API: No valid centralized Ligo URL configuration found');
             return $this->fail('Error de configuración: configuración de Ligo no disponible', 500);
         }
@@ -279,7 +255,6 @@ class PaymentController extends ResourceController
         $codigoComerciante = !empty($credentials['merchant_code']) ? $credentials['merchant_code'] : '4829';
         // Calcular fecha de vencimiento: 2 días posteriores a hoy (mismo que web)
         $fechaVencimiento = date('Ymd', strtotime('+2 days'));
-        log_message('error', 'TEMP DEBUG - QR expiration date: ' . $fechaVencimiento);
         
         $qrData = [
             'header' => [ 'sisOrigen' => '0921' ],
@@ -301,8 +276,6 @@ class PaymentController extends ResourceController
             ],
             'type' => 'TEXT'
         ];
-        log_message('error', 'TEMP DEBUG - About to make CURL call to LIGO');
-        log_message('error', 'SECRETO: ANTES DE LA LLAMADA CURL A LIGO');
         $curl = curl_init();
         // LOG DE DEPURACIÓN: payload y token
         log_message('debug', 'LIGO DEBUG qrData: ' . json_encode($qrData));
@@ -326,8 +299,6 @@ class PaymentController extends ResourceController
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
         $response = curl_exec($curl);
-        log_message('error', 'TEMP DEBUG - CURL response received: ' . substr($response, 0, 200) . '...');
-        log_message('error', 'SECRETO: DESPUES DE LA LLAMADA CURL A LIGO');
         // Log de respuesta cruda de Ligo
         log_message('error', 'PaymentController LIGO RESPONSE: ' . $response);
         $err = curl_error($curl);
@@ -338,7 +309,6 @@ class PaymentController extends ResourceController
         log_message('debug', 'Respuesta de Ligo - HTTP Code: ' . $info['http_code']);
         curl_close($curl);
         if ($err) {
-            log_message('error', 'TEMP DEBUG - cURL error: ' . $err);
             log_message('error', 'Ligo API Error: ' . $err);
             return $this->fail('Failed to connect to Ligo API: ' . $err, 400);
         }
@@ -364,14 +334,11 @@ class PaymentController extends ResourceController
         
         // Obtener el hash real usando getCreateQRByID
         $qrId = $decoded->data->id;
-        log_message('error', 'CHECKPOINT 1: Extracted QR ID: ' . $qrId);
-        log_message('error', 'CHECKPOINT 2: About to call getQRDetailsById');
         
         // Agregar un pequeño delay para que LIGO procese el QR
         sleep(2);
         
         $qrDetails = $this->getQRDetailsById($qrId, $authToken['token'], $organization);
-        log_message('error', 'CHECKPOINT 3: getQRDetailsById returned: ' . json_encode($qrDetails));
         
         if (isset($qrDetails->error)) {
             log_message('error', 'Error al obtener detalles del QR para instalment en PaymentController: ' . $qrDetails->error);
@@ -485,7 +452,6 @@ class PaymentController extends ResourceController
      */
     private function getLigoAuthToken($organization)
     {
-        log_message('debug', 'API PaymentController: Getting auth token using centralized LigoModel (same as web)');
         
         try {
             // Use the same centralized LigoModel that the web uses
@@ -502,7 +468,6 @@ class PaymentController extends ResourceController
                 return ['error' => 'No authentication token received'];
             }
             
-            log_message('info', 'API PaymentController: Token obtained successfully via centralized LigoModel');
             
             // Return in the format expected by this controller
             return [
