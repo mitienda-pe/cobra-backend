@@ -27,16 +27,11 @@ class LigoPaymentController extends ResourceController
      */
     private function getLigoCredentials($organization = null)
     {
-        // Use centralized superadmin configuration
-        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+        // Use centralized superadmin configuration - same method as web controller
+        $ligoModel = new \App\Models\LigoModel();
+        $config = $ligoModel->getSuperadminLigoConfig();
         
-        // Get any active configuration regardless of environment
-        $configs = $superadminLigoConfigModel->where('enabled', 1)
-                                             ->where('is_active', 1)
-                                             ->findAll();
-        $config = !empty($configs) ? $configs[0] : null;
-        
-        if (!$config || !$superadminLigoConfigModel->isConfigurationComplete($config)) {
+        if (!$config) {
             log_message('error', 'LigoPaymentController API: No valid centralized Ligo configuration found');
             return [
                 'username' => null,
@@ -73,13 +68,9 @@ class LigoPaymentController extends ResourceController
      */
     private function getLigoConfig()
     {
-        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
-        
-        // Get active configuration
-        $configs = $superadminLigoConfigModel->where('enabled', 1)
-                                             ->where('is_active', 1)
-                                             ->findAll();
-        $config = !empty($configs) ? $configs[0] : null;
+        // Use centralized superadmin configuration - same method as web controller
+        $ligoModel = new \App\Models\LigoModel();
+        $config = $ligoModel->getSuperadminLigoConfig();
         
         if (!$config) {
             log_message('error', 'LigoPaymentController API: No active Ligo configuration found');
