@@ -19,38 +19,71 @@ class LigoQRHashController extends ResourceController
     }
     
     /**
-     * Get Ligo credentials based on active environment
+     * Get centralized Ligo credentials from superadmin configuration
      */
-    private function getLigoCredentials($organization)
+    private function getLigoCredentials($organization = null)
     {
-        $environment = $organization['ligo_environment'] ?? 'dev';
-        $prefix = $environment === 'prod' ? 'prod' : 'dev';
+        // Use centralized superadmin configuration
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
         
-        // Try to get environment-specific credentials first
-        $credentials = [
-            'username' => $organization["ligo_{$prefix}_username"] ?? null,
-            'password' => $organization["ligo_{$prefix}_password"] ?? null,
-            'company_id' => $organization["ligo_{$prefix}_company_id"] ?? null,
-            'account_id' => $organization["ligo_{$prefix}_account_id"] ?? null,
-            'merchant_code' => $organization["ligo_{$prefix}_merchant_code"] ?? null,
-            'private_key' => $organization["ligo_{$prefix}_private_key"] ?? null,
-            'webhook_secret' => $organization["ligo_{$prefix}_webhook_secret"] ?? null,
-        ];
+        // Get any active configuration regardless of environment
+        $config = $superadminLigoConfigModel->where('enabled', 1)
+                                            ->where('is_active', 1)
+                                            ->first();
         
-        // Fallback to legacy fields if environment-specific fields are empty
-        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
-            $credentials = [
-                'username' => $credentials['username'] ?? null,
-                'password' => $credentials['password'] ?? null,
-                'company_id' => $credentials['company_id'] ?? null,
-                'account_id' => $organization['ligo_account_id'] ?? null,
-                'merchant_code' => $organization['ligo_merchant_code'] ?? null,
-                'private_key' => $credentials['private_key'] ?? null,
-                'webhook_secret' => $organization['ligo_webhook_secret'] ?? null,
+        if (!$config || !$superadminLigoConfigModel->isConfigurationComplete($config)) {
+            log_message('error', 'LigoQRHashController API: No valid centralized Ligo configuration found');
+            return [
+                'username' => null,
+                'password' => null,
+                'company_id' => null,
+                'account_id' => null,
+                'merchant_code' => null,
+                'private_key' => null,
+                'webhook_secret' => null,
             ];
         }
+
+        log_message('debug', 'LigoQRHashController API: Using centralized Ligo credentials for environment: ' . $config['environment']);
         
-        return $credentials;
+        return [
+            'username' => $config['username'],
+            'password' => $config['password'],
+            'company_id' => $config['company_id'],
+            'account_id' => $config['account_id'],
+            'merchant_code' => $config['merchant_code'] ?? null,
+            'private_key' => $config['private_key'],
+            'webhook_secret' => $config['webhook_secret'] ?? null,
+        ];
+    }
+
+    /**
+     * Get centralized Ligo configuration for API endpoints URLs
+     * @return array|false Ligo configuration array or false if not found
+     */
+    private function getLigoConfig()
+    {
+        $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
+        
+        // Get active configuration
+        $config = $superadminLigoConfigModel->where('enabled', 1)
+                                            ->where('is_active', 1)
+                                            ->first();
+        
+        if (!$config) {
+            log_message('error', 'LigoQRHashController API: No active Ligo configuration found');
+            return false;
+        }
+
+        // Build URLs based on environment from centralized config
+        $environment = $config['environment'];
+        $prefix = $environment === 'prod' ? 'prod' : 'dev';
+        
+        return [
+            'environment' => $environment,
+            'api_base_url' => "https://cce-api-gateway-{$prefix}.ligocloud.tech",
+            'auth_base_url' => "https://cce-auth-{$prefix}.ligocloud.tech"
+        ];
     }
     
     public function index()
@@ -129,10 +162,6 @@ class LigoQRHashController extends ResourceController
             if (!$organization) {
                 return $this->fail('Organization not found', 400);
             }
-            
-            // DEPRECATED: Organization-specific Ligo credentials are no longer used
-            // Organizations now use centralized Ligo configuration from superadmin
-            return $this->fail('QR functionality deprecated - organizations no longer use individual Ligo credentials', 400);
             
             // Obtener token de autenticación
             $authToken = $this->getLigoAuthToken($organization);
@@ -249,10 +278,13 @@ class LigoQRHashController extends ResourceController
                 'expiresIn' => 3600 // 1 hora
             ]);
             
-            // Get environment prefix for auth URL
-            $environment = $organization['ligo_environment'] ?? 'dev';
-            $prefix = $environment === 'prod' ? 'prod' : 'dev';
-            $authUrl = "https://cce-auth-{$prefix}.ligocloud.tech/v1/auth/sign-in?companyId=" . $credentials['company_id'];
+            // Get centralized Ligo configuration for auth URL
+            $ligoConfig = $this->getLigoConfig();
+            if (!$ligoConfig) {
+                return (object)['error' => 'Ligo URL configuration not available'];
+            }
+            
+            $authUrl = $ligoConfig['auth_base_url'] . "/v1/auth/sign-in?companyId=" . $credentials['company_id'];
             
             $curl = curl_init();
             
@@ -335,10 +367,13 @@ class LigoQRHashController extends ResourceController
         try {
             $curl = curl_init();
             
-            // URL para obtener detalles del QR según Postman
-            $environment = $organization['ligo_environment'] ?? 'dev';
-            $prefix = $environment === 'prod' ? 'prod' : 'dev';
-            $url = 'https://cce-api-gateway-' . $prefix . '.ligocloud.tech/v1/getCreateQRById/' . $qrId;
+            // Get centralized Ligo configuration for API URL
+            $ligoConfig = $this->getLigoConfig();
+            if (!$ligoConfig) {
+                return (object)['error' => 'Ligo URL configuration not available'];
+            }
+            
+            $url = $ligoConfig['api_base_url'] . '/v1/getCreateQRById/' . $qrId;
             
             curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
