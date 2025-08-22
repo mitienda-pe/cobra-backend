@@ -49,8 +49,9 @@ class LigoPaymentController extends ResourceController
         }
 
         log_message('debug', 'LigoPaymentController API: Using centralized Ligo credentials for environment: ' . $config['environment']);
+        log_message('error', 'TEMP DEBUG - LigoPaymentController config: ' . json_encode($config));
         
-        return [
+        $credentials = [
             'username' => $config['username'],
             'password' => $config['password'],
             'company_id' => $config['company_id'],
@@ -59,6 +60,10 @@ class LigoPaymentController extends ResourceController
             'private_key' => $config['private_key'],
             'webhook_secret' => $config['webhook_secret'] ?? null,
         ];
+        
+        log_message('error', 'TEMP DEBUG - LigoPaymentController credentials: ' . json_encode($credentials));
+        
+        return $credentials;
     }
 
     /**

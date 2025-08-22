@@ -66,8 +66,9 @@ class PaymentController extends ResourceController
         }
 
         log_message('debug', 'PaymentController API: Using centralized Ligo credentials for environment: ' . $config['environment']);
+        log_message('error', 'TEMP DEBUG - Full config: ' . json_encode($config));
         
-        return [
+        $credentials = [
             'username' => $config['username'],
             'password' => $config['password'],
             'company_id' => $config['company_id'],
@@ -76,6 +77,10 @@ class PaymentController extends ResourceController
             'private_key' => $config['private_key'],
             'webhook_secret' => $config['webhook_secret'] ?? null,
         ];
+        
+        log_message('error', 'TEMP DEBUG - Credentials returned: ' . json_encode($credentials));
+        
+        return $credentials;
     }
 
     /**
@@ -144,6 +149,7 @@ class PaymentController extends ResourceController
         }
         $credentials = $this->getLigoCredentials($organization);
         if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['company_id'])) {
+            log_message('error', 'TEMP DEBUG - Ligo credentials validation failed. Credentials: ' . json_encode($credentials));
             return $this->fail('Ligo API credentials not configured', 400);
         }
         // --- NUEVO: Revisar si ya existe un hash válido para este instalment (cache de 60 min) ---
@@ -240,6 +246,7 @@ class PaymentController extends ResourceController
         // Get auth token (reuse logic from LigoPaymentController)
         $authToken = $this->getLigoAuthToken($organization);
         if (isset($authToken['error'])) {
+            log_message('error', 'TEMP DEBUG - Auth token error: ' . $authToken['error']);
             log_message('error', 'SECRETO: RETURN ANTES DE LIGO - Auth token error: ' . $authToken['error']);
             return $this->fail($authToken['error'], 400);
         }
@@ -249,6 +256,7 @@ class PaymentController extends ResourceController
         // Get centralized Ligo configuration for URL
         $ligoConfig = $this->getLigoConfig();
         if (!$ligoConfig) {
+            log_message('error', 'TEMP DEBUG - Ligo config not found');
             log_message('error', 'PaymentController API: No valid centralized Ligo URL configuration found');
             return $this->fail('Error de configuración: configuración de Ligo no disponible', 500);
         }
@@ -316,6 +324,7 @@ class PaymentController extends ResourceController
         log_message('debug', 'Respuesta de Ligo - HTTP Code: ' . $info['http_code']);
         curl_close($curl);
         if ($err) {
+            log_message('error', 'TEMP DEBUG - cURL error: ' . $err);
             log_message('error', 'Ligo API Error: ' . $err);
             return $this->fail('Failed to connect to Ligo API: ' . $err, 400);
         }
