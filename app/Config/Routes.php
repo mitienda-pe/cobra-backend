@@ -89,6 +89,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     // SSE Routes for real-time payment notifications (Public for testing)
     $routes->get('payments/stream/(:segment)', 'PaymentStreamController::stream/$1');
     $routes->post('payments/test-event/(:segment)', 'PaymentStreamController::testEvent/$1');
+    
+    // Test route to verify SSE controller is accessible
+    $routes->get('test/sse', 'PaymentStreamController::testConnection');
 });
 
 // API Routes - Protected 

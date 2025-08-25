@@ -90,6 +90,18 @@ class PaymentStreamController extends ResourceController
     }
     
     /**
+     * Test connection endpoint
+     */
+    public function testConnection()
+    {
+        return $this->respond([
+            'success' => true,
+            'message' => 'SSE Controller is accessible',
+            'timestamp' => date('Y-m-d H:i:s')
+        ]);
+    }
+    
+    /**
      * Test endpoint to simulate payment completion
      * Usage: POST /api/payments/test-event/{qr_id}
      */
