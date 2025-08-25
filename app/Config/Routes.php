@@ -46,6 +46,11 @@ $routes->match(['options'], 'webhooks/ligo/prod', '\App\Controllers\Api\LigoWebh
 $routes->post('webhooks/ligo', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification/dev');
 $routes->match(['options'], 'webhooks/ligo', '\App\Controllers\Api\LigoWebhookController::handlePaymentNotification/dev');
 
+// SSE Routes for real-time payment notifications (Public)
+$routes->get('api/payments/stream/(:segment)', '\App\Controllers\Api\PaymentStreamController::stream/$1');
+$routes->post('api/payments/test-event/(:segment)', '\App\Controllers\Api\PaymentStreamController::testEvent/$1');
+$routes->get('api/test/sse', '\App\Controllers\Api\PaymentStreamController::testConnection');
+
 // API Routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Ligo QR Hashes API (Public)
@@ -86,12 +91,6 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->match(['get', 'options'], 'portfolios', 'PortfolioController::index');
     $routes->match(['get', 'options'], 'portfolios/(:segment)', 'PortfolioController::show/$1');
     
-    // SSE Routes for real-time payment notifications (Public for testing)
-    $routes->get('payments/stream/(:segment)', 'PaymentStreamController::stream/$1');
-    $routes->post('payments/test-event/(:segment)', 'PaymentStreamController::testEvent/$1');
-    
-    // Test route to verify SSE controller is accessible
-    $routes->get('test/sse', 'PaymentStreamController::testConnection');
 });
 
 // API Routes - Protected 
