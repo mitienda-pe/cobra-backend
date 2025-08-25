@@ -95,32 +95,33 @@ class PaymentNotificationController extends ResourceController
             $builder = $db->table('payments');
             
             $payment = $builder->select('id, uuid, amount, status, payment_method, reference_code, created_at, updated_at')
-                              ->where('reference_code', $orderId)
-                              ->orWhere('uuid', $orderId)
+                              ->groupStart()
+                                  ->where('reference_code', $orderId)
+                                  ->orWhere('uuid', $orderId)
+                                  ->orWhere('external_id', $orderId)
+                              ->groupEnd()
                               ->where('deleted_at IS NULL')
                               ->orderBy('id', 'DESC')
                               ->get()
                               ->getRowArray();
             
             if ($payment) {
-                log_message('info', "🔍 DB Query: order_id={$orderId}, found=YES, status={$payment['status']}, amount={$payment['amount']}");
+                log_message('info', "🔍 DB Query: order_id={$orderId}, found=YES, status={$payment['status']}, amount={$payment['amount']}, reference_code={$payment['reference_code']}");
             } else {
                 log_message('info', "🔍 DB Query: order_id={$orderId}, found=NO");
                 
-                // Buscar también en instalments si el pago es por cuotas
-                $instalmentBuilder = $db->table('instalments i')
-                    ->select('p.id, p.uuid, p.amount, p.status, p.payment_method, p.reference_code, p.created_at, p.updated_at')
-                    ->join('payments p', 'p.instalment_id = i.id', 'left')
-                    ->where('i.order_id', $orderId)
-                    ->where('p.deleted_at IS NULL')
-                    ->orderBy('p.id', 'DESC');
-                
-                $payment = $instalmentBuilder->get()->getRowArray();
+                // También buscar en notas por si el order_id está almacenado ahí
+                $payment = $builder->select('id, uuid, amount, status, payment_method, reference_code, notes, created_at, updated_at')
+                                  ->like('notes', $orderId)
+                                  ->where('deleted_at IS NULL')
+                                  ->orderBy('id', 'DESC')
+                                  ->get()
+                                  ->getRowArray();
                 
                 if ($payment) {
-                    log_message('info', "🔍 DB Query INSTALMENT: order_id={$orderId}, found=YES, status={$payment['status']}, amount={$payment['amount']}");
+                    log_message('info', "🔍 DB Query NOTES: order_id={$orderId}, found=YES, status={$payment['status']}, notes=" . substr($payment['notes'] ?? '', 0, 100));
                 } else {
-                    log_message('info', "🔍 DB Query INSTALMENT: order_id={$orderId}, found=NO");
+                    log_message('info', "🔍 DB Query NOTES: order_id={$orderId}, found=NO");
                 }
             }
             
