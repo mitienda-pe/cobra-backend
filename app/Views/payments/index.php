@@ -85,7 +85,7 @@
                                             <i class="bi bi-eye"></i> Ver
                                         </a>
 
-                                        <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                                        <?php if (false && $auth->hasAnyRole(['superadmin', 'admin'])): ?>
                                             <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete('<?= $payment['uuid'] ?>')">
                                                 <i class="bi bi-trash"></i> Eliminar
                                             </button>

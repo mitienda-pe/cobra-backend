@@ -280,7 +280,7 @@
                         </a>
                     <?php endif; ?>
 
-                    <?php if ($auth->hasAnyRole(['superadmin', 'admin'])): ?>
+                    <?php if (false && $auth->hasAnyRole(['superadmin', 'admin'])): ?>
                         <button type="button" class="btn btn-danger" onclick="confirmDelete('<?= $payment['uuid'] ?>')">
                             <i class="bi bi-trash"></i> Eliminar Pago
                         </button>
