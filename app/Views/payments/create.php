@@ -323,14 +323,26 @@
                         // Iniciar escucha de notificaciones en tiempo real
                         let qrId = response.qr_id;
                         
-                        // Si no hay qr_id directo, extraerlo de qr_data
-                        if (!qrId && response.qr_data) {
-                            try {
-                                const qrDataObj = JSON.parse(response.qr_data);
-                                qrId = qrDataObj.id_qr;
-                                console.log('QR ID extraído de qr_data:', qrId);
-                            } catch (e) {
-                                console.error('Error parseando qr_data:', e);
+                        // Si no hay qr_id directo, extraerlo de qr_data o order_id
+                        if (!qrId) {
+                            // Primer intento: extraer de qr_data si es JSON
+                            if (response.qr_data) {
+                                try {
+                                    const qrDataObj = JSON.parse(response.qr_data);
+                                    qrId = qrDataObj.id_qr;
+                                    console.log('QR ID extraído de qr_data JSON:', qrId);
+                                } catch (e) {
+                                    // Si qr_data no es JSON, buscar en otros campos
+                                    console.log('qr_data no es JSON, buscando en otros campos');
+                                }
+                            }
+                            
+                            // Segundo intento: usar order_id si está disponible
+                            if (!qrId && response.order_id) {
+                                // Buscar el id_qr asociado a este order_id
+                                console.log('Usando order_id para buscar QR ID:', response.order_id);
+                                // Por ahora usar el order_id como fallback
+                                qrId = response.order_id;
                             }
                         }
                         
@@ -339,6 +351,7 @@
                             startPaymentNotifications(qrId);
                         } else {
                             console.warn('⚠️ No se pudo obtener QR ID para notificaciones');
+                            console.log('Response completo:', response);
                         }
                     } else if (!response.success) {
                         // Mostrar error cuando no hay QR y la respuesta indica error
@@ -359,14 +372,21 @@
                     `);
                     }
 
-                    // Configurar el botón de regenerar QR
+                    // SIEMPRE configurar el botón de regenerar QR (incluso si hay errores)
                     $('#regenerateQrBtn').off('click').on('click', function() {
+                        console.log('🔄 Regenerando QR...');
                         $('#ligoQrModalBody').html(`
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Cargando...</span>
                         </div>
                         <p>Regenerando código QR...</p>
                     `);
+                        
+                        // Detener notificaciones anteriores antes de regenerar
+                        if (paymentNotifications) {
+                            paymentNotifications.stopListening();
+                        }
+                        
                         loadLigoQR(invoiceId, instalmentId);
                     });
                 },
@@ -383,6 +403,18 @@
                         <p class="mb-0 small">Si el problema persiste, por favor contacte al administrador del sistema.</p>
                     </div>
                 `);
+                
+                    // Configurar botón regenerar también en caso de error
+                    $('#regenerateQrBtn').off('click').on('click', function() {
+                        console.log('🔄 Regenerando QR después de error...');
+                        $('#ligoQrModalBody').html(`
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p>Regenerando código QR...</p>
+                    `);
+                        loadLigoQR(invoiceId, instalmentId);
+                    });
                 }
             });
         }
