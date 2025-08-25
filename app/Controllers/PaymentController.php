@@ -540,9 +540,25 @@ class PaymentController extends BaseController
         }
         // Get instalment information if available
         $instalment = null;
+        $allInstalments = [];
+        $nextInstalment = null;
         if (!empty($payment['instalment_id'])) {
             $instalmentModel = new InstalmentModel();
             $instalment = $instalmentModel->find($payment['instalment_id']);
+            
+            // Get all instalments for this invoice to show current/total and find next
+            if ($instalment) {
+                $allInstalments = $instalmentModel->where('invoice_id', $invoice['id'])
+                                                ->orderBy('number', 'ASC')
+                                                ->findAll();
+                                                
+                // Find next unpaid instalment
+                $nextInstalment = $instalmentModel->where('invoice_id', $invoice['id'])
+                                                ->where('status', 'pending')
+                                                ->where('number >', $instalment['number'])
+                                                ->orderBy('number', 'ASC')
+                                                ->first();
+            }
         }
         // --- Buscar hash y QR solo para pagos Ligo pendientes/confirmados ---
         $qr_hash = null;
@@ -580,6 +596,8 @@ class PaymentController extends BaseController
             'client' => $client,
             'collector' => $collector,
             'instalment' => $instalment,
+            'allInstalments' => $allInstalments,
+            'nextInstalment' => $nextInstalment,
             'auth' => $this->auth,
             'qr_hash' => $qr_hash,
             'qr_url' => $qr_url,
