@@ -52,6 +52,8 @@ $routes->get('sse/test-stream/(:segment)', '\App\Controllers\Api\PaymentStreamCo
 $routes->get('sse/check-payment/(:segment)', '\App\Controllers\Api\PaymentStreamController::checkPayment/$1');
 $routes->post('sse/test/(:segment)', '\App\Controllers\Api\PaymentStreamController::testEvent/$1');
 $routes->get('sse/check', '\App\Controllers\Api\PaymentStreamController::testConnection');
+$routes->get('debug/qr/(:segment)', '\App\Controllers\LigoQRController::debugQR/$1');
+$routes->get('debug/qr/(:segment)/(:num)', '\App\Controllers\LigoQRController::debugQR/$1/$2');
 
 // API Routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {

@@ -263,8 +263,16 @@
                 dataType: 'json',
                 success: function(response) {
                     console.log('Respuesta del servidor:', response);
+                    
+                    // PROBLEMA: Hay dos respuestas diferentes. Usar solo la que tiene qr_image_url (segunda)
+                    if (!response.qr_image_url) {
+                        console.log('❌ Respuesta sin qr_image_url, ignorando...');
+                        return; // Ignorar primera respuesta que no tiene QR image
+                    }
+                    
+                    console.log('✅ Procesando respuesta con QR image');
                     console.log('QR ID disponible:', response.qr_id);
-                    console.log('QR ID en qr_data:', response.qr_data ? JSON.parse(response.qr_data).id_qr : 'No disponible');
+                    console.log('Order ID:', response.order_id);
 
                     // Siempre mostrar el QR si está disponible, incluso si hay errores
                     if (response.qr_image_url) {
@@ -323,26 +331,20 @@
                         // Iniciar escucha de notificaciones en tiempo real
                         let qrId = response.qr_id;
                         
-                        // Si no hay qr_id directo, extraerlo de qr_data o order_id
-                        if (!qrId) {
-                            // Primer intento: extraer de qr_data si es JSON
-                            if (response.qr_data) {
-                                try {
-                                    const qrDataObj = JSON.parse(response.qr_data);
-                                    qrId = qrDataObj.id_qr;
-                                    console.log('QR ID extraído de qr_data JSON:', qrId);
-                                } catch (e) {
-                                    // Si qr_data no es JSON, buscar en otros campos
-                                    console.log('qr_data no es JSON, buscando en otros campos');
-                                }
-                            }
+                        // Si no hay qr_id directo, extraerlo del string QR
+                        if (!qrId && response.qr_data && typeof response.qr_data === 'string') {
+                            // En la segunda respuesta, qr_data es el string del QR
+                            // El id_qr está en posición específica del string EMV QR
+                            const qrString = response.qr_data;
                             
-                            // Segundo intento: usar order_id si está disponible
-                            if (!qrId && response.order_id) {
-                                // Buscar el id_qr asociado a este order_id
-                                console.log('Usando order_id para buscar QR ID:', response.order_id);
-                                // Por ahora usar el order_id como fallback
-                                qrId = response.order_id;
+                            // Buscar el patrón del id_qr en el string QR (después de "3022")
+                            const match = qrString.match(/3022(\d{25,30})/);
+                            if (match) {
+                                qrId = match[1];
+                                console.log('✅ QR ID extraído del string QR:', qrId);
+                            } else {
+                                console.log('⚠️ No se pudo extraer QR ID del string, usando order_id');
+                                qrId = response.order_id; // Fallback
                             }
                         }
                         
