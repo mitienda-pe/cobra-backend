@@ -38,7 +38,7 @@ class PaymentNotifications {
         this.isListening = true;
 
         // Create EventSource connection
-        const streamUrl = `/api/payments/stream/${qrId}`;
+        const streamUrl = `/sse/stream/${qrId}`;
         this.eventSource = new EventSource(streamUrl);
 
         // Handle connection opened
