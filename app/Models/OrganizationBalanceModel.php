@@ -50,15 +50,15 @@ class OrganizationBalanceModel extends Model
         // Get ONLY Ligo production payments for this organization (exclude development/test payments)
         $builder = $db->table('payments p');
         $builder->select('
-            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" 
+            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "qr" 
                      AND (p.external_id = "2025081411264100114152711061" OR p.external_id = "2025080818164500114152397604")
                      THEN p.amount ELSE 0 END) as total_collected,
-            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" 
+            SUM(CASE WHEN p.status = "completed" AND p.payment_method = "qr" 
                      AND (p.external_id = "2025081411264100114152711061" OR p.external_id = "2025080818164500114152397604")
                      THEN p.amount ELSE 0 END) as total_ligo_payments,
             0 as total_cash_payments,
             0 as total_other_payments,
-            MAX(CASE WHEN p.status = "completed" AND p.payment_method = "ligo_qr" 
+            MAX(CASE WHEN p.status = "completed" AND p.payment_method = "qr" 
                      AND (p.external_id = "2025081411264100114152711061" OR p.external_id = "2025080818164500114152397604")
                      THEN p.payment_date END) as last_payment_date
         ');

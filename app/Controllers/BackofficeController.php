@@ -751,7 +751,7 @@ class BackofficeController extends Controller
                 foreach ($payments as $payment) {
                     $paymentAmount = $payment['amount'];
                     // Normalizar montos de Ligo QR (convertir centavos a soles)
-                    if ($payment['payment_method'] === 'ligo_qr' && $paymentAmount >= 100) {
+                    if ($payment['payment_method'] === 'qr' && $paymentAmount >= 100) {
                         $paymentAmount = $paymentAmount / 100;
                     }
                     $totalPaid += $paymentAmount;

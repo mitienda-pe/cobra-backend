@@ -208,7 +208,7 @@ class LigoWebhookController extends ResourceController
             'instalment_id' => $instalmentId, // Include instalment_id if it exists
             'amount' => $paymentAmount,
             'currency' => $payload->transferDetails->currency ?? 'PEN',
-            'payment_method' => 'ligo_qr',
+            'payment_method' => 'qr',
             'reference_code' => $instructionId,
             'external_id' => $instructionId,
             'payment_date' => $payload->transferDetails->transferDate ?? date('Y-m-d H:i:s'),

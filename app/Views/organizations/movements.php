@@ -38,7 +38,7 @@
                                     <label for="payment_method" class="mr-2">Método:</label>
                                     <select class="form-control form-control-sm" id="payment_method" name="payment_method">
                                         <option value="">Todos</option>
-                                        <option value="ligo_qr" <?= $paymentMethod === 'ligo_qr' ? 'selected' : '' ?>>Ligo QR</option>
+                                        <option value="qr" <?= $paymentMethod === 'qr' ? 'selected' : '' ?>>QR</option>
                                         <option value="cash" <?= $paymentMethod === 'cash' ? 'selected' : '' ?>>Efectivo</option>
                                         <option value="bank_transfer" <?= $paymentMethod === 'bank_transfer' ? 'selected' : '' ?>>Transferencia</option>
                                         <option value="other" <?= $paymentMethod === 'other' ? 'selected' : '' ?>>Otros</option>
@@ -99,7 +99,7 @@
                                             <td>
                                                 <?php
                                                 $methodLabels = [
-                                                    'ligo_qr' => '<span class="badge badge-primary"><i class="fas fa-qrcode"></i>QR</span>',
+                                                    'qr' => '<span class="badge badge-primary"><i class="fas fa-qrcode"></i> QR</span>',
                                                     'cash' => '<span class="badge badge-success"><i class="fas fa-money-bill"></i> Efectivo</span>',
                                                     'bank_transfer' => '<span class="badge badge-info"><i class="fas fa-university"></i> Transferencia</span>',
                                                     'other' => '<span class="badge badge-secondary"><i class="fas fa-ellipsis-h"></i> Otros</span>'

@@ -524,7 +524,7 @@ class InstalmentController extends BaseController
                 $ligoPayments = $db->table('payments')
                                  ->where('instalment_id', $instalment['id'])
                                  ->where('status', 'completed')
-                                 ->where('payment_method', 'ligo_qr')
+                                 ->where('payment_method', 'qr')
                                  ->get()
                                  ->getResultArray();
                 
@@ -538,7 +538,7 @@ class InstalmentController extends BaseController
                                     ->getResultArray();
                     
                     foreach ($allPayments as $payment) {
-                        if ($payment['payment_method'] === 'ligo_qr' && $payment['amount'] >= 100) {
+                        if ($payment['payment_method'] === 'qr' && $payment['amount'] >= 100) {
                             $totalPaid += $payment['amount'] / 100; // Convert from cents
                         } else {
                             $totalPaid += $payment['amount'];

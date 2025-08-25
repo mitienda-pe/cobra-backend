@@ -153,7 +153,7 @@
                                 function normalizePaymentAmount($amount, $paymentMethod)
                                 {
                                     // Para pagos QR, convertir de centavos a soles si el monto parece estar en centavos
-                                    if ($paymentMethod === 'ligo_qr' && $amount >= 100) {
+                                    if ($paymentMethod === 'qr' && $amount >= 100) {
                                         return $amount / 100;
                                     }
                                     return $amount;
@@ -209,8 +209,8 @@
                                                         foreach ($instalmentPayments as $p) {
                                                             $paymentMethod = '';
                                                             switch ($p['payment_method']) {
-                                                                case 'ligo_qr':
-                                                                    $paymentMethod = 'QR-Ligo';
+                                                                case 'qr':
+                                                                    $paymentMethod = 'QR';
                                                                     break;
                                                                 case 'cash':
                                                                     $paymentMethod = 'Efectivo';

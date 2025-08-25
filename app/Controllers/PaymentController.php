@@ -99,7 +99,7 @@ class PaymentController extends BaseController
             
             // Check if payment method is Ligo QR - handled by JavaScript now
             // We don't need server-side redirection anymore since we're using a modal
-            if ($this->request->getPost('payment_method') === 'ligo_qr' && !$this->request->isAJAX()) {
+            if ($this->request->getPost('payment_method') === 'qr' && !$this->request->isAJAX()) {
                 // For non-AJAX requests or fallback, we'll still validate
                 $invoiceModel = new InvoiceModel();
                 $invoice = $invoiceModel->find($this->request->getPost('invoice_id'));
@@ -385,7 +385,7 @@ class PaymentController extends BaseController
                     foreach ($instalmentPayments as $payment) {
                         $paymentAmount = $payment['amount'];
                         // Convertir centavos a soles para pagos de Ligo QR
-                        if ($payment['payment_method'] === 'ligo_qr' && $paymentAmount >= 100) {
+                        if ($payment['payment_method'] === 'qr' && $paymentAmount >= 100) {
                             $paymentAmount = $paymentAmount / 100;
                         }
                         $instalmentPaid += $paymentAmount;
@@ -549,7 +549,7 @@ class PaymentController extends BaseController
         $qr_url = null;
         $show_ligo_qr = false;
         if (
-            isset($payment['payment_method']) && $payment['payment_method'] === 'ligo_qr' &&
+            isset($payment['payment_method']) && $payment['payment_method'] === 'qr' &&
             in_array($payment['status'], ['pendiente', 'confirmado'])
         ) {
             $qrModel = new \App\Models\LigoQRHashModel();

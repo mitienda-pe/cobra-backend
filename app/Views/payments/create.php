@@ -123,7 +123,7 @@
                             <option value="deposit" <?= old('payment_method') == 'deposit' ? 'selected' : '' ?>>Depósito</option>
                             <option value="check" <?= old('payment_method') == 'check' ? 'selected' : '' ?>>Cheque</option>
                             <option value="card" <?= old('payment_method') == 'card' ? 'selected' : '' ?>>Tarjeta</option>
-                            <option value="ligo_qr" <?= old('payment_method') == 'ligo_qr' ? 'selected' : '' ?>>QR</option>
+                            <option value="qr" <?= old('payment_method') == 'qr' ? 'selected' : '' ?>>QR</option>
                         </select>
                     </div>
 
@@ -197,7 +197,7 @@
     $(document).ready(function() {
         // Manejar cambio en el método de pago para mostrar el modal de QR si se selecciona
         $('#payment_method').on('change', function() {
-            if ($(this).val() === 'ligo_qr') {
+            if ($(this).val() === 'qr') {
                 // Prevenir el envío del formulario al seleccionar QR
                 event.preventDefault();
 
@@ -231,7 +231,7 @@
         // Agregar un manejador para el envío del formulario
         $('#payment-form').on('submit', function(e) {
             // Si el método de pago es QR, prevenir el envío del formulario
-            if ($('#payment_method').val() === 'ligo_qr') {
+            if ($('#payment_method').val() === 'qr') {
                 e.preventDefault();
                 return false;
             }
