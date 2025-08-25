@@ -56,7 +56,10 @@ $routes->get('sse/check', '\App\Controllers\Api\PaymentStreamController::testCon
 // QR Payment Notifications for Mobile App (Public)
 $routes->get('api/payment-stream/(:segment)', '\App\Controllers\Api\PaymentNotificationController::stream/$1');
 $routes->get('api/payment-events/(:segment)', '\App\Controllers\Api\PaymentNotificationController::events/$1');
+
+// Testing endpoint (development only)
 $routes->post('api/payments/webhook-test', '\App\Controllers\Api\PaymentNotificationController::webhookTest');
+$routes->match(['options'], 'api/payments/webhook-test', '\App\Controllers\Api\PaymentNotificationController::webhookTest');
 
 $routes->get('debug/qr/(:segment)', '\App\Controllers\LigoQRController::debugQR/$1');
 $routes->get('debug/qr/(:segment)/(:num)', '\App\Controllers\LigoQRController::debugQR/$1/$2');
