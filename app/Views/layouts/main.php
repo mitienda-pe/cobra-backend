@@ -471,20 +471,20 @@
                             <span class="sidebar-item-text">Pagos</span>
                         </a>
 
-                        <a href="<?= site_url('payments/report') ?>" class="sidebar-item <?= $currentPath === '/payments/report' ? 'active' : '' ?>">
+                        <!-- <a href="<?= site_url('payments/report') ?>" class="sidebar-item <?= $currentPath === '/payments/report' ? 'active' : '' ?>">
                             <i class="bi bi-bar-chart"></i>
                             <span class="sidebar-item-text">Reportes</span>
-                        </a>
+                        </a> -->
 
                         <a href="<?= site_url('organizations/account/' . $selectedOrgUuid) ?>" class="sidebar-item <?= strpos($currentPath, '/organizations/account') === 0 ? 'active' : '' ?>">
                             <i class="bi bi-wallet2"></i>
                             <span class="sidebar-item-text">Estado de Cuenta</span>
                         </a>
 
-                        <a href="<?= site_url('webhooks') ?>" class="sidebar-item <?= $currentPath === '/webhooks' ? 'active' : '' ?>">
+                        <!-- <a href="<?= site_url('webhooks') ?>" class="sidebar-item <?= $currentPath === '/webhooks' ? 'active' : '' ?>">
                             <i class="bi bi-link-45deg"></i>
                             <span class="sidebar-item-text">Webhooks</span>
-                        </a>
+                        </a> -->
                     <?php endif; ?>
 
                 <?php else: ?>
