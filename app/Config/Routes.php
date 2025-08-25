@@ -85,6 +85,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     // Portfolio Routes (Public)
     $routes->match(['get', 'options'], 'portfolios', 'PortfolioController::index');
     $routes->match(['get', 'options'], 'portfolios/(:segment)', 'PortfolioController::show/$1');
+    
+    // SSE Routes for real-time payment notifications (Public for testing)
+    $routes->get('payments/stream/(:segment)', 'PaymentStreamController::stream/$1');
+    $routes->post('payments/test-event/(:segment)', 'PaymentStreamController::testEvent/$1');
 });
 
 // API Routes - Protected 
