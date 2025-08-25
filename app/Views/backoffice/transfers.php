@@ -1,7 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 
 <?= $this->section('title') ?>
-Historial de Transferencias Ligo
+Historial de Transferencias
 <?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
@@ -10,7 +10,7 @@ Historial de Transferencias Ligo
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Historial de Transferencias Ligo</h3>
+                    <h3 class="card-title">Historial de Transferencias</h3>
                     <div class="card-tools">
                         <a href="<?= base_url('backoffice/transfer') ?>" class="btn btn-primary">
                             <i class="fas fa-plus"></i> Nueva Transferencia
@@ -162,7 +162,7 @@ Historial de Transferencias Ligo
                                                 <?= $transfer['currency'] ?> <?= number_format($transfer['fee_amount'], 2) ?>
                                             </td>
                                             <td>
-                                                <?php 
+                                                <?php
                                                 $badgeClass = 'secondary';
                                                 $statusText = ucfirst($transfer['status']);
                                                 switch ($transfer['status']) {
@@ -240,7 +240,7 @@ Historial de Transferencias Ligo
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Respuesta de Ligo API</h5>
+                <h5 class="modal-title">Respuesta del API</h5>
                 <button type="button" class="close" data-dismiss="modal">
                     <span>&times;</span>
                 </button>
@@ -257,50 +257,50 @@ Historial de Transferencias Ligo
 </div>
 
 <script>
-function showModal(modalId) {
-    const modal = document.getElementById(modalId);
-    modal.style.display = 'block';
-    modal.classList.add('show');
-    document.body.classList.add('modal-open');
-    
-    // Create backdrop
-    const backdrop = document.createElement('div');
-    backdrop.classList.add('modal-backdrop', 'fade', 'show');
-    backdrop.id = modalId + 'Backdrop';
-    document.body.appendChild(backdrop);
-}
+    function showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.style.display = 'block';
+        modal.classList.add('show');
+        document.body.classList.add('modal-open');
 
-function hideModal(modalId) {
-    const modal = document.getElementById(modalId);
-    modal.style.display = 'none';
-    modal.classList.remove('show');
-    document.body.classList.remove('modal-open');
-    
-    // Remove backdrop
-    const backdrop = document.getElementById(modalId + 'Backdrop');
-    if (backdrop) {
-        backdrop.remove();
+        // Create backdrop
+        const backdrop = document.createElement('div');
+        backdrop.classList.add('modal-backdrop', 'fade', 'show');
+        backdrop.id = modalId + 'Backdrop';
+        document.body.appendChild(backdrop);
     }
-}
 
-function showTransferDetails(transferId) {
-    showModal('transferDetailsModal');
-    
-    // Reset content to loading
-    document.getElementById('transferDetailsContent').innerHTML = `
+    function hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+        document.body.classList.remove('modal-open');
+
+        // Remove backdrop
+        const backdrop = document.getElementById(modalId + 'Backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+    }
+
+    function showTransferDetails(transferId) {
+        showModal('transferDetailsModal');
+
+        // Reset content to loading
+        document.getElementById('transferDetailsContent').innerHTML = `
         <div class="text-center">
             <div class="spinner-border" role="status">
                 <span class="sr-only">Cargando...</span>
             </div>
         </div>
     `;
-    
-    fetch('<?= base_url('backoffice/transfer/details') ?>/' + transferId)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const transfer = data.data;
-                const content = `
+
+        fetch('<?= base_url('backoffice/transfer/details') ?>/' + transferId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const transfer = data.data;
+                    const content = `
                     <div class="row">
                         <div class="col-md-6">
                             <h6>Información General</h6>
@@ -337,186 +337,201 @@ function showTransferDetails(transferId) {
                         </div>
                     </div>
                 `;
-                document.getElementById('transferDetailsContent').innerHTML = content;
-            } else {
-                document.getElementById('transferDetailsContent').innerHTML = '<div class="alert alert-danger">Error al cargar detalles</div>';
-            }
-        })
-        .catch(error => {
-            document.getElementById('transferDetailsContent').innerHTML = '<div class="alert alert-danger">Error de conexión</div>';
-        });
-}
+                    document.getElementById('transferDetailsContent').innerHTML = content;
+                } else {
+                    document.getElementById('transferDetailsContent').innerHTML = '<div class="alert alert-danger">Error al cargar detalles</div>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('transferDetailsContent').innerHTML = '<div class="alert alert-danger">Error de conexión</div>';
+            });
+    }
 
-function showLigoResponse(transferId) {
-    showModal('ligoResponseModal');
-    
-    // Reset content to loading
-    document.getElementById('ligoResponseContent').innerHTML = `
+    function showLigoResponse(transferId) {
+        showModal('ligoResponseModal');
+
+        // Reset content to loading
+        document.getElementById('ligoResponseContent').innerHTML = `
         <div class="text-center">
             <div class="spinner-border" role="status">
                 <span class="sr-only">Cargando...</span>
             </div>
         </div>
     `;
-    
-    fetch('<?= base_url('backoffice/transfer/ligo-response') ?>/' + transferId)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.data.ligo_response) {
-                const response = JSON.parse(data.data.ligo_response);
-                const content = '<pre class="bg-light p-3"><code>' + JSON.stringify(response, null, 2) + '</code></pre>';
-                document.getElementById('ligoResponseContent').innerHTML = content;
-            } else {
-                document.getElementById('ligoResponseContent').innerHTML = '<div class="alert alert-info">No hay respuesta de Ligo disponible</div>';
-            }
-        })
-        .catch(error => {
-            document.getElementById('ligoResponseContent').innerHTML = '<div class="alert alert-danger">Error de conexión</div>';
-        });
-}
 
-// Event listeners for closing modals
-document.addEventListener('DOMContentLoaded', function() {
-    // Close modal when clicking the X button
-    document.querySelectorAll('[data-dismiss="modal"]').forEach(function(closeBtn) {
-        closeBtn.addEventListener('click', function() {
-            const modal = this.closest('.modal');
-            hideModal(modal.id);
-        });
-    });
-    
-    // Close modal when clicking outside the modal content
-    document.querySelectorAll('.modal').forEach(function(modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                hideModal(this.id);
-            }
-        });
-    });
-    
-    // Close modal with Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            const openModals = document.querySelectorAll('.modal.show');
-            openModals.forEach(function(modal) {
+        fetch('<?= base_url('backoffice/transfer/ligo-response') ?>/' + transferId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.ligo_response) {
+                    const response = JSON.parse(data.data.ligo_response);
+                    const content = '<pre class="bg-light p-3"><code>' + JSON.stringify(response, null, 2) + '</code></pre>';
+                    document.getElementById('ligoResponseContent').innerHTML = content;
+                } else {
+                    document.getElementById('ligoResponseContent').innerHTML = '<div class="alert alert-info">No hay respuesta de Ligo disponible</div>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('ligoResponseContent').innerHTML = '<div class="alert alert-danger">Error de conexión</div>';
+            });
+    }
+
+    // Event listeners for closing modals
+    document.addEventListener('DOMContentLoaded', function() {
+        // Close modal when clicking the X button
+        document.querySelectorAll('[data-dismiss="modal"]').forEach(function(closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                const modal = this.closest('.modal');
                 hideModal(modal.id);
             });
-        }
+        });
+
+        // Close modal when clicking outside the modal content
+        document.querySelectorAll('.modal').forEach(function(modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideModal(this.id);
+                }
+            });
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const openModals = document.querySelectorAll('.modal.show');
+                openModals.forEach(function(modal) {
+                    hideModal(modal.id);
+                });
+            }
+        });
     });
-});
 </script>
 
 <style>
-.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
-.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
-.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
-.border-left-info { border-left: 0.25rem solid #36b9cc !important; }
-.border-left-danger { border-left: 0.25rem solid #e74a3b !important; }
+    .border-left-primary {
+        border-left: 0.25rem solid #4e73df !important;
+    }
 
-/* Modal styles for vanilla JS */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1050;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    outline: 0;
-}
+    .border-left-success {
+        border-left: 0.25rem solid #1cc88a !important;
+    }
 
-.modal.show {
-    display: block !important;
-}
+    .border-left-warning {
+        border-left: 0.25rem solid #f6c23e !important;
+    }
 
-.modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1040;
-    width: 100vw;
-    height: 100vh;
-    background-color: #000;
-    opacity: 0.5;
-}
+    .border-left-info {
+        border-left: 0.25rem solid #36b9cc !important;
+    }
 
-.modal-backdrop.show {
-    opacity: 0.5;
-}
+    .border-left-danger {
+        border-left: 0.25rem solid #e74a3b !important;
+    }
 
-.modal-open {
-    overflow: hidden;
-}
+    /* Modal styles for vanilla JS */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1050;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        outline: 0;
+    }
 
-.modal-dialog {
-    position: relative;
-    width: auto;
-    margin: 0.5rem;
-    pointer-events: none;
-}
+    .modal.show {
+        display: block !important;
+    }
 
-@media (min-width: 576px) {
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1040;
+        width: 100vw;
+        height: 100vh;
+        background-color: #000;
+        opacity: 0.5;
+    }
+
+    .modal-backdrop.show {
+        opacity: 0.5;
+    }
+
+    .modal-open {
+        overflow: hidden;
+    }
+
     .modal-dialog {
-        max-width: 500px;
-        margin: 1.75rem auto;
+        position: relative;
+        width: auto;
+        margin: 0.5rem;
+        pointer-events: none;
     }
-}
 
-@media (min-width: 992px) {
-    .modal-lg {
-        max-width: 800px;
+    @media (min-width: 576px) {
+        .modal-dialog {
+            max-width: 500px;
+            margin: 1.75rem auto;
+        }
     }
-    .modal-xl {
-        max-width: 1140px;
+
+    @media (min-width: 992px) {
+        .modal-lg {
+            max-width: 800px;
+        }
+
+        .modal-xl {
+            max-width: 1140px;
+        }
     }
-}
 
-.modal-content {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    pointer-events: auto;
-    background-color: #fff;
-    background-clip: padding-box;
-    border: 1px solid rgba(0,0,0,.2);
-    border-radius: 0.3rem;
-    outline: 0;
-}
+    .modal-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        pointer-events: auto;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid rgba(0, 0, 0, .2);
+        border-radius: 0.3rem;
+        outline: 0;
+    }
 
-.modal-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 1rem 1rem;
-    border-bottom: 1px solid #dee2e6;
-    border-top-left-radius: calc(0.3rem - 1px);
-    border-top-right-radius: calc(0.3rem - 1px);
-}
+    .modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 1rem 1rem;
+        border-bottom: 1px solid #dee2e6;
+        border-top-left-radius: calc(0.3rem - 1px);
+        border-top-right-radius: calc(0.3rem - 1px);
+    }
 
-.modal-body {
-    position: relative;
-    flex: 1 1 auto;
-    padding: 1rem;
-}
+    .modal-body {
+        position: relative;
+        flex: 1 1 auto;
+        padding: 1rem;
+    }
 
-.close {
-    padding: 1rem 1rem;
-    margin: -1rem -1rem -1rem auto;
-    background-color: transparent;
-    border: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-    line-height: 1;
-    color: #000;
-    text-shadow: 0 1px 0 #fff;
-    opacity: .5;
-    cursor: pointer;
-}
+    .close {
+        padding: 1rem 1rem;
+        margin: -1rem -1rem -1rem auto;
+        background-color: transparent;
+        border: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+        color: #000;
+        text-shadow: 0 1px 0 #fff;
+        opacity: .5;
+        cursor: pointer;
+    }
 
-.close:hover {
-    opacity: .75;
-}
+    .close:hover {
+        opacity: .75;
+    }
 </style>
 <?= $this->endSection() ?>
