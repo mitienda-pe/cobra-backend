@@ -349,14 +349,22 @@
                             } else {
                                 // Es un string EMV, extraer con regex más preciso
                                 console.log('🔍 String EMV para análisis:', qrString.substring(0, 100) + '...');
-                                // Patrón más específico: 3022 seguido de exactamente 20 dígitos
-                                const match = qrString.match(/3022(\d{20})52/);
+                                // Buscar patrón 3022 + longitud + QR ID
+                                const match = qrString.match(/3022(\d{20})/);
                                 if (match) {
                                     qrId = match[1];
                                     console.log('✅ QR ID extraído del EMV:', qrId);
                                 } else {
-                                    console.log('⚠️ No se pudo extraer QR ID, usando order_id');
-                                    qrId = response.order_id; // Fallback
+                                    // Intentar extraer de otra forma más general
+                                    const altMatch = qrString.match(/02(\d{20})/);
+                                    if (altMatch) {
+                                        qrId = altMatch[1];
+                                        console.log('✅ QR ID extraído alternativo:', qrId);
+                                    } else {
+                                        console.log('⚠️ No se pudo extraer QR ID del EMV');
+                                        console.log('Patrón EMV:', qrString.substring(30, 80));
+                                        qrId = response.order_id; // Fallback
+                                    }
                                 }
                             }
                         }

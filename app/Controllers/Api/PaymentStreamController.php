@@ -121,13 +121,38 @@ class PaymentStreamController extends Controller
         
         try {
             $cache = \Config\Services::cache();
+            
+            // Buscar primero por QR ID directo
             $paymentEvent = $cache->get("payment_event_$qrId");
             
-            if ($paymentEvent) {
-                log_message('info', "✅ [POLLING] Payment event found for QR: $qrId");
+            // Si no se encuentra y parece un order_id (UUID), buscar por order_id también
+            if (!$paymentEvent && preg_match('/^[0-9a-f-]{36}$/i', $qrId)) {
+                log_message('info', "🔍 [POLLING] QR ID looks like order_id, searching in database: $qrId");
                 
-                // Clean up cache after finding
-                $cache->delete("payment_event_$qrId");
+                // Buscar en la base de datos el id_qr real para este order_id
+                $db = \Config\Database::connect();
+                $hashRecord = $db->table('ligo_qr_hashes')
+                              ->where('order_id', $qrId)
+                              ->orderBy('id', 'DESC')
+                              ->get()
+                              ->getRowArray();
+                
+                if ($hashRecord && $hashRecord['id_qr']) {
+                    $realQrId = $hashRecord['id_qr'];
+                    log_message('info', "✅ [POLLING] Found real QR ID: $realQrId for order_id: $qrId");
+                    
+                    // Buscar el evento con el QR ID real
+                    $paymentEvent = $cache->get("payment_event_$realQrId");
+                    
+                    if ($paymentEvent) {
+                        log_message('info', "✅ [POLLING] Payment event found with real QR ID: $realQrId");
+                        $cache->delete("payment_event_$realQrId");
+                    }
+                }
+            }
+            
+            if ($paymentEvent) {
+                log_message('info', "✅ [POLLING] Payment event found for identifier: $qrId");
                 
                 return $this->response->setJSON([
                     'success' => true,
