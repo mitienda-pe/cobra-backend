@@ -61,9 +61,35 @@ class LigoWebhookController extends ResourceController
         $responseCode = 200;
         $responseMessage = 'OK';
         
+        // =======================================================================
+        // LOGS DETALLADOS PARA DEBUG - WEBHOOK DE LIGO
+        // =======================================================================
+        log_message('error', '🔔 [WEBHOOK_DEBUG] ===== WEBHOOK DE LIGO RECIBIDO =====');
+        log_message('error', '📱 [WEBHOOK_DEBUG] Environment: ' . $environment);
+        log_message('error', '📱 [WEBHOOK_DEBUG] Payload completo: ' . json_encode($payload));
+        log_message('error', '📱 [WEBHOOK_DEBUG] Raw payload length: ' . strlen($rawPayload) . ' chars');
+        
+        // Analyze payload structure
+        if ($payload) {
+            log_message('error', '📱 [WEBHOOK_DEBUG] Payload fields: ' . json_encode(array_keys((array)$payload)));
+            log_message('error', '📱 [WEBHOOK_DEBUG] instructionId: ' . ($payload->instructionId ?? 'NULL'));
+            log_message('error', '📱 [WEBHOOK_DEBUG] unstructuredInformation: ' . json_encode($payload->unstructuredInformation ?? 'NULL'));
+            
+            // Log transfer details if present
+            if (isset($payload->transferDetails)) {
+                log_message('error', '📱 [WEBHOOK_DEBUG] transferDetails: ' . json_encode($payload->transferDetails));
+            }
+            
+            // Log origin details if present  
+            if (isset($payload->originDetails)) {
+                log_message('error', '📱 [WEBHOOK_DEBUG] originDetails: ' . json_encode($payload->originDetails));
+            }
+        }
+
         // Validate payload - Ligo sends direct payload structure (no type/data wrapper)
         if (!$payload || !isset($payload->unstructuredInformation)) {
-            log_message('error', 'Invalid Ligo webhook payload: ' . json_encode($payload));
+            log_message('error', '❌ [WEBHOOK_DEBUG] Invalid Ligo webhook payload: ' . json_encode($payload));
+            log_message('error', '❌ [WEBHOOK_DEBUG] Missing unstructuredInformation field - webhook will be rejected');
             $responseCode = 400;
             $responseMessage = 'Invalid webhook payload - missing unstructuredInformation';
             $this->logWebhookAttempt($webhookId, 'unknown', $rawPayload, $responseCode, $responseMessage, $success);
@@ -73,12 +99,17 @@ class LigoWebhookController extends ResourceController
         // Get invoice from unstructuredInformation (idQr) using ligo_qr_hashes mapping table
         $idQr = $payload->unstructuredInformation ?? null;
         $instructionId = $payload->instructionId ?? null; // Keep for logging
+        
+        log_message('error', '🔍 [WEBHOOK_DEBUG] ===== BUSCANDO QR HASH EN BASE DE DATOS =====');
+        log_message('error', '📱 [WEBHOOK_DEBUG] idQr a buscar: ' . json_encode($idQr));
+        log_message('error', '📱 [WEBHOOK_DEBUG] instructionId: ' . json_encode($instructionId));
+        
         $ligoQRHashModel = new \App\Models\LigoQRHashModel();
         $qrHash = $ligoQRHashModel->where('id_qr', $idQr)->first();
         
         if (!$qrHash) {
-            log_message('error', '[LigoWebhook] ERROR: QR Hash not found for idQr: ' . $idQr . ' (instructionId: ' . $instructionId . ')');
-            log_message('error', '[LigoWebhook] Available QR hashes in database:');
+            log_message('error', '❌ [WEBHOOK_DEBUG] QR Hash NOT FOUND para idQr: ' . $idQr . ' (instructionId: ' . $instructionId . ')');
+            log_message('error', '🔍 [WEBHOOK_DEBUG] Available QR hashes in database (últimos 10):');
             
             // Show available QR hashes for debugging
             $availableHashes = $ligoQRHashModel->select('id, id_qr, instalment_id, invoice_id, created_at')
@@ -86,7 +117,14 @@ class LigoWebhookController extends ResourceController
                                               ->limit(10)
                                               ->findAll();
             foreach ($availableHashes as $hash) {
-                log_message('error', '[LigoWebhook] - id_qr: ' . ($hash['id_qr'] ?? 'NULL') . ', instalment: ' . ($hash['instalment_id'] ?? 'NULL') . ', invoice: ' . ($hash['invoice_id'] ?? 'NULL') . ', created: ' . $hash['created_at']);
+                log_message('error', '📱 [WEBHOOK_DEBUG] - id_qr: ' . ($hash['id_qr'] ?? 'NULL') . ', instalment: ' . ($hash['instalment_id'] ?? 'NULL') . ', invoice: ' . ($hash['invoice_id'] ?? 'NULL') . ', created: ' . $hash['created_at']);
+            }
+            
+            // Buscar por instructionId como fallback
+            log_message('error', '🔍 [WEBHOOK_DEBUG] Trying fallback search by instructionId...');
+            $fallbackHash = $ligoQRHashModel->like('hash', $instructionId)->orLike('real_hash', $instructionId)->first();
+            if ($fallbackHash) {
+                log_message('error', '⚠️ [WEBHOOK_DEBUG] FALLBACK: Found hash by instructionId: ' . json_encode($fallbackHash));
             }
             
             $responseCode = 404;
@@ -94,6 +132,8 @@ class LigoWebhookController extends ResourceController
             $this->logWebhookAttempt($webhookId, 'payment.notification', $rawPayload, $responseCode, $responseMessage, $success);
             return $this->fail('QR Hash not found', 404);
         }
+        
+        log_message('error', '✅ [WEBHOOK_DEBUG] QR Hash FOUND: ' . json_encode($qrHash));
         
         $invoiceId = $qrHash['invoice_id'];
         $instalmentId = $qrHash['instalment_id'] ?? null;

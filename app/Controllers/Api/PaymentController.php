@@ -279,11 +279,45 @@ class PaymentController extends ResourceController
             'type' => 'TEXT'
         ];
         $curl = curl_init();
-        // LOG DE DEPURACIÓN: payload y token
-        log_message('debug', 'LIGO DEBUG qrData: ' . json_encode($qrData));
-        log_message('debug', 'LIGO DEBUG token: ' . $authToken['token']);
-        // Log de payload real enviado a Ligo
-        log_message('error', 'PaymentController LIGO PAYLOAD: ' . json_encode($qrData));
+        // =======================================================================
+        // LOGS DETALLADOS PARA DEBUG - GENERACIÓN DE QR DESDE APP MÓVIL
+        // =======================================================================
+        log_message('error', '🔍 [MOBILE_QR_DEBUG] ===== INICIANDO GENERACIÓN QR DESDE APP MÓVIL =====');
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Instalment ID: ' . $instalment['id']);
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Invoice ID: ' . $invoice['id']);
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Invoice Number: ' . ($invoice['invoice_number'] ?? 'N/A'));
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Amount: ' . $orderData['amount'] . ' ' . $orderData['currency']);
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Organization: ' . $organization['name'] . ' (ID: ' . $organization['id'] . ')');
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Environment: ' . ($organization['ligo_environment'] ?? 'dev'));
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Account ID: ' . $idCuenta);
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Merchant Code: ' . $codigoComerciante);
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Due Date: ' . $fechaVencimiento);
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Description: ' . $orderData['description']);
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Ligo API URL: ' . $url);
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Auth Token (first 20 chars): ' . substr($authToken['token'], 0, 20) . '...');
+        
+        // Validar campos críticos antes del envío
+        $criticalFields = [
+            'idCuenta' => $idCuenta,
+            'codigoComerciante' => $codigoComerciante,
+            'importe' => (int)($orderData['amount'] * 100),
+            'fechaVencimiento' => $fechaVencimiento,
+            'glosa' => $orderData['description']
+        ];
+        
+        log_message('error', '🔍 [MOBILE_QR_DEBUG] Campos críticos del payload:');
+        foreach ($criticalFields as $field => $value) {
+            log_message('error', "📱 [MOBILE_QR_DEBUG]   $field: " . json_encode($value) . ' (type: ' . gettype($value) . ')');
+        }
+        
+        // Log del array info que es crucial para el webhook
+        log_message('error', '🎯 [MOBILE_QR_DEBUG] Array INFO que será usado por el webhook:');
+        foreach ($qrData['data']['info'] as $index => $infoItem) {
+            log_message('error', "📱 [MOBILE_QR_DEBUG]   info[$index]: codigo='" . $infoItem['codigo'] . "', valor='" . $infoItem['valor'] . "' (type: " . gettype($infoItem['valor']) . ')');
+        }
+        
+        log_message('error', '📤 [MOBILE_QR_DEBUG] PAYLOAD COMPLETO A ENVIAR A LIGO:');
+        log_message('error', 'PaymentController LIGO PAYLOAD: ' . json_encode($qrData, JSON_PRETTY_PRINT));
         curl_setopt_array($curl, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
@@ -301,8 +335,15 @@ class PaymentController extends ResourceController
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
         $response = curl_exec($curl);
-        // Log de respuesta cruda de Ligo
+        
+        // =======================================================================
+        // LOGS DETALLADOS DE LA RESPUESTA DE LIGO
+        // =======================================================================
+        log_message('error', '📥 [MOBILE_QR_DEBUG] ===== RESPUESTA DE LIGO =====');
         log_message('error', 'PaymentController LIGO RESPONSE: ' . $response);
+        log_message('error', '📥 [MOBILE_QR_DEBUG] Raw Response Length: ' . strlen($response) . ' chars');
+        log_message('error', '📥 [MOBILE_QR_DEBUG] HTTP Code: ' . curl_getinfo($curl, CURLINFO_HTTP_CODE));
+        log_message('error', '📥 [MOBILE_QR_DEBUG] Total Time: ' . curl_getinfo($curl, CURLINFO_TOTAL_TIME) . 's');
         $err = curl_error($curl);
         $info = curl_getinfo($curl);
         log_message('debug', 'Solicitud a Ligo - URL: ' . $url);
@@ -337,9 +378,15 @@ class PaymentController extends ResourceController
         // Obtener el hash real usando getCreateQRByID
         $qrId = $decoded->data->id;
         
+        log_message('error', '🆔 [MOBILE_QR_DEBUG] ===== PROCESANDO QR ID Y HASH =====');
+        log_message('error', '📱 [MOBILE_QR_DEBUG] QR ID obtenido de createQr: ' . $qrId);
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Decoded response fields: ' . json_encode(array_keys((array)$decoded->data)));
+        
         // Agregar un pequeño delay para que LIGO procese el QR
+        log_message('error', '⏳ [MOBILE_QR_DEBUG] Esperando 2 segundos para que Ligo procese el QR...');
         sleep(2);
         
+        log_message('error', '📞 [MOBILE_QR_DEBUG] Llamando getCreateQRById para obtener hash real...');
         $qrDetails = $this->getQRDetailsById($qrId, $authToken['token'], $organization);
         
         if (isset($qrDetails->error)) {
@@ -348,25 +395,30 @@ class PaymentController extends ResourceController
         }
         
         // Verificar si data está vacío
+        log_message('error', '🔍 [MOBILE_QR_DEBUG] ===== ANALIZANDO RESPUESTA DE getCreateQRById =====');
+        log_message('error', '📱 [MOBILE_QR_DEBUG] QR Details Response: ' . json_encode($qrDetails));
+        
         if (empty($qrDetails->data) || !is_object($qrDetails->data)) {
-            log_message('warning', 'getCreateQRByID returned empty data. QR may not be ready yet. Using ID as fallback.');
+            log_message('error', '⚠️ [MOBILE_QR_DEBUG] getCreateQRByID returned empty data. QR may not be ready yet. Using ID as fallback.');
             $qrHash = $qrId; // Usar el ID como fallback temporal
         } else {
+            log_message('error', '📱 [MOBILE_QR_DEBUG] QR Details data fields: ' . json_encode(array_keys((array)$qrDetails->data)));
+            
             // Extraer el hash real de la respuesta
             $qrHash = null;
             if (isset($qrDetails->data->hash)) {
                 $qrHash = $qrDetails->data->hash;
-                log_message('info', 'Found hash in data.hash: ' . substr($qrHash, 0, 50) . '...');
+                log_message('error', '✅ [MOBILE_QR_DEBUG] Found hash in data.hash: ' . substr($qrHash, 0, 50) . '... (length: ' . strlen($qrHash) . ')');
             } else if (isset($qrDetails->data->qr)) {
                 $qrHash = $qrDetails->data->qr;
-                log_message('info', 'Found hash in data.qr: ' . substr($qrHash, 0, 50) . '...');
+                log_message('error', '✅ [MOBILE_QR_DEBUG] Found hash in data.qr: ' . substr($qrHash, 0, 50) . '... (length: ' . strlen($qrHash) . ')');
             } else if (isset($qrDetails->data->qrString)) {
                 $qrHash = $qrDetails->data->qrString;
-                log_message('info', 'Found hash in data.qrString: ' . substr($qrHash, 0, 50) . '...');
+                log_message('error', '✅ [MOBILE_QR_DEBUG] Found hash in data.qrString: ' . substr($qrHash, 0, 50) . '... (length: ' . strlen($qrHash) . ')');
             } else {
                 // Usar el ID como fallback
                 $qrHash = $qrId;
-                log_message('warning', 'No hash found in getCreateQRByID response data. Available fields: ' . json_encode(array_keys((array)$qrDetails->data)));
+                log_message('error', '⚠️ [MOBILE_QR_DEBUG] No hash found in getCreateQRByID response data. Available fields: ' . json_encode(array_keys((array)$qrDetails->data)));
             }
         }
         
@@ -405,8 +457,25 @@ class PaymentController extends ResourceController
         }
         
         // Extract idQr from Ligo response for webhook matching
+        log_message('error', '🎯 [MOBILE_QR_DEBUG] ===== EXTRAYENDO idQr PARA WEBHOOK =====');
         $idQr = null;
         if (isset($qrDetails->data)) {
+            // Intentar múltiples campos posibles para idQr
+            $possibleIdQrFields = [
+                'idQr' => $qrDetails->data->idQr ?? null,
+                'idqr' => $qrDetails->data->idqr ?? null,
+                'id_qr' => $qrDetails->data->id_qr ?? null,
+                'qr_id' => $qrDetails->data->qr_id ?? null,
+                'id' => $qrDetails->data->id ?? null,
+            ];
+            
+            log_message('error', '📱 [MOBILE_QR_DEBUG] Campos posibles para idQr:');
+            foreach ($possibleIdQrFields as $fieldName => $fieldValue) {
+                $valueDisplay = $fieldValue ? (is_string($fieldValue) ? substr($fieldValue, 0, 30) . '...' : json_encode($fieldValue)) : 'NULL';
+                log_message('error', "📱 [MOBILE_QR_DEBUG]   $fieldName: $valueDisplay");
+            }
+            
+            // Seleccionar el primer campo no nulo
             $idQr = $qrDetails->data->idQr ?? 
                     $qrDetails->data->idqr ?? 
                     $qrDetails->data->id_qr ?? 
@@ -414,8 +483,16 @@ class PaymentController extends ResourceController
                     $qrDetails->data->id ?? 
                     $qrId ?? 
                     null;
+        } else {
+            log_message('error', '❌ [MOBILE_QR_DEBUG] No data object found in qrDetails for idQr extraction');
         }
-        log_message('error', '[LIGO_DEBUG] PaymentController - Extracted idQr: ' . json_encode($idQr) . ' from qrDetails');
+        
+        log_message('error', '🎯 [MOBILE_QR_DEBUG] idQr FINAL seleccionado: ' . json_encode($idQr) . ' (será usado en webhook matching)');
+        log_message('error', '🔍 [MOBILE_QR_DEBUG] Comparación: qrId=' . $qrId . ', idQr=' . $idQr);
+        
+        if (!$idQr) {
+            log_message('error', '⚠️ [MOBILE_QR_DEBUG] ADVERTENCIA: idQr está vacío - el webhook podría fallar');
+        }
 
         // Get organization environment for tracking
         $environment = $organization['ligo_environment'] ?? 'dev';
@@ -434,8 +511,25 @@ class PaymentController extends ResourceController
             'environment' => $environment
         ];
         
+        log_message('error', '💾 [MOBILE_QR_DEBUG] ===== GUARDANDO EN BASE DE DATOS =====');
+        log_message('error', '📱 [MOBILE_QR_DEBUG] Datos a insertar en ligo_qr_hashes:');
+        foreach ($dataInsert as $key => $value) {
+            $valueDisplay = is_string($value) && strlen($value) > 50 ? substr($value, 0, 50) . '...' : json_encode($value);
+            log_message('error', "📱 [MOBILE_QR_DEBUG]   $key: $valueDisplay");
+        }
+        
         $insertResult = $hashModel->insert($dataInsert);
+        log_message('error', '💾 [MOBILE_QR_DEBUG] Resultado del insert: ' . json_encode($insertResult));
         log_message('info', '[LIGO] Hash insertado en ligo_qr_hashes: ' . json_encode($dataInsert) . ' | Resultado: ' . json_encode($insertResult));
+        
+        log_message('error', '🎉 [MOBILE_QR_DEBUG] ===== QR GENERADO EXITOSAMENTE =====');
+        log_message('error', '📱 [MOBILE_QR_DEBUG] RESUMEN FINAL:');
+        log_message('error', '📱 [MOBILE_QR_DEBUG]   QR ID: ' . $qrId);
+        log_message('error', '📱 [MOBILE_QR_DEBUG]   idQr (para webhook): ' . ($idQr ?: 'NULL - PROBLEMA POTENCIAL'));
+        log_message('error', '📱 [MOBILE_QR_DEBUG]   Hash length: ' . strlen($qrHash));
+        log_message('error', '📱 [MOBILE_QR_DEBUG]   Is real hash: ' . ($isRealHash ? 'YES' : 'NO'));
+        log_message('error', '📱 [MOBILE_QR_DEBUG]   Environment: ' . $environment);
+        log_message('error', '📱 [MOBILE_QR_DEBUG]   DB Insert ID: ' . $insertResult);
         return $this->respond([
             'success' => true,
             'qr_data' => [

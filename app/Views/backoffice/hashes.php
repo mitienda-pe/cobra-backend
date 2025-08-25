@@ -10,7 +10,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Hashes QR Ligo</h3>
+                    <h3 class="card-title">Hashes QR</h3>
                     <div class="card-tools">
                         <a href="<?= base_url('backoffice') ?>" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Volver
@@ -22,10 +22,10 @@
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> 
-                        Gestión de hashes QR generados por Ligo para todas las organizaciones.
+                        <i class="fas fa-info-circle"></i>
+                        Gestión de hashes QR generados para todas las organizaciones.
                     </div>
-                    
+
                     <?php
                     // Show active Ligo configuration
                     $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
@@ -34,12 +34,12 @@
                     <?php if ($activeConfig): ?>
                         <div class="alert alert-warning">
                             <i class="bi bi-gear-wide-connected"></i>
-                            <strong>Configuración Ligo activa:</strong> 
+                            <strong>Configuración activa:</strong>
                             <span class="badge bg-<?= $activeConfig['environment'] === 'prod' ? 'danger' : 'warning' ?> ms-1">
                                 <?= strtoupper($activeConfig['environment']) ?>
                             </span>
                             <small class="d-block mt-1">
-                                Usuario: <code><?= esc($activeConfig['username']) ?></code> | 
+                                Usuario: <code><?= esc($activeConfig['username']) ?></code> |
                                 Company: <code><?= esc(substr($activeConfig['company_id'], 0, 8)) ?>...</code>
                             </small>
                         </div>
@@ -378,11 +378,11 @@
         const csrfToken = document.querySelector('meta[name="X-CSRF-TOKEN"]').getAttribute('content');
 
         fetch('<?= base_url('api/ligo-hashes/details') ?>/' + hashId, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfToken
-            }
-        })
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken
+                }
+            })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {

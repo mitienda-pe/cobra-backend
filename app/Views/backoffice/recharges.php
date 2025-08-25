@@ -10,7 +10,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Recargas Ligo</h3>
+                    <h3 class="card-title">Recargas</h3>
                     <div class="card-tools">
                         <a href="<?= base_url('backoffice') ?>" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Volver
@@ -19,10 +19,10 @@
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> 
-                        Se listarán las recargas usando las credenciales centralizadas de Ligo.
+                        <i class="fas fa-info-circle"></i>
+                        Se listarán las recargas usando las credenciales centralizadas.
                     </div>
-                    
+
                     <?php
                     // Show active Ligo configuration
                     $superadminLigoConfigModel = new \App\Models\SuperadminLigoConfigModel();
@@ -31,17 +31,17 @@
                     <?php if ($activeConfig): ?>
                         <div class="alert alert-warning">
                             <i class="bi bi-gear-wide-connected"></i>
-                            <strong>Configuración Ligo activa:</strong> 
+                            <strong>Configuración activa:</strong>
                             <span class="badge bg-<?= $activeConfig['environment'] === 'prod' ? 'danger' : 'warning' ?> ms-1">
                                 <?= strtoupper($activeConfig['environment']) ?>
                             </span>
                             <small class="d-block mt-1">
-                                Usuario: <code><?= esc($activeConfig['username']) ?></code> | 
+                                Usuario: <code><?= esc($activeConfig['username']) ?></code> |
                                 Company: <code><?= esc(substr($activeConfig['company_id'], 0, 8)) ?>...</code>
                             </small>
                         </div>
                     <?php endif; ?>
-                    
+
                     <form id="rechargesForm">
                         <div class="row">
                             <div class="col-md-4">
@@ -77,14 +77,14 @@
                             </div>
                         </div>
                     </form>
-                    
+
                     <div id="loading" class="text-center" style="display: none;">
                         <div class="spinner-border text-info" role="status">
                             <span class="sr-only">Cargando...</span>
                         </div>
                         <p class="mt-2">Buscando recargas...</p>
                     </div>
-                    
+
                     <div id="rechargesResult" style="display: none;">
                         <hr>
                         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -94,7 +94,7 @@
                                 <span class="badge bg-success" id="totalAmount">Total: S/ 0.00</span>
                             </div>
                         </div>
-                        
+
                         <div class="table-responsive">
                             <table class="table table-striped table-hover">
                                 <thead class="thead-dark">
@@ -113,7 +113,7 @@
                                 </tbody>
                             </table>
                         </div>
-                        
+
                         <div class="d-flex justify-content-between align-items-center mt-3">
                             <div>
                                 <button class="btn btn-outline-info" id="prevPage" disabled>
@@ -126,7 +126,7 @@
                             <span id="pageInfo">Página 1</span>
                         </div>
                     </div>
-                    
+
                     <div id="errorResult" class="alert alert-danger" style="display: none;">
                         <h6><i class="fas fa-exclamation-triangle"></i> Error</h6>
                         <p id="errorMessage"></p>
@@ -138,176 +138,176 @@
 </div>
 
 <script>
-let currentPage = 1;
+    let currentPage = 1;
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Establecer fecha por defecto (últimos 7 días incluyendo hoy)
-    console.log('Setting default dates for recharges...');
-    const today = new Date();
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
-    
-    const todayStr = today.toISOString().split('T')[0];
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
-    
-    console.log('Today:', todayStr, 'Seven days ago:', sevenDaysAgoStr);
-    
-    const endDateField = document.getElementById('endDate');
-    const startDateField = document.getElementById('startDate');
-    
-    if (endDateField && startDateField) {
-        endDateField.value = todayStr;
-        startDateField.value = sevenDaysAgoStr;
-        console.log('Dates set successfully');
-    } else {
-        console.error('Date fields not found');
-    }
-    
-    // Form submit
-    const rechargesForm = document.getElementById('rechargesForm');
-    if (rechargesForm) {
-        rechargesForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            currentPage = 1;
-            searchRecharges();
-        });
-    }
-    
-    // Pagination buttons
-    const prevPageBtn = document.getElementById('prevPage');
-    const nextPageBtn = document.getElementById('nextPage');
-    
-    if (prevPageBtn) {
-        prevPageBtn.addEventListener('click', function() {
-            if (currentPage > 1) {
-                currentPage--;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Establecer fecha por defecto (últimos 7 días incluyendo hoy)
+        console.log('Setting default dates for recharges...');
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+
+        const todayStr = today.toISOString().split('T')[0];
+        const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+
+        console.log('Today:', todayStr, 'Seven days ago:', sevenDaysAgoStr);
+
+        const endDateField = document.getElementById('endDate');
+        const startDateField = document.getElementById('startDate');
+
+        if (endDateField && startDateField) {
+            endDateField.value = todayStr;
+            startDateField.value = sevenDaysAgoStr;
+            console.log('Dates set successfully');
+        } else {
+            console.error('Date fields not found');
+        }
+
+        // Form submit
+        const rechargesForm = document.getElementById('rechargesForm');
+        if (rechargesForm) {
+            rechargesForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                currentPage = 1;
                 searchRecharges();
-            }
-        });
-    }
-    
-    if (nextPageBtn) {
-        nextPageBtn.addEventListener('click', function() {
-            currentPage++;
-            searchRecharges();
-        });
-    }
-});
-
-function searchRecharges() {
-    const formData = {
-        startDate: document.getElementById('startDate').value,
-        endDate: document.getElementById('endDate').value,
-        page: currentPage
-    };
-    
-    if (!formData.startDate || !formData.endDate) {
-        alert('Por favor seleccione las fechas de inicio y fin');
-        return;
-    }
-    
-    const loading = document.getElementById('loading');
-    const rechargesResult = document.getElementById('rechargesResult');
-    const errorResult = document.getElementById('errorResult');
-    
-    if (loading) loading.style.display = 'block';
-    if (rechargesResult) rechargesResult.style.display = 'none';
-    if (errorResult) errorResult.style.display = 'none';
-    
-    // Obtener token CSRF
-    const csrfToken = document.querySelector('meta[name="X-CSRF-TOKEN"]').getAttribute('content');
-    formData['csrf_token_name'] = csrfToken;
-    
-    fetch('<?= base_url('backoffice/recharges') ?>', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': csrfToken
-        },
-        body: new URLSearchParams(formData)
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(errorData => {
-                throw new Error(errorData.messages?.error || errorData.message || 'Error del servidor');
             });
         }
-        return response.json();
-    })
-    .then(data => {
-        if (loading) loading.style.display = 'none';
-        
-        if (data.data && data.data.records && data.data.records.length > 0) {
-            displayRecharges(data.data);
-            if (rechargesResult) rechargesResult.style.display = 'block';
-        } else {
-            const errorMessage = document.getElementById('errorMessage');
-            if (errorMessage) errorMessage.textContent = 'No se encontraron recargas en el rango de fechas seleccionado';
-            if (errorResult) errorResult.style.display = 'block';
-        }
-    })
-    .catch(error => {
-        if (loading) loading.style.display = 'none';
-        const errorMessage = document.getElementById('errorMessage');
-        if (errorMessage) errorMessage.textContent = error.message || 'Error al buscar recargas';
-        if (errorResult) errorResult.style.display = 'block';
-        console.error('Error:', error);
-    });
-}
 
-function displayRecharges(data) {
-    const recharges = data.records || [];
-    const total = data.detail ? data.detail.totalRecords : 0;
-    const tbody = document.getElementById('rechargesTableBody');
-    const totalResults = document.getElementById('totalResults');
-    const totalAmountElement = document.getElementById('totalAmount');
-    
-    // Calcular monto total de las recargas mostradas
-    const totalAmount = recharges.reduce((sum, recharge) => sum + (parseFloat(recharge.amount) || 0), 0);
-    
-    if (tbody) tbody.innerHTML = '';
-    if (totalResults) totalResults.textContent = total + ' resultados';
-    if (totalAmountElement) {
-        const currency = recharges.length > 0 && recharges[0].currency === '604' ? 'S/' : 'S/';
-        totalAmountElement.textContent = `Total: ${currency} ${totalAmount.toFixed(2)}`;
+        // Pagination buttons
+        const prevPageBtn = document.getElementById('prevPage');
+        const nextPageBtn = document.getElementById('nextPage');
+
+        if (prevPageBtn) {
+            prevPageBtn.addEventListener('click', function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    searchRecharges();
+                }
+            });
+        }
+
+        if (nextPageBtn) {
+            nextPageBtn.addEventListener('click', function() {
+                currentPage++;
+                searchRecharges();
+            });
+        }
+    });
+
+    function searchRecharges() {
+        const formData = {
+            startDate: document.getElementById('startDate').value,
+            endDate: document.getElementById('endDate').value,
+            page: currentPage
+        };
+
+        if (!formData.startDate || !formData.endDate) {
+            alert('Por favor seleccione las fechas de inicio y fin');
+            return;
+        }
+
+        const loading = document.getElementById('loading');
+        const rechargesResult = document.getElementById('rechargesResult');
+        const errorResult = document.getElementById('errorResult');
+
+        if (loading) loading.style.display = 'block';
+        if (rechargesResult) rechargesResult.style.display = 'none';
+        if (errorResult) errorResult.style.display = 'none';
+
+        // Obtener token CSRF
+        const csrfToken = document.querySelector('meta[name="X-CSRF-TOKEN"]').getAttribute('content');
+        formData['csrf_token_name'] = csrfToken;
+
+        fetch('<?= base_url('backoffice/recharges') ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: new URLSearchParams(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.messages?.error || errorData.message || 'Error del servidor');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (loading) loading.style.display = 'none';
+
+                if (data.data && data.data.records && data.data.records.length > 0) {
+                    displayRecharges(data.data);
+                    if (rechargesResult) rechargesResult.style.display = 'block';
+                } else {
+                    const errorMessage = document.getElementById('errorMessage');
+                    if (errorMessage) errorMessage.textContent = 'No se encontraron recargas en el rango de fechas seleccionado';
+                    if (errorResult) errorResult.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                if (loading) loading.style.display = 'none';
+                const errorMessage = document.getElementById('errorMessage');
+                if (errorMessage) errorMessage.textContent = error.message || 'Error al buscar recargas';
+                if (errorResult) errorResult.style.display = 'block';
+                console.error('Error:', error);
+            });
     }
-    
-    if (recharges.length === 0) {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center">No se encontraron recargas QR</td></tr>';
-        return;
-    }
-    
-    recharges.forEach(function(recharge) {
-        const row = document.createElement('tr');
-        const currency = recharge.currency === '604' ? 'PEN' : 
-                        recharge.currency === '840' ? 'USD' : 'PEN';
-        const status = recharge.responseCode === '00' ? 'Completado' : 'Error';
-        const typeLabel = recharge.type === 'recharge' ? 'Recarga QR' : recharge.type || 'Recarga';
-        
-        // Información del cliente y factura si está disponible
-        let clientInfo = `<small><strong>${recharge.debtorCCI}</strong><br>${recharge.debtorName || 'N/A'}</small>`;
-        let invoiceInfo = '<small class="text-muted">Sin asociar</small>';
-        let actionButtons = '<span class="text-muted">-</span>';
-        
-        if (recharge.instalment) {
-            const inst = recharge.instalment;
-            clientInfo = `<small><strong>${inst.client_name || 'Cliente'}</strong><br>${recharge.debtorName}</small>`;
-            invoiceInfo = `
+
+    function displayRecharges(data) {
+        const recharges = data.records || [];
+        const total = data.detail ? data.detail.totalRecords : 0;
+        const tbody = document.getElementById('rechargesTableBody');
+        const totalResults = document.getElementById('totalResults');
+        const totalAmountElement = document.getElementById('totalAmount');
+
+        // Calcular monto total de las recargas mostradas
+        const totalAmount = recharges.reduce((sum, recharge) => sum + (parseFloat(recharge.amount) || 0), 0);
+
+        if (tbody) tbody.innerHTML = '';
+        if (totalResults) totalResults.textContent = total + ' resultados';
+        if (totalAmountElement) {
+            const currency = recharges.length > 0 && recharges[0].currency === '604' ? 'S/' : 'S/';
+            totalAmountElement.textContent = `Total: ${currency} ${totalAmount.toFixed(2)}`;
+        }
+
+        if (recharges.length === 0) {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center">No se encontraron recargas QR</td></tr>';
+            return;
+        }
+
+        recharges.forEach(function(recharge) {
+            const row = document.createElement('tr');
+            const currency = recharge.currency === '604' ? 'PEN' :
+                recharge.currency === '840' ? 'USD' : 'PEN';
+            const status = recharge.responseCode === '00' ? 'Completado' : 'Error';
+            const typeLabel = recharge.type === 'recharge' ? 'Recarga QR' : recharge.type || 'Recarga';
+
+            // Información del cliente y factura si está disponible
+            let clientInfo = `<small><strong>${recharge.debtorCCI}</strong><br>${recharge.debtorName || 'N/A'}</small>`;
+            let invoiceInfo = '<small class="text-muted">Sin asociar</small>';
+            let actionButtons = '<span class="text-muted">-</span>';
+
+            if (recharge.instalment) {
+                const inst = recharge.instalment;
+                clientInfo = `<small><strong>${inst.client_name || 'Cliente'}</strong><br>${recharge.debtorName}</small>`;
+                invoiceInfo = `
                 <small>
                     <strong>Factura:</strong> ${inst.invoice_number || 'N/A'}<br>
                     <strong>Cuota #${inst.number}:</strong> ${currency} ${formatAmount(inst.amount)}<br>
                     <span class="text-muted">${inst.invoice_description || ''}</span>
                 </small>
             `;
-            actionButtons = `
+                actionButtons = `
                 <button class="btn btn-sm btn-outline-primary" onclick="viewInvoice('${inst.uuid}')" title="Ver Factura con Cuota">
                     <i class="fas fa-file-invoice"></i>
                 </button>
             `;
-        }
-        
-        row.innerHTML = `
+            }
+
+            row.innerHTML = `
             <td><small>${recharge.transferId || recharge.instructionId || 'N/A'}</small></td>
             <td>${formatDate(recharge.createdAt)}</td>
             <td><span class="badge bg-success">${typeLabel}</span></td>
@@ -319,68 +319,71 @@ function displayRecharges(data) {
             <td><span class="badge bg-${getStatusBadge(recharge.responseCode)}">${status}</span></td>
             <td>${actionButtons}</td>
         `;
-        if (tbody) tbody.appendChild(row);
-    });
-    
-    // Actualizar controles de paginación
-    const prevPage = document.getElementById('prevPage');
-    const nextPage = document.getElementById('nextPage');
-    const pageInfo = document.getElementById('pageInfo');
-    
-    if (prevPage) prevPage.disabled = currentPage <= 1;
-    if (nextPage) nextPage.disabled = recharges.length < 10; // Asumiendo 10 por página
-    if (pageInfo) pageInfo.textContent = 'Página ' + currentPage;
-}
+            if (tbody) tbody.appendChild(row);
+        });
 
-function formatDate(dateString) {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-PE') + ' ' + date.toLocaleTimeString('es-PE', {hour: '2-digit', minute: '2-digit'});
-}
+        // Actualizar controles de paginación
+        const prevPage = document.getElementById('prevPage');
+        const nextPage = document.getElementById('nextPage');
+        const pageInfo = document.getElementById('pageInfo');
 
-function formatAmount(amount) {
-    if (!amount) return '0.00';
-    return parseFloat(amount).toFixed(2);
-}
+        if (prevPage) prevPage.disabled = currentPage <= 1;
+        if (nextPage) nextPage.disabled = recharges.length < 10; // Asumiendo 10 por página
+        if (pageInfo) pageInfo.textContent = 'Página ' + currentPage;
+    }
 
-function getStatusBadge(responseCode) {
-    // Según documentación: responseCode "00" = exitoso
-    return responseCode === '00' ? 'success' : 'danger';
-}
+    function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('es-PE') + ' ' + date.toLocaleTimeString('es-PE', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
 
-function clearForm() {
-    const form = document.getElementById('rechargesForm');
-    const rechargesResult = document.getElementById('rechargesResult');
-    const errorResult = document.getElementById('errorResult');
-    
-    if (form) form.reset();
-    if (rechargesResult) rechargesResult.style.display = 'none';
-    if (errorResult) errorResult.style.display = 'none';
-    currentPage = 1;
-    
-    // Reestablecer fechas por defecto (últimos 7 días incluyendo hoy)
-    const today = new Date();
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
-    
-    const todayStr = today.toISOString().split('T')[0];
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
-    
-    const endDate = document.getElementById('endDate');
-    const startDate = document.getElementById('startDate');
-    
-    if (endDate) endDate.value = todayStr;
-    if (startDate) startDate.value = sevenDaysAgoStr;
-}
+    function formatAmount(amount) {
+        if (!amount) return '0.00';
+        return parseFloat(amount).toFixed(2);
+    }
 
-function viewInstalment(instalmentUuid) {
-    // Redirigir a la página de detalle de la cuota
-    window.open(`<?= base_url('instalments') ?>`, '_blank');
-}
+    function getStatusBadge(responseCode) {
+        // Según documentación: responseCode "00" = exitoso
+        return responseCode === '00' ? 'success' : 'danger';
+    }
 
-function viewInvoice(invoiceId) {
-    // Redirigir a la página de detalle de la factura  
-    window.open(`<?= base_url('invoices/view') ?>/${invoiceId}`, '_blank');
-}
+    function clearForm() {
+        const form = document.getElementById('rechargesForm');
+        const rechargesResult = document.getElementById('rechargesResult');
+        const errorResult = document.getElementById('errorResult');
+
+        if (form) form.reset();
+        if (rechargesResult) rechargesResult.style.display = 'none';
+        if (errorResult) errorResult.style.display = 'none';
+        currentPage = 1;
+
+        // Reestablecer fechas por defecto (últimos 7 días incluyendo hoy)
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+
+        const todayStr = today.toISOString().split('T')[0];
+        const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+
+        const endDate = document.getElementById('endDate');
+        const startDate = document.getElementById('startDate');
+
+        if (endDate) endDate.value = todayStr;
+        if (startDate) startDate.value = sevenDaysAgoStr;
+    }
+
+    function viewInstalment(instalmentUuid) {
+        // Redirigir a la página de detalle de la cuota
+        window.open(`<?= base_url('instalments') ?>`, '_blank');
+    }
+
+    function viewInvoice(invoiceId) {
+        // Redirigir a la página de detalle de la factura  
+        window.open(`<?= base_url('invoices/view') ?>/${invoiceId}`, '_blank');
+    }
 </script>
 <?= $this->endSection() ?>

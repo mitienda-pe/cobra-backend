@@ -10,7 +10,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Backoffice Ligo</h3>
+                    <h3 class="card-title">Backoffice</h3>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -24,7 +24,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-3 mb-3">
                             <div class="card text-center">
                                 <div class="card-body">
@@ -35,7 +35,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-3 mb-3">
                             <div class="card text-center">
                                 <div class="card-body">
@@ -46,7 +46,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-3 mb-3">
                             <div class="card text-center">
                                 <div class="card-body">
@@ -60,18 +60,18 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-3 mb-3">
                             <div class="card text-center">
                                 <div class="card-body">
                                     <i class="fas fa-qrcode fa-3x text-secondary mb-3"></i>
                                     <h5 class="card-title">Hashes QR</h5>
-                                    <p class="card-text">Gestiona los códigos QR generados por Ligo</p>
+                                    <p class="card-text">Gestiona los códigos QR generados</p>
                                     <a href="<?= base_url('backoffice/hashes') ?>" class="btn btn-secondary">Ver Hashes QR</a>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-3 mb-3">
                             <div class="card text-center">
                                 <div class="card-body">
