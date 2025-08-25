@@ -337,16 +337,27 @@
                             // El id_qr está en posición específica del string EMV QR
                             const qrString = response.qr_data;
                             
-                            // Buscar el patrón del id_qr en el string QR (después de "3022")
-                            console.log('🔍 String QR para análisis:', qrString.substring(0, 100) + '...');
-                            const match = qrString.match(/3022(\d{20,30})/);
-                            if (match) {
-                                qrId = match[1];
-                                console.log('✅ QR ID extraído del string QR:', qrId);
+                            // Si qr_data es JSON string, parsearlo primero
+                            if (qrString.startsWith('{"id"')) {
+                                try {
+                                    const parsed = JSON.parse(qrString);
+                                    qrId = parsed.id_qr;
+                                    console.log('✅ QR ID extraído del JSON:', qrId);
+                                } catch (e) {
+                                    console.error('Error parseando JSON:', e);
+                                }
                             } else {
-                                console.log('⚠️ No se pudo extraer QR ID del string con regex, intentando buscar manualmente...');
-                                console.log('QR String completo:', qrString);
-                                qrId = response.order_id; // Fallback
+                                // Es un string EMV, extraer con regex más preciso
+                                console.log('🔍 String EMV para análisis:', qrString.substring(0, 100) + '...');
+                                // Patrón más específico: 3022 seguido de exactamente 20 dígitos
+                                const match = qrString.match(/3022(\d{20})52/);
+                                if (match) {
+                                    qrId = match[1];
+                                    console.log('✅ QR ID extraído del EMV:', qrId);
+                                } else {
+                                    console.log('⚠️ No se pudo extraer QR ID, usando order_id');
+                                    qrId = response.order_id; // Fallback
+                                }
                             }
                         }
                         
