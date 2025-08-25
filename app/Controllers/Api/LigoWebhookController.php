@@ -176,7 +176,7 @@ class LigoWebhookController extends ResourceController
         // Process payment notification - Ligo webhooks are always payment confirmations
         // Check if payment already processed
         $query = $this->paymentModel->where('invoice_id', $invoiceId)
-                                   ->where('payment_method', 'ligo_qr')
+                                   ->where('payment_method', 'qr')
                                    ->where('reference_code', $instructionId);
         
         if ($instalmentId) {

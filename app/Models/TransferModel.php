@@ -239,7 +239,7 @@ class TransferModel extends Model
             ->selectSum('p.amount', 'total_ligo_income')
             ->join('invoices i', 'p.invoice_id = i.id')
             ->where('i.organization_id', $organizationId)
-            ->where('p.payment_method', 'ligo_qr')
+            ->where('p.payment_method', 'qr')
             ->where('p.status', 'completed');
             
         // Filter by current environment

@@ -94,7 +94,7 @@ class OrganizationAccountController extends BaseController
                    ->select('p.id, p.amount, p.payment_date, p.status, p.payment_method, p.created_at, p.invoice_id, p.instalment_id, p.external_id, p.ligo_environment')
                    ->join('invoices i', 'p.invoice_id = i.id')
                    ->where('i.organization_id', $organizationId)
-                   ->where('p.payment_method', 'ligo_qr')
+                   ->where('p.payment_method', 'qr')
                    ->where('p.status', 'completed');
         
         // Filter based on current environment preference using ligo_environment field
@@ -318,7 +318,7 @@ class OrganizationAccountController extends BaseController
                    ->select('p.id, p.amount, p.payment_date, p.status, p.payment_method, p.created_at, p.invoice_id, p.instalment_id, p.external_id, p.ligo_environment')
                    ->join('invoices i', 'p.invoice_id = i.id')
                    ->where('i.organization_id', $organizationId)
-                   ->where('p.payment_method', 'ligo_qr')
+                   ->where('p.payment_method', 'qr')
                    ->where('p.status', 'completed');
         
         // Filter based on current environment preference

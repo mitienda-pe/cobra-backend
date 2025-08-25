@@ -43,6 +43,6 @@ class AddPaymentTrackingToInstalments extends Migration
         $this->forge->dropKey('instalments', 'idx_instalments_ligo_qr_id');
         
         // Drop the columns
-        $this->forge->dropColumn('instalments', ['payment_method', 'ligo_qr_id', 'payment_reference']);
+        $this->forge->dropColumn('instalments', ['payment_method'", 'qr_id', 'payment_reference']);
     }
 }

@@ -16,7 +16,7 @@ class UpdateExistingLigoEnvironments extends Migration
         // Only mark obvious test payments containing "test" or "TEST"
         $testQuery = "UPDATE payments 
                      SET ligo_environment = 'dev' 
-                     WHERE payment_method = 'ligo_qr' 
+                     WHERE payment_method'", 'qr' 
                        AND ligo_environment IS NULL 
                        AND (external_id LIKE '%test%' 
                             OR external_id LIKE '%TEST%')";
@@ -40,7 +40,7 @@ class UpdateExistingLigoEnvironments extends Migration
         // Set all ligo_environment fields back to NULL
         $db = \Config\Database::connect();
         
-        $db->query("UPDATE payments SET ligo_environment = NULL WHERE payment_method = 'ligo_qr'");
+        $db->query("UPDATE payments SET ligo_environment = NULL WHERE payment_method'", 'qr'");
         $db->query("UPDATE transfers SET ligo_environment = NULL");
         
         log_message('info', "[Migration] Reverted all ligo_environment fields to NULL");

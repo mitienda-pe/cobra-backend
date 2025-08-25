@@ -161,7 +161,7 @@ class OrganizationBalanceModel extends Model
         
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
-        $builder->where('p.payment_method', 'ligo_qr'); // Only Ligo payments
+        $builder->where('p.payment_method', 'qr'); // Only QR payments
         // Include only confirmed real production payments
         $builder->whereIn('p.external_id', ['2025081411264100114152711061', '2025080818164500114152397604']);
         $builder->where('p.deleted_at IS NULL');
@@ -205,7 +205,7 @@ class OrganizationBalanceModel extends Model
         $builder->join('invoices i', 'p.invoice_id = i.id');
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
-        $builder->where('p.payment_method', 'ligo_qr');
+        $builder->where('p.payment_method', 'qr');
         // Include only confirmed real production payments
         $builder->whereIn('p.external_id', ['2025081411264100114152711061', '2025080818164500114152397604']);
         $builder->where('p.status', 'completed');
@@ -259,7 +259,7 @@ class OrganizationBalanceModel extends Model
         $builder->join('invoices i', 'p.invoice_id = i.id');
         $builder->where('i.organization_id', $organizationId);
         $builder->where('i.currency', $currency);
-        $builder->where('p.payment_method', 'ligo_qr');
+        $builder->where('p.payment_method', 'qr');
         // Include only confirmed real production payments
         $builder->whereIn('p.external_id', ['2025081411264100114152711061', '2025080818164500114152397604']);
         $builder->where('p.status', 'completed');
