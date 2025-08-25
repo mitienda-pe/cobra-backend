@@ -76,8 +76,8 @@
                             <div class="card text-center">
                                 <div class="card-body">
                                     <i class="bi bi-gear-wide-connected fa-3x text-danger mb-3"></i>
-                                    <h5 class="card-title">Configuración Ligo</h5>
-                                    <p class="card-text">Administra las credenciales centralizadas de Ligo</p>
+                                    <h5 class="card-title">Configuración</h5>
+                                    <p class="card-text">Administra las credenciales centralizadas de QR</p>
                                     <a href="<?= site_url('superadmin/ligo-config') ?>" class="btn btn-danger">
                                         <i class="bi bi-gear-wide-connected"></i> Configurar
                                     </a>

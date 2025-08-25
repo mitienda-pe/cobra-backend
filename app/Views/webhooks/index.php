@@ -9,7 +9,7 @@
     </div>
     <div class="col-md-6 text-end">
         <a href="<?= site_url('webhooks/ligo-logs') ?>" class="btn btn-info me-2">
-            <i class="bi bi-receipt"></i> Notificaciones de Ligo
+            <i class="bi bi-receipt"></i> Notificaciones
         </a>
         <a href="<?= site_url('webhooks/create') ?>" class="btn btn-primary">
             <i class="bi bi-plus"></i> Nuevo Webhook
@@ -22,7 +22,7 @@
         <div class="card border-info">
             <div class="card-header bg-info text-white">
                 <h5 class="mb-0">
-                    <i class="bi bi-receipt"></i> Notificaciones de Ligo
+                    <i class="bi bi-receipt"></i> Notificaciones
                 </h5>
             </div>
             <div class="card-body">

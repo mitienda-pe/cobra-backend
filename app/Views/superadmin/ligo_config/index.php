@@ -11,12 +11,12 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">
-                        <i class="bi bi-gear-wide-connected"></i> 
-                        Configuración Centralizada de Ligo
+                        <i class="bi bi-gear-wide-connected"></i>
+                        Configuración Centralizada QR
                     </h3>
                     <div class="card-tools">
                         <span class="badge bg-info text-white">
-                            <i class="bi bi-info-circle"></i> 
+                            <i class="bi bi-info-circle"></i>
                             Configuración global para todas las organizaciones
                         </span>
                     </div>
@@ -24,12 +24,12 @@
                 <div class="card-body">
                     <div class="alert alert-info">
                         <i class="bi bi-lightbulb"></i>
-                        <strong>Configuración Centralizada:</strong> 
-                        Todas las organizaciones usarán estas credenciales para operaciones de Ligo. 
+                        <strong>Configuración Centralizada:</strong>
+                        Todas las organizaciones usarán estas credenciales para operaciones de QR.
                         Los pagos van a la cuenta centralizada del superadmin.
                         <br><br>
                         <small>
-                            <strong>Nota:</strong> Solo una configuración puede estar activa a la vez. 
+                            <strong>Nota:</strong> Solo una configuración puede estar activa a la vez.
                             Activa DEV para usar credenciales de sandbox/pruebas, o PROD para operaciones reales.
                         </small>
                     </div>
@@ -37,7 +37,7 @@
                     <?php if (empty($configs)): ?>
                         <div class="alert alert-warning">
                             <i class="bi bi-exclamation-triangle"></i>
-                            No hay configuraciones de Ligo disponibles.
+                            No hay configuraciones de QR disponibles.
                         </div>
                     <?php else: ?>
                         <div class="table-responsive">
@@ -88,10 +88,10 @@
                                             </td>
                                             <td>
                                                 <?php
-                                                $isComplete = !empty($config['username']) && 
-                                                             !empty($config['password']) && 
-                                                             !empty($config['company_id']) && 
-                                                             !empty($config['private_key']);
+                                                $isComplete = !empty($config['username']) &&
+                                                    !empty($config['password']) &&
+                                                    !empty($config['company_id']) &&
+                                                    !empty($config['private_key']);
                                                 ?>
                                                 <?php if ($isComplete): ?>
                                                     <span class="badge bg-success">
@@ -110,32 +110,32 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm" role="group">
-                                                    <a href="<?= site_url('superadmin/ligo-config/edit/' . $config['id']) ?>" 
-                                                       class="btn btn-outline-primary" title="Editar">
+                                                    <a href="<?= site_url('superadmin/ligo-config/edit/' . $config['id']) ?>"
+                                                        class="btn btn-outline-primary" title="Editar">
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
-                                                    
+
                                                     <?php if ($config['is_active']): ?>
-                                                        <button type="button" 
-                                                                class="btn btn-success" 
-                                                                disabled
-                                                                title="Configuración <?= strtoupper($config['environment']) ?> está activa - todas las operaciones usan estas credenciales">
+                                                        <button type="button"
+                                                            class="btn btn-success"
+                                                            disabled
+                                                            title="Configuración <?= strtoupper($config['environment']) ?> está activa - todas las operaciones usan estas credenciales">
                                                             <i class="bi bi-check-circle"></i> Activa
                                                         </button>
                                                     <?php else: ?>
-                                                        <button type="button" 
-                                                                class="btn btn-outline-success btn-set-active" 
-                                                                data-id="<?= $config['id'] ?>" 
-                                                                title="Activar configuración <?= strtoupper($config['environment']) ?> - cambiará todas las operaciones a estas credenciales">
+                                                        <button type="button"
+                                                            class="btn btn-outline-success btn-set-active"
+                                                            data-id="<?= $config['id'] ?>"
+                                                            title="Activar configuración <?= strtoupper($config['environment']) ?> - cambiará todas las operaciones a estas credenciales">
                                                             <i class="bi bi-play"></i> Activar
                                                         </button>
                                                     <?php endif; ?>
-                                                    
+
                                                     <?php if ($isComplete): ?>
-                                                        <button type="button" 
-                                                                class="btn btn-outline-info btn-test" 
-                                                                data-id="<?= $config['id'] ?>" 
-                                                                title="Probar">
+                                                        <button type="button"
+                                                            class="btn btn-outline-info btn-test"
+                                                            data-id="<?= $config['id'] ?>"
+                                                            title="Probar">
                                                             <i class="bi bi-lightning"></i>
                                                         </button>
                                                     <?php endif; ?>
@@ -152,8 +152,8 @@
                         <div class="alert alert-warning">
                             <h6><i class="bi bi-info-circle"></i> Información importante:</h6>
                             <ul class="mb-0">
-                                <li><strong>Configuración DEV:</strong> Usa credenciales de sandbox/pruebas de Ligo</li>
-                                <li><strong>Configuración PROD:</strong> Usa credenciales reales de producción de Ligo</li>
+                                <li><strong>Configuración DEV:</strong> Usa credenciales de sandbox/pruebas</li>
+                                <li><strong>Configuración PROD:</strong> Usa credenciales reales de producción</li>
                                 <li><strong>Solo UNA configuración puede estar activa a la vez</strong></li>
                                 <li><strong>Cambia manualmente entre DEV y PROD según necesites</strong></li>
                                 <li><strong>Todas las organizaciones usarán la configuración activa</strong></li>
@@ -181,68 +181,68 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Set Active Configuration
-    document.querySelectorAll('.btn-set-active:not(.disabled)').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const configId = this.getAttribute('data-id');
-            const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
-            
-            loadingModal.show();
-            
-            fetch(`<?= site_url('superadmin/ligo-config/set-active') ?>/${configId}`, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="X-CSRF-TOKEN"]').getAttribute('content')
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                loadingModal.hide();
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                loadingModal.hide();
-                alert('Error de conexión: ' + error.message);
-            });
-        });
-    });
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set Active Configuration
+        document.querySelectorAll('.btn-set-active:not(.disabled)').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const configId = this.getAttribute('data-id');
+                const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
 
-    // Test Configuration
-    document.querySelectorAll('.btn-test').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const configId = this.getAttribute('data-id');
-            const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
-            
-            loadingModal.show();
-            
-            fetch(`<?= site_url('superadmin/ligo-config/test') ?>/${configId}`, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="X-CSRF-TOKEN"]').getAttribute('content')
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                loadingModal.hide();
-                if (data.success) {
-                    alert('✅ Prueba exitosa: ' + data.message);
-                } else {
-                    alert('❌ Error en prueba: ' + data.message);
-                }
-            })
-            .catch(error => {
-                loadingModal.hide();
-                alert('Error de conexión: ' + error.message);
+                loadingModal.show();
+
+                fetch(`<?= site_url('superadmin/ligo-config/set-active') ?>/${configId}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="X-CSRF-TOKEN"]').getAttribute('content')
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingModal.hide();
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        loadingModal.hide();
+                        alert('Error de conexión: ' + error.message);
+                    });
+            });
+        });
+
+        // Test Configuration
+        document.querySelectorAll('.btn-test').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const configId = this.getAttribute('data-id');
+                const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+
+                loadingModal.show();
+
+                fetch(`<?= site_url('superadmin/ligo-config/test') ?>/${configId}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="X-CSRF-TOKEN"]').getAttribute('content')
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingModal.hide();
+                        if (data.success) {
+                            alert('✅ Prueba exitosa: ' + data.message);
+                        } else {
+                            alert('❌ Error en prueba: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        loadingModal.hide();
+                        alert('Error de conexión: ' + error.message);
+                    });
             });
         });
     });
-});
 </script>
 <?= $this->endSection() ?>

@@ -184,7 +184,7 @@
                     Pago QR
                 </div>
                 <div class="card-body text-center">
-                    <p class="fw-bold">Presenta este código QR para completar el pago con Ligo:</p>
+                    <p class="fw-bold">Presenta este código QR para completar el pago:</p>
                     <?php if (!empty($qr_url)): ?>
                         <img src="<?= esc($qr_url) ?>" alt="QR" class="img-fluid mb-2" style="max-width: 220px;" />
                     <?php endif; ?>

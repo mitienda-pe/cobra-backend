@@ -21,7 +21,7 @@
                         </div>
                         <p class="text-muted">
                             <strong>Generando código QR...</strong><br>
-                            <small id="loading-message">Conectando con Ligo...</small>
+                            <small id="loading-message">Conectando con proveedor...</small>
                         </p>
                         <div class="progress mt-3" style="height: 6px;">
                             <div id="loading-progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 30%"></div>
@@ -52,7 +52,7 @@
                             <?php if (isset($is_demo) && $is_demo): ?>
                                 <div class="alert alert-warning">
                                     <p><strong>Modo Demostración</strong></p>
-                                    <p class="mb-0">Este es un QR de demostración. Para habilitar pagos reales con Ligo, configure las credenciales en la sección de configuración de la organización.</p>
+                                    <p class="mb-0">Este es un QR de demostración. Para habilitar pagos reales con QR, configure las credenciales en la sección de configuración de la organización.</p>
                                 </div>
                             <?php endif; ?>
 
@@ -174,7 +174,7 @@
     function startProgress() {
         let progress = 30;
         const messages = [
-            'Conectando con Ligo...',
+            'Conectando con proveedor...',
             'Autenticando...',
             'Generando QR...',
             'Finalizando...'

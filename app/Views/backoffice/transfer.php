@@ -68,7 +68,7 @@
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle"></i>
                                     <strong>Transferencia desde cuenta centralizada</strong><br>
-                                    Los datos del deudor se toman automáticamente de la configuración de Ligo del superadmin.
+                                    Los datos del deudor se toman automáticamente de la configuración del superadmin.
                                 </div>
                                 <?php if (isset($superadminConfig) && $superadminConfig): ?>
                                     <div class="card bg-light">
@@ -269,7 +269,7 @@
                             <div class="card">
                                 <div class="card-header">
                                     <h6>Detalles del Proceso (4 Pasos)</h6>
-                                    <small class="text-muted">Información técnica de la transferencia enviada y recibida de Ligo</small>
+                                    <small class="text-muted">Información técnica de la transferencia enviada y recibida de Ll proveedor</small>
                                 </div>
                                 <div class="card-body">
                                     <div class="accordion" id="stepsAccordion">
@@ -327,7 +327,7 @@
                                             </div>
                                             <div id="stepDetail4" class="collapse" data-parent="#stepsAccordion">
                                                 <div class="card-body">
-                                                    <h6>Respuesta de ejecución de Ligo:</h6>
+                                                    <h6>Respuesta de ejecución:</h6>
                                                     <pre id="step4Details" class="bg-light p-2 rounded"></pre>
                                                 </div>
                                             </div>

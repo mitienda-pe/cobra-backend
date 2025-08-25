@@ -426,16 +426,16 @@
                             <i class="bi bi-building"></i>
                             <span class="sidebar-item-text">Organizaciones</span>
                         </a>
-                        
+
                         <a href="<?= site_url('backoffice') ?>" class="sidebar-item <?= strpos($currentPath, '/backoffice') === 0 ? 'active' : '' ?>">
                             <i class="bi bi-gear"></i>
-                            <span class="sidebar-item-text">Backoffice Ligo</span>
+                            <span class="sidebar-item-text">Backoffice QR</span>
                         </a>
                     <?php endif; ?>
-                    
+
                     <?php if ($selectedOrgId): ?>
                         <!-- Organization menu - completely separate from superadmin menu -->
-                        
+
                         <a href="<?= site_url('dashboard') ?>" class="sidebar-item <?= $currentPath === '/dashboard' ? 'active' : '' ?>">
                             <i class="bi bi-speedometer2"></i>
                             <span class="sidebar-item-text">Dashboard</span>
@@ -486,7 +486,7 @@
                             <span class="sidebar-item-text">Webhooks</span>
                         </a>
                     <?php endif; ?>
-                    
+
                 <?php else: ?>
                     <!-- Full menu for admin users (always have organization context) -->
                     <a href="<?= site_url('dashboard') ?>" class="sidebar-item <?= $currentPath === '/dashboard' ? 'active' : '' ?>">

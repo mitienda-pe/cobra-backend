@@ -77,7 +77,7 @@
                                         </p>
                                         <small class="text-muted">
                                             <i class="fas fa-info-circle"></i>
-                                            La API de Ligo solo proporciona el balance actual.
+                                            La API solo proporciona el balance actual.
                                         </small>
                                     </div>
                                 </div>

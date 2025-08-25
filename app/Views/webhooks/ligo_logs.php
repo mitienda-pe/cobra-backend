@@ -1,15 +1,15 @@
 <?= $this->extend('layouts/main') ?>
 
-<?= $this->section('title') ?>Notificaciones de Ligo<?= $this->endSection() ?>
+<?= $this->section('title') ?>Notificaciones<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <div class="row mb-4">
     <div class="col">
-        <h1>Notificaciones de Ligo</h1>
+        <h1>Notificaciones</h1>
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="<?= site_url('webhooks') ?>">Webhooks</a></li>
-                <li class="breadcrumb-item active">Notificaciones de Ligo</li>
+                <li class="breadcrumb-item active">Notificaciones</li>
             </ol>
         </nav>
     </div>
@@ -19,7 +19,7 @@
     <div class="col">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span>Información del Webhook de Ligo</span>
+                <span>Información del Webhook</span>
                 <div>
                     <button type="button" class="btn btn-sm btn-info" onclick="window.location.reload()">
                         <i class="bi bi-arrow-clockwise"></i> Actualizar
@@ -36,7 +36,7 @@
                                 <code>/api/webhooks/ligo/prod</code> (Producción)<br>
                                 <small class="text-muted">Compatibilidad: <code>/api/webhooks/ligo</code></small>
                             </dd>
-                            
+
                             <dt class="col-sm-4">Estado:</dt>
                             <dd class="col-sm-8">
                                 <?php if ($webhook && $webhook['is_active']): ?>
@@ -55,7 +55,7 @@
                                 <span class="badge bg-secondary me-1">payment.failed</span>
                                 <span class="badge bg-secondary me-1">payment.cancelled</span>
                             </dd>
-                            
+
                             <dt class="col-sm-4">Total Logs:</dt>
                             <dd class="col-sm-8">
                                 <span class="badge bg-info"><?= count($logs) ?></span>
@@ -67,8 +67,8 @@
                     <div class="col-12">
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle"></i>
-                            <strong>Acerca de este webhook:</strong> Este endpoint recibe notificaciones de confirmación de pagos desde Ligo. 
-                            Cada vez que un pago es procesado exitosamente, Ligo envía una notificación a este endpoint para actualizar 
+                            <strong>Acerca de este webhook:</strong> Este endpoint recibe notificaciones de confirmación de pagos.
+                            Cada vez que un pago es procesado exitosamente, el proveedor envía una notificación a este endpoint para actualizar
                             el estado de las cuotas de pendiente a pagado.
                         </div>
                     </div>
@@ -81,10 +81,10 @@
 <?php if (empty($logs)): ?>
     <div class="alert alert-warning">
         <i class="bi bi-exclamation-triangle"></i>
-        <strong>No hay notificaciones registradas.</strong> 
-        Este webhook aún no ha recibido notificaciones de Ligo. Las notificaciones aparecerán aquí cuando:
+        <strong>No hay notificaciones registradas.</strong>
+        Este webhook aún no ha recibido notificaciones del proveedor. Las notificaciones aparecerán aquí cuando:
         <ul class="mt-2 mb-0">
-            <li>Se complete un pago a través de códigos QR de Ligo</li>
+            <li>Se complete un pago a través de códigos QR</li>
             <li>Se confirme el pago de una cuota</li>
             <li>Se actualice el estado de una factura</li>
         </ul>
@@ -113,7 +113,7 @@
                             </small>
                         </td>
                         <td>
-                            <?php 
+                            <?php
                             $eventClass = '';
                             switch ($log['event']) {
                                 case 'payment.succeeded':
@@ -166,8 +166,8 @@
                             <?php endif; ?>
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                    onclick="showLigoNotificationModal('<?= esc(json_encode($log['response_body']), 'attr') ?>', '<?= esc(json_encode($log['payload']), 'attr') ?>')">
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                onclick="showLigoNotificationModal('<?= esc(json_encode($log['response_body']), 'attr') ?>', '<?= esc(json_encode($log['payload']), 'attr') ?>')">
                                 <i class="bi bi-eye"></i> Ver Detalles
                             </button>
                         </td>
@@ -176,7 +176,7 @@
             </tbody>
         </table>
     </div>
-    
+
     <div class="mt-3">
         <small class="text-muted">
             <i class="bi bi-info-circle"></i>
@@ -191,13 +191,13 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="bi bi-receipt"></i> Detalles de la Notificación de Ligo
+                    <i class="bi bi-receipt"></i> Detalles de la Notificación deñ proveedor
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <h6><i class="bi bi-arrow-down-circle"></i> Payload Recibido desde Ligo:</h6>
+                    <h6><i class="bi bi-arrow-down-circle"></i> Payload Recibido desde proveedor:</h6>
                     <pre id="ligoPayloadContent" class="bg-light p-3 overflow-auto border rounded" style="max-height: 300px;"></pre>
                 </div>
                 <div>
@@ -222,7 +222,7 @@
             // Si no es JSON, mostrar como texto
             document.getElementById('ligoResponseContent').textContent = response || 'No hay respuesta disponible';
         }
-        
+
         try {
             // Procesar payload
             let payloadObj = JSON.parse(payload);
@@ -231,7 +231,7 @@
             // Si no es JSON, mostrar como texto
             document.getElementById('ligoPayloadContent').textContent = payload || 'No hay datos disponibles';
         }
-        
+
         // Mostrar modal
         var modal = new bootstrap.Modal(document.getElementById('ligoNotificationModal'));
         modal.show();

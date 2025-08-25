@@ -367,7 +367,7 @@ Historial de Transferencias
                     const content = '<pre class="bg-light p-3"><code>' + JSON.stringify(response, null, 2) + '</code></pre>';
                     document.getElementById('ligoResponseContent').innerHTML = content;
                 } else {
-                    document.getElementById('ligoResponseContent').innerHTML = '<div class="alert alert-info">No hay respuesta de Ligo disponible</div>';
+                    document.getElementById('ligoResponseContent').innerHTML = '<div class="alert alert-info">No hay respuesta disponible</div>';
                 }
             })
             .catch(error => {

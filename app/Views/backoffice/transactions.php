@@ -10,7 +10,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Transacciones Ligo</h3>
+                    <h3 class="card-title">Transacciones QR</h3>
                     <div class="card-tools">
                         <a href="<?= base_url('backoffice') ?>" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Volver
@@ -21,7 +21,7 @@
                     <form id="transactionsForm">
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i>
-                            Se listarán las transacciones usando las credenciales centralizadas de Ligo.
+                            Se listarán las transacciones usando las credenciales centralizadas del superadmin.
                         </div>
 
                         <?php
