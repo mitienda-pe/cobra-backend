@@ -2,11 +2,10 @@
 
 namespace App\Controllers\Api;
 
-use CodeIgniter\RESTful\ResourceController;
+use CodeIgniter\Controller;
 
-class PaymentStreamController extends ResourceController
+class PaymentStreamController extends Controller
 {
-    protected $format = 'json';
 
     /**
      * SSE endpoint for real-time payment notifications
@@ -94,7 +93,7 @@ class PaymentStreamController extends ResourceController
      */
     public function testConnection()
     {
-        return $this->respond([
+        return $this->response->setJSON([
             'success' => true,
             'message' => 'SSE Controller is accessible',
             'timestamp' => date('Y-m-d H:i:s')
@@ -108,7 +107,10 @@ class PaymentStreamController extends ResourceController
     public function testEvent($qrId = null)
     {
         if (!$qrId) {
-            return $this->fail('QR ID is required', 400);
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'QR ID is required'
+            ]);
         }
         
         $cache = \Config\Services::cache();
@@ -128,7 +130,7 @@ class PaymentStreamController extends ResourceController
         
         log_message('info', "🧪 [SSE] Test payment event created for QR: $qrId");
         
-        return $this->respond([
+        return $this->response->setJSON([
             'success' => true,
             'message' => 'Test payment event created',
             'qr_id' => $qrId,
