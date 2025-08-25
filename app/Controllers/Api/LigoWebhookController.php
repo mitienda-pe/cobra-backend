@@ -266,6 +266,26 @@ class LigoWebhookController extends ResourceController
             log_message('info', '[LigoWebhook] ℹ️ INVOICE STATUS: Invoice ' . $invoiceId . ' (' . $invoice['invoice_number'] . ') status remains "' . $invoice['status'] . '"');
         }
         
+        // Store payment event in cache for SSE notification
+        $cache = \Config\Services::cache();
+        $paymentEvent = [
+            'qr_id' => $idQr,
+            'payment_id' => $paymentId,
+            'invoice_id' => $invoiceId,
+            'instalment_id' => $instalmentId,
+            'instalment_number' => $instalment['number'] ?? null,
+            'status' => 'completed',
+            'amount' => $paymentData['amount'],
+            'currency' => $paymentData['currency'],
+            'payment_date' => $paymentData['payment_date'],
+            'instruction_id' => $instructionId,
+            'message' => 'Payment completed successfully!'
+        ];
+        
+        // Cache event for 5 minutes for SSE to detect
+        $cache->save("payment_event_$idQr", $paymentEvent, 300);
+        log_message('info', '📡 [SSE] Payment event stored in cache for QR: ' . $idQr);
+        
         // Log successful webhook processing
         $success = true;
         $responseMessage = 'Payment processed successfully';

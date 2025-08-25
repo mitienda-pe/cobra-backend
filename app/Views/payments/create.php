@@ -193,6 +193,8 @@
 <!-- Include jQuery first, before any plugins that depend on it -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Payment notifications for real-time updates -->
+<script src="<?= base_url('assets/js/payment-notifications.js') ?>"></script>
 <script>
     $(document).ready(function() {
         // Manejar cambio en el método de pago para mostrar el modal de QR si se selecciona
@@ -291,6 +293,18 @@
                             </p>
                         `;
                         }
+                        
+                        // Agregar indicador de estado de pago en tiempo real
+                        modalContent += `
+                        <div id="payment-status" class="mt-3">
+                            <div class="d-flex align-items-center text-info">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">Esperando...</span>
+                                </div>
+                                <span>Esperando pago...</span>
+                            </div>
+                        </div>
+                        `;
 
                         // Mostrar mensaje de error si hay uno, pero seguimos mostrando el QR
                         if (response.error_message) {
@@ -302,6 +316,11 @@
                         }
 
                         $('#ligoQrModalBody').html(modalContent);
+                        
+                        // Iniciar escucha de notificaciones en tiempo real
+                        if (response.qr_id) {
+                            startPaymentNotifications(response.qr_id);
+                        }
                     } else if (!response.success) {
                         // Mostrar error cuando no hay QR y la respuesta indica error
                         $('#ligoQrModalBody').html(`
@@ -348,6 +367,85 @@
                 }
             });
         }
+
+        // Variable global para el listener de notificaciones
+        let paymentNotifications = null;
+
+        // Función para iniciar notificaciones en tiempo real
+        function startPaymentNotifications(qrId) {
+            // Detener listener anterior si existe
+            if (paymentNotifications) {
+                paymentNotifications.stopListening();
+            }
+            
+            console.log('🔔 Iniciando notificaciones para QR:', qrId);
+            paymentNotifications = new PaymentNotifications();
+            
+            paymentNotifications.listenForPayment(qrId, {
+                onPaymentSuccess: function(paymentData) {
+                    console.log('🎉 ¡Pago recibido!', paymentData);
+                    
+                    // Actualizar el estado visual
+                    $('#payment-status').html(`
+                        <div class="alert alert-success">
+                            <h5><i class="bi bi-check-circle-fill"></i> ¡Pago Recibido!</h5>
+                            <p class="mb-1"><strong>Monto:</strong> ${paymentData.currency} ${paymentData.amount}</p>
+                            <p class="mb-1"><strong>Fecha:</strong> ${new Date(paymentData.payment_date).toLocaleString()}</p>
+                            <p class="mb-0">El pago ha sido procesado exitosamente.</p>
+                        </div>
+                    `);
+                    
+                    // Cambiar el botón de cerrar modal
+                    $('.modal-footer').html(`
+                        <button type="button" class="btn btn-success" onclick="window.location.reload()">
+                            <i class="bi bi-check-circle"></i> Continuar
+                        </button>
+                    `);
+                    
+                    // Auto-cerrar modal después de 3 segundos
+                    setTimeout(() => {
+                        $('#ligoQrModal').modal('hide');
+                        // Recargar página para mostrar el pago registrado
+                        window.location.reload();
+                    }, 3000);
+                },
+                
+                onError: function(error) {
+                    console.error('❌ Error en notificaciones:', error);
+                    $('#payment-status').html(`
+                        <div class="text-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <small>Error en notificaciones en tiempo real</small>
+                        </div>
+                    `);
+                },
+                
+                onConnectionEnd: function(data) {
+                    console.log('🔚 Conexión cerrada:', data.message);
+                    if (!paymentNotifications || paymentNotifications.getCurrentQrId()) {
+                        $('#payment-status').html(`
+                            <div class="text-muted">
+                                <i class="bi bi-clock"></i>
+                                <small>Tiempo de espera agotado. Refresque para verificar el pago.</small>
+                            </div>
+                        `);
+                    }
+                },
+                
+                onConnected: function(data) {
+                    console.log('✅ Conectado al stream de pagos:', data.message);
+                }
+            });
+        }
+
+        // Detener notificaciones cuando se cierre el modal
+        $('#ligoQrModal').on('hidden.bs.modal', function() {
+            if (paymentNotifications) {
+                console.log('🛑 Deteniendo notificaciones por cierre de modal');
+                paymentNotifications.stopListening();
+                paymentNotifications = null;
+            }
+        });
 
         // Inicializar Select2 para la búsqueda de facturas
         $('#invoice_search').select2({

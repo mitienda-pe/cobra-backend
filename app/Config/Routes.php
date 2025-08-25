@@ -126,6 +126,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     $routes->get('payments/generate-instalment-qr/(:num)', 'PaymentController::generateInstalmentQR/$1', ['namespace' => 'App\Controllers\Api']);
     // Backup: endpoint antiguo
     $routes->get('payments/generate-instalment-qr-backup/(:num)', 'LigoPaymentController::generateInstalmentQR/$1', ['namespace' => 'App\Controllers\Api']);
+    
+    // SSE Routes for real-time payment notifications
+    $routes->get('payments/stream/(:segment)', 'PaymentStreamController::stream/$1', ['namespace' => 'App\Controllers\Api']);
+    $routes->post('payments/test-event/(:segment)', 'PaymentStreamController::testEvent/$1', ['namespace' => 'App\Controllers\Api']);
 
     // Invoice Routes
     $routes->match(['get', 'options'], 'invoices', 'InvoiceController::index');
