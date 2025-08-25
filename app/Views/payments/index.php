@@ -48,6 +48,7 @@
                             <th>Fecha</th>
                             <th>Cliente</th>
                             <th>Factura</th>
+                            <th>Cuota</th>
                             <th>Monto</th>
                             <th>Método</th>
                             <th>Referencia</th>
@@ -62,6 +63,13 @@
                                 <td><?= date('d/m/Y H:i', strtotime($payment['payment_date'])) ?></td>
                                 <td><?= esc($payment['business_name'] ?? 'N/A') ?></td>
                                 <td><?= esc($payment['number'] ?? $payment['invoice_number'] ?? 'N/A') ?></td>
+                                <td>
+                                    <?php if (!empty($payment['instalment_number'])): ?>
+                                        <span class="badge bg-info"><?= $payment['instalment_number'] ?></span>
+                                    <?php else: ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td>S/ <?= number_format($payment['amount'], 2) ?></td>
                                 <td><?= esc($payment['payment_method']) ?></td>
                                 <td><?= esc($payment['reference_code']) ?></td>

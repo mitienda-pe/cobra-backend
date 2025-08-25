@@ -50,9 +50,10 @@ class PaymentController extends BaseController
         }
         
         // Build base query
-        $builder = $this->paymentModel->select('payments.*, invoices.invoice_number as invoice_number, invoices.currency, clients.business_name')
+        $builder = $this->paymentModel->select('payments.*, invoices.invoice_number as invoice_number, invoices.currency, clients.business_name, instalments.number as instalment_number')
             ->join('invoices', 'invoices.id = payments.invoice_id')
             ->join('clients', 'clients.id = invoices.client_id')
+            ->join('instalments', 'instalments.id = payments.instalment_id', 'left')
             ->where('payments.deleted_at IS NULL');
             
         // Add organization filter if not superadmin
