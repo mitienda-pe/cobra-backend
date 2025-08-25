@@ -42,6 +42,9 @@
       "Bash(git tag:*)"
     ],
     "deny": [],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "/Users/carlosvidal/Developer/cobra-app"
+    ]
   }
 }
