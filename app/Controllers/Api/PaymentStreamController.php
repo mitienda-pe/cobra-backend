@@ -101,6 +101,45 @@ class PaymentStreamController extends Controller
     }
     
     /**
+     * Simple stream test without cache dependency
+     */
+    public function testStream($qrId = null)
+    {
+        if (!$qrId) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'QR ID is required'
+            ]);
+        }
+        
+        // Set SSE headers
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache');
+        header('Connection: keep-alive');
+        header('X-Accel-Buffering: no');
+        
+        // Send immediate test response and close
+        echo "event: connected\n";
+        echo "data: " . json_encode(['qr_id' => $qrId, 'message' => 'Test stream working']) . "\n\n";
+        
+        if (ob_get_level()) {
+            ob_flush();
+        }
+        flush();
+        
+        // Close immediately
+        echo "event: close\n";
+        echo "data: " . json_encode(['message' => 'Test completed']) . "\n\n";
+        
+        if (ob_get_level()) {
+            ob_flush();
+        }
+        flush();
+        
+        exit();
+    }
+    
+    /**
      * Test endpoint to simulate payment completion
      * Usage: POST /api/payments/test-event/{qr_id}
      */

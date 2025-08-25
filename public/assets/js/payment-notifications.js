@@ -44,6 +44,7 @@ class PaymentNotifications {
         // Handle connection opened
         this.eventSource.onopen = (event) => {
             console.log('🔗 Payment notification connection established for QR:', qrId);
+            console.log('🔗 Stream URL:', streamUrl);
         };
 
         // Handle connected event
@@ -90,6 +91,8 @@ class PaymentNotifications {
         // Handle connection errors
         this.eventSource.onerror = (event) => {
             console.error('❌ Payment notification error:', event);
+            console.error('❌ EventSource state:', this.eventSource.readyState);
+            console.error('❌ Stream URL:', streamUrl);
             
             if (this.callbacks.onError) {
                 this.callbacks.onError(event);

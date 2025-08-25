@@ -48,6 +48,7 @@ $routes->match(['options'], 'webhooks/ligo', '\App\Controllers\Api\LigoWebhookCo
 
 // SSE Routes for real-time payment notifications (Public)
 $routes->get('sse/stream/(:segment)', '\App\Controllers\Api\PaymentStreamController::stream/$1');
+$routes->get('sse/test-stream/(:segment)', '\App\Controllers\Api\PaymentStreamController::testStream/$1');
 $routes->post('sse/test/(:segment)', '\App\Controllers\Api\PaymentStreamController::testEvent/$1');
 $routes->get('sse/check', '\App\Controllers\Api\PaymentStreamController::testConnection');
 
