@@ -444,6 +444,31 @@
 
         // Variable global para el listener de notificaciones
         let paymentNotifications = null;
+        
+        // Función para redirigir al detalle del pago
+        function redirectToPaymentDetail(paymentId) {
+            if (!paymentId) {
+                console.warn('No payment ID provided, reloading page instead');
+                window.location.reload();
+                return;
+            }
+            
+            // Buscar el pago para obtener su UUID
+            fetch(`/api/payments/id/${paymentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.payment && data.payment.uuid) {
+                        window.location.href = `/payments/view/${data.payment.uuid}`;
+                    } else {
+                        console.warn('Payment UUID not found, reloading page instead');
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching payment details:', error);
+                    window.location.reload();
+                });
+        }
 
         // Función para iniciar notificaciones en tiempo real
         function startPaymentNotifications(qrId) {
@@ -473,16 +498,15 @@
                     
                     // Cambiar el botón de cerrar modal
                     $('.modal-footer').html(`
-                        <button type="button" class="btn btn-success" onclick="window.location.reload()">
-                            <i class="bi bi-check-circle"></i> Continuar
+                        <button type="button" class="btn btn-success" onclick="redirectToPaymentDetail('${paymentData.payment_id}')">
+                            <i class="bi bi-eye"></i> Ver Detalle del Pago
                         </button>
                     `);
                     
-                    // Auto-cerrar modal después de 3 segundos
+                    // Auto-cerrar modal después de 3 segundos y redirigir
                     setTimeout(() => {
                         $('#ligoQrModal').modal('hide');
-                        // Recargar página para mostrar el pago registrado
-                        window.location.reload();
+                        redirectToPaymentDetail(paymentData.payment_id);
                     }, 3000);
                 },
                 
@@ -507,14 +531,14 @@
                             `);
                             
                             $('.modal-footer').html(`
-                                <button type="button" class="btn btn-success" onclick="window.location.reload()">
-                                    <i class="bi bi-check-circle"></i> Continuar
+                                <button type="button" class="btn btn-success" onclick="redirectToPaymentDetail('${paymentData.payment_id}')">
+                                    <i class="bi bi-eye"></i> Ver Detalle del Pago
                                 </button>
                             `);
                             
                             setTimeout(() => {
                                 $('#ligoQrModal').modal('hide');
-                                window.location.reload();
+                                redirectToPaymentDetail(paymentData.payment_id);
                             }, 3000);
                         },
                         onError: function(error) {

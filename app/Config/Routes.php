@@ -151,6 +151,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api', 'filter' => 'apiAut
     // Payment Routes
     $routes->match(['get', 'options'], 'payments', 'PaymentController::index');
     $routes->match(['get', 'options'], 'payments/(:segment)', 'PaymentController::show/$1');
+    $routes->get('payments/id/(:num)', 'PaymentController::getPaymentById/$1');
     $routes->match(['get', 'options'], 'payments/external/(:segment)', 'PaymentController::findByExternalId');
     
     // Instalment Routes

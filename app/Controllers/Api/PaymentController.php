@@ -511,6 +511,44 @@ class PaymentController extends ResourceController
     }
     
     /**
+     * Get payment by ID with UUID for redirection
+     */
+    public function getPaymentById($paymentId)
+    {
+        try {
+            $paymentModel = new \App\Models\PaymentModel();
+            $payment = $paymentModel->find($paymentId);
+            
+            if (!$payment) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Payment not found'
+                ])->setStatusCode(404);
+            }
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'payment' => [
+                    'id' => $payment['id'],
+                    'uuid' => $payment['uuid'],
+                    'amount' => $payment['amount'],
+                    'currency' => $payment['currency'],
+                    'status' => $payment['status'],
+                    'payment_method' => $payment['payment_method'],
+                    'payment_date' => $payment['payment_date']
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            log_message('error', 'API PaymentController: Exception in getPaymentById: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error retrieving payment'
+            ])->setStatusCode(500);
+        }
+    }
+    
+    /**
      * List payments based on user role and filters
      */
     public function index()
