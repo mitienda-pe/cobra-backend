@@ -132,4 +132,112 @@ class PaymentNotificationController extends ResourceController
         
         return $payment;
     }
+
+    /**
+     * Endpoint para simular webhook de pago completado (solo para testing)
+     * POST /api/payments/webhook-test
+     */
+    public function webhookTest()
+    {
+        // Solo permitir en modo desarrollo
+        if (ENVIRONMENT === 'production') {
+            return $this->fail('Not allowed in production', 403);
+        }
+
+        $data = $this->request->getJSON(true);
+        $orderId = $data['order_id'] ?? null;
+        
+        if (!$orderId) {
+            return $this->fail('order_id is required', 400);
+        }
+
+        log_message('info', "🧪 WEBHOOK TEST: Simulando pago completado para order_id: {$orderId}");
+
+        $db = \Config\Database::connect();
+        
+        try {
+            // Buscar si ya existe un pago para este order_id
+            $builder = $db->table('payments');
+            $existingPayment = $builder->select('id, status, reference_code')
+                                      ->groupStart()
+                                          ->where('reference_code', $orderId)
+                                          ->orWhere('uuid', $orderId)
+                                          ->orWhere('external_id', $orderId)
+                                      ->groupEnd()
+                                      ->where('deleted_at IS NULL')
+                                      ->get()
+                                      ->getRowArray();
+
+            if ($existingPayment) {
+                // Actualizar pago existente a completed
+                $updateData = [
+                    'status' => 'completed',
+                    'payment_method' => 'qr',
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                $builder->where('id', $existingPayment['id'])->update($updateData);
+                
+                log_message('info', "🟢 WEBHOOK TEST: Pago actualizado - ID: {$existingPayment['id']}, order_id: {$orderId}");
+                
+                return $this->respond([
+                    'success' => true,
+                    'message' => 'Payment marked as completed',
+                    'order_id' => $orderId,
+                    'payment_id' => $existingPayment['id'],
+                    'action' => 'updated'
+                ]);
+            } else {
+                // Crear nuevo pago simulado
+                $paymentData = [
+                    'invoice_id' => 1, // ID dummy
+                    'amount' => $data['amount'] ?? 10.00,
+                    'payment_method' => 'qr',
+                    'reference_code' => $orderId,
+                    'external_id' => $orderId,
+                    'payment_date' => date('Y-m-d H:i:s'),
+                    'status' => 'completed',
+                    'notes' => json_encode([
+                        'test_webhook' => true,
+                        'order_id' => $orderId,
+                        'simulated_at' => date('Y-m-d H:i:s')
+                    ]),
+                    'uuid' => $this->generateUUID(),
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                $builder->insert($paymentData);
+                $paymentId = $db->insertID();
+
+                log_message('info', "🟢 WEBHOOK TEST: Nuevo pago creado - ID: {$paymentId}, order_id: {$orderId}");
+
+                return $this->respond([
+                    'success' => true,
+                    'message' => 'Test payment created as completed',
+                    'order_id' => $orderId,
+                    'payment_id' => $paymentId,
+                    'action' => 'created'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', "❌ WEBHOOK TEST Error: " . $e->getMessage());
+            return $this->fail('Database error: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Generar UUID simple para testing
+     */
+    private function generateUUID()
+    {
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+    }
 }
