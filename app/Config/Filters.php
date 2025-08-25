@@ -43,6 +43,7 @@ class Filters extends BaseConfig
                 'payment/ligo/*',
                 'ligo/hashes',
                 'webhooks/ligo*',
+                'webhook-test',
                 'login*',
                 'logout'
             ]],
