@@ -338,12 +338,14 @@
                             const qrString = response.qr_data;
                             
                             // Buscar el patrón del id_qr en el string QR (después de "3022")
-                            const match = qrString.match(/3022(\d{25,30})/);
+                            console.log('🔍 String QR para análisis:', qrString.substring(0, 100) + '...');
+                            const match = qrString.match(/3022(\d{20,30})/);
                             if (match) {
                                 qrId = match[1];
                                 console.log('✅ QR ID extraído del string QR:', qrId);
                             } else {
-                                console.log('⚠️ No se pudo extraer QR ID del string, usando order_id');
+                                console.log('⚠️ No se pudo extraer QR ID del string con regex, intentando buscar manualmente...');
+                                console.log('QR String completo:', qrString);
                                 qrId = response.order_id; // Fallback
                             }
                         }
