@@ -27,8 +27,15 @@ class PaymentStreamController extends Controller
         set_time_limit(0);
         ignore_user_abort(false);
         
-        $cache = \Config\Services::cache();
-        $maxTime = 300; // 5 minutes max connection
+        // Initialize cache safely
+        try {
+            $cache = \Config\Services::cache();
+        } catch (\Exception $e) {
+            log_message('error', "🔴 [SSE] Cache service error: " . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON(['error' => 'Cache service unavailable']);
+        }
+        
+        $maxTime = 30; // 30 seconds max connection for testing
         $startTime = time();
         
         log_message('info', "🔴 [SSE] Client connected for QR: $qrId");
