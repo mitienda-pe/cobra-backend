@@ -108,6 +108,49 @@ class PaymentStreamController extends Controller
     }
     
     /**
+     * Check for cached payment event (for polling)
+     */
+    public function checkPayment($qrId = null)
+    {
+        if (!$qrId) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'QR ID is required'
+            ]);
+        }
+        
+        try {
+            $cache = \Config\Services::cache();
+            $paymentEvent = $cache->get("payment_event_$qrId");
+            
+            if ($paymentEvent) {
+                log_message('info', "✅ [POLLING] Payment event found for QR: $qrId");
+                
+                // Clean up cache after finding
+                $cache->delete("payment_event_$qrId");
+                
+                return $this->response->setJSON([
+                    'success' => true,
+                    'payment_found' => true,
+                    'payment_data' => $paymentEvent
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'payment_found' => false,
+                    'message' => 'No payment event found'
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', "❌ [POLLING] Error checking payment: " . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Error checking payment: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    /**
      * Simple stream test without cache dependency
      */
     public function testStream($qrId = null)

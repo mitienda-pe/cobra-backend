@@ -195,6 +195,7 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <!-- Payment notifications for real-time updates -->
 <script src="<?= base_url('assets/js/payment-notifications.js') ?>"></script>
+<script src="<?= base_url('assets/js/payment-polling.js') ?>"></script>
 <script>
     $(document).ready(function() {
         // Manejar cambio en el método de pago para mostrar el modal de QR si se selecciona
@@ -379,6 +380,8 @@
             }
             
             console.log('🔔 Iniciando notificaciones para QR:', qrId);
+            
+            // Try SSE first, fallback to polling
             paymentNotifications = new PaymentNotifications();
             
             paymentNotifications.listenForPayment(qrId, {
@@ -411,13 +414,58 @@
                 },
                 
                 onError: function(error) {
-                    console.error('❌ Error en notificaciones:', error);
-                    $('#payment-status').html(`
-                        <div class="text-warning">
-                            <i class="bi bi-exclamation-triangle"></i>
-                            <small>Error en notificaciones en tiempo real</small>
-                        </div>
-                    `);
+                    console.error('❌ Error en SSE, cambiando a polling:', error);
+                    
+                    // Fallback to polling
+                    paymentNotifications.stopListening();
+                    paymentNotifications = new PaymentPolling();
+                    
+                    paymentNotifications.listenForPayment(qrId, {
+                        onPaymentSuccess: function(paymentData) {
+                            console.log('🎉 ¡Pago recibido via polling!', paymentData);
+                            
+                            $('#payment-status').html(`
+                                <div class="alert alert-success">
+                                    <h5><i class="bi bi-check-circle-fill"></i> ¡Pago Recibido!</h5>
+                                    <p class="mb-1"><strong>Monto:</strong> ${paymentData.currency} ${paymentData.amount}</p>
+                                    <p class="mb-1"><strong>Fecha:</strong> ${new Date(paymentData.payment_date).toLocaleString()}</p>
+                                    <p class="mb-0">El pago ha sido procesado exitosamente.</p>
+                                </div>
+                            `);
+                            
+                            $('.modal-footer').html(`
+                                <button type="button" class="btn btn-success" onclick="window.location.reload()">
+                                    <i class="bi bi-check-circle"></i> Continuar
+                                </button>
+                            `);
+                            
+                            setTimeout(() => {
+                                $('#ligoQrModal').modal('hide');
+                                window.location.reload();
+                            }, 3000);
+                        },
+                        onError: function(error) {
+                            console.error('❌ Error en polling:', error);
+                            $('#payment-status').html(`
+                                <div class="text-warning">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    <small>Error en notificaciones (SSE y Polling)</small>
+                                </div>
+                            `);
+                        },
+                        onConnectionEnd: function(data) {
+                            console.log('🔚 Polling terminado:', data.message);
+                        },
+                        onConnected: function(data) {
+                            console.log('✅ Polling iniciado:', data.message);
+                            $('#payment-status').html(`
+                                <div class="d-flex align-items-center text-info">
+                                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                    <span>Escuchando pagos (Polling)...</span>
+                                </div>
+                            `);
+                        }
+                    });
                 },
                 
                 onConnectionEnd: function(data) {
