@@ -263,6 +263,8 @@
                 dataType: 'json',
                 success: function(response) {
                     console.log('Respuesta del servidor:', response);
+                    console.log('QR ID disponible:', response.qr_id);
+                    console.log('QR ID en qr_data:', response.qr_data ? JSON.parse(response.qr_data).id_qr : 'No disponible');
 
                     // Siempre mostrar el QR si está disponible, incluso si hay errores
                     if (response.qr_image_url) {
@@ -319,8 +321,24 @@
                         $('#ligoQrModalBody').html(modalContent);
                         
                         // Iniciar escucha de notificaciones en tiempo real
-                        if (response.qr_id) {
-                            startPaymentNotifications(response.qr_id);
+                        let qrId = response.qr_id;
+                        
+                        // Si no hay qr_id directo, extraerlo de qr_data
+                        if (!qrId && response.qr_data) {
+                            try {
+                                const qrDataObj = JSON.parse(response.qr_data);
+                                qrId = qrDataObj.id_qr;
+                                console.log('QR ID extraído de qr_data:', qrId);
+                            } catch (e) {
+                                console.error('Error parseando qr_data:', e);
+                            }
+                        }
+                        
+                        if (qrId) {
+                            console.log('🔔 Iniciando notificaciones para QR ID:', qrId);
+                            startPaymentNotifications(qrId);
+                        } else {
+                            console.warn('⚠️ No se pudo obtener QR ID para notificaciones');
                         }
                     } else if (!response.success) {
                         // Mostrar error cuando no hay QR y la respuesta indica error
