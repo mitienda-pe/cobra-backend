@@ -37,6 +37,7 @@ class Filters extends BaseConfig
             'csrf' => ['except' => [
                 'api/*',
                 'api',
+                'sse/*',
                 'clients/import*',
                 'invoices/import*',
                 'payment/ligo/*',
