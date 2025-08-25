@@ -36,9 +36,10 @@ class DisableCsrfHook
             'App\Controllers\Api\AuthController::refreshToken',
         ];
 
-        // Always disable CSRF for API routes
-        if (strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false) {
-            log_message('debug', "Disabling CSRF for API route: " . ($_SERVER['REQUEST_URI'] ?? ''));
+        // Always disable CSRF for API routes and SSE routes
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        if (strpos($requestUri, '/api/') !== false || strpos($requestUri, '/sse/') !== false) {
+            log_message('debug', "Disabling CSRF for API/SSE route: " . $requestUri);
             $security = \Config\Services::security();
             
             // Try both methods
