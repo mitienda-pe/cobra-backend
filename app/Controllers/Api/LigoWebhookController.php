@@ -210,13 +210,14 @@ class LigoWebhookController extends ResourceController
             'currency' => $payload->transferDetails->currency ?? 'PEN',
             'payment_method' => 'qr',
             'reference_code' => $instructionId,
-            'external_id' => $instructionId,
+            'external_id' => $idQr, // Usar idQr como external_id para notificaciones móviles
             'payment_date' => $payload->transferDetails->transferDate ?? date('Y-m-d H:i:s'),
             'status' => 'completed',
             'ligo_environment' => $environment, // Save which Ligo credentials environment was used
             'notes' => json_encode([
                 'instruction_id' => $instructionId,
                 'id_qr' => $idQr,
+                'order_id' => $idQr, // Agregar order_id para búsquedas de notificaciones móviles
                 'unstructured_information' => $payload->unstructuredInformation ?? '',
                 'payer_info' => $payload->originDetails ?? [],
                 'transfer_details' => $payload->transferDetails ?? [],
