@@ -10,12 +10,14 @@ info:
     * Consultar facturas pendientes de cobro
     * Consultar cuotas pendientes de pago
     * Registrar pagos con geolocalización
+    * Generar códigos QR para pagos con Ligo
+    * Recibir notificaciones en tiempo real de pagos QR (SSE + Polling)
     * Consultar historiales de pago
     
     La API utiliza autenticación basada en tokens y sigue el principio
     de filtrado por organización para garantizar que cada usuario solo acceda a los
     datos que le corresponden según su rol y asignaciones.
-  version: 1.5.0
+  version: 1.6.0
   contact:
     email: soporte@sistemacobranzas.com
 servers:
@@ -822,6 +824,105 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /payments/id/{payment_id}:
+    get:
+      summary: Obtener pago por ID numérico
+      description: Obtiene información básica de un pago usando su ID numérico (para redirecciones)
+      tags:
+        - Pagos
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: payment_id
+          required: true
+          schema:
+            type: integer
+          description: ID numérico del pago
+      responses:
+        '200':
+          description: Pago obtenido correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  payment:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 123
+                      uuid:
+                        type: string
+                        format: uuid
+                        example: "550e8400-e29b-41d4-a716-446655440000"
+                      amount:
+                        type: number
+                        format: float
+                        example: 150.75
+                      currency:
+                        type: string
+                        example: "PEN"
+                      status:
+                        type: string
+                        enum: [pending, completed, failed, cancelled]
+                        example: "completed"
+                      payment_method:
+                        type: string
+                        enum: [cash, transfer, pos, qr, check, other]
+                        example: "qr"
+                      payment_date:
+                        type: string
+                        format: date-time
+                        example: "2024-01-15T14:30:00Z"
+        '401':
+          description: No autorizado
+        '404':
+          description: Pago no encontrado
+        '500':
+          description: Error interno del servidor
+  /payments/external/{external_id}:
+    get:
+      summary: Buscar pago por ID externo
+      description: |
+        Busca un pago usando su ID externo (external_id).
+        Este endpoint es útil para encontrar pagos QR usando el ID EMV de 20 dígitos
+        que se guarda como external_id cuando llega el webhook de Ligo.
+      tags:
+        - Pagos
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: external_id
+          required: true
+          schema:
+            type: string
+          description: ID externo del pago (ej. ID EMV para pagos QR)
+          example: "25082609210837456280"
+      responses:
+        '200':
+          description: Pago encontrado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  payment:
+                    $ref: '#/components/schemas/Payment'
+        '401':
+          description: No autorizado
+        '404':
+          description: Pago no encontrado
+        '500':
+          description: Error interno del servidor
   /portfolio/invoices:
     get:
       summary: Obtener facturas del portafolio
@@ -1202,6 +1303,160 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /payment-stream/{order_id}:
+    get:
+      summary: Stream de notificaciones de pago (SSE)
+      description: |
+        Endpoint de Server-Sent Events (SSE) para recibir notificaciones en tiempo real
+        cuando se completa un pago QR. La aplicación móvil se conecta a este stream
+        después de generar un QR para recibir confirmación automática del pago.
+      tags:
+        - Pagos
+        - Notificaciones
+      parameters:
+        - in: path
+          name: order_id
+          required: true
+          schema:
+            type: string
+          description: ID del QR/orden para monitorear (ID EMV de 20 dígitos para QR)
+          example: "25082609210837456280"
+      responses:
+        '200':
+          description: Stream de eventos establecido
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  Eventos SSE en formato:
+                  - event: connected - Conexión establecida
+                  - event: payment_success - Pago completado exitosamente
+                  - event: heartbeat - Ping periódico
+                  - event: close - Cierre de conexión
+                example: |
+                  event: payment_success
+                  data: {"order_id":"25082609210837456280","amount":150.75,"status":"completed"}
+        '404':
+          description: Orden no encontrada
+  /payment-events/{order_id}:
+    get:
+      summary: Consulta estado del pago (Polling)
+      description: |
+        Endpoint de polling para consultar el estado de un pago QR.
+        Se usa como fallback cuando SSE no está disponible.
+        La aplicación móvil consulta este endpoint cada 3 segundos.
+      tags:
+        - Pagos
+        - Notificaciones
+      parameters:
+        - in: path
+          name: order_id
+          required: true
+          schema:
+            type: string
+          description: ID del QR/orden para consultar (ID EMV de 20 dígitos para QR)
+          example: "25082609210837456280"
+      responses:
+        '200':
+          description: Estado del pago obtenido
+          content:
+            application/json:
+              schema:
+                type: object
+                oneOf:
+                  - properties:
+                      status:
+                        type: string
+                        enum: [pending]
+                        example: "pending"
+                    required: [status]
+                  - properties:
+                      status:
+                        type: string
+                        enum: [completed]
+                        example: "completed"
+                      order_id:
+                        type: string
+                        example: "25082609210837456280"
+                      payment_id:
+                        type: string
+                        format: uuid
+                        example: "550e8400-e29b-41d4-a716-446655440000"
+                      amount:
+                        type: number
+                        format: float
+                        example: 150.75
+                      payment_method:
+                        type: string
+                        example: "qr"
+                      timestamp:
+                        type: string
+                        format: date-time
+                        example: "2025-01-15T14:30:00Z"
+                      message:
+                        type: string
+                        example: "Payment completed successfully!"
+                    required: [status, order_id, payment_id, amount]
+        '404':
+          description: Orden no encontrada
+  /webhook-test:
+    post:
+      summary: Simular webhook de pago completado (Testing)
+      description: |
+        Endpoint para testing que simula un webhook de pago completado.
+        Marca un order_id como completado en la base de datos para probar
+        el flujo de notificaciones sin necesidad de realizar un pago real.
+      tags:
+        - Pagos
+        - Testing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: string
+                  description: ID del QR/orden a marcar como completado
+                  example: "25082609210837456280"
+                amount:
+                  type: number
+                  format: float
+                  description: Monto del pago simulado
+                  example: 150.75
+              required:
+                - order_id
+                - amount
+      responses:
+        '200':
+          description: Pago simulado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Test payment created as completed"
+                  order_id:
+                    type: string
+                    example: "25082609210837456280"
+                  payment_id:
+                    type: integer
+                    example: 123
+                  action:
+                    type: string
+                    enum: [created, updated]
+                    example: "created"
+        '400':
+          description: Datos inválidos
+        '500':
+          description: Error interno del servidor
   /ligo/generate-qr/{instalment_id}:
     get:
       summary: Generar código QR para pago de cuota con Ligo
