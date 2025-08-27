@@ -511,39 +511,82 @@ class PaymentController extends ResourceController
     }
     
     /**
-     * Get payment by ID with UUID for redirection
+     * Get payment by ID with complete details including client and invoice info
      */
     public function getPaymentById($paymentId)
     {
         try {
-            $paymentModel = new \App\Models\PaymentModel();
-            $payment = $paymentModel->find($paymentId);
+            log_message('info', '[PaymentController] Getting payment by ID: ' . $paymentId);
+            
+            // Get payment with all related data using JOIN query similar to getByOrganization
+            $db = \Config\Database::connect();
+            $builder = $db->table('payments p');
+            $builder->select('p.*, i.invoice_number, i.concept, i.currency, i.organization_id, ' . 
+                           'c.business_name, c.document_number as client_ruc, ' .
+                           'COALESCE(u.name, "N/A") as collector_name, ' .
+                           'inst.number as instalment_number, inst.due_date as instalment_due_date, inst.id as instalment_id');
+            $builder->join('invoices i', 'p.invoice_id = i.id');
+            $builder->join('clients c', 'i.client_id = c.id');
+            $builder->join('users u', 'p.user_id = u.id', 'left');
+            $builder->join('instalments inst', 'p.instalment_id = inst.id', 'left');
+            $builder->where('p.id', $paymentId);
+            $builder->where('p.deleted_at IS NULL');
+            
+            $payment = $builder->get()->getRowArray();
             
             if (!$payment) {
+                log_message('warning', '[PaymentController] Payment not found: ' . $paymentId);
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Payment not found'
                 ])->setStatusCode(404);
             }
             
+            log_message('info', '[PaymentController] Payment found: ' . json_encode($payment));
+            
+            // Format payment data to match the mobile app expectations
+            $formattedPayment = [
+                'id' => $payment['id'],
+                'uuid' => $payment['uuid'] ?? null,
+                'external_id' => $payment['external_id'] ?? null,
+                'amount' => floatval($payment['amount']),
+                'currency' => $payment['currency'] ?? 'PEN',
+                'status' => $payment['status'],
+                'payment_method' => $payment['payment_method'],
+                'payment_date' => $payment['payment_date'],
+                'reference_code' => $payment['reference_code'] ?? null,
+                'notes' => $payment['notes'] ?? null,
+                'created_at' => $payment['created_at'],
+                'updated_at' => $payment['updated_at'],
+                
+                // Invoice information
+                'invoice_id' => $payment['invoice_id'],
+                'invoice_number' => $payment['invoice_number'] ?? 'N/A',
+                'invoice_concept' => $payment['concept'] ?? '',
+                
+                // Client information
+                'client_business_name' => $payment['business_name'] ?? 'N/A',
+                'client_ruc' => $payment['client_ruc'] ?? 'N/A',
+                
+                // Instalment information (if applicable)
+                'instalment_id' => $payment['instalment_id'],
+                'instalment_number' => $payment['instalment_number'],
+                'instalment_due_date' => $payment['instalment_due_date'],
+                
+                // Collector information
+                'collector_name' => $payment['collector_name'] ?? 'N/A'
+            ];
+            
             return $this->response->setJSON([
                 'success' => true,
-                'payment' => [
-                    'id' => $payment['id'],
-                    'uuid' => $payment['uuid'],
-                    'amount' => $payment['amount'],
-                    'currency' => $payment['currency'],
-                    'status' => $payment['status'],
-                    'payment_method' => $payment['payment_method'],
-                    'payment_date' => $payment['payment_date']
-                ]
+                'payment' => $formattedPayment
             ]);
             
         } catch (\Exception $e) {
             log_message('error', 'API PaymentController: Exception in getPaymentById: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Error retrieving payment'
+                'message' => 'Error retrieving payment: ' . $e->getMessage()
             ])->setStatusCode(500);
         }
     }
